@@ -30,7 +30,7 @@ body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);font
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
-svg.i{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
+svg.i{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block;pointer-events:none}
 
 /* ---------- estructura ---------- */
 .app{display:grid;grid-template-columns:224px 1fr;min-height:100vh}
@@ -43,11 +43,17 @@ svg.i{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stro
 .nav button{display:flex;align-items:center;gap:13px;width:100%;background:none;border:0;color:#AEB7C4;padding:13px 14px;border-radius:10px;cursor:pointer;text-align:left;font-weight:500;font-size:15px;position:relative;min-height:48px}
 .nav button:hover{background:#1D2431;color:#fff}
 .nav button.on{background:var(--primary);color:#fff;font-weight:600}
+.nav .nav-sep{height:1px;background:#262E3B;margin:10px 6px}
+.nav button.sec{padding:9px 14px;min-height:38px;font-size:13.5px;color:#8891A1;font-weight:500}
+.nav button.sec svg.i{width:16px;height:16px}
+.nav button.sec:hover{background:#1D2431;color:#D6DBE3}
+.nav button.sec.on{background:#252D3A;color:#fff}
 .nav .ic{width:20px;text-align:center;flex:none;display:flex}
 .nav .tag{margin-left:auto;font-size:12px;font-weight:700;background:var(--rojo);color:#fff;min-width:20px;height:20px;padding:0 6px;border-radius:99px;display:flex;align-items:center;justify-content:center}
 .rail-foot{padding:14px 18px;border-top:1px solid #262E3B;font-size:12px;color:#7C8698;line-height:1.6}
 .rail-foot .estado{display:flex;align-items:center;gap:6px;margin-top:4px}
 .rail-foot .dot{width:7px;height:7px;border-radius:99px;background:var(--verde);flex:none}
+.rail-foot .modo-caja{display:flex;align-items:center;gap:6px;justify-content:space-between;margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #262E3B}
 .main{padding:28px 32px 70px;max-width:1500px;width:100%}
 .head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
 h1{font-size:27px;margin:0;letter-spacing:-.02em;font-weight:700}
@@ -213,6 +219,40 @@ tbody tr:last-child td{border-bottom:0}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 
+/* ---------- dashboards del resumen ---------- */
+.barra-apilada{display:flex;height:12px;border-radius:99px;overflow:hidden;background:#EFF2F6;margin-bottom:18px}
+.barra-apilada>div{height:100%}
+.leyenda{display:flex;flex-direction:column;gap:11px}
+.leyenda-item{display:flex;align-items:center;gap:10px;font-size:14.5px}
+.leyenda-item .punto{width:10px;height:10px;border-radius:99px;flex:none}
+.leyenda-item b{margin-left:auto;font-weight:600}
+.leyenda-item .pct{color:var(--muted);font-size:13px;min-width:38px;text-align:right;font-family:var(--mono)}
+.nota-dash{background:var(--primary-l);color:var(--ink-2);padding:13px 15px;border-radius:10px;font-size:14px;line-height:1.6}
+.kpi small.formula,.formula{display:block;color:var(--muted);font-size:12.5px;line-height:1.6;margin-top:5px}
+.formula .num{color:var(--txt);font-weight:600}
+.margen-box{background:#F7F9FB;border:1px solid var(--line);border-radius:11px;padding:15px 16px}
+.margen-box .margen-tit{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+.margen-box>b{display:block;font-family:var(--mono);font-size:23px;font-weight:600;letter-spacing:-.02em;margin-top:6px;color:var(--verde-d)}
+.margen-pct{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.graf-horas{display:flex;align-items:flex-end;gap:2px;height:150px}
+.hora-col{flex:1;display:flex;align-items:flex-end;min-width:0}
+.hora-barra{width:100%;border-radius:3px 3px 0 0}
+.graf-ejes{display:flex;justify-content:space-between;margin-top:8px;font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.rank{display:flex;flex-direction:column;gap:15px}
+.rank-fila{display:flex;align-items:flex-start;gap:13px}
+.rank-n{font-family:var(--mono);font-size:13px;color:var(--muted);font-weight:600;min-width:16px;padding-top:2px}
+.rank-cuerpo{flex:1;min-width:0}
+.rank-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
+.rank-nom{font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-barra{height:7px;background:#EFF2F6;border-radius:99px;overflow:hidden}
+.rank-barra>div{height:100%;background:var(--verde);border-radius:99px}
+.rubros-box{display:flex;align-items:center;gap:32px;flex-wrap:wrap}
+.dona{width:170px;height:170px;border-radius:99px;position:relative;flex:none}
+.dona-centro{position:absolute;inset:30px;background:var(--paper);border-radius:99px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.dona-centro b{font-size:17px;letter-spacing:-.02em}
+.dona-centro span{font-size:11.5px;color:var(--muted)}
+@media (max-width:620px){ .rubros-box{gap:20px;justify-content:center} .dona{width:140px;height:140px} .dona-centro{inset:26px} }
+
 /* ---------- acceso ---------- */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
 .login-box{width:100%;max-width:380px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:32px 28px;box-shadow:0 18px 44px rgba(15,22,32,.1)}
@@ -266,8 +306,8 @@ const sb = (typeof supabase!=='undefined' && SUPABASE_URL.startsWith('http'))
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 const VACIA=()=>({
-  productos:[], clientes:[], ventas:[], movs:[], pagos:[], cierres:[], combos:[], egresos:[],
-  config:{nombre:'Mi kiosco', nroVenta:1, fondoCaja:0, fondoCajaCigarros:0, ultBackup:null, whatsappDueno:''}
+  productos:[], clientes:[], ventas:[], movs:[], pagos:[], cierres:[], combos:[], egresos:[], ajustesFiado:[],
+  config:{nombre:'Mi kiosco', nroVenta:1, fondoCaja:0, fondoCajaCigarros:0, ultBackup:null, whatsappDueno:'', pinDuenio:'', motivosEgresoExtra:[]}
 });
 let db=VACIA();
 let vista='vender';
@@ -372,6 +412,8 @@ const ICONS={
   historial:'<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/>',
   mas:'<path d="M12 5v14M5 12h14"/>',
   combo:'<rect x="3.5" y="8" width="17" height="12" rx="1.5"/><path d="M3.5 12h17"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/>',
+  resumen:'<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/>',
+  soporte:'<circle cx="12" cy="12" r="9"/><path d="M9.2 9.5a2.9 2.9 0 0 1 5.6 1c0 1.9-2.8 2.3-2.8 4"/><path d="M12 17.5h.01"/>',
 };
 const ic=(n,cls='i')=>`<svg class="${cls}" viewBox="0 0 24 24">${ICONS[n]||''}</svg>`;
 
@@ -399,6 +441,20 @@ function aviso(txt,tipo=''){
 const prod=id=>db.productos.find(p=>p.id===id);
 const cli=id=>db.clientes.find(c=>c.id===id);
 const bajo=p=>Number(p.stock)<=Number(p.stockMin);
+// para Reponer: los sueltos se excluyen porque no se le compran a nadie
+const seRepone=p=>bajo(p)&&!esSuelto(p);
+// cuánto conviene tener en góndola. Si no se cargó, se estima en el doble del mínimo.
+const deseado=p=>{ const d=Number(p.stockDeseado)||0; return d>0?d:Math.max(1,Number(p.stockMin)*2); };
+const faltante=p=>Math.max(0,deseado(p)-Number(p.stock));
+
+/* ── venta por unidad suelta (cigarrillos) ──
+   Un producto "suelto" apunta al atado del que sale (origenId) y sabe
+   cuántas unidades trae cada atado (porAtado). El stock de sueltos crece
+   al abrir un atado, no comprándolo al proveedor. */
+const esSuelto=p=>!!(p&&p.origenId);
+const atadoDe=p=>esSuelto(p)?prod(p.origenId):null;
+const porAtado=p=>Math.max(1,Number(p&&p.porAtado)||20);
+const sueltosDe=id=>db.productos.filter(x=>x.origenId===id);
 const rubros=()=>[...new Set(db.productos.map(p=>p.rubro).filter(Boolean))].sort();
 const FORMAS_BOTONES=['efectivo','transferencia','tarjeta','fiado'];
 const FORMAS={efectivo:'Efectivo',transferencia:'Transferencia',tarjeta:'Tarjeta',debito:'Tarjeta',credito:'Tarjeta',fiado:'Fiado',mixto:'Pago combinado'};
@@ -433,7 +489,7 @@ function modal({titulo,cuerpo,pie,ancho,alAbrir}){
     ${pie?`<div class="mod-f">${pie}</div>`:''}
   </div>`;
   document.body.appendChild(ov);
-  ov.addEventListener('click',e=>{ if(e.target===ov||e.target.hasAttribute('data-cerrar')) cerrarModal(); });
+  ov.addEventListener('click',e=>{ if(e.target===ov||(e.target.closest&&e.target.closest('[data-cerrar]'))) cerrarModal(); });
   alAbrir&&alAbrir(ov);
   return ov;
 }
@@ -449,6 +505,10 @@ function confirmar(titulo,texto,alAceptar,textoBoton='Confirmar',clase='rojo'){
 /* ═══════════════════════════════════════════════════════
    3. NAVEGACIÓN
    ═══════════════════════════════════════════════════════ */
+/* ── rol: 'duenio' ve todo, 'empleado' solo lo del mostrador ── */
+let rol='duenio';
+const esDuenio=()=>rol==='duenio';
+
 const VISTAS=[
   {id:'vender',   ic:'vender',   txt:'Vender'},
   {id:'productos',ic:'productos',txt:'Productos'},
@@ -456,17 +516,27 @@ const VISTAS=[
   {id:'reponer',  ic:'reponer',  txt:'Reponer'},
   {id:'fiado',    ic:'fiado',    txt:'Fiado'},
   {id:'caja',     ic:'caja',     txt:'Caja'},
-  {id:'backup',   ic:'backup',   txt:'Respaldo'}
+  {id:'resumen',  ic:'resumen',  txt:'Resumen', soloDuenio:true},
+  // secundarias: van al pie de la barra, más chicas
+  {id:'backup',   ic:'backup',   txt:'Respaldo', soloDuenio:true, secundaria:true},
+  {id:'soporte',  ic:'soporte',  txt:'Soporte', secundaria:true}
 ];
+const vistasVisibles=()=>VISTAS.filter(v=>!v.soloDuenio||esDuenio());
+
 function pintarNav(){
-  const faltan=db.productos.filter(bajo).length;
+  const faltan=db.productos.filter(seRepone).length;
   const deben=db.clientes.filter(c=>Number(c.saldo)>0.009).length;
-  $('#nav').innerHTML=VISTAS.map(v=>{
+  const visibles=vistasVisibles();
+  const boton=v=>{
     let tag='';
     if(v.id==='reponer'&&faltan) tag=`<span class="tag">${faltan}</span>`;
     if(v.id==='fiado'&&deben) tag=`<span class="tag">${deben}</span>`;
-    return `<button data-v="${v.id}" class="${vista===v.id?'on':''}"><span class="ic">${ic(v.ic)}</span>${v.txt}${tag}</button>`;
-  }).join('');
+    return `<button data-v="${v.id}" class="${vista===v.id?'on':''}${v.secundaria?' sec':''}"><span class="ic">${ic(v.ic)}</span>${v.txt}${tag}</button>`;
+  };
+  $('#nav').innerHTML=
+    visibles.filter(v=>!v.secundaria).map(boton).join('')
+    + `<div class="nav-sep"></div>`
+    + visibles.filter(v=>v.secundaria).map(boton).join('');
   $$('#nav button').forEach(b=>b.onclick=()=>ir(b.dataset.v));
   $('#brandName').textContent=db.config.nombre;
   const mk=$('#brandMk'); if(mk) mk.textContent=(db.config.nombre||'M').trim().slice(0,1).toUpperCase();
@@ -474,16 +544,59 @@ function pintarNav(){
 function pintarFoot(){
   const f=$('#railFoot'); if(!f) return;
   const okGuardado=guardando?'Guardando…':(sb?'Guardado en la nube':(tieneStorage?'Datos guardados':'Sin guardado automático'));
-  f.innerHTML=`${db.productos.length} productos · ${db.ventas.length} ventas
+  f.innerHTML=`
+    <div class="modo-caja">
+      <span class="pill ${esDuenio()?'info':'mute'}" style="font-size:11px">${esDuenio()?'Modo dueño':'Modo empleado'}</span>
+      <button class="btn text sm" id="btnRol" style="padding:2px 6px;color:#AEB7C4;font-size:11.5px">Cambiar</button>
+    </div>
+    ${db.productos.length} productos · ${db.ventas.length} ventas
     <div class="estado"><span class="dot" style="background:${(!sb&&!tieneStorage&&!guardando)?'var(--ambar)':'var(--verde)'}"></span>${okGuardado}</div>
     ${sesion?`<div style="margin-top:6px">${esc(sesion.user.email)}<br><button class="btn text sm" id="btnLogout" style="padding:2px 0;color:#AEB7C4">Cerrar sesión</button></div>`:''}`;
   const bl=$('#btnLogout'); if(bl) bl.onclick=cerrarSesion;
+  const br=$('#btnRol'); if(br) br.onclick=cambiarRol;
 }
-function ir(v){ vista=v; render(); }
+function cambiarRol(){
+  if(esDuenio()){
+    // pasar a empleado no pide nada: es bajar de permisos
+    rol='empleado';
+    if(!vistasVisibles().some(v=>v.id===vista)) vista='vender';
+    render();
+    aviso('Modo empleado activado — el resumen y la configuración quedan ocultos','ok');
+    return;
+  }
+  // volver a dueño pide el PIN, si hay uno configurado
+  if(!db.config.pinDuenio){
+    rol='duenio'; render();
+    aviso('Modo dueño activado. Poné un PIN en Respaldo para protegerlo','ok');
+    return;
+  }
+  modal({titulo:'Volver al modo dueño',
+    cuerpo:`<label class="f" for="pinIn">PIN del dueño</label>
+      <input id="pinIn" class="inp num" type="password" inputmode="numeric" placeholder="••••" autocomplete="off">
+      <div class="hint">Si no lo recordás, lo podés ver o cambiar entrando desde otro dispositivo con el modo dueño activo.</div>`,
+    pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okPin">Entrar</button>`,
+    alAbrir:ov=>{
+      const inp=$('#pinIn',ov); inp.focus();
+      const probar=()=>{
+        if(inp.value.trim()===String(db.config.pinDuenio)){
+          rol='duenio'; cerrarModal(); render(); aviso('Modo dueño activado','ok');
+        } else { aviso('PIN incorrecto','bad'); inp.value=''; inp.focus(); }
+      };
+      inp.onkeydown=e=>{ if(e.key==='Enter'){e.preventDefault();probar();} };
+      $('#okPin',ov).onclick=probar;
+    }});
+}
+function ir(v){
+  const def=VISTAS.find(x=>x.id===v);
+  if(def&&def.soloDuenio&&!esDuenio()){ aviso('Esa sección es solo para el dueño','bad'); return; }
+  vista=v; render();
+}
 function render(){
+  if(!vistasVisibles().some(v=>v.id===vista)) vista='vender';
   pintarNav(); pintarFoot();
   const m=$('#main');
-  ({vender:vVender,productos:vProductos,combos:vCombos,reponer:vReponer,fiado:vFiado,caja:vCaja,backup:vBackup}[vista])(m);
+  ({vender:vVender,resumen:vResumen,productos:vProductos,combos:vCombos,reponer:vReponer,
+    fiado:vFiado,caja:vCaja,backup:vBackup,soporte:vSoporte}[vista])(m);
   window.scrollTo(0,0);
 }
 
@@ -529,7 +642,34 @@ function agregarComboAlTicket(combo,cant=1){
 }
 function seleccionarProducto(p){
   if(!p) return;
-  if(p.unidad==='kg') pedirPeso(p); else agregarAlTicket(p,1);
+  if(p.unidad==='kg'){ pedirPeso(p); return; }
+  // si es un suelto y no queda ninguno, ofrecemos abrir un atado en el mismo paso
+  if(esSuelto(p)){
+    const yaEnTicket=(ticket.find(i=>i.id===p.id)||{}).cant||0;
+    if(Number(p.stock)-yaEnTicket<=0){
+      const a=atadoDe(p);
+      if(a&&Number(a.stock)>0){ ofrecerAbrirAtado(p,a); return; }
+      if(a){ aviso(`No quedan sueltos ni atados de ${a.nombre}`,'bad'); }
+    }
+  }
+  agregarAlTicket(p,1);
+}
+function ofrecerAbrirAtado(s,a){
+  const upa=porAtado(s);
+  modal({titulo:'No quedan sueltos',
+    cuerpo:`<p style="margin:0;line-height:1.7">Se terminaron los <b>${esc(s.nombre)}</b>, pero te quedan <b>${fmtCant(a,a.stock)}</b> de <b>${esc(a.nombre)}</b>.<br><br>¿Abrimos uno? Van a entrar <b>${upa} unidades</b> al stock de sueltos y sigo cargando la venta.</p>`,
+    pie:`<button class="btn ghost" data-cerrar>No, cancelar</button><button class="btn verde" id="okAbrirYa">Abrir y vender</button>`,
+    alAbrir:ov=>{
+      $('#okAbrirYa',ov).focus();
+      $('#okAbrirYa',ov).onclick=()=>{
+        if(abrirAtados(s.id,1,true)){
+          cerrarModal();
+          agregarAlTicket(prod(s.id),1);
+          aviso(`Atado abierto · +${upa} sueltos`,'ok');
+          $('#scan')&&$('#scan').focus();
+        }
+      };
+    }});
 }
 function pedirPeso(p){
   modal({titulo:'¿Cuánto pesa? — '+p.nombre,
@@ -917,6 +1057,7 @@ function vProductos(m){
   <div class="head">
     <div><h1>Productos</h1><div class="sub">${db.productos.length} cargados · ${db.productos.filter(bajo).length} en el mínimo o por debajo</div></div>
     <div class="row">
+      <button class="btn ghost" id="bPrecios">Cambiar precios</button>
       <button class="btn ghost" id="bImportar">Importar Excel/CSV</button>
       <button class="btn ghost" id="bIngreso">Cargar factura</button>
       <button class="btn" id="bNuevo">Nuevo producto</button>
@@ -943,6 +1084,7 @@ function vProductos(m){
   $('#bNuevo').onclick=()=>formProducto();
   $('#bIngreso').onclick=()=>panelIngreso();
   $('#bImportar').onclick=()=>panelImportar();
+  $('#bPrecios').onclick=()=>panelPrecios();
   $('#q').oninput=e=>{fProd.q=e.target.value;tablaProductos();};
   $('#fr').onchange=e=>{fProd.rubro=e.target.value;tablaProductos();};
   $('#fo').onchange=e=>{fProd.orden=e.target.value;tablaProductos();};
@@ -975,18 +1117,20 @@ function tablaProductos(){
   </tr></thead><tbody>${l.map(p=>{
     const mg=Number(p.costo)>0?((p.precio-p.costo)/p.costo*100):null;
     return `<tr>
-      <td data-label="Producto"><b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${p.proveedor?`<br><span class="mt" style="font-size:12px;color:var(--muted)">${esc(p.proveedor)}</span>`:''}</td>
+      <td data-label="Producto"><b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${esSuelto(p)?` <span class="pill warn">suelto</span>`:''}${esSuelto(p)?`<br><span style="font-size:12px;color:var(--muted)">sale de ${esc((atadoDe(p)||{}).nombre||'(atado eliminado)')} · ${porAtado(p)} por atado</span>`:(p.proveedor?`<br><span class="mt" style="font-size:12px;color:var(--muted)">${esc(p.proveedor)}</span>`:'')}</td>
       <td data-label="Código" class="num" style="font-size:12.5px;color:var(--muted)">${esc(p.ean||'—')}</td>
       <td data-label="Rubro">${p.rubro?`<span class="pill mute">${esc(p.rubro)}</span>`:'—'}</td>
       <td data-label="Costo" class="r num">${$m(p.costo)}</td>
       <td data-label="Venta" class="r num" style="font-weight:600">${$m(p.precio)}</td>
       <td data-label="Margen" class="r num" style="color:var(--muted)">${mg===null?'—':mg.toFixed(0)+'%'}</td>
-      <td data-label="Stock" class="r"><span class="pill ${p.stock<=0?'bad':bajo(p)?'warn':'ok'} num">${fmtCant(p,p.stock)}${bajo(p)?' / '+fmtCant(p,p.stockMin):''}</span></td>
+      <td data-label="Stock" class="r"><span class="pill ${p.stock<=0?'bad':bajo(p)?'warn':'ok'} num">${fmtCant(p,p.stock)}</span><br><span style="font-size:11px;color:var(--muted)">${esSuelto(p)?`quedan ${fmtCant(atadoDe(p)||p,(atadoDe(p)||{}).stock||0)} atados`:`mín ${fmtCant(p,p.stockMin)} · ideal ${fmtCant(p,deseado(p))}`}</span></td>
       <td class="r" style="white-space:nowrap">
+        ${esSuelto(p)?`<button class="btn ghost sm" data-abrir="${p.id}">${ic('combo')} Abrir atado</button>`:''}
         <button class="btn ghost sm" data-ed="${p.id}">${ic('editar')} Editar</button>
         <button class="btn ghost sm" data-aj="${p.id}">${ic('ajustar')} Ajustar</button>
         <button class="btn text sm" data-hi="${p.id}">${ic('historial')} Historial</button>
       </td></tr>`;}).join('')}</tbody></table>`;
+  $$('[data-abrir]').forEach(b=>b.onclick=()=>formAbrirAtado(b.dataset.abrir));
   $$('[data-ed]').forEach(b=>b.onclick=()=>formProducto(b.dataset.ed));
   $$('[data-aj]').forEach(b=>b.onclick=()=>formAjuste(b.dataset.aj));
   $$('[data-hi]').forEach(b=>b.onclick=()=>verHistorial(b.dataset.hi));
@@ -994,14 +1138,28 @@ function tablaProductos(){
 
 function formProducto(id,pre={},luego){
   const p=id?prod(id):null;
-  const v=p||{ean:pre.ean||'',nombre:'',rubro:'',proveedor:'',costo:'',precio:'',stock:0,stockMin:3,unidad:'unidad'};
-  const esKg0=v.unidad==='kg';
+  const v=p||{ean:pre.ean||'',nombre:'',rubro:'',proveedor:'',costo:'',precio:'',stock:0,stockMin:3,stockDeseado:'',unidad:'unidad',origenId:'',porAtado:20};
+  const tipo0 = v.unidad==='kg' ? 'kg' : (v.origenId ? 'suelto' : 'unidad');
+  const candidatos=db.productos.filter(x=>x.id!==(p?p.id:'')&&!esSuelto(x)&&x.unidad!=='kg');
   modal({titulo:p?'Editar producto':'Nuevo producto', ancho:true,
     cuerpo:`
       <label class="f">¿Cómo se vende?</label>
-      <div class="seg" style="margin-bottom:16px;max-width:340px">
-        <button type="button" data-un="unidad" class="${esKg0?'':'on'}">Por unidad</button>
-        <button type="button" data-un="kg" class="${esKg0?'on':''}">Por peso (kg)</button>
+      <div class="seg" style="margin-bottom:16px;max-width:520px">
+        <button type="button" data-un="unidad" class="${tipo0==='unidad'?'on':''}">Por unidad</button>
+        <button type="button" data-un="kg" class="${tipo0==='kg'?'on':''}">Por peso (kg)</button>
+        <button type="button" data-un="suelto" class="${tipo0==='suelto'?'on':''}">Suelto de un atado</button>
+      </div>
+      <div id="bloqueSuelto" ${tipo0==='suelto'?'':'hidden'} style="background:#F7F9FB;border:1px solid var(--line);border-radius:11px;padding:15px 16px;margin-bottom:16px">
+        <div class="hint" style="margin:0 0 12px">Este producto no se le compra al proveedor: sale de abrir un atado. El costo de cada unidad se calcula solo al abrirlo.</div>
+        <div class="grid2">
+          <div><label class="f" for="f_origen">¿De qué atado sale?</label>
+            <select id="f_origen" class="inp">
+              <option value="">Elegí el producto cerrado…</option>
+              ${candidatos.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(x=>`<option value="${x.id}" ${v.origenId===x.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}
+            </select></div>
+          <div><label class="f" for="f_porAtado">¿Cuántas unidades trae cada atado?</label>
+            <input id="f_porAtado" class="inp num" inputmode="numeric" value="${v.porAtado||20}"></div>
+        </div>
       </div>
       <div class="grid2">
         <div><label class="f" for="f_ean">Código de barras</label>
@@ -1024,36 +1182,63 @@ function formProducto(id,pre={},luego){
           <input id="f_pre" class="inp num" inputmode="decimal" value="${v.precio}"></div>
       </div>
       <div id="mgAviso" style="margin-top:8px;font-size:13px;color:var(--muted)"></div>
-      <div class="grid2" style="margin-top:14px">
+      <div class="grid3" style="margin-top:14px">
         <div><label class="f" id="lbl_stk" for="f_stk">Stock actual</label>
           <input id="f_stk" class="inp num" inputmode="decimal" value="${v.stock}" ${p?'disabled':''}>
-          ${p?`<div style="font-size:12px;color:var(--muted);margin-top:6px">El stock se toca desde <b>Ajustar</b> o <b>Cargar factura</b>, así queda el motivo registrado.</div>`:''}</div>
+          ${p?`<div class="hint">Se toca desde <b>Ajustar</b> o <b>Cargar factura</b>.</div>`:''}</div>
         <div><label class="f" id="lbl_min" for="f_min">Stock mínimo</label>
           <input id="f_min" class="inp num" inputmode="decimal" value="${v.stockMin}">
-          <div id="hint_min" style="font-size:12px;color:var(--muted);margin-top:6px">Cuando llega a este número aparece en Reponer.</div></div>
+          <div id="hint_min" class="hint">Cuando llega acá, aparece en Reponer.</div></div>
+        <div><label class="f" id="lbl_des" for="f_des">Stock deseado</label>
+          <input id="f_des" class="inp num" inputmode="decimal" value="${v.stockDeseado||''}" placeholder="${Math.max(1,num(v.stockMin)*2)}">
+          <div id="hint_des" class="hint">Cuánto conviene tener. Es a lo que apunta el pedido.</div></div>
       </div>`,
     pie:`${p?`<button class="btn ghost" id="borrar" style="margin-right:auto;color:var(--rojo)">Eliminar</button>`:''}
         <button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="guardarP">Guardar</button>`,
     alAbrir:ov=>{
-      let unidad=v.unidad==='kg'?'kg':'unidad';
+      let tipo=tipo0;
       const etiquetas=()=>{
-        const kg=unidad==='kg';
-        $('#lbl_cos',ov).textContent = kg?'Costo por kilo':'Precio de costo';
-        $('#lbl_pre',ov).textContent = kg?'Venta por kilo':'Precio de venta';
-        $('#lbl_stk',ov).textContent = kg?'Stock actual (kg)':'Stock actual';
+        const kg=tipo==='kg', su=tipo==='suelto';
+        $('#bloqueSuelto',ov).hidden = !su;
+        $('#lbl_cos',ov).textContent = kg?'Costo por kilo':su?'Costo por unidad (se calcula solo)':'Precio de costo';
+        $('#lbl_pre',ov).textContent = kg?'Venta por kilo':su?'Precio de venta por unidad':'Precio de venta';
+        $('#lbl_stk',ov).textContent = kg?'Stock actual (kg)':su?'Sueltos disponibles':'Stock actual';
         $('#lbl_min',ov).textContent = kg?'Mínimo (kg)':'Stock mínimo';
-        $('#hint_min',ov).textContent = kg?'Cuando llega a este peso aparece en Reponer.':'Cuando llega a este número aparece en Reponer.';
+        $('#lbl_des',ov).textContent = kg?'Deseado (kg)':'Stock deseado';
+        $('#hint_min',ov).textContent = su?'Cuando baja de acá, te avisa para abrir otro atado.':(kg?'Cuando llega a este peso aparece en Reponer.':'Cuando llega a este número aparece en Reponer.');
+        $('#hint_des',ov).textContent = su?'No entra en el pedido a proveedores.':'Cuánto conviene tener. Es a lo que apunta el pedido.';
+        $('#f_cos',ov).disabled = su;
         $('#f_stk',ov).placeholder = kg?'Ej: 4.500':'';
+        mg();
       };
-      $$('[data-un]',ov).forEach(b=>b.onclick=()=>{unidad=b.dataset.un;$$('[data-un]',ov).forEach(x=>x.classList.toggle('on',x===b));etiquetas();});
+      const mg=()=>{
+        const c=num($('#f_cos',ov).value),pr=num($('#f_pre',ov).value);
+        const el=$('#mgAviso',ov); if(!el) return;
+        if(tipo==='suelto'){
+          const or=prod($('#f_origen',ov).value);
+          const upa=Math.max(1,Math.floor(num($('#f_porAtado',ov).value))||20);
+          if(or){
+            const cu=(Number(or.costo)||0)/upa;
+            const cerrado=Number(or.precio)||0;
+            el.innerHTML=`Cada unidad te va a costar <b class="num">${$m(cu)}</b> (atado de ${$m(or.costo)} ÷ ${upa}).`
+              + (pr>0?` Vendiendo a <b class="num">${$m(pr)}</b> ganás <b class="num">${$m(pr-cu)}</b> por unidad — el atado entero suelto te deja <b class="num">${$m(pr*upa-Number(or.costo))}</b>${cerrado>0?` contra ${$m(cerrado-Number(or.costo))} vendiéndolo cerrado`:''}.`:'');
+          } else el.innerHTML='Elegí el atado de origen para ver el costo por unidad.';
+          return;
+        }
+        el.innerHTML = c>0&&pr>0 ? `Margen: <b class="num">${((pr-c)/c*100).toFixed(1)}%</b> · ganás <b class="num">${$m(pr-c)}</b> por ${tipo==='kg'?'kilo':'unidad'}` : '';
+      };
+      $$('[data-un]',ov).forEach(b=>b.onclick=()=>{tipo=b.dataset.un;$$('[data-un]',ov).forEach(x=>x.classList.toggle('on',x===b));etiquetas();});
+      $('#f_origen',ov).onchange=mg;
+      $('#f_porAtado',ov).oninput=mg;
       etiquetas();
-      const mg=()=>{const c=num($('#f_cos',ov).value),pr=num($('#f_pre',ov).value);
-        $('#mgAviso',ov).innerHTML = c>0&&pr>0 ? `Margen: <b class="num">${((pr-c)/c*100).toFixed(1)}%</b> · ganás <b class="num">${$m(pr-c)}</b> por ${unidad==='kg'?'kilo':'unidad'}` : '';};
-      $('#f_cos',ov).oninput=mg; $('#f_pre',ov).oninput=mg; mg();
+      $('#f_cos',ov).oninput=mg; $('#f_pre',ov).oninput=mg;
       $('#f_' + (v.ean?'nom':'ean'),ov).focus();
       const bb=$('#borrar',ov);
-      if(bb) bb.onclick=()=>{cerrarModal();confirmar('Eliminar producto',
-        `Vas a borrar <b>${esc(p.nombre)}</b>. El historial de movimientos queda, pero el producto sale del listado y del buscador.`,
+      if(bb) bb.onclick=()=>{
+        const hijos=sueltosDe(p.id);
+        cerrarModal();confirmar('Eliminar producto',
+        `Vas a borrar <b>${esc(p.nombre)}</b>. El historial de movimientos queda, pero el producto sale del listado y del buscador.`
+        +(hijos.length?`<br><br><b style="color:var(--ambar)">Ojo:</b> ${hijos.map(h=>esc(h.nombre)).join(', ')} ${hijos.length===1?'sale':'salen'} de este atado y ${hijos.length===1?'va a quedar':'van a quedar'} sin origen.`:''),
         ()=>{db.productos=db.productos.filter(x=>x.id!==p.id);guardar();render();aviso('Producto eliminado');},'Eliminar');};
       $('#guardarP',ov).onclick=()=>{
         const nom=$('#f_nom',ov).value.trim();
@@ -1061,8 +1246,15 @@ function formProducto(id,pre={},luego){
         const ean=$('#f_ean',ov).value.trim();
         const dup=db.productos.find(x=>ean&&x.ean===ean&&x.id!==(p?p.id:''));
         if(dup){aviso(`Ese código ya lo usa ${dup.nombre}`,'bad');return;}
+        const su=tipo==='suelto';
+        const origenId=su?$('#f_origen',ov).value:'';
+        if(su&&!origenId){aviso('Elegí de qué atado sale este producto','bad');$('#f_origen',ov).focus();return;}
+        const upa=su?Math.max(1,Math.floor(num($('#f_porAtado',ov).value))||20):0;
+        const or=su?prod(origenId):null;
         const datos={ean,nombre:nom,rubro:$('#f_rub',ov).value.trim(),proveedor:$('#f_prov',ov).value.trim(),
-          costo:num($('#f_cos',ov).value),precio:num($('#f_pre',ov).value),stockMin:num($('#f_min',ov).value),unidad};
+          costo: su ? (or?Math.round((Number(or.costo)||0)/upa*10000)/10000 : 0) : num($('#f_cos',ov).value),
+          precio:num($('#f_pre',ov).value),stockMin:num($('#f_min',ov).value),stockDeseado:num($('#f_des',ov).value),
+          unidad: su?'unidad':tipo, origenId, porAtado:upa};
         let creado;
         if(p){ Object.assign(p,datos); creado=p; }
         else{ creado={id:uid(),stock:num($('#f_stk',ov).value),...datos};
@@ -1078,6 +1270,159 @@ function formProducto(id,pre={},luego){
 }
 
 /* ═══════════════════════════════════════════════════════
+   CAMBIO MASIVO DE PRECIOS
+   ═══════════════════════════════════════════════════════ */
+let pxConf={campo:'precio',tipo:'porcentaje',modo:'aumentar',valor:'',rubro:'',proveedor:'',redondeo:'0',soloSel:false,sel:{}};
+
+function panelPrecios(){
+  pxConf={campo:'precio',tipo:'porcentaje',modo:'aumentar',valor:'',rubro:'',proveedor:'',redondeo:'0',soloSel:false,sel:{}};
+  modal({titulo:'Cambiar precios en conjunto', ancho:true,
+    cuerpo:`
+      <div class="grid2" style="margin-bottom:14px">
+        <div>
+          <label class="f">¿Qué precio querés tocar?</label>
+          <div class="seg" style="margin-bottom:0">
+            <button type="button" data-pxc="precio" class="on">De venta</button>
+            <button type="button" data-pxc="costo">De costo</button>
+            <button type="button" data-pxc="ambos">Los dos</button>
+          </div>
+        </div>
+        <div>
+          <label class="f">¿Sube o baja?</label>
+          <div class="seg" style="margin-bottom:0">
+            <button type="button" data-pxm="aumentar" class="on">Aumentar</button>
+            <button type="button" data-pxm="disminuir">Disminuir</button>
+          </div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-bottom:14px">
+        <div>
+          <label class="f">¿Cómo?</label>
+          <div class="seg" style="margin-bottom:0">
+            <button type="button" data-pxt="porcentaje" class="on">Por porcentaje</button>
+            <button type="button" data-pxt="monto">Por monto fijo</button>
+          </div>
+        </div>
+        <div>
+          <label class="f" for="px_valor" id="px_lbl">Porcentaje a aplicar</label>
+          <input id="px_valor" class="inp num" inputmode="decimal" placeholder="Ej: 12">
+        </div>
+      </div>
+      <div class="grid3" style="margin-bottom:14px">
+        <div><label class="f" for="px_rubro">Solo el rubro</label>
+          <select id="px_rubro" class="inp"><option value="">Todos los rubros</option>${rubros().map(r=>`<option>${esc(r)}</option>`).join('')}</select></div>
+        <div><label class="f" for="px_prov">Solo el proveedor</label>
+          <select id="px_prov" class="inp"><option value="">Todos los proveedores</option>${proveedores().map(r=>`<option>${esc(r)}</option>`).join('')}</select></div>
+        <div><label class="f" for="px_red">Redondear a</label>
+          <select id="px_red" class="inp">
+            <option value="0">No redondear</option>
+            <option value="10">Múltiplos de $10</option>
+            <option value="50">Múltiplos de $50</option>
+            <option value="100">Múltiplos de $100</option>
+            <option value="99">Terminado en $99</option>
+          </select></div>
+      </div>
+      <div id="px_preview"></div>`,
+    pie:`<div style="margin-right:auto;color:var(--muted)" id="px_resumen"></div>
+         <button class="btn ghost" data-cerrar>Cancelar</button>
+         <button class="btn" id="okPx" disabled>Aplicar cambios</button>`,
+    alAbrir:ov=>{
+      const seg=(attr,key)=>$$(`[${attr}]`,ov).forEach(b=>b.onclick=()=>{
+        pxConf[key]=b.getAttribute(attr);
+        $$(`[${attr}]`,ov).forEach(x=>x.classList.toggle('on',x===b));
+        etiquetas(); pintarPreviewPrecios(ov);
+      });
+      const etiquetas=()=>{
+        $('#px_lbl',ov).textContent = pxConf.tipo==='porcentaje'?'Porcentaje a aplicar':'Monto a sumar o restar';
+        $('#px_valor',ov).placeholder = pxConf.tipo==='porcentaje'?'Ej: 12':'Ej: 500';
+      };
+      seg('data-pxc','campo'); seg('data-pxm','modo'); seg('data-pxt','tipo');
+      etiquetas();
+      $('#px_valor',ov).oninput=()=>{pxConf.valor=$('#px_valor',ov).value;pintarPreviewPrecios(ov);};
+      $('#px_rubro',ov).onchange=e=>{pxConf.rubro=e.target.value;pintarPreviewPrecios(ov);};
+      $('#px_prov',ov).onchange=e=>{pxConf.proveedor=e.target.value;pintarPreviewPrecios(ov);};
+      $('#px_red',ov).onchange=e=>{pxConf.redondeo=e.target.value;pintarPreviewPrecios(ov);};
+      $('#px_valor',ov).focus();
+      pintarPreviewPrecios(ov);
+      $('#okPx',ov).onclick=()=>aplicarPrecios(ov);
+    }});
+}
+
+function redondearPrecio(n,modo){
+  if(!modo||modo==='0') return Math.round(n*100)/100;
+  const m=Number(modo);
+  if(modo==='99'){ const base=Math.max(0,Math.round((n-99)/100))*100; return base+99; }
+  return Math.round(n/m)*m;
+}
+function productosAfectados(){
+  return db.productos.filter(p=>
+    (!pxConf.rubro||p.rubro===pxConf.rubro) &&
+    (!pxConf.proveedor||p.proveedor===pxConf.proveedor));
+}
+function nuevoPrecio(actual){
+  const v=num(pxConf.valor);
+  if(!v||actual<=0) return actual;
+  const signo=pxConf.modo==='aumentar'?1:-1;
+  let n = pxConf.tipo==='porcentaje' ? actual*(1+signo*v/100) : actual+signo*v;
+  n=Math.max(0,n);
+  return redondearPrecio(n,pxConf.redondeo);
+}
+function pintarPreviewPrecios(ov){
+  const cont=$('#px_preview',ov);
+  const lista=productosAfectados();
+  const v=num(pxConf.valor);
+  const tocaVenta=pxConf.campo==='precio'||pxConf.campo==='ambos';
+  const tocaCosto=pxConf.campo==='costo'||pxConf.campo==='ambos';
+  const filas=lista.map(p=>({
+    p,
+    precioNuevo: tocaVenta?nuevoPrecio(Number(p.precio)):Number(p.precio),
+    costoNuevo:  tocaCosto?nuevoPrecio(Number(p.costo)):Number(p.costo)
+  }));
+  const cambian=filas.filter(f=>Math.abs(f.precioNuevo-Number(f.p.precio))>0.001||Math.abs(f.costoNuevo-Number(f.p.costo))>0.001);
+  const muestra=filas.slice(0,10);
+  cont.innerHTML = !lista.length
+    ? `<div class="empty" style="padding:26px"><b>Ningún producto coincide con esos filtros</b>Probá quitando el rubro o el proveedor.</div>`
+    : `<table class="mtable"><thead><tr><th>Producto</th>${tocaCosto?'<th class="r">Costo actual</th><th class="r">Costo nuevo</th>':''}${tocaVenta?'<th class="r">Venta actual</th><th class="r">Venta nueva</th>':''}<th class="r">Margen</th></tr></thead><tbody>
+      ${muestra.map(f=>{
+        const mg=f.costoNuevo>0?((f.precioNuevo-f.costoNuevo)/f.costoNuevo*100):null;
+        return `<tr>
+        <td data-label="Producto"><b>${esc(f.p.nombre)}</b></td>
+        ${tocaCosto?`<td data-label="Costo actual" class="r num" style="color:var(--muted)">${$m(f.p.costo)}</td>
+        <td data-label="Costo nuevo" class="r num" style="font-weight:600">${$m(f.costoNuevo)}</td>`:''}
+        ${tocaVenta?`<td data-label="Venta actual" class="r num" style="color:var(--muted)">${$m(f.p.precio)}</td>
+        <td data-label="Venta nueva" class="r num" style="font-weight:600;color:${f.precioNuevo>Number(f.p.precio)?'var(--verde-d)':f.precioNuevo<Number(f.p.precio)?'var(--rojo)':'inherit'}">${$m(f.precioNuevo)}</td>`:''}
+        <td data-label="Margen" class="r num" style="color:var(--muted)">${mg===null?'—':mg.toFixed(0)+'%'}</td>
+      </tr>`;}).join('')}</tbody></table>
+      ${lista.length>10?`<div style="padding:12px 4px;color:var(--muted);font-size:13px">…y ${lista.length-10} productos más con el mismo criterio.</div>`:''}`;
+  const res=$('#px_resumen');
+  if(res) res.innerHTML = v? `Van a cambiar <b>${cambian.length}</b> de ${lista.length} productos` : `${lista.length} productos alcanzados — poné un valor`;
+  const btn=$('#okPx'); if(btn) btn.disabled = !v || !cambian.length;
+}
+function aplicarPrecios(ov){
+  const lista=productosAfectados();
+  const tocaVenta=pxConf.campo==='precio'||pxConf.campo==='ambos';
+  const tocaCosto=pxConf.campo==='costo'||pxConf.campo==='ambos';
+  const v=num(pxConf.valor);
+  const desc=`${pxConf.modo==='aumentar'?'Aumento':'Baja'} de ${pxConf.tipo==='porcentaje'?v+'%':$m(v)}`;
+  const alcance=pxConf.rubro?`del rubro ${pxConf.rubro}`:pxConf.proveedor?`del proveedor ${pxConf.proveedor}`:'de todos los productos';
+  confirmar('Aplicar cambio de precios',
+    `${desc} en el precio ${pxConf.campo==='ambos'?'de costo y de venta':pxConf.campo==='costo'?'de costo':'de venta'} ${alcance}.<br><br>Afecta a <b>${lista.length}</b> productos. Esto no se puede deshacer automáticamente — si querés una red de seguridad, bajate una copia desde Respaldo antes.`,
+    ()=>{
+      let n=0;
+      lista.forEach(p=>{
+        let cambio=false;
+        if(tocaVenta){ const np=nuevoPrecio(Number(p.precio)); if(Math.abs(np-Number(p.precio))>0.001){ p.precio=np; cambio=true; } }
+        if(tocaCosto){ const nc=nuevoPrecio(Number(p.costo)); if(Math.abs(nc-Number(p.costo))>0.001){
+          movimiento(p.id,'ajuste',0,`${desc} (cambio masivo)`,'',{costoAnterior:Number(p.costo),costoNuevo:nc});
+          p.costo=nc; cambio=true; } }
+        if(cambio) n++;
+      });
+      guardar(); cerrarModal(); render();
+      aviso(`Precios actualizados en ${n} productos`,'ok');
+    },'Aplicar','verde');
+}
+
+/* ═══════════════════════════════════════════════════════
    IMPORTAR PRODUCTOS DESDE EXCEL / CSV
    ═══════════════════════════════════════════════════════ */
 const CAMPOS_IMPORT=[
@@ -1088,7 +1433,8 @@ const CAMPOS_IMPORT=[
   {k:'costo',    txt:'Precio de costo',   alias:['costo','precio costo','precio de costo','compra','p. costo']},
   {k:'precio',   txt:'Precio de venta',   alias:['precio','venta','precio venta','precio de venta','pvp','p. venta']},
   {k:'stock',    txt:'Stock',             alias:['stock','cantidad','existencia','unidades']},
-  {k:'stockMin', txt:'Stock mínimo',      alias:['minimo','mínimo','stock minimo','stock mínimo','min']}
+  {k:'stockMin', txt:'Stock mínimo',      alias:['minimo','mínimo','stock minimo','stock mínimo','min']},
+  {k:'stockDeseado',txt:'Stock deseado',  alias:['deseado','stock deseado','optimo','óptimo','ideal','maximo','máximo']}
 ];
 let impFilas=[], impMapa={}, impEncabezados=[];
 
@@ -1123,9 +1469,9 @@ function panelImportar(){
 }
 
 function descargarPlantilla(){
-  const csv='Nombre,Codigo de barras,Rubro,Proveedor,Precio de costo,Precio de venta,Stock,Stock minimo\n'
-    +'Coca-Cola 500 ml,7790895000997,Bebidas,Distribuidora Sur,900,1500,12,6\n'
-    +'Alfajor Jorgito,7790040991002,Golosinas,Mayorista Centro,380,700,30,10\n';
+  const csv='Nombre,Codigo de barras,Rubro,Proveedor,Precio de costo,Precio de venta,Stock,Stock minimo,Stock deseado\n'
+    +'Coca-Cola 500 ml,7790895000997,Bebidas,Distribuidora Sur,900,1500,12,6,24\n'
+    +'Alfajor Jorgito,7790040991002,Golosinas,Mayorista Centro,380,700,30,10,40\n';
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download='plantilla-productos.csv'; a.click();
@@ -1187,7 +1533,7 @@ function filaAProducto(f){
   return {
     nombre, ean:val('ean'), rubro:val('rubro'), proveedor:val('proveedor'),
     costo:num(val('costo')), precio:num(val('precio')),
-    stock:num(val('stock')), stockMin:num(val('stockMin'))||3
+    stock:num(val('stock')), stockMin:num(val('stockMin'))||3, stockDeseado:num(val('stockDeseado'))
   };
 }
 
@@ -1239,6 +1585,7 @@ function confirmarImportacion(ov){
           if(impMapa['costo']>=0) ex.costo=p.costo;
           if(impMapa['precio']>=0) ex.precio=p.precio;
           if(impMapa['stockMin']>=0) ex.stockMin=p.stockMin;
+          if(impMapa['stockDeseado']>=0) ex.stockDeseado=p.stockDeseado;
           if(conStock){
             const delta=p.stock-Number(ex.stock);
             if(Math.abs(delta)>0.0001){
@@ -1249,7 +1596,7 @@ function confirmarImportacion(ov){
           actualizados++;
         } else {
           const nuevo={id:uid(),ean:p.ean,nombre:p.nombre,rubro:p.rubro,proveedor:p.proveedor,
-            costo:p.costo,precio:p.precio,stock:p.stock,stockMin:p.stockMin,unidad:'unidad'};
+            costo:p.costo,precio:p.precio,stock:p.stock,stockMin:p.stockMin,stockDeseado:p.stockDeseado,unidad:'unidad'};
           db.productos.push(nuevo);
           if(nuevo.stock) movimiento(nuevo.id,'ingreso',nuevo.stock,'Importación de planilla');
           nuevos++;
@@ -1416,6 +1763,61 @@ function pintarComboItems(ov){
   actualizarAhorro();
 }
 
+/* ── abrir atados: pasa stock del atado a unidades sueltas ── */
+function abrirAtados(sueltoId,cantAtados,silencioso){
+  const s=prod(sueltoId); if(!s) return false;
+  const a=atadoDe(s);
+  if(!a){ aviso('Este producto no tiene un atado de origen configurado','bad'); return false; }
+  const n=Math.max(1,Math.floor(cantAtados||1));
+  if(Number(a.stock)<n){ aviso(`Solo te quedan ${fmtCant(a,a.stock)} de ${a.nombre}`,'bad'); return false; }
+  const upa=porAtado(s);
+  const unidades=n*upa;
+  const costoUnit=Math.round((Number(a.costo)||0)/upa*10000)/10000;
+
+  a.stock=Number(a.stock)-n;
+  s.stock=Number(s.stock)+unidades;
+  // el costo del suelto sale del atado: así el margen del suelto es real
+  if(costoUnit>0&&Math.abs(costoUnit-Number(s.costo))>0.0001){
+    movimiento(s.id,'ajuste',0,'Costo recalculado al abrir atado','',{costoAnterior:Number(s.costo),costoNuevo:costoUnit});
+    s.costo=costoUnit;
+  }
+  movimiento(a.id,'apertura',-n,`Se abrieron ${n} para vender sueltos (${s.nombre})`);
+  movimiento(s.id,'apertura',unidades,`Entraron de abrir ${n} × ${a.nombre}`);
+  guardar();
+  if(!silencioso) aviso(`Abriste ${n} ${n===1?'atado':'atados'} · +${unidades} sueltos`,'ok');
+  return true;
+}
+function formAbrirAtado(sueltoId){
+  const s=prod(sueltoId), a=atadoDe(s);
+  if(!a){ aviso('Primero configurá de qué atado sale este producto','bad'); return; }
+  const upa=porAtado(s);
+  modal({titulo:'Abrir atados — '+s.nombre,
+    cuerpo:`
+      <div class="grid2" style="margin-bottom:16px">
+        <div class="kpi"><span>${esc(a.nombre)}</span><b>${fmtCant(a,a.stock)}</b><small>atados cerrados</small></div>
+        <div class="kpi"><span>Sueltos</span><b>${fmtCant(s,s.stock)}</b><small>unidades disponibles</small></div>
+      </div>
+      <label class="f" for="ab_cant">¿Cuántos atados vas a abrir?</label>
+      <input id="ab_cant" class="inp num" inputmode="numeric" value="1">
+      <div id="ab_prev" style="margin-top:14px"></div>`,
+    pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn verde" id="okAb">Abrir</button>`,
+    alAbrir:ov=>{
+      const inp=$('#ab_cant',ov);
+      const upd=()=>{
+        const n=Math.max(1,Math.floor(num(inp.value))||1);
+        const cu=(Number(a.costo)||0)/upa;
+        $('#ab_prev',ov).innerHTML=`<div class="nota-dash">
+          Quedan <b>${fmtCant(a,Number(a.stock)-n)}</b> atados y <b>${fmtCant(s,Number(s.stock)+n*upa)}</b> sueltos.<br>
+          Cada suelto queda costando <b class="num">${$m(cu)}</b>${Number(s.precio)>0?` y lo vendés a <b class="num">${$m(s.precio)}</b> — ganás ${$m(Number(s.precio)-cu)} por unidad.`:'.'}
+        </div>`;
+      };
+      inp.oninput=upd; upd(); inp.focus(); inp.select();
+      $('#okAb',ov).onclick=()=>{
+        if(abrirAtados(sueltoId,num(inp.value))){ cerrarModal(); render(); }
+      };
+    }});
+}
+
 function formAjuste(id){
   const p=prod(id);
   const kg=p.unidad==='kg';
@@ -1458,7 +1860,7 @@ function formAjuste(id){
 function verHistorial(id){
   const p=prod(id);
   const ms=db.movs.filter(m=>m.prodId===id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  const nom={venta:'Venta',ingreso:'Ingreso',ajuste:'Ajuste'};
+  const nom={venta:'Venta',ingreso:'Ingreso',ajuste:'Ajuste',apertura:'Apertura'};
   const ultCambio=ms.find(m=>m.costoAnterior!=null);
   modal({titulo:'Historial — '+p.nombre, ancho:true,
     cuerpo: ms.length? `
@@ -1476,7 +1878,7 @@ function verHistorial(id){
       <table class="mtable"><thead><tr><th>Cuándo</th><th>Qué pasó</th><th class="r">Cantidad</th><th>Costo</th><th>Motivo</th></tr></thead><tbody>
       ${ms.map(m=>`<tr>
         <td data-label="Cuándo" class="num" style="font-size:12.5px">${fFH(m.fecha)}</td>
-        <td data-label="Qué pasó"><span class="pill ${m.tipo==='venta'?'info':m.tipo==='ingreso'?'ok':'warn'}">${nom[m.tipo]}</span></td>
+        <td data-label="Qué pasó"><span class="pill ${m.tipo==='venta'?'info':m.tipo==='ingreso'?'ok':m.tipo==='apertura'?'info':'warn'}">${nom[m.tipo]||m.tipo}</span></td>
         <td data-label="Cantidad" class="r num" style="font-weight:600;color:${m.cant<0?'var(--rojo)':'var(--verde)'}">${m.cant>0?'+':''}${fmtCant(p,m.cant)}</td>
         <td data-label="Costo">${m.costoAnterior!=null?pillVariacion(m.costoAnterior,m.costoNuevo)+` <span style="font-size:12px;color:var(--muted)">${$m(m.costoAnterior)} → ${$m(m.costoNuevo)}</span>`:'—'}</td>
         <td data-label="Motivo" style="color:var(--muted)">${esc(m.motivo||'—')}</td></tr>`).join('')}
@@ -1813,66 +2215,162 @@ function resumenCostos(cambios){
    6. REPONER
    ═══════════════════════════════════════════════════════ */
 let repOrden='rubro';
+let pedido={};        // {prodId: cantidad}
+
 function vReponer(m){
-  const l=db.productos.filter(bajo);
+  const l=db.productos.filter(seRepone);
+  const enPedido=Object.keys(pedido).filter(k=>pedido[k]>0).length;
   m.innerHTML=`
   <div class="head">
-    <div><h1>Reponer</h1><div class="sub">${l.length? `${l.length} productos llegaron al mínimo` : 'Todo por encima del mínimo'}</div></div>
+    <div><h1>Reponer</h1><div class="sub">${l.length? `${l.length} productos llegaron al mínimo. Armá el pedido para volver al stock deseado.` : 'Todo por encima del mínimo.'}</div></div>
     ${l.length?`<div class="row">
-      <select class="inp" id="ro" style="width:200px">
+      <select class="inp" id="ro" style="width:190px">
         <option value="rubro" ${repOrden==='rubro'?'selected':''}>Agrupar por rubro</option>
         <option value="proveedor" ${repOrden==='proveedor'?'selected':''}>Agrupar por proveedor</option>
         <option value="falta" ${repOrden==='falta'?'selected':''}>Ordenar por urgencia</option>
       </select>
-      <button class="btn ghost" id="copiar">Copiar lista</button>
-      <button class="btn" id="bIng2">Cargar factura</button>
+      <button class="btn" id="bPedido">Armar pedido${enPedido?` (${enPedido})`:''}</button>
     </div>`:''}
   </div>
   <div id="repCont"></div>`;
   if(l.length){
     $('#ro').onchange=e=>{repOrden=e.target.value;pintarReponer();};
-    $('#copiar').onclick=copiarLista;
-    $('#bIng2').onclick=()=>panelIngreso();
+    $('#bPedido').onclick=()=>abrirPedido();
   }
   pintarReponer();
 }
 function pintarReponer(){
-  const l=db.productos.filter(bajo);
+  const l=db.productos.filter(seRepone);
   const c=$('#repCont');
-  if(!l.length){ c.innerHTML=`<div class="card"><div class="empty"><b>No falta nada</b>Cuando un producto toque su stock mínimo aparece en esta lista, con cuánto pedir.</div></div>`; return; }
-  const falta=p=>Math.max(1,Number(p.stockMin)*2-Number(p.stock));
+  if(!l.length){ c.innerHTML=`<div class="card"><div class="empty"><b>No falta nada</b>Cuando un producto toque su stock mínimo aparece acá, con cuánto pedir para volver al deseado.</div></div>`; return; }
   if(repOrden==='falta'){
     l.sort((a,b)=>(a.stock-a.stockMin)-(b.stock-b.stockMin));
-    c.innerHTML=`<div class="card">${tablaRep(l,falta)}</div>`;
+    c.innerHTML=`<div class="card">${tablaRep(l)}</div>`;
   }else{
     const campo=repOrden;
     const grupos={};
     l.forEach(p=>{const k=p[campo]||'Sin '+campo;(grupos[k]=grupos[k]||[]).push(p);});
-    c.innerHTML=Object.keys(grupos).sort().map(k=>`<div class="card" style="margin-bottom:16px">
-      <div class="card-h"><h2>${esc(k)}</h2><span class="pill mute">${grupos[k].length} productos</span></div>
-      ${tablaRep(grupos[k].sort((a,b)=>a.nombre.localeCompare(b.nombre)),falta)}</div>`).join('');
+    c.innerHTML=Object.keys(grupos).sort().map(k=>{
+      const g=grupos[k].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+      const costoG=g.reduce((a,p)=>a+faltante(p)*(Number(p.costo)||0),0);
+      return `<div class="card" style="margin-bottom:16px">
+        <div class="card-h"><h2>${esc(k)}</h2>
+          <div class="row"><span class="pill mute">${g.length} productos · ${$m(costoG)} estimado</span>
+          <button class="btn ghost sm" data-grupo="${esc(k)}">Agregar todo al pedido</button></div></div>
+        ${tablaRep(g)}</div>`;
+    }).join('');
+    $$('[data-grupo]').forEach(b=>b.onclick=()=>{
+      const campo=repOrden;
+      db.productos.filter(seRepone).filter(p=>(p[campo]||'Sin '+campo)===b.dataset.grupo)
+        .forEach(p=>{ if(faltante(p)>0) pedido[p.id]=faltante(p); });
+      render(); aviso('Productos agregados al pedido','ok');
+    });
   }
 }
-function tablaRep(l,falta){
+function tablaRep(l){
   const otra=repOrden==='proveedor'?'Rubro':'Proveedor';
-  return `<table class="mtable"><thead><tr><th>Producto</th><th>${otra}</th><th class="r">Stock</th><th class="r">Mínimo</th><th class="r">Pedir</th><th class="r">Costo estimado</th></tr></thead><tbody>
+  return `<table class="mtable"><thead><tr><th>Producto</th><th>${otra}</th><th class="r">Stock</th><th class="r">Mínimo</th><th class="r">Deseado</th><th class="r">Pedir</th><th class="r">Costo estimado</th></tr></thead><tbody>
   ${l.map(p=>`<tr>
-    <td data-label="Producto"><b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}</td>
+    <td data-label="Producto"><b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${pedido[p.id]>0?' <span class="pill ok">en el pedido</span>':''}</td>
     <td data-label="${otra}" style="color:var(--muted)">${esc((repOrden==='proveedor'?p.rubro:p.proveedor)||'—')}</td>
     <td data-label="Stock" class="r"><span class="pill ${p.stock<=0?'bad':'warn'} num">${fmtCant(p,p.stock)}</span></td>
     <td data-label="Mínimo" class="r num" style="color:var(--muted)">${fmtCant(p,p.stockMin)}</td>
-    <td data-label="Pedir" class="r num" style="font-weight:600">${fmtCant(p,falta(p))}</td>
-    <td data-label="Costo estimado" class="r num" style="color:var(--muted)">${$m(falta(p)*(Number(p.costo)||0))}</td>
+    <td data-label="Deseado" class="r num" style="color:var(--muted)">${fmtCant(p,deseado(p))}</td>
+    <td data-label="Pedir" class="r num" style="font-weight:600">${fmtCant(p,faltante(p))}</td>
+    <td data-label="Costo estimado" class="r num" style="color:var(--muted)">${$m(faltante(p)*(Number(p.costo)||0))}</td>
   </tr>`).join('')}</tbody></table>`;
 }
-function copiarLista(){
-  const falta=p=>Math.max(1,Number(p.stockMin)*2-Number(p.stock));
-  const txt='Pedido '+fFecha(Date.now())+'\n'+db.productos.filter(bajo)
-    .sort((a,b)=>(a.proveedor||'').localeCompare(b.proveedor||''))
-    .map(p=>`• ${p.nombre} — ${p.unidad==='kg'?fmtCant(p,falta(p)):falta(p)+' u.'}`).join('\n');
-  navigator.clipboard?.writeText(txt).then(
-    ()=>aviso('Lista copiada, pegala donde quieras','ok'),
-    ()=>modal({titulo:'Lista para pedir',cuerpo:`<textarea class="inp" rows="12" style="font-family:var(--mono)">${esc(txt)}</textarea>`,pie:`<button class="btn ghost" data-cerrar>Cerrar</button>`}));
+
+/* ── armador de pedido ── */
+function abrirPedido(){
+  // arranca con todo lo que está bajo el mínimo, salvo que ya hayas armado algo antes
+  if(!Object.keys(pedido).length){
+    db.productos.filter(seRepone).forEach(p=>{ if(faltante(p)>0) pedido[p.id]=faltante(p); });
+  }
+  modal({titulo:'Pedido a proveedores', ancho:true,
+    cuerpo:`
+      <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Las cantidades salen de lo que falta para llegar al <b>stock deseado</b> de cada producto. Ajustá lo que quieras antes de mandarlo.</p>
+      <div id="pedCuerpo"></div>`,
+    pie:`<div style="margin-right:auto;color:var(--muted)" id="pedTot"></div>
+         <button class="btn ghost" id="pedVaciar">Vaciar</button>
+         <button class="btn ghost" id="pedCopiar">Copiar</button>
+         <button class="btn verde" id="pedWa">Enviar por WhatsApp</button>`,
+    alAbrir:ov=>{
+      pintarPedido(ov);
+      $('#pedVaciar',ov).onclick=()=>{pedido={};pintarPedido(ov);};
+      $('#pedCopiar',ov).onclick=()=>{
+        const t=textoPedido();
+        navigator.clipboard?.writeText(t).then(()=>aviso('Pedido copiado','ok'),
+          ()=>modal({titulo:'Pedido',cuerpo:`<textarea class="inp" rows="12" style="font-family:var(--mono)">${esc(t)}</textarea>`,pie:`<button class="btn ghost" data-cerrar>Cerrar</button>`}));
+      };
+      $('#pedWa',ov).onclick=()=>{
+        const lineas=lineasPedido();
+        if(!lineas.length){aviso('El pedido está vacío','bad');return;}
+        window.open('https://wa.me/?text='+encodeURIComponent(textoPedido()),'_blank');
+      };
+    }});
+}
+function lineasPedido(){
+  return Object.keys(pedido).filter(k=>pedido[k]>0)
+    .map(k=>({p:prod(k),cant:pedido[k]})).filter(x=>x.p)
+    .sort((a,b)=>(a.p.proveedor||'zzz').localeCompare(b.p.proveedor||'zzz')||a.p.nombre.localeCompare(b.p.nombre));
+}
+function pintarPedido(ov){
+  const cont=$('#pedCuerpo',ov);
+  const lineas=lineasPedido();
+  if(!lineas.length){
+    cont.innerHTML=`<div class="empty" style="padding:30px"><b>El pedido está vacío</b>Volvé al listado y agregá productos, o cerrá y abrí de nuevo para recargar los que están bajo el mínimo.</div>`;
+    $('#pedTot').textContent=''; return;
+  }
+  // agrupado por proveedor, que es como se manda en la práctica
+  const porProv={};
+  lineas.forEach(x=>{const k=x.p.proveedor||'Sin proveedor';(porProv[k]=porProv[k]||[]).push(x);});
+  cont.innerHTML=Object.keys(porProv).sort().map(prov=>{
+    const g=porProv[prov];
+    const sub=g.reduce((a,x)=>a+x.cant*(Number(x.p.costo)||0),0);
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="card-h"><h2>${esc(prov)}</h2><span class="pill mute">${g.length} productos · ${$m(sub)}</span></div>
+      <table class="mtable"><thead><tr><th>Producto</th><th style="width:130px">Cantidad</th><th class="r">Costo unit.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>
+        ${g.map(x=>`<tr>
+          <td data-label="Producto"><b>${esc(x.p.nombre)}</b><br><span style="font-size:12px;color:var(--muted)">tenés ${fmtCant(x.p,x.p.stock)} · querés llegar a ${fmtCant(x.p,deseado(x.p))}</span></td>
+          <td data-label="Cantidad"><div class="qty">
+            <button data-pm="${x.p.id}" aria-label="Restar">–</button>
+            <input class="num" data-pc="${x.p.id}" value="${x.cant}">
+            <button data-pp="${x.p.id}" aria-label="Sumar">+</button></div></td>
+          <td data-label="Costo unit." class="r num" style="color:var(--muted)">${$m(x.p.costo)}</td>
+          <td data-label="Subtotal" class="r num" style="font-weight:600">${$m(x.cant*(Number(x.p.costo)||0))}</td>
+          <td class="r"><button class="x" data-px="${x.p.id}" aria-label="Sacar del pedido">${ic('cerrar')}</button></td>
+        </tr>`).join('')}
+      </tbody></table></div>`;
+  }).join('');
+  const total=lineas.reduce((a,x)=>a+x.cant*(Number(x.p.costo)||0),0);
+  const unidades=lineas.reduce((a,x)=>a+x.cant,0);
+  $('#pedTot').innerHTML=`${lineas.length} productos · ${nfKg.format(unidades)} unidades · <b class="num">${$m(total)}</b> estimado`;
+  const paso=p=>p.unidad==='kg'?0.5:1;
+  const red=n=>Math.round(n*1000)/1000;
+  $$('[data-pp]',cont).forEach(b=>b.onclick=()=>{const p=prod(b.dataset.pp);pedido[b.dataset.pp]=red(pedido[b.dataset.pp]+paso(p));pintarPedido(ov);});
+  $$('[data-pm]',cont).forEach(b=>b.onclick=()=>{const p=prod(b.dataset.pm);const n=red(pedido[b.dataset.pm]-paso(p));if(n<=0)delete pedido[b.dataset.pm];else pedido[b.dataset.pm]=n;pintarPedido(ov);});
+  $$('[data-px]',cont).forEach(b=>b.onclick=()=>{delete pedido[b.dataset.px];pintarPedido(ov);});
+  $$('[data-pc]',cont).forEach(i=>i.onchange=()=>{
+    const p=prod(i.dataset.pc);
+    const n=p.unidad==='kg'?red(num(i.value)):Math.floor(num(i.value));
+    if(n<=0) delete pedido[i.dataset.pc]; else pedido[i.dataset.pc]=n;
+    pintarPedido(ov);
+  });
+}
+function textoPedido(){
+  const lineas=lineasPedido();
+  const porProv={};
+  lineas.forEach(x=>{const k=x.p.proveedor||'Sin proveedor';(porProv[k]=porProv[k]||[]).push(x);});
+  const out=[`*Pedido — ${db.config.nombre}*`,fFecha(Date.now()),''];
+  Object.keys(porProv).sort().forEach(prov=>{
+    out.push(`*${prov}*`);
+    porProv[prov].forEach(x=>out.push(`• ${x.p.nombre} — ${x.p.unidad==='kg'?fmtCant(x.p,x.cant):x.cant+' u.'}`));
+    out.push('');
+  });
+  const total=lineas.reduce((a,x)=>a+x.cant*(Number(x.p.costo)||0),0);
+  out.push(`Estimado: ${$m(total)}`);
+  return out.join('\n');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1959,7 +2457,8 @@ function verCuenta(id){
   const montoFiado=v=> v.forma==='mixto' ? (v.pagos.find(p=>p.forma==='fiado')||{}).monto||0 : v.total;
   const mov=[
     ...db.ventas.filter(v=>v.clienteId===id).map(v=>({f:v.fecha,t:'fiado',m:montoFiado(v),d:`Venta Nº${v.nro}${v.forma==='mixto'?' (parte del pago combinado)':''} · ${v.items.length} productos`,items:v.items})),
-    ...db.pagos.filter(p=>p.clienteId===id).map(p=>({f:p.fecha,t:'pago',m:-p.monto,d:p.nota||'Pago recibido',forma:p.forma||'efectivo'}))
+    ...db.pagos.filter(p=>p.clienteId===id).map(p=>({f:p.fecha,t:'pago',m:-p.monto,d:p.nota||'Pago recibido',forma:p.forma||'efectivo'})),
+    ...(db.ajustesFiado||[]).filter(a=>a.clienteId===id).map(a=>({f:a.fecha,t:'ajuste',m:a.monto,d:a.motivo||'Ajuste de saldo'}))
   ].sort((a,b)=>b.f.localeCompare(a.f));
   const totalFiado=mov.filter(m=>m.t==='fiado').reduce((a,m)=>a+m.m,0);
   const totalPagos=-mov.filter(m=>m.t==='pago').reduce((a,m)=>a+m.m,0);
@@ -1973,17 +2472,76 @@ function verCuenta(id){
       ${mov.length?`<table class="mtable"><thead><tr><th>Cuándo</th><th>Concepto</th><th class="r">Monto</th></tr></thead><tbody>
         ${mov.map(m=>`<tr>
           <td data-label="Cuándo" class="num" style="font-size:12.5px">${fFH(m.f)}</td>
-          <td data-label="Concepto">${m.t==='fiado'?`<span class="pill warn">Fiado</span> ${esc(m.d)}${m.items?`<br><span style="font-size:12px;color:var(--muted)">${esc(m.items.map(i=>(i.tipo==='combo'?'Combo ':fmtCant(prod(i.prodId),i.cant)+'× ')+i.nombre).join(' · '))}</span>`:''}`
-                              :`<span class="pill ok">Pago · ${esc(FORMAS[m.forma]||'Efectivo')}</span> ${esc(m.d)}`}</td>
+          <td data-label="Concepto">${
+            m.t==='fiado'?`<span class="pill warn">Fiado</span> ${esc(m.d)}${m.items?`<br><span style="font-size:12px;color:var(--muted)">${esc(m.items.map(i=>(i.tipo==='combo'?'Combo ':fmtCant(prod(i.prodId),i.cant)+'× ')+i.nombre).join(' · '))}</span>`:''}`
+            :m.t==='ajuste'?`<span class="pill info">Ajuste</span> ${esc(m.d)}`
+            :`<span class="pill ok">Pago · ${esc(FORMAS[m.forma]||'Efectivo')}</span> ${esc(m.d)}`}</td>
           <td data-label="Monto" class="r num" style="font-weight:600;color:${m.m<0?'var(--verde)':'var(--txt)'}">${m.m<0?'–':''}${$m(Math.abs(m.m))}</td>
         </tr>`).join('')}</tbody></table>`
       :`<div class="empty"><b>Sin movimientos</b>Todavía no compró fiado ni registró pagos.</div>`}`,
     pie:`<button class="btn ghost" id="edC" style="margin-right:auto">Editar datos</button>
+        <button class="btn ghost" id="ajC">Ajustar saldo</button>
         <button class="btn ghost" data-cerrar>Cerrar</button>
         ${Number(c.saldo)>0.009?`<button class="btn verde" id="pagC">Registrar pago</button>`:''}`,
     alAbrir:ov=>{
       $('#edC',ov).onclick=()=>{cerrarModal();formCliente(id);};
+      $('#ajC',ov).onclick=()=>{cerrarModal();formAjusteSaldo(id);};
       const p=$('#pagC',ov); if(p) p.onclick=()=>{cerrarModal();formPago(id);};
+    }});
+}
+
+const MOTIVOS_AJUSTE_SALDO=['Deuda anterior al sistema','Corrección de un error de carga','Deuda perdonada','Otro'];
+function formAjusteSaldo(id){
+  const c=cli(id);
+  modal({titulo:'Ajustar saldo — '+c.nombre,
+    cuerpo:`
+      <div class="kpi" style="margin-bottom:16px"><span>Saldo actual</span><b style="color:${Number(c.saldo)>0.009?'var(--rojo)':'var(--verde)'}">${$m(c.saldo||0)}</b></div>
+      <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Sirve para cargar lo que ya te debía de antes, o para corregir un error. Queda registrado en el historial con el motivo.</p>
+      <label class="f">Qué querés hacer</label>
+      <div class="seg" style="margin-bottom:14px">
+        <button type="button" data-ta="sumar" class="on">Sumar deuda</button>
+        <button type="button" data-ta="restar">Restar deuda</button>
+        <button type="button" data-ta="fijar">Fijar el saldo</button>
+      </div>
+      <label class="f" for="as_monto" id="as_lbl">Cuánto sumar a la deuda</label>
+      <input id="as_monto" class="inp num" inputmode="decimal" placeholder="0,00">
+      <label class="f" for="as_mot" style="margin-top:14px">Motivo</label>
+      <select id="as_mot" class="inp">${MOTIVOS_AJUSTE_SALDO.map(m=>`<option>${m}</option>`).join('')}</select>
+      <label class="f" for="as_nota" style="margin-top:14px">Detalle</label>
+      <input id="as_nota" class="inp" placeholder="Opcional: desde cuándo, por qué…">
+      <div id="as_queda" style="margin-top:14px;color:var(--muted)"></div>`,
+    pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okAS">Guardar ajuste</button>`,
+    alAbrir:ov=>{
+      let modo='sumar';
+      const inp=$('#as_monto',ov);
+      const nuevoSaldo=()=>{
+        const v=num(inp.value), act=Number(c.saldo||0);
+        return modo==='sumar'? act+v : modo==='restar'? act-v : v;
+      };
+      const upd=()=>{
+        const n=nuevoSaldo();
+        $('#as_queda',ov).innerHTML = inp.value.trim()===''?'':`El saldo pasa de <b class="num">${$m(c.saldo||0)}</b> a <b class="num" style="color:${n>0.009?'var(--rojo)':'var(--verde)'}">${$m(n)}</b>`;
+      };
+      $$('[data-ta]',ov).forEach(b=>b.onclick=()=>{
+        modo=b.dataset.ta; $$('[data-ta]',ov).forEach(x=>x.classList.toggle('on',x===b));
+        $('#as_lbl',ov).textContent = modo==='sumar'?'Cuánto sumar a la deuda':modo==='restar'?'Cuánto restar de la deuda':'Saldo real que debe quedar';
+        upd();
+      });
+      inp.oninput=upd; inp.focus();
+      $('#okAS',ov).onclick=()=>{
+        if(inp.value.trim()===''){aviso('Ingresá un monto','bad');return;}
+        const anterior=Number(c.saldo||0);
+        const n=nuevoSaldo();
+        const delta=n-anterior;
+        if(Math.abs(delta)<0.005){aviso('No hay diferencia para registrar','bad');return;}
+        if(n<-0.005){aviso('El saldo no puede quedar negativo','bad');return;}
+        const motivo=$('#as_mot',ov).value+($('#as_nota',ov).value.trim()?' — '+$('#as_nota',ov).value.trim():'');
+        db.ajustesFiado=db.ajustesFiado||[];
+        db.ajustesFiado.push({id:uid(),clienteId:id,monto:delta,motivo,anterior,nuevo:n,fecha:new Date().toISOString()});
+        c.saldo=n;
+        guardar();cerrarModal();render();
+        aviso(`Saldo ajustado: ${delta>0?'+':''}${$m(Math.abs(delta))} · queda en ${$m(n)}`,'ok');
+      };
     }});
 }
 function formPago(id){
@@ -2028,33 +2586,72 @@ function formPago(id){
     }});
 }
 
-const MOTIVOS_EGRESO=['Pago a proveedor','Retiro del dueño','Sueldo o adelanto','Servicios (luz, gas, internet)','Alquiler','Compra de insumos','Gastos varios','Otro'];
+const MOTIVOS_EGRESO=['Pago a proveedor','Retiro del dueño','Sueldo o adelanto','Servicios (luz, gas, internet)','Alquiler','Compra de insumos','Gastos varios'];
+function motivosEgresoTodos(){
+  return [...MOTIVOS_EGRESO,...(db.config.motivosEgresoExtra||[])];
+}
 function formEgreso(){
-  let cajaEgreso='general';
-  modal({titulo:'Registrar egreso de caja',
+  let cajaEgreso='general', formaEg='efectivo';
+  modal({titulo:'Registrar egreso',
     cuerpo:`
-      <p style="margin:0 0 16px;color:var(--muted);line-height:1.6">Plata que sale de la caja: pagos a proveedores, retiros, gastos. Se descuenta del arqueo del turno.</p>
-      <label class="f">¿De qué caja sale?</label>
+      <p style="margin:0 0 16px;color:var(--muted);line-height:1.6">Plata que sale: pagos a proveedores, retiros, gastos. Los que salen <b>en efectivo</b> se descuentan del arqueo de la caja; los de transferencia o tarjeta quedan registrados como gasto pero no tocan el efectivo del mostrador.</p>
+      <label class="f">¿Cómo se pagó?</label>
       <div class="seg" style="margin-bottom:14px">
-        <button type="button" data-ce="general" class="on">Caja general</button>
-        <button type="button" data-ce="cigarrillos">Caja de cigarrillos</button>
+        <button type="button" data-fe="efectivo" class="on">Efectivo</button>
+        <button type="button" data-fe="transferencia">Transferencia</button>
+        <button type="button" data-fe="tarjeta">Tarjeta</button>
+      </div>
+      <div id="eg_cajaWrap">
+        <label class="f">¿De qué caja sale?</label>
+        <div class="seg" style="margin-bottom:14px">
+          <button type="button" data-ce="general" class="on">Caja general</button>
+          <button type="button" data-ce="cigarrillos">Caja de cigarrillos</button>
+        </div>
       </div>
       <label class="f" for="eg_monto">Monto</label>
       <input id="eg_monto" class="inp num" inputmode="decimal" placeholder="0,00">
       <label class="f" for="eg_mot" style="margin-top:14px">Motivo</label>
-      <select id="eg_mot" class="inp">${MOTIVOS_EGRESO.map(m=>`<option>${m}</option>`).join('')}</select>
+      <select id="eg_mot" class="inp">
+        ${motivosEgresoTodos().map(m=>`<option>${esc(m)}</option>`).join('')}
+        <option value="__otro__">+ Escribir otro motivo…</option>
+      </select>
+      <div id="eg_otroWrap" hidden style="margin-top:10px">
+        <input id="eg_otro" class="inp" placeholder="Escribí el motivo">
+        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;color:var(--muted);cursor:pointer">
+          <input type="checkbox" id="eg_guardarMot" checked style="width:auto;min-height:auto"> Guardarlo para la próxima vez
+        </label>
+      </div>
       <label class="f" for="eg_nota" style="margin-top:14px">Detalle</label>
       <input id="eg_nota" class="inp" placeholder="Opcional: a quién, por qué concepto…">`,
     pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn rojo" id="okEg">Registrar egreso</button>`,
     alAbrir:ov=>{
       $$('[data-ce]',ov).forEach(b=>b.onclick=()=>{cajaEgreso=b.dataset.ce;$$('[data-ce]',ov).forEach(x=>x.classList.toggle('on',x===b));});
+      $$('[data-fe]',ov).forEach(b=>b.onclick=()=>{
+        formaEg=b.dataset.fe; $$('[data-fe]',ov).forEach(x=>x.classList.toggle('on',x===b));
+        $('#eg_cajaWrap',ov).hidden = formaEg!=='efectivo';   // solo el efectivo sale de una caja física
+      });
+      const sel=$('#eg_mot',ov);
+      sel.onchange=()=>{
+        const otro=sel.value==='__otro__';
+        $('#eg_otroWrap',ov).hidden=!otro;
+        if(otro) $('#eg_otro',ov).focus();
+      };
       $('#eg_monto',ov).focus();
       $('#okEg',ov).onclick=()=>{
         const mto=num($('#eg_monto',ov).value);
         if(mto<=0){aviso('Poné un monto mayor a cero','bad');return;}
+        let motivo=sel.value;
+        if(motivo==='__otro__'){
+          motivo=$('#eg_otro',ov).value.trim();
+          if(!motivo){aviso('Escribí el motivo del egreso','bad');$('#eg_otro',ov).focus();return;}
+          if($('#eg_guardarMot',ov).checked){
+            db.config.motivosEgresoExtra=db.config.motivosEgresoExtra||[];
+            if(!motivosEgresoTodos().some(m=>normalizarTexto(m)===normalizarTexto(motivo))) db.config.motivosEgresoExtra.push(motivo);
+          }
+        }
         db.egresos=db.egresos||[];
-        db.egresos.push({id:uid(),monto:mto,caja:cajaEgreso,motivo:$('#eg_mot',ov).value,
-          nota:$('#eg_nota',ov).value.trim(),fecha:new Date().toISOString()});
+        db.egresos.push({id:uid(),monto:mto,forma:formaEg,caja:formaEg==='efectivo'?cajaEgreso:'',
+          motivo,nota:$('#eg_nota',ov).value.trim(),fecha:new Date().toISOString()});
         guardar();cerrarModal();render();
         aviso(`Egreso de ${$m(mto)} registrado`,'ok');
       };
@@ -2095,11 +2692,13 @@ function turnoActual(){
   });
   const cobEfectivo=pagos.filter(p=>(p.forma||'efectivo')==='efectivo').reduce((a,p)=>a+p.monto,0);
   const cobOtros=pagos.filter(p=>(p.forma||'efectivo')!=='efectivo').reduce((a,p)=>a+p.monto,0);
-  const egrGeneral=egresos.filter(e=>e.caja!=='cigarrillos').reduce((a,e)=>a+e.monto,0);
-  const egrCigarros=egresos.filter(e=>e.caja==='cigarrillos').reduce((a,e)=>a+e.monto,0);
+  const egrEfectivo=egresos.filter(e=>(e.forma||'efectivo')==='efectivo');
+  const egrGeneral=egrEfectivo.filter(e=>e.caja!=='cigarrillos').reduce((a,e)=>a+e.monto,0);
+  const egrCigarros=egrEfectivo.filter(e=>e.caja==='cigarrillos').reduce((a,e)=>a+e.monto,0);
+  const egrOtros=egresos.filter(e=>(e.forma||'efectivo')!=='efectivo').reduce((a,e)=>a+e.monto,0);
   const genEfectivo=porForma.efectivo-cigEfectivo;
   const total=Object.values(porForma).reduce((a,b)=>a+b,0);
-  return {desde,ventas,pagos,egresos,porForma,cigTotal,cigEfectivo,genEfectivo,cobEfectivo,cobOtros,egrGeneral,egrCigarros,costo,total};
+  return {desde,ventas,pagos,egresos,porForma,cigTotal,cigEfectivo,genEfectivo,cobEfectivo,cobOtros,egrGeneral,egrCigarros,egrOtros,costo,total};
 }
 function ventasDeCierre(c){
   if(c.ventaIds) return c.ventaIds.map(id=>db.ventas.find(v=>v.id===id)).filter(Boolean);
@@ -2204,7 +2803,7 @@ function vCaja(m){
   </div>
   <div class="grid3" style="margin-bottom:16px">
     <div class="kpi"><span>Vendido en el turno</span><b>${$m(t.total)}</b><small>${t.ventas.length} ventas${t.ventas.length?` · ticket promedio ${$m(t.total/t.ventas.length)}`:''}</small></div>
-    <div class="kpi"><span>Egresos del turno</span><b style="color:var(--rojo)">${$m(t.egrGeneral+t.egrCigarros)}</b><small>${t.egresos.length} salidas de dinero</small></div>
+    <div class="kpi"><span>Egresos del turno</span><b style="color:var(--rojo)">${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b><small>${t.egresos.length} salidas${t.egrOtros>0.009?` · ${$m(t.egrOtros)} no fue en efectivo`:''}</small></div>
     <div class="kpi"><span>Vendido en cigarrillos</span><b>${$m(t.cigTotal)}</b><small>de los ${$m(t.total)} totales</small></div>
   </div>
   <div class="card" style="margin-bottom:16px">
@@ -2215,7 +2814,7 @@ function vCaja(m){
   </div>
   <div class="pos" style="grid-template-columns:1fr 372px">
     <div class="card">
-      <div class="card-h"><h2>Ventas del turno</h2><span class="pill mute">Ganancia estimada ${$m(t.total-t.costo-t.egrGeneral-t.egrCigarros)}</span></div>
+      <div class="card-h"><h2>Ventas del turno</h2><span class="pill mute">Ganancia estimada ${$m(t.total-t.costo-t.egrGeneral-t.egrCigarros-t.egrOtros)}</span></div>
       ${t.ventas.length?`<table class="mtable"><thead><tr><th>Nº</th><th>Hora</th><th>Detalle</th><th>Forma</th><th class="r">Total</th></tr></thead><tbody>
         ${[...t.ventas].reverse().map(v=>`<tr>
           <td data-label="Nº" class="num" style="color:var(--muted)">${String(v.nro).padStart(4,'0')}</td>
@@ -2227,11 +2826,11 @@ function vCaja(m){
       :`<div class="empty"><b>Todavía no hubo ventas en este turno</b>Cuando cobres la primera, aparece acá.</div>`}
       ${t.egresos.length?`
       <div class="card-h" style="border-top:1px solid var(--line)"><h2>Egresos del turno</h2></div>
-      <table class="mtable"><thead><tr><th>Hora</th><th>Motivo</th><th>Caja</th><th class="r">Monto</th><th></th></tr></thead><tbody>
+      <table class="mtable"><thead><tr><th>Hora</th><th>Motivo</th><th>Forma</th><th class="r">Monto</th><th></th></tr></thead><tbody>
         ${[...t.egresos].reverse().map(e=>`<tr>
           <td data-label="Hora" class="num">${fHora(e.fecha)}</td>
           <td data-label="Motivo"><b>${esc(e.motivo)}</b>${e.nota?`<br><span style="font-size:12px;color:var(--muted)">${esc(e.nota)}</span>`:''}</td>
-          <td data-label="Caja"><span class="pill ${e.caja==='cigarrillos'?'warn':'mute'}">${e.caja==='cigarrillos'?'Cigarrillos':'General'}</span></td>
+          <td data-label="Forma"><span class="pill ${(e.forma||'efectivo')==='efectivo'?(e.caja==='cigarrillos'?'warn':'mute'):'info'}">${(e.forma||'efectivo')==='efectivo'?(e.caja==='cigarrillos'?'Efectivo · Cigarrillos':'Efectivo · General'):esc(FORMAS[e.forma]||e.forma)}</span></td>
           <td data-label="Monto" class="r num" style="font-weight:600;color:var(--rojo)">– ${$m(e.monto)}</td>
           <td class="r"><button class="x" data-del-eg="${e.id}" aria-label="Eliminar egreso">${ic('cerrar')}</button></td></tr>`).join('')}
       </tbody></table>`:''}
@@ -2334,7 +2933,7 @@ function vCaja(m){
     partes.push(Math.abs(dG)<0.01?'La caja general cuadra justo.':`Caja general: diferencia de <b style="color:${dG<0?'var(--rojo)':'var(--ambar)'}">${dG>0?'+':''}${$m(Math.abs(dG))}</b>.`);
     partes.push(Math.abs(dC)<0.01?'La caja de cigarrillos cuadra justo.':`Caja de cigarrillos: diferencia de <b style="color:${dC<0?'var(--rojo)':'var(--ambar)'}">${dC>0?'+':''}${$m(Math.abs(dC))}</b>.`);
     confirmar('Cerrar la caja',
-      `Vendiste <b>${$m(t.total)}</b> en ${t.ventas.length} ventas${t.egresos.length?` y registraste <b>${$m(t.egrGeneral+t.egrCigarros)}</b> en egresos`:''}.<br><br>${partes.join('<br>')}`,
+      `Vendiste <b>${$m(t.total)}</b> en ${t.ventas.length} ventas${t.egresos.length?` y registraste <b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b> en egresos`:''}.<br><br>${partes.join('<br>')}`,
       async()=>{
         const nuevoCierre={id:uid(),desde:t.desde,hasta:new Date().toISOString(),
           cantVentas:t.ventas.length,total:t.total,porForma:t.porForma,cigTotal:t.cigTotal,
@@ -2376,42 +2975,413 @@ function restaurar(obj,origen){
     ()=>{ db={...VACIA(),...d,config:{...VACIA().config,...(d.config||{})}}; guardar(); ticket=[]; render(); aviso('Copia restaurada','ok'); },
     'Restaurar');
 }
+/* ═══════════════════════════════════════════════════════
+   RESUMEN — dashboards para el dueño
+   ═══════════════════════════════════════════════════════ */
+let periodoResumen='hoy', desdePers='', hastaPers='';
+
+function rangoPeriodo(p){
+  const ahora=new Date();
+  const ini=new Date(ahora); ini.setHours(0,0,0,0);
+  const fin=new Date(ahora); fin.setHours(23,59,59,999);
+  if(p==='ayer'){ ini.setDate(ini.getDate()-1); fin.setDate(fin.getDate()-1); }
+  else if(p==='semana'){ ini.setDate(ini.getDate()-6); }
+  else if(p==='mes'){ ini.setDate(ini.getDate()-29); }
+  else if(p==='pers'){
+    if(desdePers) { const d=new Date(desdePers+'T00:00:00'); if(!isNaN(d)) ini.setTime(d.getTime()); }
+    if(hastaPers) { const h=new Date(hastaPers+'T23:59:59'); if(!isNaN(h)) fin.setTime(h.getTime()); }
+  }
+  return {ini:ini.toISOString(),fin:fin.toISOString()};
+}
+function datosPeriodo(p){
+  const {ini,fin}=rangoPeriodo(p);
+  const ventas=db.ventas.filter(v=>v.fecha>=ini&&v.fecha<=fin);
+  const pagos=db.pagos.filter(x=>x.fecha>=ini&&x.fecha<=fin);
+  const egresos=(db.egresos||[]).filter(e=>e.fecha>=ini&&e.fecha<=fin);
+  const porForma={efectivo:0,transferencia:0,tarjeta:0,fiado:0};
+  const porHora=Array(24).fill(0), porHoraCant=Array(24).fill(0);
+  const porDiaSemana=Array(7).fill(0);
+  const porRubro={}, porProducto={};
+  let costo=0, cigTotal=0, cigCosto=0;
+
+  ventas.forEach(v=>{
+    if(v.pagos&&v.pagos.length) v.pagos.forEach(pg=>{const k=formaKey(pg.forma);porForma[k]=(porForma[k]||0)+pg.monto;});
+    else { const k=formaKey(v.forma); porForma[k]=(porForma[k]||0)+v.total; }
+    const f=new Date(v.fecha);
+    porHora[f.getHours()]+=v.total; porHoraCant[f.getHours()]+=1;
+    porDiaSemana[f.getDay()]+=v.total;
+
+    const sumar=(pid,nombre,cant,importe,rubro)=>{
+      const k=pid||('x:'+nombre);
+      porProducto[k]=porProducto[k]||{nombre,cant:0,importe:0,pid,rubro:rubro||''};
+      porProducto[k].cant+=cant; porProducto[k].importe+=importe;
+      const r=(rubro||'Sin rubro').trim()||'Sin rubro';
+      porRubro[r]=porRubro[r]||{importe:0,cant:0};
+      porRubro[r].importe+=importe; porRubro[r].cant+=cant;
+    };
+    (v.items||[]).forEach(i=>{
+      costo+=(i.costo||0)*i.cant;
+      if(i.tipo==='combo'){
+        const suma=(i.componentes||[]).reduce((a,x)=>a+(x.precio||0)*x.cant,0)||1;
+        (i.componentes||[]).forEach(c=>{
+          const pr=prod(c.prodId);
+          const rubro=c.rubro||(pr?pr.rubro:'');
+          const importe=(c.precio||0)*c.cant*i.cant*(i.precio/suma);   // reparte el precio del combo
+          sumar(c.prodId,c.nombre,c.cant*i.cant,importe,rubro);
+          if(esCigarrillo(rubro)){ cigTotal+=importe; cigCosto+=(c.costo||0)*c.cant*i.cant; }
+        });
+      } else {
+        const pr=prod(i.prodId);
+        const rubro=i.rubro||(pr?pr.rubro:'');
+        sumar(i.prodId,i.nombre,i.cant,i.precio*i.cant,rubro);
+        if(esCigarrillo(rubro)){ cigTotal+=i.precio*i.cant; cigCosto+=(i.costo||0)*i.cant; }
+      }
+    });
+  });
+
+  const total=Object.values(porForma).reduce((a,b)=>a+b,0);
+  const egrTotal=egresos.reduce((a,e)=>a+e.monto,0);
+  const cobrado=porForma.efectivo+porForma.transferencia+porForma.tarjeta;
+  const productos=Object.values(porProducto).sort((a,b)=>b.importe-a.importe);
+  const rubrosOrden=Object.entries(porRubro).map(([k,v])=>({nombre:k,...v})).sort((a,b)=>b.importe-a.importe);
+  // margen bruto separado: cigarrillos suele tener un margen mucho más chico que el resto
+  const cigMargen=cigTotal-cigCosto;
+  const otroTotal=total-cigTotal, otroCosto=costo-cigCosto;
+  const otroMargen=otroTotal-otroCosto;
+  return {ini,fin,ventas,pagos,egresos,porForma,total,cobrado,costo,egrTotal,
+          cigTotal,cigCosto,cigMargen,otroTotal,otroCosto,otroMargen,
+          productos,rubros:rubrosOrden,porHora,porHoraCant,porDiaSemana,ganancia:total-costo-egrTotal};
+}
+function serieDiaria(ini,fin){
+  const dias=[]; const d=new Date(ini); d.setHours(0,0,0,0);
+  const hasta=new Date(fin);
+  while(d<=hasta&&dias.length<62){
+    const key=d.toISOString().slice(0,10);
+    const tot=db.ventas.filter(v=>v.fecha.slice(0,10)===key).reduce((a,v)=>a+v.total,0);
+    dias.push({key,fecha:new Date(d),total:tot});
+    d.setDate(d.getDate()+1);
+  }
+  return dias;
+}
+
+const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const COLORES_RUBRO=['#1857D6','#0E7A54','#B4790B','#CC3B22','#7A4BC4','#0F7B8A'];
+
+function vResumen(m){
+  const d=datosPeriodo(periodoResumen);
+  const etiqueta={hoy:'Hoy',ayer:'Ayer',semana:'Últimos 7 días',mes:'Últimos 30 días',pers:'Período elegido'}[periodoResumen];
+  const hayVentas=d.ventas.length>0;
+
+  m.innerHTML=`
+  <div class="head">
+    <div><h1>Resumen</h1><div class="sub">${etiqueta} · ${fFecha(d.ini)}${fFecha(d.ini)!==fFecha(d.fin)?' al '+fFecha(d.fin):''}</div></div>
+    <div class="seg" style="margin:0;max-width:none;width:auto">
+      ${[['hoy','Hoy'],['ayer','Ayer'],['semana','7 días'],['mes','30 días'],['pers','Otro']].map(([k,t])=>
+        `<button data-per="${k}" class="${periodoResumen===k?'on':''}">${t}</button>`).join('')}
+    </div>
+  </div>
+  ${periodoResumen==='pers'?`<div class="card" style="margin-bottom:18px"><div class="card-b grid2">
+      <div><label class="f" for="pDesde">Desde</label><input type="date" id="pDesde" class="inp" value="${esc(desdePers)}"></div>
+      <div><label class="f" for="pHasta">Hasta</label><input type="date" id="pHasta" class="inp" value="${esc(hastaPers)}"></div>
+    </div></div>`:''}
+
+  ${!hayVentas?`<div class="card"><div class="empty"><b>No hubo ventas en este período</b>Elegí otro rango de fechas arriba para ver los números.</div></div>`:`
+
+  <div class="grid3" style="margin-bottom:26px">
+    <div class="kpi"><span>Vendido</span><b>${$m(d.total)}</b><small>${d.ventas.length} ventas · promedio ${$m(d.total/d.ventas.length)}</small></div>
+    <div class="kpi"><span>Costo de la mercadería vendida</span><b style="color:var(--rojo)">${$m(d.costo)}</b><small>${d.total>0?`el ${(d.costo/d.total*100).toFixed(0)}% de lo que vendiste`:'lo que te costó reponer lo vendido'}</small></div>
+    <div class="kpi"><span>Ganancia estimada</span><b style="color:${d.ganancia>=0?'var(--verde-d)':'var(--rojo)'}">${$m(d.ganancia)}</b>
+      <small class="formula"><span class="num">${$m(d.total)}</span> ventas − <span class="num">${$m(d.costo)}</span> costo − <span class="num">${$m(d.egrTotal)}</span> egresos</small></div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-h"><h2>De dónde sale tu margen</h2>
+      <span class="pill mute">antes de egresos</span></div>
+    <div class="card-b">
+      <div class="grid2">
+        <div class="margen-box">
+          <span class="margen-tit">Cigarrillos</span>
+          <b class="num">${$m(d.cigMargen)}</b>
+          <small class="formula"><span class="num">${$m(d.cigTotal)}</span> vendido − <span class="num">${$m(d.cigCosto)}</span> costo</small>
+          <div class="margen-pct">${d.cigTotal>0?`Margen del <b>${(d.cigMargen/d.cigTotal*100).toFixed(1)}%</b> sobre lo vendido`:'Sin ventas de cigarrillos'}</div>
+        </div>
+        <div class="margen-box">
+          <span class="margen-tit">Resto de los productos</span>
+          <b class="num">${$m(d.otroMargen)}</b>
+          <small class="formula"><span class="num">${$m(d.otroTotal)}</span> vendido − <span class="num">${$m(d.otroCosto)}</span> costo</small>
+          <div class="margen-pct">${d.otroTotal>0?`Margen del <b>${(d.otroMargen/d.otroTotal*100).toFixed(1)}%</b> sobre lo vendido`:'Sin ventas'}</div>
+        </div>
+      </div>
+      ${d.cigTotal>0.009&&d.otroTotal>0.009?`<div class="nota-dash" style="margin-top:16px">
+        Los cigarrillos son el <b>${Math.round(d.cigTotal/d.total*100)}%</b> de lo que vendés, pero aportan el <b>${d.cigMargen+d.otroMargen>0?Math.round(d.cigMargen/(d.cigMargen+d.otroMargen)*100):0}%</b> de tu margen. ${(d.cigTotal/d.total)>(d.cigMargen/((d.cigMargen+d.otroMargen)||1))?'Mueven mucha plata pero dejan poco: son para traer gente al mostrador.':'Están rindiendo bien en relación a lo que ocupan.'}
+      </div>`:''}
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-h"><h2>Cómo te pagaron</h2></div>
+    <div class="card-b">
+      <div class="barra-apilada">
+        ${['efectivo','transferencia','tarjeta','fiado'].map((f,ix)=>{
+          const v=d.porForma[f]||0; const pct=d.total>0?(v/d.total*100):0;
+          if(pct<=0) return '';
+          const col={efectivo:'var(--verde)',transferencia:'var(--primary)',tarjeta:'#7A4BC4',fiado:'var(--ambar)'}[f];
+          return `<div style="width:${pct}%;background:${col}" title="${FORMAS[f]}: ${$m(v)}"></div>`;
+        }).join('')}
+      </div>
+      <div class="leyenda">
+        ${['efectivo','transferencia','tarjeta','fiado'].map(f=>{
+          const v=d.porForma[f]||0; const pct=d.total>0?Math.round(v/d.total*100):0;
+          const col={efectivo:'var(--verde)',transferencia:'var(--primary)',tarjeta:'#7A4BC4',fiado:'var(--ambar)'}[f];
+          return `<div class="leyenda-item"><span class="punto" style="background:${col}"></span>
+            <span>${FORMAS[f]}</span><b class="num">${$m(v)}</b><span class="pct">${pct}%</span></div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-h"><h2>${periodoResumen==='hoy'||periodoResumen==='ayer'?'Ventas por hora':'Ventas por día'}</h2></div>
+    <div class="card-b" id="graf"></div>
+    <div class="card-b" style="border-top:1px solid var(--line);padding-top:14px" id="grafNota"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-h"><h2>Lo que más vendiste</h2>
+      <button class="btn ghost sm" id="expProd">Descargar detalle</button></div>
+    <div class="card-b" id="rankProd"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-h"><h2>Ventas por rubro</h2></div>
+    <div class="card-b" id="rubrosBox"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h2>Detalle completo</h2><span class="pill mute">${d.productos.length} productos distintos</span></div>
+    <table class="mtable"><thead><tr><th>Producto</th><th>Rubro</th><th class="r">Cantidad</th><th class="r">Facturado</th></tr></thead><tbody>
+      ${d.productos.map(p=>{
+        const pr=p.pid?prod(p.pid):null;
+        return `<tr>
+        <td data-label="Producto"><b>${esc(p.nombre)}</b></td>
+        <td data-label="Rubro" style="color:var(--muted)">${esc((pr&&pr.rubro)||p.rubro||'—')}</td>
+        <td data-label="Cantidad" class="r num">${pr?fmtCant(pr,p.cant):p.cant}</td>
+        <td data-label="Facturado" class="r num" style="font-weight:600">${$m(p.importe)}</td>
+      </tr>`;}).join('')}</tbody></table>
+  </div>`}`;
+
+  $$('[data-per]').forEach(b=>b.onclick=()=>{periodoResumen=b.dataset.per;render();});
+  const pd=$('#pDesde'), ph=$('#pHasta');
+  if(pd) pd.onchange=()=>{desdePers=pd.value;render();};
+  if(ph) ph.onchange=()=>{hastaPers=ph.value;render();};
+  if(!hayVentas) return;
+  $('#expProd').onclick=()=>exportarProductos(d);
+
+  if(periodoResumen==='hoy'||periodoResumen==='ayer'){
+    pintarBarrasHora($('#graf'),d.porHora);
+    const pico=d.porHora.indexOf(Math.max(...d.porHora));
+    $('#grafNota').innerHTML=`<div class="nota-dash">Tu hora más fuerte fue <b>${String(pico).padStart(2,'0')}:00</b>, con ${$m(d.porHora[pico])} en ${d.porHoraCant[pico]} ventas.</div>`;
+  } else {
+    const serie=serieDiaria(d.ini,d.fin);
+    pintarGrafico($('#graf'),serie);
+    const mejorDia=d.porDiaSemana.indexOf(Math.max(...d.porDiaSemana));
+    const conVentas=serie.filter(s=>s.total>0);
+    const prom=conVentas.length?conVentas.reduce((a,s)=>a+s.total,0)/conVentas.length:0;
+    $('#grafNota').innerHTML=`<div class="nota-dash">Tu mejor día suele ser el <b>${DIAS_SEM[mejorDia]}</b>. Promediás <b>${$m(prom)}</b> por día con ventas.</div>`;
+  }
+  pintarRanking($('#rankProd'),d);
+  pintarRubros($('#rubrosBox'),d);
+}
+
+function pintarBarrasHora(cont,porHora){
+  const max=Math.max(...porHora,1);
+  const pico=porHora.indexOf(Math.max(...porHora));
+  cont.innerHTML=`<div class="graf-horas">
+    ${porHora.map((v,h)=>{
+      const alt=Math.max(3,(v/max)*130);
+      return `<div class="hora-col" title="${String(h).padStart(2,'0')}:00 — ${$m(v)}">
+        <div class="hora-barra" style="height:${alt}px;background:${h===pico?'var(--rojo)':v>0?'var(--verde)':'#E2E6EC'}"></div>
+      </div>`;}).join('')}
+  </div>
+  <div class="graf-ejes"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>`;
+}
+
+function pintarGrafico(cont,serie){
+  if(!serie.length){cont.innerHTML='<div class="empty">Sin datos</div>';return;}
+  const max=Math.max(...serie.map(s=>s.total),1);
+  const dias=['dom','lun','mar','mié','jue','vie','sáb'];
+  const corto=serie.length<=14;
+  cont.innerHTML=`<div style="display:flex;align-items:flex-end;gap:${corto?'8px':'3px'};height:165px">
+    ${serie.map(s=>{
+      const h=Math.max(3,(s.total/max)*135);
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0" title="${fFecha(s.fecha)} — ${$m(s.total)}">
+        <div style="width:100%;height:${h}px;background:${s.total>0?'var(--primary)':'#E2E6EC'};border-radius:5px 5px 0 0"></div>
+        <div style="font-size:10.5px;color:var(--muted);white-space:nowrap">${corto?dias[s.fecha.getDay()]+' '+s.fecha.getDate():(s.fecha.getDate()%5===0?s.fecha.getDate():'')}</div>
+      </div>`;}).join('')}
+  </div>`;
+}
+
+function pintarRanking(cont,d){
+  const top=d.productos.slice(0,10);
+  if(!top.length){cont.innerHTML='<div class="empty">Sin productos vendidos</div>';return;}
+  const max=top[0].importe||1;
+  cont.innerHTML=`<div class="rank">
+    ${top.map((p,ix)=>`<div class="rank-fila">
+      <span class="rank-n">${ix+1}</span>
+      <div class="rank-cuerpo">
+        <div class="rank-top"><span class="rank-nom">${esc(p.nombre)}</span><b class="num">${$m(p.importe)}</b></div>
+        <div class="rank-barra"><div style="width:${(p.importe/max)*100}%"></div></div>
+      </div>
+    </div>`).join('')}
+  </div>
+  <div class="nota-dash" style="margin-top:16px"><b>${esc(top[0].nombre)}</b> es tu producto estrella: se llevó el <b>${d.total>0?(top[0].importe/d.total*100).toFixed(0):0}%</b> de lo facturado. Un quiebre de stock ahí es venta perdida directa.</div>`;
+}
+
+function pintarRubros(cont,d){
+  const top=d.rubros.slice(0,5);
+  const resto=d.rubros.slice(5).reduce((a,r)=>a+r.importe,0);
+  const items=[...top.map((r,i)=>({...r,color:COLORES_RUBRO[i]})),
+               ...(resto>0.009?[{nombre:'Resto',importe:resto,color:'#98A2B3'}]:[])];
+  if(!items.length){cont.innerHTML='<div class="empty">Sin datos</div>';return;}
+  let acum=0;
+  const grad=items.map(it=>{
+    const desde=(acum/d.total)*100; acum+=it.importe;
+    const hasta=(acum/d.total)*100;
+    return `${it.color} ${desde}% ${hasta}%`;
+  }).join(',');
+  cont.innerHTML=`<div class="rubros-box">
+    <div class="dona" style="background:conic-gradient(${grad})">
+      <div class="dona-centro"><b class="num">${$m(d.total)}</b><span>total</span></div>
+    </div>
+    <div class="leyenda" style="flex:1">
+      ${items.map(it=>`<div class="leyenda-item">
+        <span class="punto" style="background:${it.color}"></span>
+        <span>${esc(it.nombre)}</span><b class="num">${$m(it.importe)}</b>
+        <span class="pct">${d.total>0?Math.round(it.importe/d.total*100):0}%</span>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="nota-dash" style="margin-top:16px"><b>${esc(items[0].nombre)}</b> es el rubro que más aporta: <b>${d.total>0?Math.round(items[0].importe/d.total*100):0}%</b> de lo facturado del período.</div>`;
+}
+
+function exportarProductos(d){
+  const filas=[['Producto','Rubro','Cantidad','Facturado']];
+  d.productos.forEach(p=>{
+    const pr=p.pid?prod(p.pid):null;
+    filas.push([p.nombre,(pr&&pr.rubro)||p.rubro||'',p.cant,p.importe.toFixed(2)]);
+  });
+  const csv=filas.map(f=>f.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`productos-vendidos-${d.ini.slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+  aviso('Detalle descargado','ok');
+}
+
+/* ═══════════════════════════════════════════════════════
+   SOPORTE
+   ═══════════════════════════════════════════════════════ */
+const SOPORTE_WA='5491150500618';
+function vSoporte(m){
+  const tel='+54 9 11 5050-0618';
+  m.innerHTML=`
+  <div class="head"><div><h1>Soporte</h1><div class="sub">¿Algo no anda como esperabas? Escribinos.</div></div></div>
+
+  <div class="card" style="max-width:680px;margin-bottom:16px">
+    <div class="card-b" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <span style="font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">WhatsApp</span>
+        <div style="font-family:var(--mono);font-size:21px;font-weight:600;margin-top:4px">${tel}</div>
+      </div>
+      <button class="btn verde" id="waSop">Abrir WhatsApp</button>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:680px;margin-bottom:16px">
+    <div class="card-h"><h2>Antes de escribir, probá esto</h2></div>
+    <div class="card-b">
+      <ul style="margin:0;padding-left:20px;line-height:1.9;color:var(--muted);font-size:14.5px">
+        <li>Si algo no se ve actualizado, recargá con <b>Ctrl+F5</b>.</li>
+        <li>Si el lector escanea raro, revisá que esté en modo teclado estándar.</li>
+        <li>Antes de un cambio grande, bajate una copia desde <b>Respaldo</b>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:680px">
+    <div class="card-h"><h2>Datos de tu sistema</h2>
+      <button class="btn ghost sm" id="copSop">Copiar</button></div>
+    <div class="card-b">
+      <div class="hint" style="margin:0 0 10px">Si te lo piden, copiá esto y mandalo junto a tu consulta.</div>
+      <textarea id="datosSop" class="inp" rows="4" readonly style="font-family:var(--mono);font-size:12.5px">${esc(
+        `Kiosco: ${db.config.nombre}\nUsuario: ${sesion?sesion.user.email:'(modo local)'}\nProductos: ${db.productos.length} · Ventas: ${db.ventas.length} · Clientes: ${db.clientes.length}\nÚltimo respaldo: ${db.config.ultBackup?fFH(db.config.ultBackup):'nunca'}`
+      )}</textarea>
+    </div>
+  </div>`;
+  $('#waSop').onclick=()=>{
+    const txt=`Hola, necesito ayuda con el sistema de ${db.config.nombre}.`;
+    window.open(linkWhatsapp(SOPORTE_WA,txt),'_blank');
+  };
+  $('#copSop').onclick=()=>{
+    const t=$('#datosSop').value;
+    navigator.clipboard?.writeText(t).then(()=>aviso('Datos copiados','ok'),()=>{ $('#datosSop').select(); aviso('Seleccionado — copialo con Ctrl+C'); });
+  };
+}
+
 function vBackup(m){
   const u=db.config.ultBackup;
   m.innerHTML=`
-  <div class="head"><div><h1>Respaldo</h1><div class="sub">La base entera: productos, movimientos, ventas, clientes, saldos y cierres.</div></div></div>
-  <div class="grid2">
-    <div class="card"><div class="card-h"><h2>Copia manual</h2></div><div class="card-b">
-      <p style="margin:0 0 14px;line-height:1.65;color:var(--muted)">Bajate un archivo con todo y guardalo donde no dependa de esta máquina: pendrive, Drive, o mandátelo por mail.</p>
-      <button class="btn big" id="bDesc">Descargar copia</button>
-      <div style="height:12px"></div>
+  <div class="head"><div><h1>Respaldo y ajustes</h1><div class="sub">Copias de seguridad y datos de tu kiosco.</div></div>
+    <button class="btn" id="bDesc">Descargar copia</button></div>
+
+  <div class="card" style="max-width:680px;margin-bottom:16px">
+    <div class="card-h"><h2>Copias de seguridad</h2>
+      <span class="pill ${u?'ok':'mute'}">Última automática: ${u?fFH(u):'ninguna'}</span></div>
+    <div class="card-b">
+      <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Se guarda una copia sola cada vez que cerrás la caja. Igual conviene bajar una a mano de vez en cuando y guardarla fuera de esta máquina.</p>
+      <div class="row" style="margin-bottom:16px">
+        <button class="btn ghost sm" id="bAhora">Guardar copia ahora</button>
+        <button class="btn ghost sm" id="bRest">Restaurar la automática</button>
+      </div>
       <label class="f" for="bFile">Restaurar desde un archivo</label>
       <input type="file" id="bFile" class="inp" accept=".json,application/json">
-    </div></div>
-    <div class="card"><div class="card-h"><h2>Copia automática</h2></div><div class="card-b">
-      <p style="margin:0 0 14px;line-height:1.65;color:var(--muted)">Se guarda sola cada vez que cerrás la caja, y una vez por día al abrir el sistema.</p>
-      <div class="kpi" style="margin-bottom:14px"><span>Última copia automática</span><b style="font-size:18px">${u?fFH(u):'todavía ninguna'}</b></div>
-      <div class="row">
-        <button class="btn ghost" id="bAhora">Guardar copia ahora</button>
-        <button class="btn ghost" id="bRest">Restaurar la automática</button>
-      </div>
-    </div></div>
-  </div>
-  <div class="card" style="margin-top:20px"><div class="card-h"><h2>El kiosco</h2></div><div class="card-b">
-    <div class="grid2">
-      <div><label class="f" for="cfgNom">Nombre que sale en el ticket</label>
-        <input id="cfgNom" class="inp" value="${esc(db.config.nombre)}"></div>
-      <div><label class="f" for="cfgNro">Próximo número de ticket</label>
-        <input id="cfgNro" class="inp num" value="${db.config.nroVenta}"></div>
     </div>
-    <label class="f" for="cfgWa" style="margin-top:14px">WhatsApp del dueño (para el resumen de cierre de caja)</label>
-    <input id="cfgWa" class="inp num" value="${esc(db.config.whatsappDueno||'')}" placeholder="Código de país + número, ej: 5491122334455">
-    <button class="btn" id="okCfg" style="margin-top:14px">Guardar</button>
-  </div></div>
-  <div class="card" style="margin-top:20px;border-color:#F0C9C0"><div class="card-h"><h2 style="color:var(--rojo)">Zona delicada</h2></div><div class="card-b row">
-    <button class="btn ghost" id="bDemo">Cargar datos de ejemplo</button>
-    <button class="btn rojo" id="bBorrar">Borrar todo</button>
-  </div></div>`;
+  </div>
+
+  <div class="card" style="max-width:680px;margin-bottom:16px">
+    <div class="card-h"><h2>Datos del kiosco</h2></div>
+    <div class="card-b">
+      <div class="grid2">
+        <div><label class="f" for="cfgNom">Nombre en el ticket</label>
+          <input id="cfgNom" class="inp" value="${esc(db.config.nombre)}"></div>
+        <div><label class="f" for="cfgNro">Próximo Nº de ticket</label>
+          <input id="cfgNro" class="inp num" value="${db.config.nroVenta}"></div>
+      </div>
+      <div class="grid2" style="margin-top:14px">
+        <div><label class="f" for="cfgWa">WhatsApp del dueño</label>
+          <input id="cfgWa" class="inp num" value="${esc(db.config.whatsappDueno||'')}" placeholder="Ej: 5491122334455">
+          <div class="hint">Para mandarte el resumen al cerrar caja.</div></div>
+        <div><label class="f" for="cfgPin">PIN del modo dueño</label>
+          <input id="cfgPin" class="inp num" value="${esc(db.config.pinDuenio||'')}" placeholder="Ej: 1234">
+          <div class="hint">Se pide para volver de empleado a dueño.</div></div>
+      </div>
+      <button class="btn" id="okCfg" style="margin-top:16px">Guardar cambios</button>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:680px;border-color:#F0C9C0">
+    <div class="card-b row" style="justify-content:space-between">
+      <div>
+        <b style="display:block;color:var(--rojo)">Zona delicada</b>
+        <span style="font-size:13px;color:var(--muted)">Acciones que no se pueden deshacer.</span>
+      </div>
+      <div class="row">
+        <button class="btn ghost sm" id="bDemo">Datos de ejemplo</button>
+        <button class="btn rojo sm" id="bBorrar">Borrar todo</button>
+      </div>
+    </div>
+  </div>`;
   $('#bDesc').onclick=descargarBackup;
   $('#bAhora').onclick=async()=>{ (await backupAuto())? aviso('Copia automática guardada','ok'):aviso('No se pudo guardar la copia','bad'); render(); };
   $('#bRest').onclick=async()=>{
@@ -2429,6 +3399,7 @@ function vBackup(m){
     db.config.nombre=$('#cfgNom').value.trim()||'Mi kiosco';
     db.config.nroVenta=Math.max(1,Math.floor(num($('#cfgNro').value))||1);
     db.config.whatsappDueno=$('#cfgWa').value.trim();
+    db.config.pinDuenio=$('#cfgPin').value.trim();
     guardar();render();aviso('Datos guardados','ok');
   };
   $('#bDemo').onclick=()=>confirmar('Cargar datos de ejemplo',
@@ -2454,7 +3425,7 @@ function demo(){
   ];
   ps.forEach(([ean,nombre,rubro,proveedor,costo,precio,stock,stockMin])=>{
     if(db.productos.some(p=>p.ean===ean))return;
-    const p={id:uid(),ean,nombre,rubro,proveedor,costo,precio,stock,stockMin,unidad:'unidad'};
+    const p={id:uid(),ean,nombre,rubro,proveedor,costo,precio,stock,stockMin,stockDeseado:stockMin*3,unidad:'unidad'};
     db.productos.push(p);
     movimiento(p.id,'ingreso',stock,'Stock inicial');
   });
@@ -2465,7 +3436,7 @@ function demo(){
   ];
   psKg.forEach(([nombre,rubro,proveedor,costo,precio,stock,stockMin])=>{
     if(db.productos.some(p=>p.nombre===nombre))return;
-    const p={id:uid(),ean:'',nombre,rubro,proveedor,costo,precio,stock,stockMin,unidad:'kg'};
+    const p={id:uid(),ean:'',nombre,rubro,proveedor,costo,precio,stock,stockMin,stockDeseado:stockMin*3,unidad:'kg'};
     db.productos.push(p);
     movimiento(p.id,'ingreso',stock,'Stock inicial');
   });
@@ -2475,10 +3446,17 @@ function demo(){
   ];
   psAlc.forEach(([ean,nombre,rubro,proveedor,costo,precio,stock,stockMin])=>{
     if(db.productos.some(p=>p.ean===ean))return;
-    const p={id:uid(),ean,nombre,rubro,proveedor,costo,precio,stock,stockMin,unidad:'unidad'};
+    const p={id:uid(),ean,nombre,rubro,proveedor,costo,precio,stock,stockMin,stockDeseado:stockMin*3,unidad:'unidad'};
     db.productos.push(p);
     movimiento(p.id,'ingreso',stock,'Stock inicial');
   });
+  // ejemplo de venta suelta: cigarrillos sueltos que salen del atado
+  const atado=db.productos.find(x=>x.nombre==='Cigarrillos Philip Morris');
+  if(atado&&!db.productos.some(x=>x.origenId===atado.id)){
+    db.productos.push({id:uid(),ean:'',nombre:'Philip Morris suelto',rubro:'Cigarrillos',proveedor:'',
+      costo:Math.round((Number(atado.costo)||0)/20*10000)/10000,precio:250,stock:0,stockMin:4,stockDeseado:20,
+      unidad:'unidad',origenId:atado.id,porAtado:20});
+  }
   if(!db.combos.some(c=>c.nombre==='Vodka + Jugo')){
     const vodka=db.productos.find(p=>p.nombre==='Vodka Apleton 750 ml');
     const jugo=db.productos.find(p=>p.nombre==='Jugo de naranja 1L');
