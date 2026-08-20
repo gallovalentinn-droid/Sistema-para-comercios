@@ -368,7 +368,7 @@ const KEY='kiosco:db', BKP='kiosco:backup-auto';
 // Pegá acá tu Project URL y tu anon public key (Project Settings → API en Supabase).
 // Mientras diga "PEGA_TU..." el sistema funciona en modo local, sin login, como antes.
 const SUPABASE_URL = 'https://zzpmdiivewmvhiszmdzh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFydmRmcXB4dXR5bW1sY3Bsc2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNjgxODIsImV4cCI6MjEwMTg0NDE4Mn0.YtaTrcRyzwsp2axQUJaAKZAmgE6zrpxuwBA-8vcrgZo';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6cG1kaWl2ZXdtdmhpc3ptZHpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3NjA3ODUsImV4cCI6MjEwMjMzNjc4NX0.bGYuqksSOYu6cxk9yx4ojafUcKzER4JNZSXS_4sA8rU';
 const sb = (typeof supabase!=='undefined' && SUPABASE_URL.startsWith('http'))
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
