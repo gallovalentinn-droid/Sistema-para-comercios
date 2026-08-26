@@ -1,0 +1,13 @@
+# F3.2 CLIENT BASELINE — NO SQL
+
+Registrar aquí el/los artefactos cliente F3.2 Slice A/B vigentes.
+
+Ejemplo de formato:
+- nombre_archivo:
+- versión:
+- sha256:
+- origen/master:
+- observaciones:
+
+Este archivo NO habilita rebuild ni se ejecuta en Supabase.
+Su función es preservar trazabilidad de compatibilidad cliente/servidor.
