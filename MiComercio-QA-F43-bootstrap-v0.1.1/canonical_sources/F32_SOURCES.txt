@@ -1,1 +1,0 @@
-# Pegá aquí una línea por cada SQL/artefacto F3.2 slice A/B aprobado copiado al directorio.
