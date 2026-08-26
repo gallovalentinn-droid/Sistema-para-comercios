@@ -1,0 +1,9 @@
+NO INSTALAR EN ESTA ETAPA
+
+- F4.2.3
+- `modulo_cigarros`
+- fix de importación >10 filas si altera semántica/snapshot
+- F4.3
+
+Primero:
+PARIDAD → COV-1 → MULTI-TENANT/RLS → ROLLBACK → REGRESIÓN.
