@@ -1,0 +1,44 @@
+MI COMERCIO
+CAMBIO DE DECISIÓN SOBRE EL ORDEN DE IMPLEMENTACIÓN
+
+Fecha: 31 de agosto de 2026
+
+DECISIÓN
+
+Se decidió modificar el orden de trabajo originalmente considerado.
+
+En lugar de migrar el sistema mientras todavía se agregan funciones, primero se completarán y probarán todas las funciones pendientes sobre el sistema actual. Después se desarrollarán F5 y F6. Una vez que esas etapas estén terminadas y verificadas, se realizará la integración y migración conjunta de todo el sistema.
+
+NUEVO ORDEN DE TRABAJO
+
+1. Completar las funciones pendientes del sistema actual.
+2. Probar esas funciones y corregir los problemas encontrados.
+3. Desarrollar y verificar F5.
+4. Desarrollar y verificar F6.
+5. Ejecutar una revisión integral del sistema completo.
+6. Integrar y migrar todos los cambios juntos.
+7. Realizar la prueba final posterior a la migración.
+
+MOTIVO DEL CAMBIO
+
+Este orden evita repetir la migración cada vez que se incorpora una función nueva. También reduce trabajo duplicado, simplifica las pruebas y permite llegar a la migración con el alcance funcional ya definido.
+
+La migración deja de ser una etapa intermedia repetida y pasa a ser la integración final de una versión completa: funciones pendientes, F5 y F6.
+
+ALCANCE DE ESTA ENTREGA
+
+El archivo HTML incluido en este paquete contiene las funciones agregadas hasta esta entrega:
+
+- Buscador y filtro por rubro en Para pedir.
+- Buscadores de productos en Caja y Resumen.
+- Unificación de Transferencia y QR.
+- Nueva sección Movimientos en cuentas, con consulta por día.
+- Stock inicial, unidades vendidas, otros movimientos y stock final por producto.
+- Desplegable real de rubros al crear o editar productos.
+- Opción para crear un rubro nuevo desde el formulario de producto.
+
+Esta entrega todavía no representa F5, F6 ni la migración final. Es la versión funcional que se utilizará para probar estas mejoras antes de continuar con las etapas siguientes.
+
+CRITERIO DE AVANCE
+
+No se iniciará la migración final hasta que las funciones pendientes, F5 y F6 estén implementadas y hayan superado sus pruebas correspondientes. De esta manera, la migración se ejecutará una sola vez sobre un sistema funcionalmente completo y verificado.
