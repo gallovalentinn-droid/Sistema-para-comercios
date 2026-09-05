@@ -1,13 +1,13 @@
 # Diseño de la beta real de siete días y salida comercial
 
-Fecha: 2026-09-05  
-Estado: aprobado en conversación; pendiente de plan de ejecución  
-Repositorio público existente: `gallovalentinn-droid/Sistema-para-comercios`  
-Dominio existente: `micomercio.ar`  
-Fuente del candidato: F6 RC1-REV2  
-Build fuente: `6.0.0-f6-rc1`  
-Build exigido para el piloto después de corregir la protección local: `6.0.0-f6-rc2`  
-Build base exigido: `5.0.0-f5-rc2`
+- Fecha: 2026-09-05
+- Estado: aprobado en conversación; pendiente de plan de ejecución
+- Repositorio público existente: `gallovalentinn-droid/Sistema-para-comercios`
+- Dominio existente: `micomercio.ar`
+- Fuente del candidato: F6 RC1-REV2
+- Build fuente: `6.0.0-f6-rc1`
+- Build exigido para el piloto después de corregir la protección local: `6.0.0-f6-rc2`
+- Build base exigido: `5.0.0-f5-rc2`
 
 ## 1. Objetivo y decisión de salida
 
