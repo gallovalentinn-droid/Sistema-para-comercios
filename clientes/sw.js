@@ -2,6 +2,7 @@
    Guarda una copia de la página y de las librerías la primera vez
    que entrás, y la sirve cuando no hay señal. */
 
+const CACHE_PREFIX = 'kiosco-';
 const CACHE = 'kiosco-v1';
 
 // lo mínimo para que el sistema arranque solo
@@ -29,7 +30,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(ks => Promise.all(ks.filter(k => k.startsWith(CACHE_PREFIX) && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
