@@ -29,3 +29,15 @@ test('las etiquetas de la barra quedan contenidas y la extensa puede ocupar dos 
   assert.match(labelRule, /white-space:\s*normal/);
   assert.match(labelRule, /overflow-wrap:\s*anywhere/);
 });
+
+test('el pie de la barra presenta el rol dueño con su nombre legible', () => {
+  const source = html();
+  const match = source.match(/function etiquetaRolVisible\(rol,bloqueado\)\{[\s\S]*?\n\}/);
+
+  assert.ok(match, 'no se encontró el formateador real del rol visible');
+  const etiquetaRolVisible = vm.runInNewContext(`(${match[0]})`);
+  assert.equal(etiquetaRolVisible('duenio', true), 'Dueño · bloqueado');
+  assert.equal(etiquetaRolVisible('duenio', false), 'Dueño');
+  assert.equal(etiquetaRolVisible('admin', false), 'Administrador');
+  assert.equal(etiquetaRolVisible('empleado', false), 'Empleado');
+});

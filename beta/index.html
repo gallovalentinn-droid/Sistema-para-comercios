@@ -3034,6 +3034,11 @@ function pintarNav(){
   $('#brandName').textContent=db.config.nombre;
     aplicarColapso();
 }
+function etiquetaRolVisible(rol,bloqueado){
+  const nombres={duenio:'Dueño',admin:'Administrador',empleado:'Empleado'};
+  const nombre=nombres[String(rol||'')]||'Sin validar';
+  return `${nombre}${bloqueado?' · bloqueado':''}`;
+}
 function pintarFoot(){
   // franja de aviso arriba de todo, para que no pase desapercibido
   const fo=$('#franjaOff');
@@ -3059,11 +3064,11 @@ function pintarFoot(){
   else if(sb&&sesion){ txt='Guardado en la nube'; color='var(--verde)'; }
   else if(tieneIndexedDB||tieneStorage){ txt='Datos guardados'; color='var(--verde)'; }
   else { txt='Sin guardado automático'; color='var(--ambar)'; }
-  const membership=f5MembresiaActual(),rolActual=String(membership&&membership.rol||'sin validar');
+  const membership=f5MembresiaActual(),rolActual=String(membership&&membership.rol||'');
   const puedeBloquear=f3RolServidorAdmin();
   f.innerHTML=`
     <div class="modo-caja">
-      <span class="pill ${puedeBloquear?'info':'mute'}" style="font-size:11px">${esc(rolActual)}${interfazProtegida?' · bloqueado':''}</span>
+      <span class="pill ${puedeBloquear?'info':'mute'}" style="font-size:11px">${esc(etiquetaRolVisible(rolActual,interfazProtegida))}</span>
       ${puedeBloquear?`<button class="btn text sm" id="btnBloqueoVisual" style="padding:2px 6px;color:#AEB7C4;font-size:11.5px">${interfazProtegida?'Desbloquear':'Bloquear'}</button>`:''}
     </div>
     ${db.productos.length} productos · ${db.ventas.length} ventas
