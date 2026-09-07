@@ -407,7 +407,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:2,
+  packageRevision:3,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -10800,7 +10800,7 @@ $('#onboardingForm').addEventListener('submit',async event=>{
       }
       catch(err){ console.error(err); r={ok:false,msg:'Error inesperado: '+(err.message||err)}; }
       btn.disabled=false; btn.textContent='Ingresar';
-      if(r.ok){if(!r.onboarding)await f43PostLoginSuccess();}
+      if(r.ok&&!f6InvitationReady)await f43PostLoginSuccess();
       else mostrarLogin({texto:r.msg,tipo:r.tipo||'bad'});
     });
     $('#btnCrearAcceso').addEventListener('click',async()=>{
