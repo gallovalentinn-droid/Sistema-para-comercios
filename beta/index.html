@@ -9663,6 +9663,12 @@ async function f42PrepararF3ParaPull(){
     await f3DescubrirContextoV4();
   }
   if(!f3Estado.comercioId||!f3Estado.cajaId)throw new Error('F42_F3_CONTEXTO_INCOMPLETO');
+  // Un perfil limpio todavía no tiene la versión de permisos en IndexedDB. El pull
+  // de proyección la necesita para validar el manifiesto; cargar la membresía primero
+  // evita pedir el contrato con el valor transitorio 0.
+  if(typeof f5ChequearAutoridad!=='function')throw new Error('F42_F5_AUTORIDAD_NO_DISPONIBLE');
+  await f5ChequearAutoridad({silent:true,emitir:false});
+  if(typeof f5MembresiaActual!=='function'||!f5MembresiaActual())throw new Error('F42_F5_MEMBRESIA_NO_DISPONIBLE');
   try{if(typeof F3_SHADOW_KEY!=='undefined')localStorage.setItem(F3_SHADOW_KEY,'1');}catch(_e){}
   f3Estado.modo='shadow';
   if(typeof f3LimpiarError==='function')f3LimpiarError();
