@@ -7972,6 +7972,14 @@ async function f32PullMaestrosV4(opts={}){
     }
     const cfg=await f32PullConfig();
     total.aplicados+=cfg.aplicado;total.diferidos+=cfg.diferido;
+    if(f3Estado.comercioNombre&&db.config.nombre!==f3Estado.comercioNombre){
+      db.config.nombre=f3Estado.comercioNombre;
+      if(snapshotLocal){
+        snapshotLocal.config=snapshotLocal.config||{};
+        snapshotLocal.config.nombre=f3Estado.comercioNombre;
+      }
+      total.aplicados++;
+    }
     pull.lastPullAt=new Date().toISOString();pull.lastError=null;pull.stats.ciclos++;
     await f32PersistirFinalizacion();
     if(typeof render==='function'&&(total.aplicados||total.borrados)) render();
@@ -10103,6 +10111,7 @@ document.addEventListener('keydown',e=>{
       // Critical ordering: virtualize/fence legacy BEFORE any legacy-aware load path.
       await need('activateAdapter')();
       if(typeof baseLoad==='function') await baseLoad();
+      await need('preparePullContext')();
       await fullPull();
       st.phase='v4_only';
       st.frozen=false;
@@ -10265,6 +10274,7 @@ document.addEventListener('keydown',e=>{
         rpc:(name,args)=>requireFn(bindings.sb&&bindings.sb.rpc,'sb.rpc').call(bindings.sb,name,args),
         activateAdapter:()=>requireFn(bindings.f42ActivateAdapter,'f42ActivateAdapter')(),
         restoreAdapter:()=>requireFn(bindings.f42RestoreAdapter,'f42RestoreAdapter')(),
+        preparePullContext:()=>requireFn(bindings.f42PrepararF3ParaPull,'f42PrepararF3ParaPull')(),
         loadPersistedState:loadState,
         savePersistedState:saveState
       };
@@ -10357,7 +10367,7 @@ document.addEventListener('keydown',e=>{
       cambioLocalSeq=Number(local.localSeq)||0;
       pendienteSubir=!!local.pendiente;
     }else{
-      db=VACIA();
+      db=migrarFormaDb(VACIA());
       revisionNube=0;
       cambioLocalSeq=0;
       pendienteSubir=false;
@@ -10386,6 +10396,7 @@ document.addEventListener('keydown',e=>{
     f42ResumenLocal,
     f42ActivateAdapter,
     f42RestoreAdapter,
+    f42PrepararF3ParaPull,
     f43LoadLocalOnly,
     turnoActual,
     aviso,
