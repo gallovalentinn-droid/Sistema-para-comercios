@@ -46,6 +46,7 @@ svg.i{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stro
 .toggleRail svg{width:16px;height:16px}
 .nav{padding:12px;display:flex;flex-direction:column;gap:3px;flex:1;overflow:auto;overflow-x:hidden}
 .nav button{display:flex;align-items:center;gap:13px;width:100%;background:none;border:0;color:#AEB7C4;padding:13px 14px;border-radius:10px;cursor:pointer;text-align:left;font-weight:500;font-size:15px;position:relative;min-height:48px;white-space:nowrap}
+.nav .nav-label{min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.18}
 .nav button:hover{background:#1D2431;color:#fff}
 .nav button.on{background:var(--primary);color:#fff;font-weight:600}
 .nav .nav-sep{height:1px;background:#262E3B;margin:10px 6px}
@@ -2971,7 +2972,7 @@ const VISTAS=[
   {id:'promociones', ic:'promo', txt:'Descuentos', grupo:'Promociones'},
   {id:'fiado',    ic:'fiado',    txt:'Fiado', grupo:'Cuentas'},
   {id:'caja',     ic:'caja',     txt:'Caja', grupo:'Cuentas'},
-  {id:'movimientos',ic:'historial',txt:'Movimientos en cuentas', grupo:'Cuentas'},
+  {id:'movimientos',ic:'historial',txt:'Movimientos de stock', grupo:'Cuentas'},
   {id:'resumen',  ic:'resumen',  txt:'Resumen'},
   // secundarias: van al pie de la barra, más chicas — siempre exclusivas del dueño
   {id:'config',   ic:'ajustes',  txt:'Configuración', secundaria:true},
@@ -3018,7 +3019,7 @@ function pintarNav(){
     if(v.id==='reponer'&&faltan) tag=`<span class="tag">${faltan}</span>`;
     if(v.id==='fiado'&&deben) tag=`<span class="tag">${deben}</span>`;
     if(v.id==='vencimientos'&&venciendo) tag=`<span class="tag">${venciendo}</span>`;
-    return `<button data-v="${v.id}" class="${vista===v.id?'on':''}${v.secundaria?' sec':''}" title="${railColapsado?esc(v.txt):''}"><span class="ic">${ic(v.ic)}</span><span>${v.txt}</span>${tag}</button>`;
+    return `<button data-v="${v.id}" class="${vista===v.id?'on':''}${v.secundaria?' sec':''}" title="${railColapsado?esc(v.txt):''}"><span class="ic">${ic(v.ic)}</span><span class="nav-label">${v.txt}</span>${tag}</button>`;
   };
   const principales=visibles.filter(v=>!v.secundaria);
   let grupoAnt=null, html='';
@@ -6447,7 +6448,7 @@ function pintarMovimientosDia(){
 function vMovimientos(m){
   m.innerHTML=`
   <div class="head">
-    <div><h1>Movimientos en cuentas</h1><div class="sub">Elegí un día para ver con cuánto stock empezaste y con cuánto terminaste.</div></div>
+    <div><h1>Movimientos de stock</h1><div class="sub">Elegí un día para ver con cuánto stock empezaste y con cuánto terminaste.</div></div>
     <button class="btn ghost" id="movHoy">Ver hoy</button>
   </div>
   <div class="card" style="margin-bottom:16px"><div class="card-b">
@@ -6932,7 +6933,7 @@ function vSoporte(m){
 /* ═══════════════════════════════════════════════════════
    CONFIGURACIÓN
    ═══════════════════════════════════════════════════════ */
-const TXT_PERMISO={resumen:'Resumen',combos:'Combos',promociones:'Descuentos',caja:'Caja',movimientos:'Movimientos en cuentas',productos:'Productos',reponer:'Para pedir',fiado:'Fiado',vencimientos:'Vencimientos'};
+const TXT_PERMISO={resumen:'Resumen',combos:'Combos',promociones:'Descuentos',caja:'Caja',movimientos:'Movimientos de stock',productos:'Productos',reponer:'Para pedir',fiado:'Fiado',vencimientos:'Vencimientos'};
 const DESC_PERMISO={
   resumen:'Ventas, ganancias y qué se vendió más.',
   combos:'Crear y editar combos de productos.',
