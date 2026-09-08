@@ -666,6 +666,35 @@ function f5VistaPermitida(viewId,membership){
   return !!(permiso&&f5PermissionsObject(membership&&membership.permisos)[permiso]===true);
 }
 /* F5_AUTHORITY_CORE_END */
+/* F5_EMPLOYEE_UI_CORE_START */
+const F5_EMPLOYEE_PERMISSION_KEYS=Object.freeze([
+  'ventas_registrar','productos_editar','reposicion_ver','vencimientos_ver',
+  'combos_editar','promociones_editar','fiado_operar','caja_operar',
+  'movimientos_ver','resumen_ver'
+]);
+function f5PermisosEmpleadoIniciales(){
+  return Object.fromEntries(F5_EMPLOYEE_PERMISSION_KEYS.map(key=>[key,key==='ventas_registrar']));
+}
+function f5NormalizarUsuarioEmpleado(value){
+  return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+}
+function f5PayloadCrearEmpleado(form,permisos){
+  const nombre=String(form&&form.nombre||'').trim();
+  const usuario=f5NormalizarUsuarioEmpleado(form&&form.usuario);
+  const clave=String(form&&form.clave||'');
+  if(!nombre||nombre.length>120)throw new Error('F5_EMPLEADO_NOMBRE');
+  if(!usuario||usuario.length>80||!/^[a-z0-9._-]+$/.test(usuario))throw new Error('F5_EMPLEADO_USUARIO');
+  if(clave.length<8||clave.length>128)throw new Error('F5_EMPLEADO_CLAVE');
+  return {accion:'crear',nombre,usuario,clave,permisos:{...(permisos||{})}};
+}
+function f5ArgsActualizarEmpleado(comercioId,miembro,permisos,activo){
+  return {
+    p_comercio_id:String(comercioId||''),
+    p_target_user_id:String(miembro&&miembro.user_id||''),
+    p_rol:'empleado',p_permisos:{...(permisos||{})},p_activo:activo===true
+  };
+}
+/* F5_EMPLOYEE_UI_CORE_END */
 /* F5_SESSION_CORE_START */
 function f5SesionIds(session){
   const s=session&&typeof session==='object'?session:{};
@@ -3114,6 +3143,13 @@ let ticket=[];                 // {id, tipo:'producto'|'combo', prodId?, comboId
 let pago='efectivo', clienteFiado='', recibido='';
 let pagoMixto=[];              // [{forma,monto}] cuando pago==='mixto'
 
+/* F5_PRODUCT_IMAGE_CORE_START */
+function f5RutaImagenProducto(comercioId,productoId){
+  const comercio=String(comercioId||'').trim(),producto=String(productoId||'').trim();
+  if(!comercio||!producto||!/^[-a-zA-Z0-9_]+$/.test(comercio)||!/^[-a-zA-Z0-9_]+$/.test(producto))throw new Error('F5_PRODUCT_IMAGE_CONTEXT_REQUIRED');
+  return `${comercio}/${producto}.jpg`;
+}
+/* F5_PRODUCT_IMAGE_CORE_END */
 async function optimizarFoto(file){
   if(!file||!file.type.startsWith('image/')) throw new Error('Elegí una imagen válida');
   if(file.size>8*1024*1024) throw new Error('La foto supera 8 MB');
@@ -3128,7 +3164,7 @@ async function optimizarFoto(file){
 async function subirFotoProducto(file,id){
   const opt=await optimizarFoto(file);
   if(sb&&sesion&&enLinea){
-    const path=`${sesion.user.id}/${id}.jpg`;
+    const path=f5RutaImagenProducto(f3Estado.comercioId,id);
     const {error}=await sb.storage.from('product-images').upload(path,opt.blob,{contentType:'image/jpeg',upsert:true,cacheControl:'3600'});
     if(error) throw error;
     const {data}=sb.storage.from('product-images').getPublicUrl(path);
@@ -6950,6 +6986,95 @@ const DESC_PERMISO={
   fiado:'Cuentas corrientes de clientes.',
   vencimientos:'Aviso de productos por vencer.'
 };
+const F5_PERMISO_EMPLEADO_UI=Object.freeze({
+  ventas_registrar:['Vender','Registrar ventas del turno.'],
+  productos_editar:['Productos','Cargar, editar, ajustar stock y fotos.'],
+  reposicion_ver:['Para pedir','Consultar faltantes y preparar pedidos.'],
+  vencimientos_ver:['Vencimientos','Consultar productos próximos a vencer.'],
+  combos_editar:['Combos','Crear y editar combos.'],
+  promociones_editar:['Descuentos','Crear y editar promociones.'],
+  fiado_operar:['Fiado','Cobrar y consultar cuentas corrientes.'],
+  caja_operar:['Caja','Abrir, operar y cerrar sus turnos.'],
+  movimientos_ver:['Movimientos de stock','Consultar entradas y salidas por día.'],
+  resumen_ver:['Resumen','Consultar ventas y resultados.']
+});
+let f5GestionEmpleados={comercioId:'',codigo:'',items:[],loading:false,loaded:false,error:'',soloActivos:false};
+function f5PuedeGestionarEmpleados(){return !!(sb&&sesion&&f3Estado.comercioId&&['duenio','admin'].includes(f5RolActual()));}
+async function f5ObtenerMiembrosGestion(){
+  const r=await sb.rpc('f6_listar_miembros_gestion',{p_comercio_id:f3Estado.comercioId});
+  if(!r.error&&r.data&&Array.isArray(r.data.items))return {items:r.data.items,soloActivos:false};
+  if(r.error&&!['PGRST202','42883'].includes(String(r.error.code||'')))throw new Error(r.error.message||'F6_ROSTER_FAILED');
+  return {items:await f5ListarMiembrosTodos(),soloActivos:true};
+}
+function f5PermisosMiembroCompletos(miembro){
+  const actuales=f5PermissionsObject(miembro&&miembro.permisos);
+  return Object.fromEntries(F5_EMPLOYEE_PERMISSION_KEYS.map(k=>[k,actuales[k]===true]));
+}
+function f5EmpleadosListaHtml(){
+  const st=f5GestionEmpleados;
+  if(st.loading)return '<div class="empty" style="padding:22px"><b>Cargando personas…</b>Estamos consultando los accesos del comercio.</div>';
+  if(st.error)return `<div class="empty" style="padding:22px"><b>No pudimos cargar los empleados</b>${esc(st.error)}<button class="btn ghost sm" id="f5EmpleadosReintentar" style="margin-top:12px">Reintentar</button></div>`;
+  if(!st.items.length)return '<div class="empty" style="padding:22px"><b>Todavía no hay empleados</b>Creá el primero con el formulario de arriba.</div>';
+  return st.items.map(miembro=>{
+    const rol=String(miembro.rol||'empleado'),empleado=rol==='empleado',activo=miembro.activo!==false;
+    const permisos=f5PermisosMiembroCompletos(miembro);
+    return `<section data-f5-miembro="${esc(miembro.user_id)}" style="border:1px solid var(--line);border-radius:12px;padding:15px;margin-top:12px;background:${activo?'#fff':'#FAFAFB'}">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div><b>${esc(miembro.nombre_mostrado||miembro.usuario||'Sin nombre')}</b>
+          <div class="hint" style="margin-top:3px">${miembro.usuario?`Usuario: <span class="num">${esc(miembro.usuario)}</span> · `:''}${rol==='duenio'?'Dueño':rol==='admin'?'Administrador':'Empleado'}</div></div>
+        <span class="pill ${activo?'ok':'warn'}">${activo?'Activo':'Suspendido'}</span>
+      </div>
+      ${empleado?`<div class="grid2" style="margin-top:13px;gap:8px 18px">
+        ${F5_EMPLOYEE_PERMISSION_KEYS.map(key=>{const copy=F5_PERMISO_EMPLEADO_UI[key];return `<label style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;cursor:pointer"><input type="checkbox" data-f5-perm="${key}" ${permisos[key]?'checked':''} ${activo?'':'disabled'}><span><b style="font-size:14px">${copy[0]}</b><span class="sub-config">${copy[1]}</span></span></label>`;}).join('')}
+      </div>
+      <div class="row" style="margin-top:12px">
+        ${activo?`<button class="btn sm" data-f5-guardar>Guardar permisos</button>`:''}
+        <button class="btn ghost sm" data-f5-clave ${miembro.usuario?'':'disabled'}>Cambiar clave</button>
+        <button class="btn ${activo?'rojo':'verde'} sm" data-f5-activo="${activo?'0':'1'}">${activo?'Suspender':'Reactivar'}</button>
+      </div>`:'<div class="hint" style="margin-top:10px">El dueño y los administradores conservan acceso completo. Sus permisos no se editan desde esta ficha.</div>'}
+    </section>`;
+  }).join('');
+}
+function f5PintarGestionEmpleados(){
+  const lista=$('#f5EmpleadosLista');if(!lista)return;
+  lista.innerHTML=f5EmpleadosListaHtml();
+  const codigo=$('#f5CodigoComercio');if(codigo)codigo.textContent=f5GestionEmpleados.codigo||'—';
+  const nota=$('#f5GestionEmpleadosNota');if(nota)nota.textContent=f5GestionEmpleados.soloActivos?'La lista actual muestra únicamente accesos activos hasta completar la actualización del servidor.':'';
+  const retry=$('#f5EmpleadosReintentar');if(retry)retry.onclick=()=>f5CargarGestionEmpleados(true);
+  lista.querySelectorAll('[data-f5-miembro]').forEach(row=>{
+    const miembro=f5GestionEmpleados.items.find(x=>String(x.user_id)===row.dataset.f5Miembro);if(!miembro)return;
+    const guardarBtn=row.querySelector('[data-f5-guardar]');
+    if(guardarBtn)guardarBtn.onclick=async()=>{
+      const permisos=Object.fromEntries([...row.querySelectorAll('[data-f5-perm]')].map(x=>[x.dataset.f5Perm,x.checked]));
+      guardarBtn.disabled=true;
+      try{const r=await sb.rpc('f5_actualizar_miembro',f5ArgsActualizarEmpleado(f3Estado.comercioId,miembro,permisos,true));if(r.error)throw r.error;aviso('Permisos actualizados','ok');await f5CargarGestionEmpleados(true);}catch(e){aviso('No pudimos guardar los permisos: '+String(e.message||e),'bad');}finally{guardarBtn.disabled=false;}
+    };
+    const activoBtn=row.querySelector('[data-f5-activo]');
+    if(activoBtn)activoBtn.onclick=()=>{
+      const activar=activoBtn.dataset.f5Activo==='1';
+      confirmar(activar?'Reactivar empleado':'Suspender empleado',activar?'La persona volverá a poder iniciar sesión y usar sus permisos.':'La persona perderá el acceso al sistema. Sus operaciones anteriores se conservan.',async()=>{
+        try{const permisos=f5PermisosMiembroCompletos(miembro);const r=await sb.rpc('f5_actualizar_miembro',f5ArgsActualizarEmpleado(f3Estado.comercioId,miembro,permisos,activar));if(r.error)throw r.error;aviso(activar?'Empleado reactivado':'Empleado suspendido','ok');await f5CargarGestionEmpleados(true);}catch(e){aviso('No pudimos cambiar el acceso: '+String(e.message||e),'bad');}
+      },activar?'Reactivar':'Suspender',activar?'verde':'rojo');
+    };
+    const claveBtn=row.querySelector('[data-f5-clave]');if(claveBtn)claveBtn.onclick=()=>f5AbrirCambioClaveEmpleado(miembro);
+  });
+}
+async function f5CargarGestionEmpleados(forzar=false){
+  if(!f5PuedeGestionarEmpleados())return;
+  const comercioId=f3Estado.comercioId;
+  if(f5GestionEmpleados.loading||(!forzar&&f5GestionEmpleados.loaded&&f5GestionEmpleados.comercioId===comercioId)){f5PintarGestionEmpleados();return;}
+  f5GestionEmpleados={comercioId,codigo:'',items:[],loading:true,loaded:false,error:'',soloActivos:false};f5PintarGestionEmpleados();
+  try{
+    const [codigo,lista]=await Promise.all([f5MembersRequest({accion:'codigo_comercio'}),f5ObtenerMiembrosGestion()]);
+    f5GestionEmpleados={comercioId,codigo:String(codigo&&codigo.comercio||''),items:lista.items,loading:false,loaded:true,error:'',soloActivos:lista.soloActivos};
+  }catch(e){f5GestionEmpleados={...f5GestionEmpleados,loading:false,loaded:true,error:'Revisá la conexión e intentá nuevamente.'};}
+  f5PintarGestionEmpleados();
+}
+function f5AbrirCambioClaveEmpleado(miembro){
+  modal({titulo:'Cambiar clave del empleado',cuerpo:`<p class="hint" style="margin:0 0 14px">Usuario: <b>${esc(miembro.usuario||'')}</b>. La nueva clave debe tener entre 8 y 128 caracteres.</p><label class="f" for="f5NuevaClaveEmpleado">Nueva clave</label><input id="f5NuevaClaveEmpleado" class="inp" type="password" autocomplete="new-password" minlength="8" maxlength="128"><label class="f" for="f5RepetirClaveEmpleado" style="margin-top:12px">Repetir clave</label><input id="f5RepetirClaveEmpleado" class="inp" type="password" autocomplete="new-password" minlength="8" maxlength="128">`,pie:'<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="f5ConfirmarClaveEmpleado">Guardar nueva clave</button>',alAbrir:ov=>{
+    const btn=$('#f5ConfirmarClaveEmpleado',ov);btn.onclick=async()=>{const clave=$('#f5NuevaClaveEmpleado',ov).value,repetida=$('#f5RepetirClaveEmpleado',ov).value;if(clave.length<8||clave.length>128){aviso('La clave debe tener al menos 8 caracteres','bad');return;}if(clave!==repetida){aviso('Las claves no coinciden','bad');return;}btn.disabled=true;try{await f5MembersRequest({accion:'restablecer_clave',usuario:miembro.usuario,clave});cerrarModal();aviso('Clave actualizada','ok');}catch(e){aviso('No pudimos cambiar la clave','bad');btn.disabled=false;}};
+  }});
+}
 function vConfig(m){
   const perm=db.config.permisosEmpleado||{};
   const u=db.config.ultBackup;
@@ -6959,7 +7084,8 @@ function vConfig(m){
   <div class="config-nav">
     <button type="button" data-ir-a="cf-datos">Datos del comercio</button>
     <button type="button" data-ir-a="cf-funciones">Funciones</button>
-    <button type="button" data-ir-a="cf-empleado">Vista empleado</button>
+    <button type="button" data-ir-a="cf-empleados">Empleados</button>
+    <button type="button" data-ir-a="cf-empleado">Bloqueo de mostrador</button>
     <button type="button" data-ir-a="cf-respaldo">Copias de seguridad</button>
     <button type="button" data-ir-a="cf-demo">Comercio de ejemplo</button>
     <button type="button" data-ir-a="cf-zona">Zona delicada</button>
@@ -7004,10 +7130,28 @@ function vConfig(m){
     </div>
   </div>
 
-  <div class="card config-card" id="cf-empleado" style="margin-bottom:16px">
-    <div class="card-h"><h2>Vista empleado</h2></div>
+  <div class="card config-card" id="cf-empleados" style="margin-bottom:16px">
+    <div class="card-h"><h2>Empleados</h2><span class="pill mute">Código: <b class="num" id="f5CodigoComercio">—</b></span></div>
     <div class="card-b">
-      <p class="hint" style="margin:0 0 14px">Vos como dueño siempre ves todo. Esto decide qué aparece en <b>vista empleado</b> en este dispositivo. Es una restricción visual para el mostrador, no una cuenta de usuario separada: no compartas la contraseña de Supabase del dueño.</p>
+      <p class="hint" style="margin:0 0 14px">Creá una cuenta distinta para cada persona. Para ingresar usarán el código del comercio, su usuario y su clave; nunca necesitan la cuenta del dueño.</p>
+      <div class="grid2">
+        <div><label class="f" for="f5EmpleadoNombre">Nombre</label><input id="f5EmpleadoNombre" class="inp" maxlength="120" placeholder="Ej: Ana"></div>
+        <div><label class="f" for="f5EmpleadoUsuario">Usuario</label><input id="f5EmpleadoUsuario" class="inp" maxlength="80" autocomplete="off" placeholder="Ej: caja_ana"></div>
+      </div>
+      <div style="margin-top:12px;max-width:420px"><label class="f" for="f5EmpleadoClave">Clave inicial</label><input id="f5EmpleadoClave" class="inp" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></div>
+      <div style="margin-top:16px"><b style="font-size:14px">Qué podrá hacer</b><div class="grid2" style="margin-top:6px;gap:8px 18px">
+        ${F5_EMPLOYEE_PERMISSION_KEYS.map(key=>{const copy=F5_PERMISO_EMPLEADO_UI[key],on=key==='ventas_registrar';return `<label style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;cursor:pointer"><input type="checkbox" data-f5-new-perm="${key}" ${on?'checked':''}><span><b style="font-size:14px">${copy[0]}</b><span class="sub-config">${copy[1]}</span></span></label>`;}).join('')}
+      </div></div>
+      <button class="btn" id="f5CrearEmpleado" style="margin-top:14px">Crear empleado</button>
+      <div id="f5GestionEmpleadosNota" class="hint" style="margin-top:10px"></div>
+      <div id="f5EmpleadosLista" style="margin-top:14px"><div class="empty" style="padding:22px"><b>Cargando personas…</b></div></div>
+    </div>
+  </div>
+
+  <div class="card config-card" id="cf-empleado" style="margin-bottom:16px">
+    <div class="card-h"><h2>Bloqueo de mostrador</h2></div>
+    <div class="card-b">
+      <p class="hint" style="margin:0 0 14px">Esta es una restricción visual para dejar temporalmente el equipo en el mostrador. No reemplaza las cuentas reales de la sección Empleados ni sus permisos del servidor.</p>
       ${SECCIONES_PERMISO.filter(id=>moduloActivo(id)).map(id=>{
         const on=perm[id]!==false;
         return `<div class="fila-config">
@@ -7066,6 +7210,12 @@ function vConfig(m){
     if(!f3RolServidorAdmin())return;
     if(await f6SolicitarCambioPinDispositivo()){render();aviso('PIN de este dispositivo actualizado','ok');}
   };
+  const crearEmpleado=$('#f5CrearEmpleado');if(crearEmpleado)crearEmpleado.onclick=async()=>{
+    const permisos=Object.fromEntries($$('[data-f5-new-perm]').map(x=>[x.dataset.f5NewPerm,x.checked]));
+    let payload;try{payload=f5PayloadCrearEmpleado({nombre:$('#f5EmpleadoNombre').value,usuario:$('#f5EmpleadoUsuario').value,clave:$('#f5EmpleadoClave').value},permisos);}catch(e){const code=String(e.message||e);aviso(code.includes('NOMBRE')?'Ingresá el nombre del empleado':code.includes('USUARIO')?'Usá un usuario con letras, números, punto, guion o guion bajo':'La clave debe tener al menos 8 caracteres','bad');return;}
+    crearEmpleado.disabled=true;
+    try{await f5MembersRequest(payload);$('#f5EmpleadoNombre').value='';$('#f5EmpleadoUsuario').value='';$('#f5EmpleadoClave').value='';aviso('Empleado creado','ok');await f5CargarGestionEmpleados(true);}catch(e){aviso('No pudimos crear el empleado. Revisá si ese usuario ya existe.','bad');}finally{crearEmpleado.disabled=false;}
+  };
   $$('[data-mod]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.mod, on=db.config[k]!==false;
     db.config[k]=!on;
@@ -7097,6 +7247,7 @@ function vConfig(m){
   $('#bBorrar').onclick=()=>confirmar('Borrar todo',
     'Se borran productos, ventas, clientes, saldos y cierres. Esto no se puede deshacer. Descargá una copia antes si no estás seguro.',
     ()=>{db=VACIA();guardar();ticket=[];render();aviso('Base vacía');},'Borrar todo');
+  if(f5PuedeGestionarEmpleados())f5CargarGestionEmpleados();
 }
 
 /* ═══════════════════════════════════════════════════════
