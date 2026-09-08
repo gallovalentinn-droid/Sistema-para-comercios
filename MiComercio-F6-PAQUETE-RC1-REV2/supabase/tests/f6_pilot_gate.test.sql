@@ -71,7 +71,7 @@ begin
     raise exception 'F6_PILOT_GATE_FLAGS_MISSING_OR_WRONG:%',v_gate;
   end if;
 
-  v_gate:=public.f6_pilot_gate('f6000000-0000-4000-8000-000000000601','6.0.0-f6-rc1',true,true);
+  v_gate:=public.f6_pilot_gate('f6000000-0000-4000-8000-000000000601','6.0.0-f6-rc2',true,true);
   if v_gate->>'ready'<>'true' or (select count(*) from jsonb_object_keys(v_gate->'checks'))<>6 then
     raise exception 'F6_PILOT_GATE_SHOULD_PASS:%',v_gate;
   end if;

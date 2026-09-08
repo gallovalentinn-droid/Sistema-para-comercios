@@ -246,4 +246,14 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - El RC1 original permanece congelado como evidencia de la entrega previa al hallazgo.
 - `entregables/MiComercio-F6-PAQUETE-RC1-REV2` incorpora únicamente la corrección canónica de `05_support.sql`, su prueba de regresión y la documentación/evidencia actualizada. El build cliente continúa siendo `6.0.0-f6-rc1` porque no cambió el contrato ni el código ejecutable del cliente; `REV2` identifica la revisión del paquete y de la migración de soporte.
 - El manifiesto controla 102 archivos con cobertura exacta y LF. `verificar.ps1` confirmó sintaxis de ambos HTML, 14 suites SQL inventariadas, seis migraciones F6, 102/102 pruebas locales y cero coincidencias de secretos de alto riesgo.
+
+## Actualización RC2 — 2026-09-07
+
+- El cliente completo publicado pasó a `6.0.0-f6-rc2`, revisión 3, conservando las doce secciones funcionales del sistema.
+- Se agregó gestión real de empleados en Configuración: alta, diez permisos, cambio de clave, suspensión y reactivación. El bloqueo visual del mostrador permanece separado.
+- Se aplicaron persistentemente `f6_employee_management_qa`, `f6_product_images_qa` y `f6_employee_management_security_qa` en el proyecto QA.
+- Las imágenes de productos usan `<comercio_id>/<producto_id>.jpg`; leer exige membresía activa y licencia operable, y escribir exige además `productos_editar`.
+- Resultado medido: 110/110 pruebas locales y 15/15 suites SQL sobre QA, cada suite SQL dentro de una transacción descartable.
+- La suite de soporte dejó de contar operadores persistentes ajenos a sus fixtures; esa era la causa del único rojo durante la repetición acumulada.
+- El lector de facturas con IA sigue postergado por decisión explícita y no se declara resuelto por RC2.
 - El ZIP se extrajo en un directorio temporal nuevo y la misma verificación volvió a pasar desde cero. Su SHA-256 se conserva únicamente en el archivo lateral `.zip.sha256.txt` para evitar autorreferencia.

@@ -1,15 +1,15 @@
-# Informe detallado de F6 RC1
+# Informe detallado de F6 RC2
 
-Fecha de corte: 2026-09-05  
-Build: `6.0.0-f6-rc1`  
-Base congelada: F5 rev10, `5.0.0-f5-rc2`  
-Estado: `candidate-pending-qa-deployment-and-seven-day-pilot`
+Fecha de corte: 2026-09-07
+Build: `6.0.0-f6-rc2`
+Base congelada: F5 rev10, `5.0.0-f5-rc2`
+Estado: `candidate-pending-live-smoke-and-seven-day-pilot`
 
 ## Resultado alcanzado
 
 F6 está implementado como candidato técnico. El sistema comercial incorpora el alta por invitación, un asistente de puesta en marcha reanudable, la licencia beta de siete días y el cierre de caja turno por turno. Además existe un panel interno de soporte separado y auditable.
 
-El candidato conserva las funciones comerciales previas de F5 y las mejoras de producto ya incorporadas: búsquedas por producto y rubro, Movimientos en cuentas y el medio de pago unificado “Transferencia / QR”.
+El candidato conserva todas las funciones comerciales previas de F5 y las mejoras de producto ya incorporadas: búsquedas por producto y rubro, Movimientos de stock y el medio de pago unificado “Transferencia / QR”. RC2 agrega gestión real de empleados y carga de imágenes de productos sin reemplazar ni recortar ninguna sección del sistema.
 
 No se modificó el paquete F5 rev10 ni ningún archivo de `sources/`. El desarrollo F6 vive en artefactos, SQL, funciones y pruebas separados.
 
@@ -83,7 +83,7 @@ Los límites de frecuencia se aplican por las dimensiones correspondientes. Las 
 
 El SQL de gate devuelve por separado seis comprobaciones y sólo informa `ready=true` si todas pasan:
 
-1. build observado `6.0.0-f6-rc1`;
+1. build observado `6.0.0-f6-rc2`;
 2. comercio en `v4_only`;
 3. baseline F2–F5 reproducible;
 4. precondición de PIN corregida y verificada;
@@ -92,38 +92,40 @@ El SQL de gate devuelve por separado seis comprobaciones y sólo informa `ready=
 
 Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el SQL no puede inventar evidencia que pertenece a una ejecución externa.
 
-## 7. Evidencia ejecutada
+## 7. Empleados e imágenes de productos
 
-- 14 suites locales descubiertas automáticamente.
-- 102 pruebas ejecutadas: 102 aprobadas y 0 fallidas.
+- Configuración separa `Empleados` del `Bloqueo de mostrador` local.
+- Dueños y administradores pueden crear empleados con usuario, clave inicial y diez permisos canónicos; el valor inicial habilita únicamente ventas.
+- Los cambios de permisos y estado reutilizan `f5_actualizar_miembro`, por lo que incrementan la versión de autoridad y conservan la auditoría F5.
+- La lista de gestión incluye accesos suspendidos, de modo que pueden reactivarse sin intervención manual en la base.
+- Las fotos usan la ruta canónica `<comercio_id>/<producto_id>.jpg` y ya no pertenecen a la cuenta que realizó la carga.
+- Cualquier miembro activo puede leerlas. Insertar, reemplazar o borrar exige licencia operable y el permiso efectivo `productos_editar`; `upsert` está cubierto por políticas SELECT, INSERT y UPDATE.
+
+## 8. Evidencia ejecutada
+
+- 15 suites locales descubiertas automáticamente.
+- 110 pruebas ejecutadas: 110 aprobadas y 0 fallidas.
 - Identidad JSON/HTML comparada por ejecución aislada del bloque del navegador.
 - Pruebas de sintaxis del artefacto HTML y de las funciones TypeScript disponibles con Node.
-- Seis suites SQL F6 probadas por incrementos en PostgreSQL QA dentro de transacciones descartables.
+- Siete suites SQL F6 y ocho F5 ejecutadas en PostgreSQL QA: 15/15 PASS dentro de transacciones descartables.
 - La suite de `06_pilot_gate.sql` se volvió a ejecutar en esta etapa: PASS y `ROLLBACK` confirmado sin fixtures persistentes.
-- No se declara una reproducción integral de las 14 suites SQL desde una base vacía.
+- No se declara una reproducción integral de las 15 suites SQL desde una base vacía.
 
-## 8. Qué falta
+## 9. Qué falta
 
 Falta la fase operativa de QA, no más funcionalidad de diseño:
 
-- aplicar persistentemente las seis migraciones F6 en QA después del preflight;
-- desplegar ambas Edge Functions con secrets QA;
-- ejecutar las ocho suites F5 y las seis F6 juntas sobre el baseline real;
-- completar el recorrido `v4_only` en navegador;
-- reproducir el baseline F2–F5 desde cero;
-- corregir y demostrar la precondición `verificarPin()` en un dispositivo nuevo;
-- ejecutar carreras reales de invitación y extensión desde conexiones simultáneas;
-- recorrer invitación, reanudación, licencia, dos turnos, cierres separados y escenarios offline en navegador;
-- realizar revisión visual manual del panel a 360 px y 1280 px;
-- ejecutar el piloto de siete días y decidir aprobación o repetición.
+- publicar RC2 y realizar un smoke autenticado de empleados e imágenes en navegador;
+- ejecutar el piloto de siete días y decidir aprobación o repetición;
+- cerrar después el lector de facturas con IA, expresamente postergado en este incremento.
 
 Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara únicamente después de que el piloto termine aprobado.
 
-## 9. Archivos principales
+## 10. Archivos principales
 
 - `entregables/MiComercio-F6-PRUEBA.html`: sistema comercial F6.
 - `entregables/MiComercio-Soporte-F6.html`: panel de soporte.
-- `supabase/f6/01_foundation.sql` a `06_pilot_gate.sql`: migraciones F6.
+- `supabase/f6/01_foundation.sql` a `08_product_images.sql`: migraciones F6.
 - `supabase/functions/f6-invitations/index.ts` y `f6-support/index.ts`: fronteras HTTP.
 - `entregables/BUILD-IDENTITY-F6.json`: identidad normativa.
 - `entregables/QA-F6-EVIDENCIA.md`: evidencia técnica detallada.

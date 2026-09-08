@@ -14,7 +14,7 @@ security definer
 set search_path = ''
 as $function$
 declare
-  v_expected_build constant text := '6.0.0-f6-rc1';
+  v_expected_build constant text := '6.0.0-f6-rc2';
   v_migration_state text;
   v_build_ok boolean;
   v_v4_only boolean;

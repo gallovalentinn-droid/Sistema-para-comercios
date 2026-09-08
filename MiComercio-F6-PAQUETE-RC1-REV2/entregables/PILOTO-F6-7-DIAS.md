@@ -1,7 +1,7 @@
 # Bitácora del piloto F6 de siete días
 
 Estado: `no_iniciado`  
-Build exigido: `6.0.0-f6-rc1`  
+Build exigido: `6.0.0-f6-rc2`
 Duración: siete días corridos desde la activación, exactamente 604800 segundos  
 Alcance: un comercio QA; producción excluida
 
@@ -11,12 +11,12 @@ Este documento es una plantilla operativa. Ningún campo vacío cuenta como evid
 
 | Gate | Resultado | Evidencia |
 |---|---|---|
-| Build observado coincide con RC1 | pendiente | |
+| Build observado coincide con RC2 | pendiente | |
 | Comercio QA en `v4_only` | pendiente | |
 | Baseline F2–F5 reproducible | pendiente | |
 | `verificarPin()` resuelto en dispositivo nuevo | pendiente | |
-| 14 suites SQL acumuladas PASS | pendiente | |
-| 102 pruebas locales PASS | pendiente | |
+| 15 suites SQL acumuladas PASS | aprobado | 15/15 en QA el 2026-09-07 |
+| 110 pruebas locales PASS | aprobado | 110/110 en el paquete RC2 |
 | Respaldo inicial creado y recuperable | pendiente | |
 
 Si un gate permanece pendiente o falla, el piloto no empieza.
@@ -94,8 +94,8 @@ Completar una fila por día. Cada cierre se registra por turno; el total diario 
 - Diagnóstico exportado:
 - Respaldo final y prueba de recuperación:
 - Cero operaciones válidas sin destino:
-- 102/102 pruebas locales repetidas:
-- 14/14 suites SQL repetidas:
+- 110/110 pruebas locales repetidas:
+- 15/15 suites SQL repetidas:
 - Incidentes críticos:
 
 ## Criterios de salida

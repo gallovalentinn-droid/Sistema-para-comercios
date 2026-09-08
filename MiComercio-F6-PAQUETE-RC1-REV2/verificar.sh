@@ -6,8 +6,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 MANIFIESTO='SHA256SUMS-F6.txt'
-PRUEBAS_ESPERADAS=102
-SUITES_SQL_ESPERADAS=14
+PRUEBAS_ESPERADAS=110
+SUITES_SQL_ESPERADAS=15
 
 echo '== 1. Integridad y cobertura =='
 sha256sum -c "$MANIFIESTO" > /dev/null
@@ -44,8 +44,8 @@ if [ "${#suites_sql[@]}" -ne "$SUITES_SQL_ESPERADAS" ]; then
   exit 1
 fi
 mapfile -t migraciones_f6 < <(find supabase/f6 -maxdepth 1 -type f -name '*.sql' | LC_ALL=C sort)
-if [ "${#migraciones_f6[@]}" -ne 6 ]; then
-  echo "ERROR: se esperaban 6 migraciones F6 y se encontraron ${#migraciones_f6[@]}." >&2
+if [ "${#migraciones_f6[@]}" -ne 8 ]; then
+  echo "ERROR: se esperaban 8 migraciones F6 y se encontraron ${#migraciones_f6[@]}." >&2
   exit 1
 fi
 echo "   inventario: ${#suites_sql[@]} suites SQL y ${#migraciones_f6[@]} migraciones F6"

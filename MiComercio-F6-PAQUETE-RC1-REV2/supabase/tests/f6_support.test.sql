@@ -87,14 +87,31 @@ declare
   v_event private.f6_soporte_eventos%rowtype;
   v_failed boolean;
 begin
-  if (select count(*) from private.f6_soporte_operadores where activo)<>4 then
+  if (
+    select count(*) from private.f6_soporte_operadores
+     where activo and user_id=any(array[
+       'f6000000-0000-4000-8000-000000000500'::uuid,
+       'f6000000-0000-4000-8000-000000000501'::uuid,
+       'f6000000-0000-4000-8000-000000000502'::uuid,
+       'f6000000-0000-4000-8000-000000000504'::uuid
+     ])
+  )<>4 then
     raise exception 'F6_SUPPORT_BOOTSTRAP_FAILED';
   end if;
   if (select nombre from private.f6_soporte_operadores where user_id='f6000000-0000-4000-8000-000000000504')
        <> 'Operador f6000000' then
     raise exception 'F6_SUPPORT_BOOTSTRAP_NULL_NAME_FALLBACK_FAILED';
   end if;
-  if (select count(*) from private.f6_soporte_eventos where accion='operator_bootstrap' and ok)<>4 then
+  if (
+    select count(*) from private.f6_soporte_eventos
+     where accion='operator_bootstrap' and ok
+       and operador_user_id=any(array[
+         'f6000000-0000-4000-8000-000000000500'::uuid,
+         'f6000000-0000-4000-8000-000000000501'::uuid,
+         'f6000000-0000-4000-8000-000000000502'::uuid,
+         'f6000000-0000-4000-8000-000000000504'::uuid
+       ])
+  )<>4 then
     raise exception 'F6_SUPPORT_BOOTSTRAP_NOT_AUDITED';
   end if;
 
