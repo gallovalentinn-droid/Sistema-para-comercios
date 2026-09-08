@@ -38,7 +38,7 @@ La tarjeta legacy “Vista empleado” se conserva únicamente como “Bloqueo d
 
 ### 3.2 Autoridad de empleados
 
-`f5-members` será la única entrada del cliente para administrar personas. Se ampliará con una acción `actualizar` que recibe el usuario objetivo, el mapa de permisos y el estado activo, y delega en `public.f5_actualizar_miembro` bajo la sesión del actor.
+Se conserva el baseline F5 byte por byte. El cliente usará `f5-members` para las operaciones que requieren administración de Auth —listar, crear identidades y restablecer contraseñas— y la RPC autenticada existente `public.f5_actualizar_miembro` para permisos, suspensión y reactivación. No se modifica ni duplica ninguna regla F5.
 
 El servidor conserva todas las decisiones de autoridad:
 
@@ -82,7 +82,7 @@ El cliente construirá la ruta con `f3Estado.comercioId`, no con datos editables
 
 ## 4. Componentes afectados
 
-- `supabase/functions/f5-members/index.ts`: nueva acción `actualizar` y respuestas de error estables.
+- `supabase/functions/f5-members/index.ts`: se conserva sin cambios como fachada para listar, crear y restablecer contraseñas.
 - Una migración nueva de Supabase: reemplazo controlado de las políticas legacy de `product-images`.
 - El HTML de la beta: panel de empleados, consumo de `f5-members`, ruta de imagen por comercio y mensajes de error.
 - Pruebas Node del cliente y del contrato Edge Function.
@@ -105,9 +105,9 @@ No se cambia el esquema de productos, el mecanismo de login F5, la duración del
 ### 5.2 Cambio o suspensión
 
 1. El dueño selecciona un empleado.
-2. El cliente envía `accion='actualizar'`, `targetUserId`, permisos y `activo`.
-3. La Edge Function valida la forma del pedido y ejecuta `f5_actualizar_miembro` con el token del actor.
-4. Postgres aplica las reglas F5, audita el cambio e incrementa `permission_version`.
+2. El cliente invoca `f5_actualizar_miembro` con el comercio actual, usuario objetivo, rol fijo `empleado`, permisos y `activo`.
+3. Supabase ejecuta la RPC bajo el token del actor autenticado.
+4. Postgres valida la forma y las reglas F5, audita el cambio e incrementa `permission_version`.
 5. La UI vuelve a consultar el roster y refleja el estado confirmado por servidor.
 
 ### 5.3 Imagen de producto

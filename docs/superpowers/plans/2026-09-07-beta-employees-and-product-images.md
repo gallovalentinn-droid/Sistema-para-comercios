@@ -4,7 +4,7 @@
 
 **Goal:** Habilitar en la beta completa la gestión real de empleados y la carga de imágenes de productos con la autoridad F5/F6 actual.
 
-**Architecture:** `f5-members` seguirá siendo la única fachada de gestión de personas y delegará las mutaciones en las RPC F5 existentes. Storage autorizará objetos bajo `<comercio_id>/<producto_id>.jpg` mediante membresía activa, permiso `productos_editar` y licencia operable. El cliente completo conservará todas sus funciones y agregará una tarjeta de empleados sin depender de la antigua “Vista empleado”.
+**Architecture:** El baseline F5 permanecerá byte por byte intacto: `f5-members` conservará las operaciones Auth existentes y la UI usará `f5_actualizar_miembro` para permisos y estado. Storage autorizará objetos bajo `<comercio_id>/<producto_id>.jpg` mediante membresía activa, permiso `productos_editar` y licencia operable. El cliente completo conservará todas sus funciones y agregará una tarjeta de empleados sin depender de la antigua “Vista empleado”.
 
 **Tech Stack:** HTML/CSS/JavaScript sin framework, Node.js `node:test`, Supabase Auth, Edge Functions Deno, PostgreSQL 15+, Storage RLS.
 
@@ -25,82 +25,53 @@
 
 ---
 
-### Task 1: Contrato de actualización de empleados en `f5-members`
+### Task 1: Congelar F5 y definir el contrato cliente de empleados
 
 **Files:**
-- Modify: `MiComercio-F6-PAQUETE-RC1-REV2/supabase/functions/_shared/f5-auth-core.mjs`
-- Modify: `MiComercio-F6-PAQUETE-RC1-REV2/supabase/functions/f5-members/index.ts`
-- Modify: `MiComercio-F6-PAQUETE-RC1-REV2/tests/f5-edge-contract.test.mjs`
-- Mirror after green: workspace `supabase/functions/_shared/f5-auth-core.mjs`, `supabase/functions/f5-members/index.ts`, `tests/f5-edge-contract.test.mjs`
+- Modify: `.worktrees/f6-rc2-publication/beta/index.html`
+- Create: `.worktrees/f6-rc2-publication/tests/beta-employees-images.test.cjs`
 
 **Interfaces:**
-- Consumes: `safePermissions` semantics, actor membership returned by `f5_miembro_actual`, and RPC `f5_actualizar_miembro(uuid,uuid,text,jsonb,boolean)`.
-- Produces: `validateEmployeeUpdate(value)` returning either `{ok:true,targetUserId,permisos,activo}` or `{ok:false}`; Edge action `{accion:'actualizar',comercioId,targetUserId,permisos,activo}`.
+- Consumes: `f5MembersRequest` para listar/crear/restablecer y RPC `f5_actualizar_miembro(uuid,uuid,text,jsonb,boolean)` para permisos/estado.
+- Produces: `f5PermisosEmpleadoIniciales()`, `f5PayloadCrearEmpleado(form)` y `f5ArgsActualizarEmpleado(member,permissions,activo)`.
 
-- [ ] **Step 1: Write failing contract tests**
+- [ ] **Step 1: Verify the frozen baseline before changes**
 
-Add tests with hand-written expectations:
+Run `node --test tests/f6-baseline.test.cjs` inside the F6 package. Expected: PASS and byte equality with the nested F5 rev10 package.
+
+- [ ] **Step 2: Write failing client contract tests**
+
+Extract the delimited employee core from the real beta HTML and use literal expectations:
 
 ```js
-test('normaliza una actualización de empleado sin admitir cambios de rol', () => {
-  assert.deepEqual(validateEmployeeUpdate({
-    targetUserId: '11111111-1111-4111-8111-111111111111',
-    permisos: { ventas_registrar: true, productos_editar: false },
-    activo: false,
-  }), {
-    ok: true,
-    targetUserId: '11111111-1111-4111-8111-111111111111',
-    permisos: { ventas_registrar: true, productos_editar: false },
-    activo: false,
-  });
-});
-
-test('rechaza objetivo, permisos o estado inválidos', () => {
-  assert.equal(validateEmployeeUpdate({ targetUserId: 'no-uuid', permisos: {}, activo: true }).ok, false);
-  assert.equal(validateEmployeeUpdate({ targetUserId: '11111111-1111-4111-8111-111111111111', permisos: { x: 'si' }, activo: true }).ok, false);
-  assert.equal(validateEmployeeUpdate({ targetUserId: '11111111-1111-4111-8111-111111111111', permisos: {}, activo: 'si' }).ok, false);
+assert.deepEqual(f5ArgsActualizarEmpleado(
+  { user_id:'11111111-1111-4111-8111-111111111111' },
+  { ventas_registrar:true },
+  false,
+), {
+  p_comercio_id:'33333333-3333-4333-8333-333333333333',
+  p_target_user_id:'11111111-1111-4111-8111-111111111111',
+  p_rol:'empleado',
+  p_permisos:{ ventas_registrar:true },
+  p_activo:false,
 });
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [ ] **Step 3: Run the focused test and verify RED**
 
-Run: `node --test tests/f5-edge-contract.test.mjs`
+Run: `node --test tests/beta-employees-images.test.cjs`
 
-Expected: FAIL because `validateEmployeeUpdate` is not exported.
+Expected: FAIL because the delimited core/functions do not exist.
 
-- [ ] **Step 3: Implement the pure validator**
+- [ ] **Step 4: Implement minimal pure helpers**
 
-Add to `f5-auth-core.mjs` a validator that checks UUID v4-compatible syntax, a plain object whose values are booleans, and a boolean `activo`. It must copy the permission object and ignore no unexpected role field by design because the return type has no `rol`.
+Build the ten-permission default, strict trimmed create payload, and RPC args with `p_rol:'empleado'` and `p_comercio_id:f3Estado.comercioId`. The helper must copy permission objects and never retain passwords outside the immediate create payload.
 
-- [ ] **Step 4: Add the Edge action**
+- [ ] **Step 5: Run focused tests and F5 baseline**
 
-In `f5-members/index.ts`, parse the body with `validateEmployeeUpdate`. On invalid input return `400 DATOS_INVALIDOS`. On success call:
+Run the client test, then rerun `node --test tests/f6-baseline.test.cjs` in the package.
 
-```ts
-const { data, error } = await userClient.rpc('f5_actualizar_miembro', {
-  p_comercio_id: comercioId,
-  p_target_user_id: update.targetUserId,
-  p_rol: 'empleado',
-  p_permisos: update.permisos,
-  p_activo: update.activo,
-});
-```
-
-Return the confirmed server object. Do not accept a role from the request.
-
-- [ ] **Step 5: Run focused and full Node tests**
-
-Run: `node --test tests/f5-edge-contract.test.mjs`
-
-Expected: PASS with zero failures.
-
-Run: `node --test tests/*.test.cjs tests/*.test.mjs`
-
-Expected: existing suite plus the new tests pass.
-
-- [ ] **Step 6: Mirror byte-identical F5 files and commit**
-
-Copy the three green files to the workspace copies, compare SHA-256, then commit with `feat: manage employee authority through f5-members`.
+Expected: helpers pass and F5 remains byte-identical.
 
 ---
 
@@ -112,8 +83,8 @@ Copy the three green files to the workspace copies, compare SHA-256, then commit
 - Later mirror: `MiComercio-F6-PAQUETE-RC1-REV2/entregables/MiComercio-F6-PRUEBA.html`
 
 **Interfaces:**
-- Consumes: `f5MembersRequest`, `f5ListarMiembrosTodos`, `F5_VIEW_PERMISSIONS`, `f5MembresiaActual` and the action from Task 1.
-- Produces: `f5PermisosEmpleadoIniciales()`, `f5PayloadCrearEmpleado(form)`, `f5PayloadActualizarEmpleado(member,permissions,activo)`, and the “Empleados” card in Configuración.
+- Consumes: `f5MembersRequest`, `f5ListarMiembrosTodos`, `F5_VIEW_PERMISSIONS`, `f5MembresiaActual`, `sb.rpc` and the pure helpers from Task 1.
+- Produces: the “Empleados” card in Configuración and server-confirmed create/update/suspend/reset flows.
 
 - [ ] **Step 1: Write failing client tests**
 
@@ -132,16 +103,7 @@ assert.deepEqual(f5PermisosEmpleadoIniciales(), {
   movimientos_ver: false,
   resumen_ver: false,
 });
-assert.deepEqual(f5PayloadActualizarEmpleado(
-  { user_id: '11111111-1111-4111-8111-111111111111' },
-  { ventas_registrar: true },
-  false,
-), {
-  accion: 'actualizar',
-  targetUserId: '11111111-1111-4111-8111-111111111111',
-  permisos: { ventas_registrar: true },
-  activo: false,
-});
+assert.equal(f5PayloadCrearEmpleado({ nombre:' Ana ', usuario:' CAJA_1 ', clave:'12345678' }, permisos).nombre, 'Ana');
 ```
 
 Also render Configuración in the test DOM and assert that a real employee form and roster are reachable for dueño/admin, while an empleado cannot see the card.
@@ -177,7 +139,7 @@ Keep “Bloqueo de mostrador” as a separate local-device feature. Remove the f
 
 - [ ] **Step 5: Wire requests and error states**
 
-Use `f5MembersRequest` for `crear`, `actualizar`, `restablecer_clave`, and `codigo_comercio`. Always reload the roster from the server after success. Clear password fields in `finally`. Map stable errors to short messages and retain the server state after failures.
+Use `f5MembersRequest` for `crear`, `restablecer_clave`, `listar` and `codigo_comercio`. Use `sb.rpc('f5_actualizar_miembro', f5ArgsActualizarEmpleado(...))` for permissions and state. Always reload the roster from the server after success. Clear password fields in `finally`. Map stable errors to short messages and retain the server state after failures.
 
 - [ ] **Step 6: Run focused tests and syntax check**
 
@@ -267,8 +229,8 @@ Commit with `fix: authorize product images through commerce membership`.
 - No new source files; consumes the reviewed files from Tasks 1 and 3.
 
 **Interfaces:**
-- Consumes: migration `07_product_images.sql` and complete `f5-members` directory.
-- Produces: QA migration history entry and a new active `f5-members` version with JWT verification enabled.
+- Consumes: migration `07_product_images.sql`; the existing F5 functions remain deployed unchanged.
+- Produces: QA migration history entry for Storage policies.
 
 - [ ] **Step 1: Run preflight queries**
 
@@ -286,13 +248,13 @@ Use the Supabase migration API with project `qrvdfqpxutymmlcplsal`. Do not use p
 
 Query `pg_policies` and assert four policies, no `clientes_licencia`, and SELECT/INSERT/UPDATE/DELETE present.
 
-- [ ] **Step 5: Deploy `f5-members`**
+- [ ] **Step 5: Verify deployed F5 remains unchanged**
 
-Deploy all required function files and imports with `verify_jwt=true`.
+List functions and confirm the `f5-members` deployed version/source hash did not change during this increment.
 
-- [ ] **Step 6: Verify deployed version and authorization**
+- [ ] **Step 6: Verify authorization**
 
-List functions, inspect the deployed source hash, and exercise an authenticated read action. Do not create a permanent employee merely to test without a user-approved identity; use the final browser flow for the owner to create the desired employee.
+Exercise an authenticated roster read and an authorized `f5_actualizar_miembro` call only on a test fixture that can be restored. Do not create a permanent employee merely to test without a user-approved identity; use the final browser flow for the owner to create the desired employee.
 
 ---
 
