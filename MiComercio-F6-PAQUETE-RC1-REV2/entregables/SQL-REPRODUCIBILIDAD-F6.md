@@ -1,12 +1,12 @@
 # Reproducibilidad SQL de F6
 
-Fecha de corte: 2026-09-07
+Fecha de corte: 2026-09-08
 Proyecto usado para las pruebas incrementales: Supabase QA `qrvdfqpxutymmlcplsal`
 PostgreSQL observado: 17.6.1
 
 ## Alcance exacto
 
-F6 contiene ocho migraciones y siete suites SQL propias:
+F6 contiene nueve migraciones y siete suites SQL propias:
 
 | Orden | Migración | Suite |
 |---:|---|---|
@@ -18,8 +18,9 @@ F6 contiene ocho migraciones y siete suites SQL propias:
 | 6 | `supabase/f6/06_pilot_gate.sql` | `supabase/tests/f6_pilot_gate.test.sql` |
 | 7 | `supabase/f6/07_employee_management.sql` | `supabase/tests/f6_employees_images.test.sql` |
 | 8 | `supabase/f6/08_product_images.sql` | `supabase/tests/f6_employees_images.test.sql` |
+| 9 | `supabase/f6/09_commerce_login_codes.sql` | `supabase/tests/f6_employees_images.test.sql` |
 
-Cada incremento fue probado sobre el baseline real de QA dentro de una transacción descartable. El 2026-09-07, después de aplicar `07` y `08`, se ejecutaron las siete suites F6 y las ocho suites F5, cada una en una transacción descartable independiente: 15/15 suites PASS. Después de cada `ROLLBACK` no quedaron fixtures F5/F6 persistentes. La suite de soporte se corrigió para contar sólo sus cuatro fixtures, porque QA ya contiene un operador real persistente.
+Cada incremento fue probado sobre el baseline real de QA dentro de una transacción descartable. El 2026-09-08, después de aplicar `07`, `08` y `09`, se ejecutaron las siete suites F6 y las ocho suites F5, cada una en una transacción descartable independiente: 15/15 suites PASS. Después de cada `ROLLBACK` no quedaron fixtures F5/F6 persistentes. La suite de soporte se corrigió para contar sólo sus cuatro fixtures, porque QA ya contiene un operador real persistente.
 
 Esto acredita el delta F6 y la regresión F5 acumulada sobre el baseline persistente de QA. Todavía no acredita una instalación completa desde una base vacía porque el paquete no reconstruye el esquema histórico F2–F4.
 

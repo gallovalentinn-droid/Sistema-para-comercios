@@ -125,7 +125,7 @@ Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara úni
 
 - `entregables/MiComercio-F6-PRUEBA.html`: sistema comercial F6.
 - `entregables/MiComercio-Soporte-F6.html`: panel de soporte.
-- `supabase/f6/01_foundation.sql` a `08_product_images.sql`: migraciones F6.
+- `supabase/f6/01_foundation.sql` a `09_commerce_login_codes.sql`: migraciones F6.
 - `supabase/functions/f6-invitations/index.ts` y `f6-support/index.ts`: fronteras HTTP.
 - `entregables/BUILD-IDENTITY-F6.json`: identidad normativa.
 - `entregables/QA-F6-EVIDENCIA.md`: evidencia técnica detallada.

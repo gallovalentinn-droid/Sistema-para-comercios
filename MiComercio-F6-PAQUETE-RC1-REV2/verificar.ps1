@@ -87,7 +87,7 @@ if ($suitesSql.Count -ne $SuitesSqlEsperadas) {
   throw "Se esperaban $SuitesSqlEsperadas suites SQL y se encontraron $($suitesSql.Count)."
 }
 $migracionesF6 = @(Get-ChildItem -LiteralPath 'supabase/f6' -File -Filter '*.sql')
-if ($migracionesF6.Count -ne 8) { throw "Se esperaban 8 migraciones F6 y se encontraron $($migracionesF6.Count)." }
+if ($migracionesF6.Count -ne 9) { throw "Se esperaban 9 migraciones F6 y se encontraron $($migracionesF6.Count)." }
 Write-Host "   inventario: $($suitesSql.Count) suites SQL y $($migracionesF6.Count) migraciones F6"
 Write-Host '   ejecución SQL: externa; ver entregables/SQL-REPRODUCIBILIDAD-F6.md'
 

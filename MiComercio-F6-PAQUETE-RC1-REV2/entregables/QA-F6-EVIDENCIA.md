@@ -257,3 +257,11 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - La suite de soporte dejó de contar operadores persistentes ajenos a sus fixtures; esa era la causa del único rojo durante la repetición acumulada.
 - El lector de facturas con IA sigue postergado por decisión explícita y no se declara resuelto por RC2.
 - El ZIP se extrajo en un directorio temporal nuevo y la misma verificación volvió a pasar desde cero. Su SHA-256 se conserva únicamente en el archivo lateral `.zip.sha256.txt` para evitar autorreferencia.
+
+## Corrección RC2 revisión 4 — 2026-09-08
+
+- El humo en navegador detectó que un comercio creado después del backfill F5 no tenía código de acceso para empleados; por eso la lista completa fallaba aunque el RPC de roster funcionaba.
+- La regresión se ejecutó primero en rojo con `F6_COMMERCE_LOGIN_CODE_TRIGGER_FUNCTION_MISSING`.
+- `09_commerce_login_codes.sql` crea el código para cada comercio nuevo y repara los existentes que no lo tenían. Se aplicó persistentemente en QA como `f6_commerce_login_codes_qa`.
+- La regresión pasó en PostgreSQL real y el humo posterior cargó el código y el roster del dueño en `https://micomercio.ar/beta/`.
+- Se repitieron las quince suites SQL acumuladas, cada una en una transacción descartable: 15/15 PASS.

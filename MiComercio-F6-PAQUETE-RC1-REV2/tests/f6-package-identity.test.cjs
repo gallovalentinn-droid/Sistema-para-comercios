@@ -25,7 +25,7 @@ test('la identidad normativa F6 fija contratos, conteos y hash del artefacto', (
   assert.equal(identity.projection_contract, 'f5-projection-v1');
   assert.equal(identity.config_contract, '10-canonical+6-legacy-only');
   assert.equal(identity.license_contract, 'f6-license-v1');
-  assert.equal(identity.package_revision, 3);
+  assert.equal(identity.package_revision, 4);
   assert.equal(identity.expected_local_tests, 110);
   assert.equal(identity.expected_sql_suites, 15);
   assert.equal(identity.acceptance, 'candidate-pending-seven-day-pilot');

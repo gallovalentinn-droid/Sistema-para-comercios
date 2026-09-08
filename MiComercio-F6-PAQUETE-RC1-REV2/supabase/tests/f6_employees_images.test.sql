@@ -2,6 +2,46 @@ begin;
 
 do $test$
 declare
+  v_comercio uuid;
+  v_codigo text;
+begin
+  if to_regprocedure('private.f6_ensure_comercio_login_code()') is null then
+    raise exception 'F6_COMMERCE_LOGIN_CODE_TRIGGER_FUNCTION_MISSING';
+  end if;
+  if not exists (
+    select 1
+      from pg_trigger
+     where tgrelid='public.comercios'::regclass
+       and tgname='f6_ensure_comercio_login_code_after_insert'
+       and not tgisinternal
+  ) then
+    raise exception 'F6_COMMERCE_LOGIN_CODE_TRIGGER_MISSING';
+  end if;
+
+  insert into public.comercios(nombre)
+  values('F6 login code trigger test')
+  returning id into v_comercio;
+
+  select codigo_normalizado
+    into v_codigo
+    from private.f5_login_comercios
+   where comercio_id=v_comercio;
+  if v_codigo is null or v_codigo !~ '^[a-z0-9]{10}$' then
+    raise exception 'F6_COMMERCE_LOGIN_CODE_NOT_CREATED:%',v_codigo;
+  end if;
+  if exists (
+    select 1
+      from public.comercios comercio
+      left join private.f5_login_comercios login_code on login_code.comercio_id=comercio.id
+     where login_code.comercio_id is null
+  ) then
+    raise exception 'F6_COMMERCE_WITHOUT_LOGIN_CODE';
+  end if;
+end
+$test$;
+
+do $test$
+declare
   v_commands text[];
 begin
   if to_regprocedure('public.f6_listar_miembros_gestion(uuid)') is null then
