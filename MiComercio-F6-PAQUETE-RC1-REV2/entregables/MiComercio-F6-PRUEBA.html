@@ -408,7 +408,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:4,
+  packageRevision:5,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -5152,16 +5152,36 @@ async function leerFacturaFoto(file,ov){
   try{
     if(!(sb&&sesion)) throw new Error('La lectura automática requiere Supabase configurado');
     if(file.size>8*1024*1024) throw new Error('La imagen supera 8 MB');
+    if(!f3Estado.comercioId) throw new Error('COMERCIO_NO_DISPONIBLE');
     const b64=await fileABase64(file);
     const {data,error}=await sb.functions.invoke('leer-factura',{
-      body:{imageBase64:b64,mediaType:file.type||'image/jpeg'}
+      body:{comercioId:f3Estado.comercioId,requestId:crypto.randomUUID(),imageBase64:b64,mediaType:file.type||'image/jpeg'}
     });
-    if(error) throw error;
+    if(error){
+      let detalle=null;
+      try{
+        const contexto=error.context&&error.context;
+        if(contexto&&typeof contexto.clone==='function') detalle=await contexto.clone().json();
+        else if(contexto&&typeof contexto.json==='function') detalle=await contexto.json();
+      }catch(_e){}
+      const falla=new Error(String(detalle&&detalle.code||error.message||'IA_NO_DISPONIBLE'));
+      falla.code=String(detalle&&detalle.code||'');
+      falla.limite=Number(detalle&&detalle.limite||0);
+      throw falla;
+    }
     if(!data||!data.items||!data.items.length){ aviso('No pude reconocer productos en esa foto','bad'); return; }
     abrirRevisionFactura(data);
   }catch(e){
     console.error(e);
-    aviso((e&&e.message&&e.message.includes('8 MB'))?'La foto es demasiado pesada. Usá una imagen de menos de 8 MB.':'No pude leer la factura automáticamente. Cargala a mano abajo.','bad');
+    const code=String(e&&e.code||e&&e.message||'');
+    const msg=code.includes('8 MB')||code.includes('IMAGEN_DEMASIADO_GRANDE')
+      ?'La foto es demasiado pesada. Usá una imagen de menos de 8 MB.'
+      :code.includes('LIMITE_IA_DIARIO')
+      ?`Llegaste al límite diario${e&&e.limite?` de ${e.limite} lecturas`:''}. Podés cargar esta factura a mano o volver a probar mañana.`
+      :code.includes('FACTURA_NO_RECONOCIDA')
+      ?'No pude reconocer esa factura. Probá con una foto más nítida o cargala a mano.'
+      :'No pude leer la factura automáticamente. Cargala a mano abajo.';
+    aviso(msg,'bad');
   }finally{
     if(document.body.contains(label)){ label.innerHTML=original; label.style.pointerEvents=''; label.style.opacity=''; }
   }

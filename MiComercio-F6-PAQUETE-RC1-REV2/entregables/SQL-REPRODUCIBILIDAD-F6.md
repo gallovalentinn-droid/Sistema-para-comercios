@@ -6,7 +6,7 @@ PostgreSQL observado: 17.6.1
 
 ## Alcance exacto
 
-F6 contiene nueve migraciones y siete suites SQL propias:
+F6 contiene diez migraciones y ocho suites SQL propias:
 
 | Orden | Migración | Suite |
 |---:|---|---|
@@ -19,8 +19,9 @@ F6 contiene nueve migraciones y siete suites SQL propias:
 | 7 | `supabase/f6/07_employee_management.sql` | `supabase/tests/f6_employees_images.test.sql` |
 | 8 | `supabase/f6/08_product_images.sql` | `supabase/tests/f6_employees_images.test.sql` |
 | 9 | `supabase/f6/09_commerce_login_codes.sql` | `supabase/tests/f6_employees_images.test.sql` |
+| 10 | `supabase/f6/10_invoice_reader.sql` | `supabase/tests/f6_invoice_reader.test.sql` |
 
-Cada incremento fue probado sobre el baseline real de QA dentro de una transacción descartable. El 2026-09-08, después de aplicar `07`, `08` y `09`, se ejecutaron las siete suites F6 y las ocho suites F5, cada una en una transacción descartable independiente: 15/15 suites PASS. Después de cada `ROLLBACK` no quedaron fixtures F5/F6 persistentes. La suite de soporte se corrigió para contar sólo sus cuatro fixtures, porque QA ya contiene un operador real persistente.
+Cada incremento fue probado sobre el baseline real de QA dentro de una transacción descartable. El 2026-09-08, después de aplicar `07` a `10`, se ejecutaron las ocho suites F6 y las ocho suites F5, cada una en una transacción descartable independiente: 16/16 suites PASS. Después de cada `ROLLBACK` no quedaron fixtures F5/F6 persistentes. La suite de soporte se corrigió para contar sólo sus cuatro fixtures, porque QA ya contiene un operador real persistente.
 
 Esto acredita el delta F6 y la regresión F5 acumulada sobre el baseline persistente de QA. Todavía no acredita una instalación completa desde una base vacía porque el paquete no reconstruye el esquema histórico F2–F4.
 
@@ -42,12 +43,12 @@ El paquete incluye las migraciones y suites F5 disponibles, pero no reconstruye 
 2. Confirmar PostgreSQL 15+.
 3. Ejecutar el preflight de datos y exigir cero incompatibilidades.
 4. Abrir una transacción.
-5. Aplicar `01` a `08` en orden.
-6. Ejecutar las siete suites F6.
+5. Aplicar `01` a `10` en orden.
+6. Ejecutar las ocho suites F6.
 7. Terminar con `ROLLBACK` mientras se valida el candidato.
 8. Comprobar que no quedaron tablas, funciones o fixtures creados por la prueba.
 
-Para la validación acumulada deben ejecutarse además las ocho suites F5. El resultado esperado contractual es 15 suites, pero sólo debe escribirse “15/15 PASS” después de medir esa corrida concreta.
+Para la validación acumulada deben ejecutarse además las ocho suites F5. El resultado esperado contractual es 16 suites, pero sólo debe escribirse “16/16 PASS” después de medir esa corrida concreta.
 
 ## Concurrencia pendiente
 
@@ -63,6 +64,8 @@ La evidencia secuencial no sustituye esas carreras.
 Las seis migraciones F6 fueron aplicadas persistentemente el 2026-09-05 al proyecto QA `qrvdfqpxutymmlcplsal`, en el orden `01` a `06`, con versiones `20260905182341` a `20260905182519`. También se desplegaron `f6-invitations` versión 1 y `f6-support` versión 1, ambas en estado `ACTIVE`.
 
 El 2026-09-07 se aplicaron persistentemente `f6_employee_management_qa`, `f6_product_images_qa` y la corrección `f6_employee_management_security_qa`. La última conserva el control privilegiado en `private` y deja el RPC público como `security invoker`, evitando exponer una nueva función `security definer` directamente en el API público.
+
+El 2026-09-08 se aplicaron `f6_commerce_login_codes_qa`, `f6_invoice_reader_qa`, `f6_invoice_reader_reuse_v4_qa` y `f6_invoice_reader_legacy_quota_lockdown_qa`. Las tres últimas forman el incremento del lector: la revisión inicial se consolidó sobre `factura_ai_uso_v4`, se eliminó el contador paralelo sólo después de verificar que estaba vacío y se cerró la RPC legacy. Las fotos no se persisten en la base.
 
 Los secrets explícitos de allowlist y pepper quedaron configurados y el smoke test desde `Origin: null` pasó. El primer operador interno también quedó designado y el acceso autenticado al panel fue comprobado contra la Edge Function QA.
 

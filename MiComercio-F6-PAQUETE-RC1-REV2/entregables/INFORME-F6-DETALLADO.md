@@ -1,15 +1,15 @@
 # Informe detallado de F6 RC2
 
-Fecha de corte: 2026-09-07
+Fecha de corte: 2026-09-08
 Build: `6.0.0-f6-rc2`
 Base congelada: F5 rev10, `5.0.0-f5-rc2`
-Estado: `candidate-pending-live-smoke-and-seven-day-pilot`
+Estado: `candidate-pending-gemini-secret-live-smoke-and-seven-day-pilot`
 
 ## Resultado alcanzado
 
 F6 está implementado como candidato técnico. El sistema comercial incorpora el alta por invitación, un asistente de puesta en marcha reanudable, la licencia beta de siete días y el cierre de caja turno por turno. Además existe un panel interno de soporte separado y auditable.
 
-El candidato conserva todas las funciones comerciales previas de F5 y las mejoras de producto ya incorporadas: búsquedas por producto y rubro, Movimientos de stock y el medio de pago unificado “Transferencia / QR”. RC2 agrega gestión real de empleados y carga de imágenes de productos sin reemplazar ni recortar ninguna sección del sistema.
+El candidato conserva todas las funciones comerciales previas de F5 y las mejoras de producto ya incorporadas: búsquedas por producto y rubro, Movimientos de stock y el medio de pago unificado “Transferencia / QR”. RC2 agrega gestión real de empleados, carga de imágenes de productos y lectura asistida de facturas con foto, sin reemplazar ni recortar ninguna sección del sistema.
 
 No se modificó el paquete F5 rev10 ni ningún archivo de `sources/`. El desarrollo F6 vive en artefactos, SQL, funciones y pruebas separados.
 
@@ -101,32 +101,42 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 - Las fotos usan la ruta canónica `<comercio_id>/<producto_id>.jpg` y ya no pertenecen a la cuenta que realizó la carga.
 - Cualquier miembro activo puede leerlas. Insertar, reemplazar o borrar exige licencia operable y el permiso efectivo `productos_editar`; `upsert` está cubierto por políticas SELECT, INSERT y UPDATE.
 
-## 8. Evidencia ejecutada
+## 8. Lector de facturas con IA
 
-- 15 suites locales descubiertas automáticamente.
-- 110 pruebas ejecutadas: 110 aprobadas y 0 fallidas.
+- El navegador envía solamente la foto elegida, el comercio y una clave idempotente a la Edge Function autenticada `leer-factura`.
+- La clave de Gemini vive únicamente como secret `GEMINI_API_KEY`; no se incorpora al HTML, al repositorio ni al ZIP.
+- Se usa `gemini-3.8-flash` con salida JSON estructurada y `store:false`.
+- Se aceptan JPEG, PNG, WebP, HEIC y HEIF hasta 8 MB; el servidor vuelve a validar tamaño, Base64 y tipo.
+- La imagen no se guarda en Postgres. Sólo se registra una reserva de cupo sin contenido de la factura en la tabla canónica V4 `factura_ai_uso_v4`; no existe un contador F6 paralelo.
+- El límite diario ya definido por la licencia se aplica de forma atómica por comercio y día operativo; en la beta es 30.
+- Dueño y administrador pueden usarlo. Un empleado también puede si tiene `productos_editar`; la autorización se repite en servidor.
+- La salida se sanea por tipo, rango y longitud. Ningún dato modifica stock automáticamente: siempre se abre la revisión humana antes de confirmar.
+
+## 9. Evidencia ejecutada
+
+- 16 suites locales descubiertas automáticamente.
+- 118 pruebas ejecutadas: 118 aprobadas y 0 fallidas.
 - Identidad JSON/HTML comparada por ejecución aislada del bloque del navegador.
 - Pruebas de sintaxis del artefacto HTML y de las funciones TypeScript disponibles con Node.
-- Siete suites SQL F6 y ocho F5 ejecutadas en PostgreSQL QA: 15/15 PASS dentro de transacciones descartables.
+- Ocho suites SQL F6 y ocho F5 ejecutadas en PostgreSQL QA: 16/16 PASS dentro de transacciones descartables.
 - La suite de `06_pilot_gate.sql` se volvió a ejecutar en esta etapa: PASS y `ROLLBACK` confirmado sin fixtures persistentes.
-- No se declara una reproducción integral de las 15 suites SQL desde una base vacía.
+- No se declara una reproducción integral de las 16 suites SQL desde una base vacía.
 
-## 9. Qué falta
+## 10. Qué falta
 
-Falta la fase operativa de QA, no más funcionalidad de diseño:
+Falta la activación y la fase operativa de QA, no más funcionalidad de diseño:
 
-- publicar RC2 y realizar un smoke autenticado de empleados e imágenes en navegador;
+- guardar `GEMINI_API_KEY` como secret de QA, desplegar `leer-factura` y realizar un smoke con una factura no sensible;
 - ejecutar el piloto de siete días y decidir aprobación o repetición;
-- cerrar después el lector de facturas con IA, expresamente postergado en este incremento.
 
 Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara únicamente después de que el piloto termine aprobado.
 
-## 10. Archivos principales
+## 11. Archivos principales
 
 - `entregables/MiComercio-F6-PRUEBA.html`: sistema comercial F6.
 - `entregables/MiComercio-Soporte-F6.html`: panel de soporte.
-- `supabase/f6/01_foundation.sql` a `09_commerce_login_codes.sql`: migraciones F6.
-- `supabase/functions/f6-invitations/index.ts` y `f6-support/index.ts`: fronteras HTTP.
+- `supabase/f6/01_foundation.sql` a `10_invoice_reader.sql`: migraciones F6.
+- `supabase/functions/f6-invitations/index.ts`, `f6-support/index.ts` y `leer-factura/index.ts`: fronteras HTTP.
 - `entregables/BUILD-IDENTITY-F6.json`: identidad normativa.
 - `entregables/QA-F6-EVIDENCIA.md`: evidencia técnica detallada.
 - `entregables/SQL-REPRODUCIBILIDAD-F6.md`: alcance real de las pruebas SQL.
