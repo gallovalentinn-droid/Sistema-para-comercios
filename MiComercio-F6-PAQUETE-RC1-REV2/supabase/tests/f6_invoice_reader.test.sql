@@ -6,6 +6,13 @@ begin
     raise exception 'F6_IA_RESERVATION_RPC_MISSING';
   end if;
   if not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='comercio_licencias'
+      and column_name='limite_ia_mensual'
+  ) then
+    raise exception 'F6_IA_MONTHLY_LIMIT_COLUMN_MISSING';
+  end if;
+  if not exists (
     select 1 from pg_class tabla
     join pg_namespace esquema on esquema.oid=tabla.relnamespace
     where esquema.nspname='public' and tabla.relname='factura_ai_uso_v4'
@@ -58,7 +65,7 @@ insert into public.comercio_licencias(
   estado_administrativo,valid_from,valid_until,pause_started_at,
   extension_used_seconds,state_version
 ) values (
-  'f6000000-0000-4000-8000-000000000810',true,'beta',2,7,
+  'f6000000-0000-4000-8000-000000000810',true,'beta',1000,7,
   'activa',statement_timestamp()-interval '1 day',statement_timestamp()+interval '6 days',
   null,0,1
 );
@@ -71,10 +78,16 @@ declare
   v_denied constant uuid:='f6000000-0000-4000-8000-000000000803';
   v_request1 constant uuid:='f6000000-0000-4000-8000-000000000821';
   v_result jsonb;
+  v_business_date date;
+  v_month_start date;
 begin
+  select private.business_date(v_comercio,statement_timestamp()) into v_business_date;
+  v_month_start:=date_trunc('month',v_business_date)::date;
+
   v_result:=public.f6_service_reservar_lectura_factura(v_owner,v_comercio,v_request1);
   if v_result->>'ok'<>'true' or v_result->>'replayed'<>'false'
-     or (v_result->>'usados')::integer<>1 or (v_result->>'restantes')::integer<>1 then
+     or (v_result->>'usados')::integer<>1 or (v_result->>'restantes')::integer<>99
+     or (v_result->>'limite')::integer<>100 then
     raise exception 'F6_IA_FIRST_RESERVATION_INVALID:%',v_result;
   end if;
 
@@ -88,16 +101,25 @@ begin
     v_employee,v_comercio,'f6000000-0000-4000-8000-000000000822'
   );
   if v_result->>'ok'<>'true' or (v_result->>'usados')::integer<>2
-     or (v_result->>'restantes')::integer<>0 then
+     or (v_result->>'restantes')::integer<>98 then
     raise exception 'F6_IA_EMPLOYEE_PERMISSION_INVALID:%',v_result;
   end if;
+
+  insert into public.factura_ai_uso_v4(comercio_id,user_id,operation_id,business_date)
+  select v_comercio,v_owner,gen_random_uuid()::text,
+         case when serie<=49 then v_month_start else v_business_date end
+    from generate_series(1,98) serie;
+
+  insert into public.factura_ai_uso_v4(comercio_id,user_id,operation_id,business_date)
+  select v_comercio,v_owner,gen_random_uuid()::text,(v_month_start-interval '1 month')::date
+    from generate_series(1,5);
 
   v_result:=public.f6_service_reservar_lectura_factura(
     v_owner,v_comercio,'f6000000-0000-4000-8000-000000000823'
   );
-  if v_result->>'ok'<>'false' or v_result->>'code'<>'LIMITE_IA_DIARIO'
-     or (v_result->>'usados')::integer<>2 then
-    raise exception 'F6_IA_DAILY_LIMIT_INVALID:%',v_result;
+  if v_result->>'ok'<>'false' or v_result->>'code'<>'LIMITE_IA_MENSUAL'
+     or (v_result->>'usados')::integer<>100 or (v_result->>'restantes')::integer<>0 then
+    raise exception 'F6_IA_MONTHLY_LIMIT_INVALID:%',v_result;
   end if;
 
   begin

@@ -408,7 +408,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:5,
+  packageRevision:6,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -5176,8 +5176,8 @@ async function leerFacturaFoto(file,ov){
     const code=String(e&&e.code||e&&e.message||'');
     const msg=code.includes('8 MB')||code.includes('IMAGEN_DEMASIADO_GRANDE')
       ?'La foto es demasiado pesada. Usá una imagen de menos de 8 MB.'
-      :code.includes('LIMITE_IA_DIARIO')
-      ?`Llegaste al límite diario${e&&e.limite?` de ${e.limite} lecturas`:''}. Podés cargar esta factura a mano o volver a probar mañana.`
+      :code.includes('LIMITE_IA_MENSUAL')
+      ?`Llegaste al límite mensual${e&&e.limite?` de ${e.limite} lecturas`:''} para este comercio. Podés cargar esta factura a mano o volver a probar el mes próximo.`
       :code.includes('FACTURA_NO_RECONOCIDA')
       ?'No pude reconocer esa factura. Probá con una foto más nítida o cargala a mano.'
       :'No pude leer la factura automáticamente. Cargala a mano abajo.';

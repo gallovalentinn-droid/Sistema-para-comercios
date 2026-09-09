@@ -1,6 +1,32 @@
--- F6 — cupo diario y autorización de lectura de facturas con IA.
+-- F6 — cupo mensual y autorización de lectura de facturas con IA.
 -- La imagen nunca se persiste en Postgres. La reserva se registra en la tabla
 -- V4 ya existente para no crear un segundo contador de consumo de IA.
+-- La beta permite como máximo 100 lecturas por comercio y mes operativo.
+
+alter table public.comercio_licencias
+  add column if not exists limite_ia_mensual integer;
+
+update public.comercio_licencias
+   set limite_ia_mensual=100
+ where limite_ia_mensual is null;
+
+alter table public.comercio_licencias
+  alter column limite_ia_mensual set default 100,
+  alter column limite_ia_mensual set not null;
+
+do $constraint$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid='public.comercio_licencias'::regclass
+      and conname='comercio_licencias_limite_ia_mensual_check'
+  ) then
+    alter table public.comercio_licencias
+      add constraint comercio_licencias_limite_ia_mensual_check
+      check(limite_ia_mensual between 0 and 100);
+  end if;
+end
+$constraint$;
 
 do $guard$
 begin
@@ -51,6 +77,8 @@ as $function$
 declare
   v_limit integer;
   v_date date;
+  v_period_start date;
+  v_period_end date;
   v_used integer;
   v_now timestamptz:=statement_timestamp();
 begin
@@ -58,7 +86,7 @@ begin
     raise exception 'F6_IA_INPUT_INVALID';
   end if;
 
-  select licencia.limite_ia_diario
+  select licencia.limite_ia_mensual
     into v_limit
     from public.comercio_miembros miembro
     join public.comercio_licencias licencia on licencia.comercio_id=miembro.comercio_id
@@ -74,8 +102,10 @@ begin
 
   v_limit:=greatest(0,coalesce(v_limit,0));
   v_date:=private.business_date(p_comercio_id,v_now);
+  v_period_start:=date_trunc('month',v_date)::date;
+  v_period_end:=(v_period_start+interval '1 month')::date;
 
-  perform pg_advisory_xact_lock(hashtextextended('f6-ia:'||p_comercio_id::text||':'||v_date::text,0));
+  perform pg_advisory_xact_lock(hashtextextended('f6-ia:'||p_comercio_id::text||':'||v_period_start::text,0));
 
   if exists (
     select 1 from public.factura_ai_uso_v4 lectura
@@ -85,21 +115,26 @@ begin
   ) then
     select count(*)::integer into v_used
       from public.factura_ai_uso_v4 lectura
-     where lectura.comercio_id=p_comercio_id and lectura.business_date=v_date;
+     where lectura.comercio_id=p_comercio_id
+       and lectura.business_date>=v_period_start
+       and lectura.business_date<v_period_end;
     return jsonb_build_object(
       'ok',true,'code','IA_CUPO_RESERVADO','replayed',true,
       'limite',v_limit,'usados',v_used,'restantes',greatest(0,v_limit-v_used),
-      'business_date',v_date
+      'business_date',v_date,'periodo_desde',v_period_start,'periodo_hasta',v_period_end
     );
   end if;
 
   select count(*)::integer into v_used
     from public.factura_ai_uso_v4 lectura
-   where lectura.comercio_id=p_comercio_id and lectura.business_date=v_date;
+   where lectura.comercio_id=p_comercio_id
+     and lectura.business_date>=v_period_start
+     and lectura.business_date<v_period_end;
   if v_used>=v_limit then
     return jsonb_build_object(
-      'ok',false,'code','LIMITE_IA_DIARIO','replayed',false,
-      'limite',v_limit,'usados',v_used,'restantes',0,'business_date',v_date
+      'ok',false,'code','LIMITE_IA_MENSUAL','replayed',false,
+      'limite',v_limit,'usados',v_used,'restantes',0,
+      'business_date',v_date,'periodo_desde',v_period_start,'periodo_hasta',v_period_end
     );
   end if;
 
@@ -109,7 +144,7 @@ begin
   return jsonb_build_object(
     'ok',true,'code','IA_CUPO_RESERVADO','replayed',false,
     'limite',v_limit,'usados',v_used,'restantes',greatest(0,v_limit-v_used),
-    'business_date',v_date
+    'business_date',v_date,'periodo_desde',v_period_start,'periodo_hasta',v_period_end
   );
 end
 $function$;

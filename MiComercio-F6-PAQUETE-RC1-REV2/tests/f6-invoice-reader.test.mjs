@@ -7,6 +7,7 @@ import {
   F6_INVOICE_MODEL,
   buildGeminiInvoiceRequest,
   extractGeminiInvoice,
+  extractGeminiUsage,
   validateInvoiceImageRequest,
 } from '../supabase/functions/_shared/f6-invoice-reader.mjs';
 
@@ -123,7 +124,30 @@ test('rechaza respuestas incompletas, no JSON o con valores fuera de dominio', (
   }), /F6_GEMINI_OUTPUT_INVALID/);
 });
 
-test('la Edge exige sesión, reserva cupo diario y guarda Gemini sólo en secretos', () => {
+test('extrae el consumo real de tokens que informa Gemini', () => {
+  assert.deepEqual(extractGeminiUsage({
+    usage: {
+      total_input_tokens: 1375,
+      total_output_tokens: 241,
+      total_thought_tokens: 86,
+      total_cached_tokens: 0,
+      total_tool_use_tokens: 0,
+      total_tokens: 1702,
+    },
+  }), {
+    inputTokens: 1375,
+    outputTokens: 241,
+    thoughtTokens: 86,
+    cachedTokens: 0,
+    toolUseTokens: 0,
+    totalTokens: 1702,
+  });
+  assert.deepEqual(extractGeminiUsage({ usage: { total_tokens: -1 } }), {
+    inputTokens: 0, outputTokens: 0, thoughtTokens: 0, cachedTokens: 0, toolUseTokens: 0, totalTokens: 0,
+  });
+});
+
+test('la Edge exige sesión, reserva cupo mensual y guarda Gemini sólo en secretos', () => {
   const source = edgeSource();
   assert.match(source, /getClaims/);
   assert.match(source, /f6_service_reservar_lectura_factura/);
@@ -140,5 +164,5 @@ test('el cliente identifica comercio y solicitud, y mantiene la revisión humana
   assert.match(source, /comercioId:f3Estado\.comercioId/);
   assert.match(source, /requestId:crypto\.randomUUID\(\)/);
   assert.match(source, /Revisá lo que leímos de la factura/);
-  assert.match(source, /LIMITE_IA_DIARIO/);
+  assert.match(source, /LIMITE_IA_MENSUAL/);
 });

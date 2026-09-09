@@ -1,16 +1,16 @@
 {
   "build": "6.0.0-f6-rc2",
   "base_build": "5.0.0-f5-rc2",
-  "package_revision": 5,
+  "package_revision": 6,
   "created_at": "2026-09-08",
   "projection_contract": "f5-projection-v1",
   "config_contract": "10-canonical+6-legacy-only",
   "license_contract": "f6-license-v1",
-  "expected_local_tests": 118,
+  "expected_local_tests": 119,
   "expected_sql_suites": 16,
   "acceptance": "candidate-pending-seven-day-pilot",
   "artifact": {
     "path": "entregables/MiComercio-F6-PRUEBA.html",
-    "sha256": "d43bc6f61ce95f1a5652970d05009154b8cac734f2f0deb5d6e98eab8e8f5dc7"
+    "sha256": "6bdbb29bd2761b17db7e070eed662e74b4db8d08bca7e25bc153462f665c84cd"
   }
 }

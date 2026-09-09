@@ -108,14 +108,14 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 - Se usa `gemini-3.8-flash` con salida JSON estructurada y `store:false`.
 - Se aceptan JPEG, PNG, WebP, HEIC y HEIF hasta 8 MB; el servidor vuelve a validar tamaño, Base64 y tipo.
 - La imagen no se guarda en Postgres. Sólo se registra una reserva de cupo sin contenido de la factura en la tabla canónica V4 `factura_ai_uso_v4`; no existe un contador F6 paralelo.
-- El límite diario ya definido por la licencia se aplica de forma atómica por comercio y día operativo; en la beta es 30.
+- El límite mensual se aplica de forma atómica por comercio y mes operativo; en la beta es 100 intentos enviados al proveedor. Las lecturas fallidas también consumen cupo para impedir eludir el límite repitiendo solicitudes inválidas.
 - Dueño y administrador pueden usarlo. Un empleado también puede si tiene `productos_editar`; la autorización se repite en servidor.
 - La salida se sanea por tipo, rango y longitud. Ningún dato modifica stock automáticamente: siempre se abre la revisión humana antes de confirmar.
 
 ## 9. Evidencia ejecutada
 
 - 16 suites locales descubiertas automáticamente.
-- 118 pruebas ejecutadas: 118 aprobadas y 0 fallidas.
+- 119 pruebas ejecutadas: 119 aprobadas y 0 fallidas.
 - Identidad JSON/HTML comparada por ejecución aislada del bloque del navegador.
 - Pruebas de sintaxis del artefacto HTML y de las funciones TypeScript disponibles con Node.
 - Ocho suites SQL F6 y ocho F5 ejecutadas en PostgreSQL QA: 16/16 PASS dentro de transacciones descartables.

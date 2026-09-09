@@ -5,6 +5,7 @@ import {
   F6_INVOICE_MODEL,
   buildGeminiInvoiceRequest,
   extractGeminiInvoice,
+  extractGeminiUsage,
   validateInvoiceImageRequest,
 } from "../_shared/f6-invoice-reader.mjs";
 
@@ -150,9 +151,9 @@ Deno.serve(async (request: Request) => {
     return respond(origin, { code: "IA_NO_DISPONIBLE" }, 503);
   }
   if (reservation?.ok !== true) {
-    const limited = reservation?.code === "LIMITE_IA_DIARIO";
+    const limited = reservation?.code === "LIMITE_IA_MENSUAL";
     return respond(origin, {
-      code: limited ? "LIMITE_IA_DIARIO" : "IA_NO_DISPONIBLE",
+      code: limited ? "LIMITE_IA_MENSUAL" : "IA_NO_DISPONIBLE",
       limite: Number(reservation?.limite ?? 0),
       usados: Number(reservation?.usados ?? 0),
     }, limited ? 429 : 503);
@@ -180,7 +181,8 @@ Deno.serve(async (request: Request) => {
     }
     const providerBody = await providerResponse.json();
     const invoice = extractGeminiInvoice(providerBody);
-    return respond(origin, invoice);
+    const iaUsage = extractGeminiUsage(providerBody);
+    return respond(origin, { ...invoice, iaUsage });
   } catch (error) {
     const code = error instanceof Error && error.name === "AbortError"
       ? "IA_TIEMPO_AGOTADO"
@@ -190,4 +192,3 @@ Deno.serve(async (request: Request) => {
     clearTimeout(timeout);
   }
 });
-

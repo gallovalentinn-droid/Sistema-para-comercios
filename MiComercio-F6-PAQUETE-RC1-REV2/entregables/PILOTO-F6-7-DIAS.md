@@ -16,7 +16,7 @@ Este documento es una plantilla operativa. Ningún campo vacío cuenta como evid
 | Baseline F2–F5 reproducible | pendiente | |
 | `verificarPin()` resuelto en dispositivo nuevo | pendiente | |
 | 16 suites SQL acumuladas PASS | aprobado | 16/16 en QA el 2026-09-08 |
-| 118 pruebas locales PASS | aprobado | 118/118 en el paquete RC2 revisión 5 |
+| 119 pruebas locales PASS | aprobado | 119/119 en el paquete RC2 revisión 6 |
 | Respaldo inicial creado y recuperable | pendiente | |
 
 Si un gate permanece pendiente o falla, el piloto no empieza.
@@ -94,7 +94,7 @@ Completar una fila por día. Cada cierre se registra por turno; el total diario 
 - Diagnóstico exportado:
 - Respaldo final y prueba de recuperación:
 - Cero operaciones válidas sin destino:
-- 118/118 pruebas locales repetidas:
+- 119/119 pruebas locales repetidas:
 - 16/16 suites SQL repetidas:
 - Incidentes críticos:
 

@@ -166,3 +166,19 @@ export function extractGeminiInvoice(response) {
     }),
   };
 }
+
+function usageToken(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+}
+
+export function extractGeminiUsage(response) {
+  const usage = isRecord(response) && isRecord(response.usage) ? response.usage : {};
+  return {
+    inputTokens: usageToken(usage.total_input_tokens),
+    outputTokens: usageToken(usage.total_output_tokens),
+    thoughtTokens: usageToken(usage.total_thought_tokens),
+    cachedTokens: usageToken(usage.total_cached_tokens),
+    toolUseTokens: usageToken(usage.total_tool_use_tokens),
+    totalTokens: usageToken(usage.total_tokens),
+  };
+}

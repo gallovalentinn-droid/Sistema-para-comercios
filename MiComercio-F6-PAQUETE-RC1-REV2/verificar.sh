@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 MANIFIESTO='SHA256SUMS-F6.txt'
-PRUEBAS_ESPERADAS=118
+PRUEBAS_ESPERADAS=119
 SUITES_SQL_ESPERADAS=16
 
 echo '== 1. Integridad y cobertura =='

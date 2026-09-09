@@ -65,7 +65,7 @@ Las seis migraciones F6 fueron aplicadas persistentemente el 2026-09-05 al proye
 
 El 2026-09-07 se aplicaron persistentemente `f6_employee_management_qa`, `f6_product_images_qa` y la corrección `f6_employee_management_security_qa`. La última conserva el control privilegiado en `private` y deja el RPC público como `security invoker`, evitando exponer una nueva función `security definer` directamente en el API público.
 
-El 2026-09-08 se aplicaron `f6_commerce_login_codes_qa`, `f6_invoice_reader_qa`, `f6_invoice_reader_reuse_v4_qa` y `f6_invoice_reader_legacy_quota_lockdown_qa`. Las tres últimas forman el incremento del lector: la revisión inicial se consolidó sobre `factura_ai_uso_v4`, se eliminó el contador paralelo sólo después de verificar que estaba vacío y se cerró la RPC legacy. Las fotos no se persisten en la base.
+El 2026-09-08 se aplicaron `f6_commerce_login_codes_qa`, `f6_invoice_reader_qa`, `f6_invoice_reader_reuse_v4_qa`, `f6_invoice_reader_legacy_quota_lockdown_qa` y `f6_invoice_reader_monthly_100_qa`. Las cuatro últimas forman el incremento del lector: la revisión inicial se consolidó sobre `factura_ai_uso_v4`, se eliminó el contador paralelo sólo después de verificar que estaba vacío, se cerró la RPC legacy y el límite quedó fijado en 100 lecturas por comercio y mes operativo. Las fotos no se persisten en la base.
 
 Los secrets explícitos de allowlist y pepper quedaron configurados y el smoke test desde `Origin: null` pasó. El primer operador interno también quedó designado y el acceso autenticado al panel fue comprobado contra la Edge Function QA.
 

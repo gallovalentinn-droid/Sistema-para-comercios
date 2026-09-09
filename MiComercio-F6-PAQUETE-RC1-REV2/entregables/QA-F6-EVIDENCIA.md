@@ -266,11 +266,12 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - La regresión pasó en PostgreSQL real y el humo posterior cargó el código y el roster del dueño en `https://micomercio.ar/beta/`.
 - Se repitieron las quince suites SQL acumuladas, cada una en una transacción descartable: 15/15 PASS.
 
-## RC2 revisión 5 — lector de facturas con IA — 2026-09-08
+## RC2 revisión 6 — lector de facturas con IA — 2026-09-08
 
 - Se agregó una prueba local antes de la implementación. El primer rojo fue la ausencia de `f6-invoice-reader.mjs`; la primera ejecución completa detectó además que el patrón Base64 desbordaba la pila con una foto grande y que el saneador rechazaba en vez de descartar campos extra.
 - El validador corregido calcula el tamaño sin decodificar la imagen y sanea exclusivamente los campos contratados.
 - `10_invoice_reader.sql` se aplicó en QA y se corrigió mediante `f6_invoice_reader_reuse_v4_qa` y `f6_invoice_reader_legacy_quota_lockdown_qa`: reutiliza `factura_ai_uso_v4`, elimina el contador paralelo sólo si está vacío y deja la RPC legacy sin acceso público. `f6_invoice_reader.test.sql` pasó dentro de una transacción descartable.
-- La suite prueba permisos de dueño y empleado, veto a empleado sin Productos, licencia vencida, idempotencia y frontera exacta del cupo diario.
+- La suite prueba permisos de dueño y empleado, veto a empleado sin Productos, licencia vencida, idempotencia y frontera exacta del cupo mensual de 100 lecturas por comercio. Las filas del mes anterior no consumen el cupo vigente.
 - La Edge no registra la imagen, no contiene claves y llama a Gemini con `store:false`, timeout de 25 segundos y JSON Schema.
+- La respuesta de la Edge expone el consumo real que informa Gemini, separado en entrada, salida, razonamiento, caché, herramientas y total, para medir el smoke sin estimaciones.
 - Activación todavía pendiente en este checkpoint: secret `GEMINI_API_KEY`, despliegue de `leer-factura` y smoke con una imagen no sensible.

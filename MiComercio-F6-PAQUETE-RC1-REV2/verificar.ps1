@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
 
 $Manifiesto        = 'SHA256SUMS-F6.txt'
-$PruebasEsperadas  = 118
+$PruebasEsperadas  = 119
 $SuitesSqlEsperadas = 16
 
 Write-Host '== 1. Integridad y cobertura =='
