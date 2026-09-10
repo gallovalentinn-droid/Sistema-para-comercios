@@ -68,6 +68,7 @@ test('construye una solicitud Gemini estructurada, efímera y sin secretos', () 
   assert.equal(F6_INVOICE_MODEL, 'gemini-3.8-flash');
   assert.equal(request.model, F6_INVOICE_MODEL);
   assert.equal(request.store, false);
+  assert.equal(request.generation_config.thinking_level, 'low');
   assert.equal(request.input[1].type, 'image');
   assert.equal(request.input[1].data, PNG_1X1);
   assert.equal(request.input[1].mime_type, 'image/png');

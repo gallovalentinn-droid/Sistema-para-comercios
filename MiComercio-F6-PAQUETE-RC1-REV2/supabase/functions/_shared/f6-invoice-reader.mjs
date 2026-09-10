@@ -101,7 +101,7 @@ export function buildGeminiInvoiceRequest({ imageBase64, mediaType, model = F6_I
     },
     generation_config: {
       max_output_tokens: 8192,
-      thinking_level: 'minimal',
+      thinking_level: 'low',
     },
   };
 }

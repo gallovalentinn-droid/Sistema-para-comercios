@@ -54,7 +54,7 @@ echo '   ejecución SQL: externa; ver entregables/SQL-REPRODUCIBILIDAD-F6.md'
 echo
 echo '== 4. Pruebas locales e identidad =='
 archivos=(tests/*.test.cjs tests/*.test.mjs)
-salida="$(node --test "${archivos[@]}" 2>&1)" || {
+salida="$(node --require "$(pwd)/tests/lib/fixed-vm-clock.cjs" --test "${archivos[@]}" 2>&1)" || {
   printf '%s\n' "$salida" | grep '^not ok' >&2 || true
   echo 'ERROR: la ejecución de pruebas falló.' >&2
   exit 1

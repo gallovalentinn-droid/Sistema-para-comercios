@@ -100,7 +100,8 @@ $suites = @(
 )
 if ($suites.Count -eq 0) { throw 'No se encontró ninguna suite local.' }
 
-$salida = & node --test @suites 2>&1
+$testClock = Join-Path (Get-Location) 'tests/lib/fixed-vm-clock.cjs'
+$salida = & node --require $testClock --test @suites 2>&1
 $texto = $salida -join [Environment]::NewLine
 $codigo = $LASTEXITCODE
 $pass = if ($texto -match '(?m)^(?:#|\u2139)\s+pass\s+(\d+)\s*$') { [int]$Matches[1] } else { -1 }

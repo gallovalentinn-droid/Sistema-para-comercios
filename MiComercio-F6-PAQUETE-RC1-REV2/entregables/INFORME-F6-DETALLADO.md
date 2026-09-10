@@ -105,6 +105,7 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 
 - El navegador envía solamente la foto elegida, el comercio y una clave idempotente a la Edge Function autenticada `leer-factura`.
 - La clave de Gemini vive únicamente como secret `GEMINI_API_KEY`; no se incorpora al HTML, al repositorio ni al ZIP.
+- El request usa `gemini-3.8-flash`, `store:false`, `thinking_level: low`, JSON Schema, máximo de 8192 tokens de salida y timeout de 25 segundos.
 - Se usa `gemini-3.8-flash` con salida JSON estructurada y `store:false`.
 - Se aceptan JPEG, PNG, WebP, HEIC y HEIF hasta 8 MB; el servidor vuelve a validar tamaño, Base64 y tipo.
 - La imagen no se guarda en Postgres. Sólo se registra una reserva de cupo sin contenido de la factura en la tabla canónica V4 `factura_ai_uso_v4`; no existe un contador F6 paralelo.
