@@ -301,3 +301,14 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - El advisor también señala el trigger legacy `registrar_usuario_micomercio()` porque conserva el privilegio `PUBLIC` predeterminado. Al ser una función que retorna `trigger` no puede invocarse como RPC normal; queda registrado como endurecimiento del baseline, no como defecto introducido por el lector.
 - La protección contra contraseñas filtradas de Supabase continúa desactivada. No se presenta como resuelta por F6; el proyecto permanece en el plan gratuito elegido para la beta.
 - Los avisos de rendimiento son 47 claves foráneas sin índice, 28 índices todavía sin uso y seis grupos de políticas permisivas superpuestas. Son deuda del baseline/volumen inicial, no un fallo funcional del lector, y deben reevaluarse con métricas del piloto antes de eliminar o agregar índices.
+
+## Corrección RC2 revisión 8 — auditoría del lector — 2026-09-12
+
+- Las regresiones se escribieron antes de la corrección. Tres pruebas fallaron inicialmente: faltaba el saneador de errores, el selector todavía aceptaba `image/*` y un MIME inválido llegaba a leer Base64 e invocar Supabase.
+- El selector y la validación local admiten únicamente JPEG, PNG, WebP, HEIC y HEIF. Un tipo ausente o incompatible se rechaza antes de leer la imagen o consumir un intento del servidor.
+- Los mensajes de error de procesamiento destinados al log se limitan a 200 caracteres.
+- Una regresión cruza `productos_editar` contra el catálogo F5 y contra la migración de reserva de cupo, evitando que F6 invente una autoridad paralela.
+- La ejecución canónica posterior completó 125/125 pruebas, sin fallos.
+- Supabase confirmó `leer-factura` versión 13, estado `ACTIVE`, JWT obligatorio y SHA-256 remoto `587ae23045e4331dde5a8faf7489d44d9bc069137f55d9adb5934414947e3a4f`. Los tres archivos desplegados coinciden con las fuentes locales al normalizar CRLF/LF.
+- El digest del secret de orígenes coincide con el valor exacto `https://micomercio.ar`; la función publicada no acepta `Origin: null`.
+- Sigue pendiente un único smoke con la factura sintética y la medición real de tokens cuando Google reponga la cuota gratuita. No se consumirá otro intento antes de esa reposición.

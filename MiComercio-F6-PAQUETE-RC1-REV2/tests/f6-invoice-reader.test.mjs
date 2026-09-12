@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
+import * as invoiceReader from '../supabase/functions/_shared/f6-invoice-reader.mjs';
+
 import {
   F6_INVOICE_MAX_BYTES,
   F6_INVOICE_MODEL,
@@ -22,6 +24,14 @@ const edgeSource = () => readFileSync(
 );
 const clientSource = () => readFileSync(
   new URL('../entregables/MiComercio-F6-PRUEBA.html', import.meta.url),
+  'utf8',
+);
+const f5AuthoritySql = () => readFileSync(
+  new URL('../supabase/f5/01_authority_membership.sql', import.meta.url),
+  'utf8',
+);
+const f6InvoiceSql = () => readFileSync(
+  new URL('../supabase/f6/10_invoice_reader.sql', import.meta.url),
   'utf8',
 );
 
@@ -161,6 +171,12 @@ test('clasifica errores del proveedor sin persistir su cuerpo', () => {
   assert.equal(classifyGeminiProviderError('<html>Bad Request</html>'), 'UNKNOWN');
 });
 
+test('acota a 200 caracteres el mensaje seguro de un error de procesamiento', () => {
+  assert.equal(typeof invoiceReader.safeGeminiErrorMessage, 'function');
+  assert.equal(invoiceReader.safeGeminiErrorMessage(new Error('x'.repeat(250))), 'x'.repeat(200));
+  assert.equal(invoiceReader.safeGeminiErrorMessage({ message: 'no confiable' }), 'unknown');
+});
+
 test('la Edge exige sesión, reserva cupo mensual y guarda Gemini sólo en secretos', () => {
   const source = edgeSource();
   assert.match(source, /getClaims/);
@@ -213,6 +229,55 @@ test('el cliente registra el consumo real devuelto por cada lectura exitosa', as
     'F6_IA_USAGE',
     { inputTokens: 1375, outputTokens: 241, thoughtTokens: 86, cachedTokens: 0, toolUseTokens: 0, totalTokens: 1702 },
   ]]);
+});
+
+test('el selector de factura anuncia exclusivamente los formatos aceptados', () => {
+  const source = clientSource();
+  const input = source.match(/<input type="file" id="facFoto" accept="([^"]+)"/);
+  assert.ok(input, 'falta el selector de foto de factura');
+  assert.deepEqual(
+    input[1].split(',').sort(),
+    ['image/heic', 'image/heif', 'image/jpeg', 'image/png', 'image/webp'],
+  );
+});
+
+test('el cliente rechaza un formato incompatible o ausente antes de leer y enviar', async () => {
+  const source = clientSource();
+  const start = source.indexOf('function f6RegistrarUsoIa');
+  const end = source.indexOf('let revisionFactura=[];', start);
+  assert.ok(start >= 0 && end > start, 'falta el bloque del lector IA en el cliente');
+
+  for (const type of ['image/gif', '']) {
+    let base64Calls = 0;
+    let invokeCalls = 0;
+    const avisos = [];
+    const context = {
+      $: () => ({ innerHTML: 'Elegir foto', style: {} }),
+      sb: { functions: { invoke: async () => { invokeCalls += 1; return { data: null, error: null }; } } },
+      sesion: {},
+      f3Estado: { comercioId: COMMERCE_ID },
+      fileABase64: async () => { base64Calls += 1; return PNG_1X1; },
+      crypto: { randomUUID: () => REQUEST_ID },
+      abrirRevisionFactura: () => {},
+      aviso: (...args) => avisos.push(args),
+      document: { body: { contains: () => true } },
+      console: { info: () => {}, error: () => {} },
+    };
+    vm.createContext(context);
+    vm.runInContext(source.slice(start, end), context);
+    await vm.runInContext(`leerFacturaFoto({size:32,type:${JSON.stringify(type)}},{});`, context);
+
+    assert.equal(base64Calls, 0, `no debe leer Base64 para MIME ${JSON.stringify(type)}`);
+    assert.equal(invokeCalls, 0, `no debe invocar Supabase para MIME ${JSON.stringify(type)}`);
+    assert.equal(avisos.at(-1)?.[0], 'El formato de la imagen no es compatible. Usá JPEG, PNG, WebP, HEIC o HEIF.');
+  }
+});
+
+test('el permiso del lector permanece dentro del catálogo canónico F5', () => {
+  const catalog = f5AuthoritySql().match(/create or replace function private\.f5_catalogo_permisos\(\)[\s\S]*?\$function\$;/i)?.[0] ?? '';
+  const reservation = f6InvoiceSql().match(/create or replace function public\.f6_service_reservar_lectura_factura[\s\S]*?\$function\$;/i)?.[0] ?? '';
+  assert.match(catalog, /'productos_editar'/);
+  assert.match(reservation, /miembro\.permisos->>'productos_editar'\s*=\s*'true'/);
 });
 
 test('el cliente identifica comercio y solicitud, y mantiene la revisión humana', () => {

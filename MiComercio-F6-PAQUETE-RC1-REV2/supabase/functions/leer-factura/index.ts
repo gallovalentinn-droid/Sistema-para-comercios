@@ -7,6 +7,7 @@ import {
   classifyGeminiProviderError,
   extractGeminiInvoice,
   extractGeminiUsage,
+  safeGeminiErrorMessage,
   validateInvoiceImageRequest,
 } from "../_shared/f6-invoice-reader.mjs";
 
@@ -194,7 +195,7 @@ Deno.serve(async (request: Request) => {
   } catch (error) {
     console.error("F6_GEMINI_PROCESSING_ERROR", JSON.stringify({
       name: error instanceof Error ? error.name : "UnknownError",
-      message: error instanceof Error ? error.message : "unknown",
+      message: safeGeminiErrorMessage(error),
     }));
     const code = error instanceof Error && error.name === "AbortError"
       ? "IA_TIEMPO_AGOTADO"

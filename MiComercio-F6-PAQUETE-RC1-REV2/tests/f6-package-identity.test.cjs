@@ -25,8 +25,8 @@ test('la identidad normativa F6 fija contratos, conteos y hash del artefacto', (
   assert.equal(identity.projection_contract, 'f5-projection-v1');
   assert.equal(identity.config_contract, '10-canonical+6-legacy-only');
   assert.equal(identity.license_contract, 'f6-license-v1');
-  assert.equal(identity.package_revision, 7);
-  assert.equal(identity.expected_local_tests, 121);
+  assert.equal(identity.package_revision, 8);
+  assert.equal(identity.expected_local_tests, 125);
   assert.equal(identity.expected_sql_suites, 16);
   assert.equal(identity.acceptance, 'candidate-pending-gemini-quota-reset-live-smoke-and-seven-day-pilot');
   const artifact = path.join(ROOT, identity.artifact.path);

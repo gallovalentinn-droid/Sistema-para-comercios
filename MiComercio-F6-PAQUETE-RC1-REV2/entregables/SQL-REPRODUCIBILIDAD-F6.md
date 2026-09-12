@@ -67,7 +67,9 @@ El 2026-09-07 se aplicaron persistentemente `f6_employee_management_qa`, `f6_pro
 
 El 2026-09-08 se aplicaron `f6_commerce_login_codes_qa`, `f6_invoice_reader_qa`, `f6_invoice_reader_reuse_v4_qa`, `f6_invoice_reader_legacy_quota_lockdown_qa` y `f6_invoice_reader_monthly_100_qa`. Las cuatro últimas forman el incremento del lector: la revisión inicial se consolidó sobre `factura_ai_uso_v4`, se eliminó el contador paralelo sólo después de verificar que estaba vacío, se cerró la RPC legacy y el límite quedó fijado en 100 lecturas por comercio y mes operativo. Las fotos no se persisten en la base.
 
-Los secrets explícitos de allowlist y pepper quedaron configurados y el smoke test desde `Origin: null` pasó. El primer operador interno también quedó designado y el acceso autenticado al panel fue comprobado contra la Edge Function QA.
+La reproducción de `10_invoice_reader.sql` requiere además dos objetos del baseline V4 que este paquete no crea: `public.factura_ai_uso_v4` y `private.business_date(uuid, timestamptz)`. La primera es el contador canónico; la segunda determina el mes operativo del comercio.
+
+Los secrets explícitos de allowlist y pepper quedaron configurados. El smoke histórico desde `Origin: null` perteneció a una etapa local de QA; esa autorización fue retirada antes de publicar la beta. La configuración vigente de `leer-factura` acepta únicamente `https://micomercio.ar`. El primer operador interno también quedó designado y el acceso autenticado al panel fue comprobado contra la Edge Function QA.
 
 Después del despliegue inicial se aplicó `f6_rc1_05_support_null_name_fix_qa`, que corrige el fallback de nombre del bootstrap cuando Auth no contiene `name` ni `full_name`. La prueba de regresión falló primero con SQLSTATE `23502`, pasó después de la migración y luego se repitieron las 14 suites F5/F6 con resultado 14/14 PASS.
 

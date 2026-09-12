@@ -103,19 +103,19 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 
 ## 8. Lector de facturas con IA
 
-- El navegador envía solamente la foto elegida, el comercio y una clave idempotente a la Edge Function autenticada `leer-factura`.
+- El navegador envía solamente la foto elegida, el comercio y un `requestId` a la Edge Function autenticada `leer-factura`. Cada intento manual crea un `requestId` nuevo; sólo una repetición exacta del mismo envío de transporte conserva el anterior.
 - La clave de Gemini vive únicamente como secret `GEMINI_API_KEY`; no se incorpora al HTML, al repositorio ni al ZIP.
 - El request usa `gemini-3.8-flash`, `store:false`, `thinking_level: low`, JSON Schema, máximo de 8192 tokens de salida y timeout de 25 segundos.
-- Se aceptan JPEG, PNG, WebP, HEIC y HEIF hasta 8 MB; el servidor vuelve a validar tamaño, Base64 y tipo.
+- El selector ofrece únicamente JPEG, PNG, WebP, HEIC y HEIF. El cliente rechaza tipo ausente o incompatible antes de convertir la foto a Base64 o llamar a Supabase; el servidor vuelve a validar tamaño, Base64 y tipo.
 - La imagen no se guarda en Postgres. Sólo se registra una reserva de cupo sin contenido de la factura en la tabla canónica V4 `factura_ai_uso_v4`; no existe un contador F6 paralelo.
-- El límite mensual se aplica de forma atómica por comercio y mes operativo; en la beta es 100 intentos enviados al proveedor. Las lecturas fallidas también consumen cupo para impedir eludir el límite repitiendo solicitudes inválidas.
+- El límite mensual se aplica de forma atómica por comercio y mes operativo; en la beta es 100 intentos que superaron las validaciones locales y la autorización del servidor. La reserva ocurre antes de llamar al proveedor: los errores de red, timeout o cuota de Google también consumen un intento.
 - Dueño y administrador pueden usarlo. Un empleado también puede si tiene `productos_editar`; la autorización se repite en servidor.
-- La salida se sanea por tipo, rango y longitud. Ningún dato modifica stock automáticamente: siempre se abre la revisión humana antes de confirmar.
+- La salida se sanea por tipo, rango y longitud. La primera confirmación puede crear productos faltantes y preparar el borrador; el stock cambia únicamente con la segunda confirmación explícita del remito.
 
 ## 9. Evidencia ejecutada
 
 - 16 suites locales descubiertas automáticamente.
-- 121 pruebas ejecutadas: 121 aprobadas y 0 fallidas.
+- 125 pruebas ejecutadas: 125 aprobadas y 0 fallidas.
 - Identidad JSON/HTML comparada por ejecución aislada del bloque del navegador.
 - Pruebas de sintaxis del artefacto HTML y de las funciones TypeScript disponibles con Node.
 - Ocho suites SQL F6 y ocho F5 ejecutadas en PostgreSQL QA: 16/16 PASS dentro de transacciones descartables.
@@ -126,7 +126,7 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 
 Falta la activación y la fase operativa de QA, no más funcionalidad de diseño:
 
-- repetir un único smoke con la factura sintética cuando Google reponga la cuota gratuita y registrar los tokens reales; el secret ya está guardado y `leer-factura` versión 12 está activa;
+- repetir un único smoke con la factura sintética cuando Google reponga la cuota gratuita y registrar los tokens reales; el secret ya está guardado y `leer-factura` versión 13 está activa;
 - ejecutar el piloto de siete días y decidir aprobación o repetición;
 
 Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara únicamente después de que el piloto termine aprobado.

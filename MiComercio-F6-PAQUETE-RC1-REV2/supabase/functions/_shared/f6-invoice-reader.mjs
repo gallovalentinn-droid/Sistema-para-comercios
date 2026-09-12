@@ -87,6 +87,10 @@ export function classifyGeminiProviderError(value) {
   return 'UNKNOWN';
 }
 
+export function safeGeminiErrorMessage(error) {
+  return (error instanceof Error ? error.message : 'unknown').slice(0, 200);
+}
+
 export function buildGeminiInvoiceRequest({ imageBase64, mediaType, model = F6_INVOICE_MODEL }) {
   return {
     model,
