@@ -408,7 +408,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:7,
+  packageRevision:8,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -5022,7 +5022,7 @@ function panelIngreso(reset=true){
             <b style="display:block;margin-bottom:2px">Leer la factura con una foto</b>
             <span style="color:var(--muted);font-size:13px">Sacale una foto al remito y probamos completar todo solos. Después revisás antes de confirmar.</span>
           </div>
-          <label class="btn" id="facFotoLabel" style="cursor:pointer">Elegir foto<input type="file" id="facFoto" accept="image/*" capture="environment" style="display:none"></label>
+          <label class="btn" id="facFotoLabel" style="cursor:pointer">Elegir foto<input type="file" id="facFoto" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none"></label>
         </div>
       </div>
       <p style="margin:0 0 16px;color:var(--muted);line-height:1.6">O cargá a mano: escaneá o buscá cada producto. Por cada uno, cargá <b>lo que pagaste en total</b> o <b>el costo por unidad</b> — con uno de los dos alcanza, el otro se calcula solo.</p>
@@ -5160,6 +5160,7 @@ async function leerFacturaFoto(file,ov){
   try{
     if(!(sb&&sesion)) throw new Error('La lectura automática requiere Supabase configurado');
     if(file.size>8*1024*1024) throw new Error('La imagen supera 8 MB');
+    if(!['image/jpeg','image/png','image/webp','image/heic','image/heif'].includes(String(file.type||'').toLowerCase())) throw new Error('FORMATO_IMAGEN_NO_COMPATIBLE');
     if(!f3Estado.comercioId) throw new Error('COMERCIO_NO_DISPONIBLE');
     const b64=await fileABase64(file);
     const {data,error}=await sb.functions.invoke('leer-factura',{
@@ -5185,6 +5186,8 @@ async function leerFacturaFoto(file,ov){
     const code=String(e&&e.code||e&&e.message||'');
     const msg=code.includes('8 MB')||code.includes('IMAGEN_DEMASIADO_GRANDE')
       ?'La foto es demasiado pesada. Usá una imagen de menos de 8 MB.'
+      :code.includes('FORMATO_IMAGEN_NO_COMPATIBLE')
+      ?'El formato de la imagen no es compatible. Usá JPEG, PNG, WebP, HEIC o HEIF.'
       :code.includes('LIMITE_IA_MENSUAL')
       ?`Llegaste al límite mensual${e&&e.limite?` de ${e.limite} lecturas`:''} para este comercio. Podés cargar esta factura a mano o volver a probar el mes próximo.`
       :code.includes('FACTURA_NO_RECONOCIDA')
