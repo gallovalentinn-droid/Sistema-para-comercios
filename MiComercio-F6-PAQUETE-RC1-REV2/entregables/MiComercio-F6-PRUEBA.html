@@ -408,7 +408,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:8,
+  packageRevision:9,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -5160,11 +5160,12 @@ async function leerFacturaFoto(file,ov){
   try{
     if(!(sb&&sesion)) throw new Error('La lectura automática requiere Supabase configurado');
     if(file.size>8*1024*1024) throw new Error('La imagen supera 8 MB');
-    if(!['image/jpeg','image/png','image/webp','image/heic','image/heif'].includes(String(file.type||'').toLowerCase())) throw new Error('FORMATO_IMAGEN_NO_COMPATIBLE');
+    const mime=String(file.type||'').toLowerCase();
+    if(!['image/jpeg','image/png','image/webp','image/heic','image/heif'].includes(mime)) throw new Error('FORMATO_IMAGEN_NO_COMPATIBLE');
     if(!f3Estado.comercioId) throw new Error('COMERCIO_NO_DISPONIBLE');
     const b64=await fileABase64(file);
     const {data,error}=await sb.functions.invoke('leer-factura',{
-      body:{comercioId:f3Estado.comercioId,requestId:crypto.randomUUID(),imageBase64:b64,mediaType:file.type||'image/jpeg'}
+      body:{comercioId:f3Estado.comercioId,requestId:crypto.randomUUID(),imageBase64:b64,mediaType:mime}
     });
     if(error){
       let detalle=null;

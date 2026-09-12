@@ -140,16 +140,24 @@ Fuentes oficiales vigentes al corte, verificadas el 2026-09-12:
 
 - La clave funciona, el endpoint funciona, el modelo acepta texto, imagen y un esquema liviano.
 - El esquema original, más profundo, fue aislado como la causa del HTTP 400 y fue reemplazado por el contrato liviano con validación estricta posterior.
-- La versión 13 quedó desplegada sin probes temporales, con mensajes de procesamiento acotados a 200 caracteres; una regresión impide reintroducir los marcadores usados durante el diagnóstico.
+- La versión 14 quedó activa sin probes temporales, con mensajes de procesamiento acotados a 200 caracteres; una regresión impide reintroducir los marcadores usados durante el diagnóstico. La versión subió al reemplazar el secret, pero el paquete de código remoto conservó el mismo SHA-256 de la versión 13.
 - El intento integral llegó a Google y recibió HTTP 429 `QUOTA_EXCEEDED` del nivel gratuito. El log seguro registró categoría, 459 bytes y `application/json`, sin cuerpo, prompt, imagen ni clave.
 - La carga de stock no fue confirmada y no se modificaron productos durante la prueba.
-- Integridad del paquete REV8 verificada el 2026-09-12: 115 hashes correctos, manifiesto coincidente con el contenido exacto, 125/125 pruebas locales, 16 suites SQL inventariadas, 10 migraciones F6 y cero secretos de alto riesgo. La ejecución SQL acumulada permanece documentada por separado porque requiere el baseline real de QA.
+- La revisión 9 normaliza una sola vez el MIME aceptado y envía ese valor normalizado al servidor; eliminó el fallback JPEG que ya no era alcanzable.
+- La revisión 9 incorpora un detector compartido por Windows y Linux para las dos familias de credenciales Gemini conocidas por el proyecto. El detector informa únicamente el archivo afectado y nunca imprime el valor encontrado.
+- Integridad del paquete REV9 verificada el 2026-09-12: 116 hashes correctos, manifiesto coincidente con el contenido exacto, 128/128 pruebas locales, 16 suites SQL inventariadas, 10 migraciones F6 y cero secretos de alto riesgo. La ejecución SQL acumulada permanece documentada por separado porque requiere el baseline real de QA.
 
 Pendiente al corte:
 
 - Repetir un único smoke cuando Google reponga la cuota y anexar los tokens reales y los campos reconocidos.
 - Observar durante el piloto facturas extensas: el tope de salida de 8192 tokens puede truncar una respuesta antes del límite local de 200 renglones.
-- Rotar la clave de Gemini expuesta durante la configuración inicial antes de procesar documentos reales de terceros.
+
+Rotación de credencial completada el 2026-09-12:
+
+- Se creó una clave nueva vinculada a la cuenta de servicio del lector y restringida exclusivamente a Gemini API.
+- `GEMINI_API_KEY` se reemplazó en Supabase. El digest y la fecha de actualización cambiaron; el valor no se registró en este documento, Git, logs ni paquetes.
+- La credencial anterior fue revocada después de verificar la sustitución. Google Cloud muestra únicamente la nueva clave entre las credenciales activas.
+- La revisión del panel previo a la rotación mostró errores 400/429 y un máximo visible de 16 errores en el período consultado. Varias gráficas no cargaron y no hubo desglose atribuible por solicitud, por lo que no se afirma ni se descarta uso de terceros.
 
 ## 7. Dependencias de baseline del lector
 

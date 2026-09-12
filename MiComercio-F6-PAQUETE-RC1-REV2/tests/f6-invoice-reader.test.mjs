@@ -273,6 +273,35 @@ test('el cliente rechaza un formato incompatible o ausente antes de leer y envia
   }
 });
 
+test('el cliente normaliza el MIME aceptado antes de enviarlo al servidor', async () => {
+  const source = clientSource();
+  const start = source.indexOf('function f6RegistrarUsoIa');
+  const end = source.indexOf('let revisionFactura=[];', start);
+  assert.ok(start >= 0 && end > start, 'falta el bloque del lector IA en el cliente');
+
+  let sentBody = null;
+  const context = {
+    $: () => ({ innerHTML: 'Elegir foto', style: {} }),
+    sb: { functions: { invoke: async (_name, request) => {
+      sentBody = request.body;
+      return { data: { items: [{ producto: 'Producto QA' }] }, error: null };
+    } } },
+    sesion: {},
+    f3Estado: { comercioId: COMMERCE_ID },
+    fileABase64: async () => PNG_1X1,
+    crypto: { randomUUID: () => REQUEST_ID },
+    abrirRevisionFactura: () => {},
+    aviso: () => {},
+    document: { body: { contains: () => true } },
+    console: { info: () => {}, error: () => {} },
+  };
+  vm.createContext(context);
+  vm.runInContext(source.slice(start, end), context);
+  await vm.runInContext(`leerFacturaFoto({size:32,type:'IMAGE/JPEG'},{});`, context);
+
+  assert.equal(sentBody?.mediaType, 'image/jpeg');
+});
+
 test('el permiso del lector permanece dentro del catálogo canónico F5', () => {
   const catalog = f5AuthoritySql().match(/create or replace function private\.f5_catalogo_permisos\(\)[\s\S]*?\$function\$;/i)?.[0] ?? '';
   const reservation = f6InvoiceSql().match(/create or replace function public\.f6_service_reservar_lectura_factura[\s\S]*?\$function\$;/i)?.[0] ?? '';

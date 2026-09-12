@@ -115,7 +115,7 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 ## 9. Evidencia ejecutada
 
 - 16 suites locales descubiertas automáticamente.
-- 125 pruebas ejecutadas: 125 aprobadas y 0 fallidas.
+- 128 pruebas ejecutadas: 128 aprobadas y 0 fallidas.
 - Identidad JSON/HTML comparada por ejecución aislada del bloque del navegador.
 - Pruebas de sintaxis del artefacto HTML y de las funciones TypeScript disponibles con Node.
 - Ocho suites SQL F6 y ocho F5 ejecutadas en PostgreSQL QA: 16/16 PASS dentro de transacciones descartables.

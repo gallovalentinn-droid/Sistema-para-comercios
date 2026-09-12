@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
 
 $Manifiesto        = 'SHA256SUMS-F6.txt'
-$PruebasEsperadas  = 125
+$PruebasEsperadas  = 128
 $SuitesSqlEsperadas = 16
 
 Write-Host '== 1. Integridad y cobertura =='
@@ -116,18 +116,8 @@ if ($pass -ne $PruebasEsperadas) {
 Write-Host "   pruebas: $pass/$PruebasEsperadas aprobadas en $($suites.Count) suites"
 
 Write-Host "`n== 5. Búsqueda de secretos =="
-$patronSecreto = '(?i)(sb_secret_[A-Za-z0-9_-]{20,}|postgres(?:ql)?://[^:\s]+:[^@\s]+@|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,})'
-$hallazgos = [System.Collections.Generic.List[string]]::new()
-Get-ChildItem -LiteralPath $raiz -File -Recurse |
-  Where-Object { $_.Name -notin @($Manifiesto, 'verificar.ps1', 'verificar.sh') } |
-  ForEach-Object {
-    $coincidencias = Select-String -LiteralPath $_.FullName -Pattern $patronSecreto -AllMatches -ErrorAction SilentlyContinue
-    foreach ($coincidencia in $coincidencias) {
-      $rel = $_.FullName.Substring($raiz.Length + 1)
-      $hallazgos.Add("${rel}:$($coincidencia.LineNumber)")
-    }
-  }
-if ($hallazgos.Count -gt 0) { throw ("Posibles secretos detectados:`n" + ($hallazgos -join "`n")) }
+& node 'verificacion/scan-secrets.cjs' '.' $Manifiesto 'verificar.ps1' 'verificar.sh'
+if ($LASTEXITCODE -ne 0) { throw 'Se detectaron posibles secretos de alto riesgo.' }
 Write-Host '   secretos de alto riesgo: cero coincidencias'
 
 Write-Host "`n== Verificación completa: $pass/$PruebasEsperadas =="

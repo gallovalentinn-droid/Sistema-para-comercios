@@ -1,16 +1,16 @@
 {
   "build": "6.0.0-f6-rc2",
   "base_build": "5.0.0-f5-rc2",
-  "package_revision": 8,
+  "package_revision": 9,
   "created_at": "2026-09-12",
   "projection_contract": "f5-projection-v1",
   "config_contract": "10-canonical+6-legacy-only",
   "license_contract": "f6-license-v1",
-  "expected_local_tests": 125,
+  "expected_local_tests": 128,
   "expected_sql_suites": 16,
   "acceptance": "candidate-pending-gemini-quota-reset-live-smoke-and-seven-day-pilot",
   "artifact": {
     "path": "entregables/MiComercio-F6-PRUEBA.html",
-    "sha256": "47b46a5a4ae2ff9c698a1cf0d07c8be999c15648e5a77309935915118e5bdd58"
+    "sha256": "095320389b1c8c30543bd54a2d1317221f756d627ff56fac2382766b44b87790"
   }
 }

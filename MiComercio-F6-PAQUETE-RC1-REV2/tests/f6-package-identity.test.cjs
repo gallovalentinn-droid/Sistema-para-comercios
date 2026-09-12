@@ -1,12 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
+const childProcess = require('node:child_process');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
 const identityPath = path.join(ROOT, 'entregables', 'BUILD-IDENTITY-F6.json');
+const secretScannerPath = path.join(ROOT, 'verificacion', 'scan-secrets.cjs');
 
 function identityBlock(html) {
   const startMarker = '/* === MI COMERCIO BUILD IDENTITY START === */';
@@ -25,8 +28,8 @@ test('la identidad normativa F6 fija contratos, conteos y hash del artefacto', (
   assert.equal(identity.projection_contract, 'f5-projection-v1');
   assert.equal(identity.config_contract, '10-canonical+6-legacy-only');
   assert.equal(identity.license_contract, 'f6-license-v1');
-  assert.equal(identity.package_revision, 8);
-  assert.equal(identity.expected_local_tests, 125);
+  assert.equal(identity.package_revision, 9);
+  assert.equal(identity.expected_local_tests, 128);
   assert.equal(identity.expected_sql_suites, 16);
   assert.equal(identity.acceptance, 'candidate-pending-gemini-quota-reset-live-smoke-and-seven-day-pilot');
   const artifact = path.join(ROOT, identity.artifact.path);
@@ -53,4 +56,33 @@ test('el panel de soporte consulta el mismo build aprobado que el cliente', () =
   const identity = JSON.parse(fs.readFileSync(identityPath, 'utf8'));
   const support = fs.readFileSync(path.join(ROOT, 'entregables', 'MiComercio-Soporte-F6.html'), 'utf8');
   assert.match(support, new RegExp(`const BUILD=['"]${identity.build}['"]`));
+});
+
+test('el verificador de secretos acepta un paquete que sólo nombra las variables', () => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'f6-secret-clean-'));
+  try {
+    fs.writeFileSync(path.join(fixture, 'config.txt'), 'GEMINI_API_KEY\nF6_ALLOWED_ORIGINS\n', 'utf8');
+    const result = childProcess.spawnSync(process.execPath, [secretScannerPath, fixture], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+  } finally {
+    fs.rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+test('el verificador de secretos rechaza las dos familias de credenciales de Google', () => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'f6-secret-google-'));
+  try {
+    const legacyKey = ['AI', 'za', 'A'.repeat(35)].join('');
+    const currentKey = ['AQ', '.', 'B'.repeat(50)].join('');
+    fs.writeFileSync(path.join(fixture, 'legacy.txt'), legacyKey, 'utf8');
+    fs.writeFileSync(path.join(fixture, 'current.txt'), currentKey, 'utf8');
+    const result = childProcess.spawnSync(process.execPath, [secretScannerPath, fixture], { encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /legacy\.txt/);
+    assert.match(result.stderr, /current\.txt/);
+    assert.doesNotMatch(result.stderr, new RegExp(legacyKey));
+    assert.doesNotMatch(result.stderr, new RegExp(currentKey.replace('.', '\\.')));
+  } finally {
+    fs.rmSync(fixture, { recursive: true, force: true });
+  }
 });

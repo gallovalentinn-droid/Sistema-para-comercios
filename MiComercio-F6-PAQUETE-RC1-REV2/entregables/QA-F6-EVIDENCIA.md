@@ -312,3 +312,14 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - Supabase confirmó `leer-factura` versión 13, estado `ACTIVE`, JWT obligatorio y SHA-256 remoto `587ae23045e4331dde5a8faf7489d44d9bc069137f55d9adb5934414947e3a4f`. Los tres archivos desplegados coinciden con las fuentes locales al normalizar CRLF/LF.
 - El digest del secret de orígenes coincide con el valor exacto `https://micomercio.ar`; la función publicada no acepta `Origin: null`.
 - Sigue pendiente un único smoke con la factura sintética y la medición real de tokens cuando Google reponga la cuota gratuita. No se consumirá otro intento antes de esa reposición.
+
+## Corrección RC2 revisión 9 — rotación y controles de cierre — 2026-09-12
+
+- La credencial Gemini compartida durante la configuración inicial se trató como expuesta. Su alcance era el proyecto Google `micomercio-508317`; no era una credencial de Supabase y nunca estuvo incluida en Git, HTML, paquetes ni logs.
+- Antes de rotarla se inspeccionaron Uso y Credenciales de Google. El panel mostró respuestas 400/429 y hasta 16 errores en el período visible, pero varias gráficas devolvieron error de carga y no ofrecieron un desglose por solicitud. La evidencia no permite probar ni negar uso ajeno.
+- Se creó una clave sustituta vinculada a la misma cuenta de servicio y restringida únicamente a Gemini API. Primero se reemplazó `GEMINI_API_KEY` en Supabase y se verificó un digest nuevo con fecha 2026-09-12; sólo después se revocó la clave anterior.
+- Google Cloud quedó con una sola clave Gemini activa. Supabase confirmó `leer-factura` versión 14, estado `ACTIVE`, JWT obligatorio y el mismo SHA-256 remoto `587ae23045e4331dde5a8faf7489d44d9bc069137f55d9adb5934414947e3a4f`; la actualización del secret no cambió el código.
+- El cliente transforma el MIME permitido a minúsculas una sola vez y envía exactamente ese valor. Se eliminó el fallback JPEG muerto.
+- `verificar.sh` y `verificar.ps1` usan el mismo detector Node. El control cubre tanto credenciales de la familia clásica `AIza` como las de la familia `AQ.` y nunca imprime el secreto detectado.
+- El plan del piloto declara que comienza con 11/100 intentos consumidos, que cada reintento autenticado puede reservar otra unidad aunque Google falle y que `LIMITE_IA_MENSUAL` obliga a carga manual hasta el mes siguiente.
+- La ejecución canónica de la revisión 9 completó 128/128 pruebas locales. El smoke integral continúa pendiente de la reposición de cuota gratuita y no se simula como aprobado.

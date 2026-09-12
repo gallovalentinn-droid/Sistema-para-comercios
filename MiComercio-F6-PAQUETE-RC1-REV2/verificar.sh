@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 MANIFIESTO='SHA256SUMS-F6.txt'
-PRUEBAS_ESPERADAS=125
+PRUEBAS_ESPERADAS=128
 SUITES_SQL_ESPERADAS=16
 
 echo '== 1. Integridad y cobertura =='
@@ -73,8 +73,7 @@ echo "   pruebas: $pass/$PRUEBAS_ESPERADAS aprobadas en ${#archivos[@]} suites"
 
 echo
 echo '== 5. Búsqueda de secretos =='
-patron='sb_secret_[A-Za-z0-9_-]{20,}|postgres(ql)?://[^[:space:]:]+:[^@[:space:]]+@|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}'
-if grep -IRnE --exclude="$MANIFIESTO" --exclude='verificar.sh' --exclude='verificar.ps1' "$patron" .; then
+if ! node verificacion/scan-secrets.cjs . "$MANIFIESTO" verificar.sh verificar.ps1; then
   echo 'ERROR: se detectaron posibles secretos de alto riesgo.' >&2
   exit 1
 fi

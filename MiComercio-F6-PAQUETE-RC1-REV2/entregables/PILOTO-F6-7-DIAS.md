@@ -16,11 +16,18 @@ Este documento es una plantilla operativa. Ningún campo vacío cuenta como evid
 | Baseline F2–F5 reproducible | pendiente | |
 | `verificarPin()` resuelto en dispositivo nuevo | pendiente | |
 | 16 suites SQL acumuladas PASS | aprobado | 16/16 en QA el 2026-09-08 |
-| 125 pruebas locales PASS | aprobado | 125/125 en el paquete RC2 revisión 8 |
+| 128 pruebas locales PASS | aprobado | 128/128 en el paquete RC2 revisión 9 |
 | Lector IA completa un smoke sintético | pendiente | Google todavía responde 429 por cuota del nivel gratuito |
 | Respaldo inicial creado y recuperable | pendiente | |
 
 Si un gate permanece pendiente o falla, el piloto no empieza.
+
+### Presupuesto operativo del lector IA
+
+- El comercio piloto comienza con 11 de 100 intentos mensuales ya consumidos por QA; quedan 89.
+- Cada nueva selección o reintento manual de una foto usa otro intento si supera validación y autorización, aunque Google falle.
+- Ante `LIMITE_IA_MENSUAL`, se deja de insistir y se carga la factura manualmente.
+- Registrar por día intentos consumidos, lecturas exitosas y lecturas fallidas. Esa relación decidirá si 100 mensuales alcanza para un comercio real.
 
 ## Día 0 — alta y activación
 
@@ -95,7 +102,7 @@ Completar una fila por día. Cada cierre se registra por turno; el total diario 
 - Diagnóstico exportado:
 - Respaldo final y prueba de recuperación:
 - Cero operaciones válidas sin destino:
-- 125/125 pruebas locales repetidas:
+- 128/128 pruebas locales repetidas:
 - 16/16 suites SQL repetidas:
 - Incidentes críticos:
 
