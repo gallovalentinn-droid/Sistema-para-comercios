@@ -289,7 +289,7 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - `leer-factura` versión 12 quedó desplegada, activa y con JWT obligatorio. Su SHA-256 remoto es `cf4ca312a7aa69db742005edd12de15f6b223e6324bf69adbf7b27e5ce78eb43`.
 - El primer smoke posterior al despliegue alcanzó Google y devolvió 429. El log seguro registró `QUOTA_EXCEEDED`, 459 bytes y `application/json`, sin cuerpo, prompt, imagen o clave.
 - El panel de Google confirma que el proyecto permanece en nivel gratuito. El panel de cuota no devolvió datos de uso por modelo durante la comprobación, por lo que no se inventa un momento de reposición.
-- La tabla canónica registra 11/100 intentos del comercio piloto durante el mes. Se preservan como evidencia y no se borran.
+- La tabla canónica registra 12/100 intentos del comercio piloto durante el mes. Se preservan como evidencia y no se borran.
 - Queda pendiente una única repetición después de la reposición de la cuota gratuita. La aplicación ya devolverá y registrará `inputTokens`, `outputTokens`, `thoughtTokens`, `cachedTokens`, `toolUseTokens` y `totalTokens` en cuanto una lectura se complete.
 
 ### Cierre local y revisión de Supabase — 2026-09-12
@@ -321,5 +321,5 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - Google Cloud quedó con una sola clave Gemini activa. Supabase confirmó `leer-factura` versión 14, estado `ACTIVE`, JWT obligatorio y el mismo SHA-256 remoto `587ae23045e4331dde5a8faf7489d44d9bc069137f55d9adb5934414947e3a4f`; la actualización del secret no cambió el código.
 - El cliente transforma el MIME permitido a minúsculas una sola vez y envía exactamente ese valor. Se eliminó el fallback JPEG muerto.
 - `verificar.sh` y `verificar.ps1` usan el mismo detector Node. El control cubre tanto credenciales de la familia clásica `AIza` como las de la familia `AQ.` y nunca imprime el secreto detectado.
-- El plan del piloto declara que comienza con 11/100 intentos consumidos, que cada reintento autenticado puede reservar otra unidad aunque Google falle y que `LIMITE_IA_MENSUAL` obliga a carga manual hasta el mes siguiente.
-- La ejecución canónica de la revisión 9 completó 128/128 pruebas locales. El smoke integral continúa pendiente de la reposición de cuota gratuita y no se simula como aprobado.
+- El plan del piloto declara que comienza con 12/100 intentos consumidos, que cada reintento autenticado puede reservar otra unidad aunque Google falle y que `LIMITE_IA_MENSUAL` obliga a carga manual hasta el mes siguiente.
+- La revisión 10 declara 132 pruebas locales, incluidas cuatro regresiones para fotos, vista previa y alineación. El smoke integral del lector continúa pendiente de la reposición de cuota gratuita y no se simula como aprobado.

@@ -16,7 +16,9 @@ const F5_MANIFEST = path.join(F5_PACKAGE, 'SHA256SUMS-F5.txt');
 const F6_HTML = path.join(ROOT, 'entregables', 'MiComercio-F6-PRUEBA.html');
 const F6_EVIDENCE = path.join(ROOT, 'entregables', 'QA-F6-EVIDENCIA.md');
 const F5_SHA256 = '05412b8b2edcd785716f854f88fc863c47c51a659f17394fb05bbd7a5a537d43';
-const F5_MANIFEST_SHA256 = 'f06a7f895f7c71ea8e9f2ca356d537bc86909fd451df95a3a78895134e37cb93';
+// Rev10 conserva exactamente el mismo HTML y SQL aprobados; el manifiesto sólo
+// cambia porque la prueba de lease dejó de depender de una fecha de calendario.
+const F5_MANIFEST_SHA256 = '1539b317037a7a8f6b16f113744653b3876e5db0d982d74ddc3b37c7366a3e16';
 
 function sha256(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');

@@ -16,7 +16,7 @@ Este documento es una plantilla operativa. Ningún campo vacío cuenta como evid
 | Baseline F2–F5 reproducible | pendiente | |
 | `verificarPin()` resuelto en dispositivo nuevo | pendiente | |
 | 16 suites SQL acumuladas PASS | aprobado | 16/16 en QA el 2026-09-08 |
-| 128 pruebas locales PASS | aprobado | 128/128 en el paquete RC2 revisión 9 |
+| 132 pruebas locales PASS | pendiente de verificación final | revisión 10 agrega cuatro regresiones visuales |
 | Lector IA completa un smoke sintético | pendiente | Google todavía responde 429 por cuota del nivel gratuito |
 | Respaldo inicial creado y recuperable | pendiente | |
 
@@ -102,7 +102,7 @@ Completar una fila por día. Cada cierre se registra por turno; el total diario 
 - Diagnóstico exportado:
 - Respaldo final y prueba de recuperación:
 - Cero operaciones válidas sin destino:
-- 128/128 pruebas locales repetidas:
+- 132/132 pruebas locales repetidas:
 - 16/16 suites SQL repetidas:
 - Incidentes críticos:
 

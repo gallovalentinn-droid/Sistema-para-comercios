@@ -114,6 +114,18 @@ td{padding:12px 14px;border-bottom:1px solid #EEF1F5;vertical-align:middle;font-
 tbody tr:hover{background:#F7F9FB}
 tbody tr:last-child td{border-bottom:0}
 .r{text-align:right}
+.product-cell{display:flex;align-items:center;gap:10px;min-width:0}
+.product-cell-copy{min-width:0;overflow-wrap:anywhere}
+.product-thumb{width:42px;height:42px;border-radius:8px;flex:0 0 42px;background:#EEF1F5;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;overflow:hidden;font-size:13px;font-weight:700;color:var(--muted)}
+.product-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.product-photo-preview{margin-top:10px;max-width:100%;width:max-content;padding:8px;background:#F7F9FB;border:1px solid var(--line);border-radius:11px}
+.product-thumb-editor{width:112px;height:112px;flex-basis:112px;background:var(--paper)}
+.product-thumb-editor img{object-fit:contain}
+.rep-table{table-layout:fixed}
+.rep-table col.rep-product{width:36%}
+.rep-table col.rep-context{width:20%}
+.rep-table col.rep-number{width:8%}
+.rep-table col.rep-cost{width:12%}
 .pill{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:99px;border:1px solid transparent;white-space:nowrap}
 .pill.ok{background:var(--verde-l);color:var(--verde-d)}
 .pill.warn{background:var(--ambar-l);color:var(--ambar)}
@@ -408,7 +420,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:9,
+  packageRevision:10,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3177,11 +3189,29 @@ async function borrarFotoProducto(p){
   if(sb&&sesion&&p&&p.fotoPath&&enLinea){ try{await sb.storage.from('product-images').remove([p.fotoPath]);}catch(e){console.warn(e);} }
 }
 
-// miniatura del producto para las listas de selección: foto si tiene, si no un placeholder con la inicial
-function miniFoto(p){
-  if(p.foto) return `<span class="thumb"><img src="${esc(p.foto)}" alt=""></span>`;
-  return `<span class="thumb">${esc((p.nombre||'?').trim().charAt(0).toUpperCase())}</span>`;
+/* F6_PRODUCT_IMAGES_UI_CORE_START */
+// La foto puede estar en memoria (modo local o recién subida) o persistida como ruta V4.
+function f6FotoProductoUrl(p){
+  const directa=String(p&&p.foto||'').trim();
+  if(directa) return directa;
+  const path=String(p&&p.fotoPath||'').trim();
+  if(!path||typeof sb==='undefined'||!sb||!sb.storage) return '';
+  try{
+    const r=sb.storage.from('product-images').getPublicUrl(path);
+    return String(r&&r.data&&r.data.publicUrl||'').trim();
+  }catch(_e){ return ''; }
 }
+// Miniatura compartida por ventas, Productos y Para pedir.
+function miniFoto(p,variante='lista'){
+  const url=f6FotoProductoUrl(p);
+  const clase=variante==='editor'?'thumb product-thumb product-thumb-editor':'thumb product-thumb';
+  if(url) return `<span class="${clase}"><img src="${esc(url)}" alt="Foto de ${esc(p&&p.nombre||'producto')}" loading="lazy"></span>`;
+  return `<span class="${clase}" aria-hidden="true">${esc((p&&p.nombre||'?').trim().charAt(0).toUpperCase())}</span>`;
+}
+function celdaProductoConFoto(p,contenido){
+  return `<div class="product-cell">${miniFoto(p)}<div class="product-cell-copy">${contenido}</div></div>`;
+}
+/* F6_PRODUCT_IMAGES_UI_CORE_END */
 function buscarProductos(q,lim=8){
   q=q.trim().toLowerCase(); if(!q) return [];
   return db.productos.filter(p=>
@@ -3922,8 +3952,9 @@ function tablaProductos(){
     <th>Producto</th><th>Código</th><th>Rubro</th><th class="r">Costo</th><th class="r">Venta</th><th class="r">Margen</th><th class="r">Stock</th><th></th>
   </tr></thead><tbody>${l.map(p=>{
     const mg=Number(p.costo)>0?((p.precio-p.costo)/p.costo*100):null;
+    const ficha=`<b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${esSuelto(p)?` <span class="pill warn">suelto</span>`:''}${alertaVence(p)?` <span class="pill ${estaVencido(p)?'bad':'warn'}">${esc(textoVence(p))}</span>`:(p.vence?` <span class="pill mute">vence ${fFecha(p.vence+'T12:00:00')}</span>`:'')}${esSuelto(p)?`<br><span style="font-size:12px;color:var(--muted)">sale de ${esc((atadoDe(p)||{}).nombre||'(atado eliminado)')} · ${porAtado(p)} por atado</span>`:(p.proveedor?`<br><span class="mt" style="font-size:12px;color:var(--muted)">${esc(p.proveedor)}</span>`:'')}`;
     return `<tr>
-      <td data-label="Producto"><b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${esSuelto(p)?` <span class="pill warn">suelto</span>`:''}${alertaVence(p)?` <span class="pill ${estaVencido(p)?'bad':'warn'}">${esc(textoVence(p))}</span>`:(p.vence?` <span class="pill mute">vence ${fFecha(p.vence+'T12:00:00')}</span>`:'')}${esSuelto(p)?`<br><span style="font-size:12px;color:var(--muted)">sale de ${esc((atadoDe(p)||{}).nombre||'(atado eliminado)')} · ${porAtado(p)} por atado</span>`:(p.proveedor?`<br><span class="mt" style="font-size:12px;color:var(--muted)">${esc(p.proveedor)}</span>`:'')}</td>
+      <td data-label="Producto">${celdaProductoConFoto(p,ficha)}</td>
       <td data-label="Código" class="num" style="font-size:12.5px;color:var(--muted)">${esc(p.ean||'—')}</td>
       <td data-label="Rubro">${p.rubro?`<span class="pill mute">${esc(p.rubro)}</span>`:'—'}</td>
       <td data-label="Costo" class="r num">${$m(p.costo)}</td>
@@ -3945,6 +3976,7 @@ function tablaProductos(){
 function formProducto(id,pre={},luego){
   const p=id?prod(id):null;
   const v=p||{ean:pre.ean||'',nombre:'',rubro:'',proveedor:'',costo:'',precio:'',stock:0,stockMin:3,stockDeseado:'',unidad:'unidad',origenId:'',porAtado:20,vence:''};
+  const fotoEditor=f6FotoProductoUrl(v);
   const tipo0 = v.unidad==='kg' ? 'kg' : (v.origenId ? 'suelto' : 'unidad');
   const candidatos=db.productos.filter(x=>x.id!==(p?p.id:'')&&!esSuelto(x)&&x.unidad!=='kg');
   const opcionesRubros=opcionesRubroProducto(rubros(),v.rubro);
@@ -4008,10 +4040,10 @@ function formProducto(id,pre={},luego){
       <div style="margin-top:14px">
         <label class="f" for="f_foto">Foto del producto (opcional)</label>
         <div class="row" style="align-items:center">
-          ${v.foto?`<span class="thumb" style="width:52px;height:52px"><img src="${esc(v.foto)}" alt=""></span>`:''}
           <input type="file" id="f_foto" class="inp" accept="image/*" style="flex:1">
-          ${v.foto?`<button type="button" class="btn ghost sm" id="f_fotoX">Quitar foto</button>`:''}
+          ${fotoEditor?`<button type="button" class="btn ghost sm" id="f_fotoX">Quitar foto</button>`:''}
         </div>
+        ${fotoEditor?`<div id="f_fotoVista" class="product-photo-preview">${miniFoto(v,'editor')}</div>`:''}
         <div class="hint">Se reduce automáticamente para que cargue rápido. En la nube se guarda aparte del inventario.</div>
       </div>
       <div style="margin-top:14px">
@@ -4065,7 +4097,7 @@ function formProducto(id,pre={},luego){
         el.innerHTML = c>0&&pr>0 ? `Margen: <b class="num">${((pr-c)/c*100).toFixed(1)}%</b> · ganás <b class="num">${$m(pr-c)}</b> por ${tipo==='kg'?'kilo':'unidad'}` : '';
       };
       $$('[data-un]',ov).forEach(b=>b.onclick=()=>{tipo=b.dataset.un;$$('[data-un]',ov).forEach(x=>x.classList.toggle('on',x===b));etiquetas();});
-      const fx=$('#f_fotoX',ov); if(fx) fx.onclick=()=>{quitarFoto=true;fx.closest('.row').querySelector('.thumb')?.remove();fx.remove();};
+      const fx=$('#f_fotoX',ov); if(fx) fx.onclick=()=>{quitarFoto=true;$('#f_fotoVista',ov)?.remove();fx.remove();};
       const vx=$('#f_venceX',ov); if(vx) vx.onclick=()=>{$('#f_vence',ov).value='';avisoVence();};
       const avisoVence=()=>{
         const f=$('#f_vence',ov).value;
@@ -5415,9 +5447,9 @@ function pintarReponer(){
 }
 function tablaRep(l){
   const otra=repOrden==='proveedor'?'Rubro':'Proveedor';
-  return `<table class="mtable"><thead><tr><th>Producto</th><th>${otra}</th><th class="r">Stock</th><th class="r">Mínimo</th><th class="r">Deseado</th><th class="r">Pedir</th><th class="r">Costo estimado</th></tr></thead><tbody>
+  return `<table class="mtable rep-table"><colgroup><col class="rep-product"><col class="rep-context"><col class="rep-number"><col class="rep-number"><col class="rep-number"><col class="rep-number"><col class="rep-cost"></colgroup><thead><tr><th>Producto</th><th>${otra}</th><th class="r">Stock</th><th class="r">Mínimo</th><th class="r">Deseado</th><th class="r">Pedir</th><th class="r">Costo estimado</th></tr></thead><tbody>
   ${l.map(p=>`<tr>
-    <td data-label="Producto"><b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${pedido[p.id]>0?' <span class="pill ok">en el pedido</span>':''}</td>
+    <td data-label="Producto">${celdaProductoConFoto(p,`<b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${pedido[p.id]>0?' <span class="pill ok">en el pedido</span>':''}`)}</td>
     <td data-label="${otra}" style="color:var(--muted)">${esc((repOrden==='proveedor'?p.rubro:p.proveedor)||'—')}</td>
     <td data-label="Stock" class="r"><span class="pill ${p.stock<=0?'bad':'warn'} num">${fmtCant(p,p.stock)}</span></td>
     <td data-label="Mínimo" class="r num" style="color:var(--muted)">${fmtCant(p,p.stockMin)}</td>
@@ -5478,7 +5510,7 @@ function pintarPedido(ov){
       <div class="card-h"><h2>${esc(prov)}</h2><span class="pill mute">${g.length} productos · ${$m(sub)}</span></div>
       <table class="mtable"><thead><tr><th>Producto</th><th style="width:130px">Cantidad</th><th class="r">Costo unit.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>
         ${g.map(x=>`<tr>
-          <td data-label="Producto"><b>${esc(x.p.nombre)}</b><br><span style="font-size:12px;color:var(--muted)">tenés ${fmtCant(x.p,x.p.stock)} · querés llegar a ${fmtCant(x.p,deseado(x.p))}</span></td>
+          <td data-label="Producto">${celdaProductoConFoto(x.p,`<b>${esc(x.p.nombre)}</b><br><span style="font-size:12px;color:var(--muted)">tenés ${fmtCant(x.p,x.p.stock)} · querés llegar a ${fmtCant(x.p,deseado(x.p))}</span>`)}</td>
           <td data-label="Cantidad"><div class="qty">
             <button data-pm="${x.p.id}" aria-label="Restar">–</button>
             <input class="num" data-pc="${x.p.id}" value="${x.cant}">

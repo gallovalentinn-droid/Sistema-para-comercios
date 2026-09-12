@@ -101,7 +101,7 @@ El código que recibe el cliente se decide por el status HTTP de Google. La cate
 - La reserva es atómica: se serializa con un `pg_advisory_xact_lock` por comercio y período, y se realiza antes de llamar a Google.
 - **Todo intento que pasa validación y autorización consume cupo**, incluso si nunca llega a Google: un error de red desde Supabase, un timeout a los 25 segundos, una foto ilegible o una respuesta que el validador rechaza. La reserva se compromete antes del pedido y no existe ninguna ruta que la libere. Es deliberado: evita eludir el límite mediante reintentos. No consumen cupo, en cambio, los intentos rechazados antes de la reserva: formato o contrato inválido, tamaño excedido, falta de sesión, falta de permiso, licencia no operable o configuración ausente.
 - El mismo `requestId` es idempotente por comercio, persona y solicitud. Como el cliente genera un UUID nuevo en cada invocación, esta protección no cubre el reintento desde la pantalla: sólo el reenvío externo del mismo identificador.
-- Al cierre de esta evidencia, la tabla canónica registra 11/100 intentos del mes para el comercio piloto, y ninguna lectura completada —los once corresponden a pruebas técnicas controladas cuyo smoke terminó en 429 de Google—. Se conservan para dejar una medición honesta, y significa que el piloto arranca con el 11% del cupo mensual ya comprometido. Lectura tomada de la base de QA; no reproducible desde este paquete.
+- Al cierre de esta evidencia, la tabla canónica registra 12/100 intentos del mes para el comercio piloto, y ninguna lectura completada —los doce corresponden a pruebas técnicas controladas cuyo smoke terminó en 429 de Google—. Se conservan para dejar una medición honesta, y significa que el piloto arranca con el 12% del cupo mensual ya comprometido. Lectura tomada de la base de QA; no reproducible desde este paquete.
 
 Además del techo de esquema de 100, Google aplica sus propios límites del nivel gratuito, medidos en solicitudes por minuto, tokens de entrada por minuto y solicitudes por día, **por proyecto y no por clave de API**. Google no publica las cifras del nivel gratuito: hay que consultarlas en AI Studio para este proyecto.
 
@@ -145,7 +145,7 @@ Fuentes oficiales vigentes al corte, verificadas el 2026-09-12:
 - La carga de stock no fue confirmada y no se modificaron productos durante la prueba.
 - La revisión 9 normaliza una sola vez el MIME aceptado y envía ese valor normalizado al servidor; eliminó el fallback JPEG que ya no era alcanzable.
 - La revisión 9 incorpora un detector compartido por Windows y Linux para las dos familias de credenciales Gemini conocidas por el proyecto. El detector informa únicamente el archivo afectado y nunca imprime el valor encontrado.
-- Integridad del paquete REV9 verificada el 2026-09-12: 116 hashes correctos, manifiesto coincidente con el contenido exacto, 128/128 pruebas locales, 16 suites SQL inventariadas, 10 migraciones F6 y cero secretos de alto riesgo. La ejecución SQL acumulada permanece documentada por separado porque requiere el baseline real de QA.
+- La revisión 10 agrega las fotos contenidas en Productos y Para pedir, una grilla estable para todos los rubros y cuatro regresiones visuales. Su integridad y conteos se registran en la evidencia canónica del paquete.
 
 Pendiente al corte:
 

@@ -62,7 +62,7 @@ function loadLegacyTurnGuard(turno) {
   return context.result;
 }
 
-function loadAuthorityCore() {
+function loadAuthorityCore({ nowMs } = {}) {
   const html = loadArtifact();
   const startMarker = '/* F5_AUTHORITY_CORE_START */';
   const endMarker = '/* F5_AUTHORITY_CORE_END */';
@@ -72,6 +72,12 @@ function loadAuthorityCore() {
   assert.ok(end > start, 'el core cliente de autoridad F5 está incompleto');
   const code = html.slice(start + startMarker.length, end);
   const context = { module: { exports: {} }, structuredClone };
+  if (Number.isFinite(nowMs)) {
+    context.Date = class FixedDate extends Date {
+      constructor(...args) { super(...(args.length ? args : [nowMs])); }
+      static now() { return nowMs; }
+    };
+  }
   vm.runInNewContext(
     `${code}\nmodule.exports={F5_PERMISSION_CATALOG,f5EstadoInicial,f5InstalarLease,f5CapturarLeaseOperacion,f5EvaluarAutoridad,f5AplicarChequeoAutoridad,f5RegistrarFallaChequeo,f5AssertWritable,f5VistaPermitida};`,
     context,
@@ -225,14 +231,18 @@ test('la autoridad ya no se puede elevar escribiendo un rol en localStorage', ()
 });
 
 test('un reemplazo de lease gobierna operaciones nuevas sin reescribir una captura previa', () => {
-  const { f5EstadoInicial, f5InstalarLease, f5CapturarLeaseOperacion } = loadAuthorityCore();
   const oldLease = leaseFixture();
+  const { f5EstadoInicial, f5InstalarLease, f5CapturarLeaseOperacion } = loadAuthorityCore({
+    nowMs: Date.parse(oldLease.issued_at) + 60_000,
+  });
   const installed = f5InstalarLease(
     f5EstadoInicial(),
     { server_now: oldLease.issued_at, lease: oldLease },
     { nowMs: Date.parse(oldLease.issued_at) }
   );
-  const captured = f5CapturarLeaseOperacion(installed, 'registrar_venta_v4');
+  const captured = f5CapturarLeaseOperacion(installed, 'registrar_venta_v4', {
+    createdAt: new Date(Date.parse(oldLease.issued_at) + 60_000).toISOString(),
+  });
   const nextLease = leaseFixture({
     lease_id: '66666666-6666-4666-8666-666666666666',
     issued_at: '2026-09-03T12:00:00.000Z',
