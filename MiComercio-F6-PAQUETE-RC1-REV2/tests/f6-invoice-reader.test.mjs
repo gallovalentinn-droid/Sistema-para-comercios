@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 
 import {
   F6_INVOICE_MAX_BYTES,
   F6_INVOICE_MODEL,
   buildGeminiInvoiceRequest,
+  classifyGeminiProviderError,
   extractGeminiInvoice,
   extractGeminiUsage,
   validateInvoiceImageRequest,
@@ -74,6 +76,9 @@ test('construye una solicitud Gemini estructurada, efímera y sin secretos', () 
   assert.equal(request.input[1].mime_type, 'image/png');
   assert.equal(request.response_format.mime_type, 'application/json');
   assert.deepEqual(request.response_format.schema.required.sort(), ['items', 'nroComprobante', 'proveedor', 'total'].sort());
+  const schemaText = JSON.stringify(request.response_format.schema);
+  assert.ok(schemaText.length < 800, 'el esquema enviado debe mantenerse debajo del límite práctico del proveedor');
+  assert.doesNotMatch(schemaText, /description|additionalProperties|minimum|maxItems|minItems/);
   assert.equal(JSON.stringify(request).includes('api-key'), false);
 });
 
@@ -148,6 +153,14 @@ test('extrae el consumo real de tokens que informa Gemini', () => {
   });
 });
 
+test('clasifica errores del proveedor sin persistir su cuerpo', () => {
+  assert.equal(classifyGeminiProviderError('API key not valid. Please pass a valid API key.'), 'API_KEY_INVALID');
+  assert.equal(classifyGeminiProviderError('Invalid JSON payload received. Unknown name "thinking_level"'), 'FIELD_THINKING_LEVEL');
+  assert.equal(classifyGeminiProviderError('Invalid value at response_format.schema'), 'FIELD_RESPONSE_FORMAT');
+  assert.equal(classifyGeminiProviderError('RESOURCE_EXHAUSTED: quota exceeded; check billing details'), 'QUOTA_EXCEEDED');
+  assert.equal(classifyGeminiProviderError('<html>Bad Request</html>'), 'UNKNOWN');
+});
+
 test('la Edge exige sesión, reserva cupo mensual y guarda Gemini sólo en secretos', () => {
   const source = edgeSource();
   assert.match(source, /getClaims/);
@@ -155,8 +168,51 @@ test('la Edge exige sesión, reserva cupo mensual y guarda Gemini sólo en secre
   assert.match(source, /Deno\.env\.get\("GEMINI_API_KEY"\)/);
   assert.match(source, /x-goog-api-key/);
   assert.match(source, /AbortController/);
+  assert.match(source, /F6_GEMINI_PROVIDER_ERROR/);
+  assert.doesNotMatch(source, /F6_GEMINI_(?:PROVIDER|FORMAT|IMAGE)_PROBE/);
+  assert.match(source, /F6_GEMINI_PROCESSING_ERROR/);
+  assert.doesNotMatch(source, /console\.error\([^\n]*geminiApiKey/);
+  assert.doesNotMatch(source, /console\.error\([^\n]*(?:body|providerError)/);
   assert.doesNotMatch(source, /console\.(?:log|info|debug)\s*\(/);
   assert.doesNotMatch(source, /AIza[0-9A-Za-z_-]{20,}/);
+});
+
+test('el cliente registra el consumo real devuelto por cada lectura exitosa', async () => {
+  const source = clientSource();
+  const start = source.indexOf('function f6RegistrarUsoIa');
+  const end = source.indexOf('let revisionFactura=[];', start);
+  assert.ok(start >= 0 && end > start, 'falta el registro de uso IA en el cliente');
+
+  const logs = [];
+  let revisada = null;
+  const context = {
+    $: () => ({ innerHTML: 'Elegir foto', style: {} }),
+    sb: { functions: { invoke: async () => ({
+      data: {
+        proveedor: 'Proveedor QA', nroComprobante: 'A-1', total: 1200,
+        items: [{ producto: 'Yerba', cantidad: 2, unidadesPorBulto: 1, precioUnit: 600, descuento: 0 }],
+        iaUsage: { inputTokens: 1375, outputTokens: 241, thoughtTokens: 86, cachedTokens: 0, toolUseTokens: 0, totalTokens: 1702 },
+      },
+      error: null,
+    }) } },
+    sesion: {},
+    f3Estado: { comercioId: COMMERCE_ID },
+    fileABase64: async () => PNG_1X1,
+    crypto: { randomUUID: () => REQUEST_ID },
+    abrirRevisionFactura: (data) => { revisada = data; },
+    aviso: () => {},
+    document: { body: { contains: () => true } },
+    console: { info: (...args) => logs.push(args), error: () => {} },
+  };
+  vm.createContext(context);
+  vm.runInContext(source.slice(start, end), context);
+  await vm.runInContext(`leerFacturaFoto({size:32,type:'image/png'},{});`, context);
+
+  assert.equal(revisada?.proveedor, 'Proveedor QA');
+  assert.deepEqual(JSON.parse(JSON.stringify(logs)), [[
+    'F6_IA_USAGE',
+    { inputTokens: 1375, outputTokens: 241, thoughtTokens: 86, cachedTokens: 0, toolUseTokens: 0, totalTokens: 1702 },
+  ]]);
 });
 
 test('el cliente identifica comercio y solicitud, y mantiene la revisión humana', () => {

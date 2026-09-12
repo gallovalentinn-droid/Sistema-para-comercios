@@ -1,9 +1,9 @@
 # Informe detallado de F6 RC2
 
-Fecha de corte: 2026-09-08
+Fecha de corte: 2026-09-12
 Build: `6.0.0-f6-rc2`
 Base congelada: F5 rev10, `5.0.0-f5-rc2`
-Estado: `candidate-pending-gemini-secret-live-smoke-and-seven-day-pilot`
+Estado: `candidate-pending-gemini-quota-reset-live-smoke-and-seven-day-pilot`
 
 ## Resultado alcanzado
 
@@ -106,7 +106,6 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 - El navegador envía solamente la foto elegida, el comercio y una clave idempotente a la Edge Function autenticada `leer-factura`.
 - La clave de Gemini vive únicamente como secret `GEMINI_API_KEY`; no se incorpora al HTML, al repositorio ni al ZIP.
 - El request usa `gemini-3.8-flash`, `store:false`, `thinking_level: low`, JSON Schema, máximo de 8192 tokens de salida y timeout de 25 segundos.
-- Se usa `gemini-3.8-flash` con salida JSON estructurada y `store:false`.
 - Se aceptan JPEG, PNG, WebP, HEIC y HEIF hasta 8 MB; el servidor vuelve a validar tamaño, Base64 y tipo.
 - La imagen no se guarda en Postgres. Sólo se registra una reserva de cupo sin contenido de la factura en la tabla canónica V4 `factura_ai_uso_v4`; no existe un contador F6 paralelo.
 - El límite mensual se aplica de forma atómica por comercio y mes operativo; en la beta es 100 intentos enviados al proveedor. Las lecturas fallidas también consumen cupo para impedir eludir el límite repitiendo solicitudes inválidas.
@@ -116,7 +115,7 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 ## 9. Evidencia ejecutada
 
 - 16 suites locales descubiertas automáticamente.
-- 119 pruebas ejecutadas: 119 aprobadas y 0 fallidas.
+- 121 pruebas ejecutadas: 121 aprobadas y 0 fallidas.
 - Identidad JSON/HTML comparada por ejecución aislada del bloque del navegador.
 - Pruebas de sintaxis del artefacto HTML y de las funciones TypeScript disponibles con Node.
 - Ocho suites SQL F6 y ocho F5 ejecutadas en PostgreSQL QA: 16/16 PASS dentro de transacciones descartables.
@@ -127,7 +126,7 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 
 Falta la activación y la fase operativa de QA, no más funcionalidad de diseño:
 
-- guardar `GEMINI_API_KEY` como secret de QA, desplegar `leer-factura` y realizar un smoke con una factura no sensible;
+- repetir un único smoke con la factura sintética cuando Google reponga la cuota gratuita y registrar los tokens reales; el secret ya está guardado y `leer-factura` versión 12 está activa;
 - ejecutar el piloto de siete días y decidir aprobación o repetición;
 
 Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara únicamente después de que el piloto termine aprobado.
@@ -142,3 +141,4 @@ Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara úni
 - `entregables/QA-F6-EVIDENCIA.md`: evidencia técnica detallada.
 - `entregables/SQL-REPRODUCIBILIDAD-F6.md`: alcance real de las pruebas SQL.
 - `entregables/PILOTO-F6-7-DIAS.md`: bitácora a completar cuando los gates previos estén aprobados.
+- `entregables/CONFIGURACION-LECTOR-IA-F6.md`: configuración, cuota, costo, privacidad y medición de tokens del lector.

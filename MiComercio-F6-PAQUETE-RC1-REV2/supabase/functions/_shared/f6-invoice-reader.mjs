@@ -6,34 +6,20 @@ const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/hei
 
 const INVOICE_SCHEMA = Object.freeze({
   type: 'object',
-  additionalProperties: false,
   properties: {
-    proveedor: {
-      type: 'string',
-      description: 'Nombre del proveedor. Cadena vacía si no se puede leer.',
-    },
-    nroComprobante: {
-      type: 'string',
-      description: 'Número completo del comprobante. Cadena vacía si no se puede leer.',
-    },
-    total: {
-      type: 'number',
-      minimum: 0,
-      description: 'Total final de la factura. Cero si no se puede leer con certeza.',
-    },
+    proveedor: { type: 'string' },
+    nroComprobante: { type: 'string' },
+    total: { type: 'number' },
     items: {
       type: 'array',
-      minItems: 0,
-      maxItems: 200,
       items: {
         type: 'object',
-        additionalProperties: false,
         properties: {
-          producto: { type: 'string', description: 'Descripción del producto tal como aparece.' },
-          cantidad: { type: 'number', minimum: 0, description: 'Cantidad de cajas, packs o unidades facturadas en la fila.' },
-          unidadesPorBulto: { type: 'integer', minimum: 1, description: 'Unidades sueltas dentro de cada caja o pack; 1 si se vende suelto o no consta.' },
-          precioUnit: { type: 'number', minimum: 0, description: 'Precio de una caja, pack o unidad de la columna cantidad, antes del descuento.' },
-          descuento: { type: 'number', minimum: 0, description: 'Descuento monetario total aplicado a la fila; 0 si no consta.' },
+          producto: { type: 'string' },
+          cantidad: { type: 'number' },
+          unidadesPorBulto: { type: 'integer' },
+          precioUnit: { type: 'number' },
+          descuento: { type: 'number' },
         },
         required: ['producto', 'cantidad', 'unidadesPorBulto', 'precioUnit', 'descuento'],
       },
@@ -84,6 +70,21 @@ export function validateInvoiceImageRequest(value) {
   if (imageBytes < 1) return { ok: false, code: 'DATOS_INVALIDOS' };
   if (imageBytes > F6_INVOICE_MAX_BYTES) return { ok: false, code: 'IMAGEN_DEMASIADO_GRANDE' };
   return { ok: true, ...value, imageBytes };
+}
+
+export function classifyGeminiProviderError(value) {
+  const text = String(value ?? '').toLowerCase();
+  if (/api[_ ]key[_ ]invalid|api key not valid|invalid api key/.test(text)) return 'API_KEY_INVALID';
+  if (/service[_ ]disabled|api has not been used|generativelanguage[^\n]{0,160}disabled/.test(text)) return 'API_DISABLED';
+  if (/model[^\n]{0,120}not found|not found[^\n]{0,120}model/.test(text)) return 'MODEL_NOT_FOUND';
+  if (/thinking[_ ]level/.test(text)) return 'FIELD_THINKING_LEVEL';
+  if (/response[_ ]format/.test(text)) return 'FIELD_RESPONSE_FORMAT';
+  if (/mime[_ ]type|base64|image/.test(text)) return 'FIELD_IMAGE';
+  if (/resource[_ ]exhausted|quota/.test(text)) return 'QUOTA_EXCEEDED';
+  if (/billing/.test(text)) return 'BILLING_REQUIRED';
+  if (/permission[_ ]denied|permission denied|forbidden/.test(text)) return 'PERMISSION_DENIED';
+  if (/invalid argument|invalid json|unknown field|unknown name/.test(text)) return 'INVALID_ARGUMENT';
+  return 'UNKNOWN';
 }
 
 export function buildGeminiInvoiceRequest({ imageBase64, mediaType, model = F6_INVOICE_MODEL }) {

@@ -277,3 +277,27 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - La documentación oficial vigente de `gemini-3.8-flash` informó que `minimal` no está soportado. Una regresión falló primero con `minimal !== low`; el request quedó corregido a `thinking_level: low`, la suite pasó 9/9 y `leer-factura` versión 2 quedó activa en QA.
 - Al repetir el paquete el 2026-09-09 apareció una prueba F5 dependiente de la fecha: el fixture de lease vencía ese mismo día y `f5CapturarLeaseOperacion()` consultaba `Date.now()`. Los verificadores cargan ahora `tests/lib/fixed-vm-clock.cjs`, que fija sólo el reloj de las VM de prueba al instante de emisión. El baseline, el artefacto y la lógica F5 congelada permanecen byte a byte intactos.
 - Activación todavía pendiente en este checkpoint: secret `GEMINI_API_KEY` y smoke con una imagen no sensible. `leer-factura` versión 2 ya está desplegada y activa en QA.
+
+## Activación y depuración del lector — 2026-09-11
+
+- `GEMINI_API_KEY` se guardó como secret cifrado de Supabase; su valor no se escribió en archivos, logs, evidencia ni paquetes.
+- Se usó una factura sintética sin datos personales. No se confirmó la pantalla de revisión y no se modificó stock.
+- Las pruebas aisladas contra el proveedor demostraron: texto mínimo 200, imagen mínima 200 y esquema mínimo 200. La solicitud completa anterior devolvía 400 `INVALID_ARGUMENT`, por lo que el defecto quedó localizado en la profundidad del esquema y no en clave, modelo, endpoint o imagen.
+- Primero se agregó una regresión que exigía un esquema de proveedor menor a 800 bytes y sin restricciones redundantes. Falló con el esquema anterior y pasó tras adelgazarlo; los límites de texto, número y cantidad de ítems continúan aplicándose en el saneador local.
+- Se eliminó todo probe temporal de `leer-factura` y una regresión impide reintroducir los marcadores usados durante el diagnóstico.
+- Los HTTP 429 que contienen cuota y facturación se clasifican ahora como `QUOTA_EXCEEDED` antes que `BILLING_REQUIRED`. La prueba correspondiente pasó.
+- `leer-factura` versión 12 quedó desplegada, activa y con JWT obligatorio. Su SHA-256 remoto es `cf4ca312a7aa69db742005edd12de15f6b223e6324bf69adbf7b27e5ce78eb43`.
+- El primer smoke posterior al despliegue alcanzó Google y devolvió 429. El log seguro registró `QUOTA_EXCEEDED`, 459 bytes y `application/json`, sin cuerpo, prompt, imagen o clave.
+- El panel de Google confirma que el proyecto permanece en nivel gratuito. El panel de cuota no devolvió datos de uso por modelo durante la comprobación, por lo que no se inventa un momento de reposición.
+- La tabla canónica registra 11/100 intentos del comercio piloto durante el mes. Se preservan como evidencia y no se borran.
+- Queda pendiente una única repetición después de la reposición de la cuota gratuita. La aplicación ya devolverá y registrará `inputTokens`, `outputTokens`, `thoughtTokens`, `cachedTokens`, `toolUseTokens` y `totalTokens` en cuanto una lectura se complete.
+
+### Cierre local y revisión de Supabase — 2026-09-12
+
+- El verificador usa `tests/lib/fixed-vm-clock.cjs` para fijar exclusivamente el reloj de las máquinas virtuales de pruebas F5. Esto conserva F5 rev10 byte a byte y evita que el fixture de lease aprobado se vuelva rojo al avanzar el calendario.
+- La ejecución canónica completó 121/121 pruebas. El incremento desde 120 corresponde a la regresión de clasificación de cuota del proveedor.
+- Supabase confirmó `leer-factura` versión 12, estado `ACTIVE`, JWT obligatorio y SHA-256 remoto `cf4ca312a7aa69db742005edd12de15f6b223e6324bf69adbf7b27e5ce78eb43`.
+- Los advisors se inspeccionaron después del despliegue. Las cuatro RPC F6 señaladas como `SECURITY DEFINER` son fronteras públicas deliberadas: sólo `authenticated` tiene `EXECUTE` y cada una deriva `auth.uid()` o valida membresía/propiedad antes de delegar en `private`.
+- El advisor también señala el trigger legacy `registrar_usuario_micomercio()` porque conserva el privilegio `PUBLIC` predeterminado. Al ser una función que retorna `trigger` no puede invocarse como RPC normal; queda registrado como endurecimiento del baseline, no como defecto introducido por el lector.
+- La protección contra contraseñas filtradas de Supabase continúa desactivada. No se presenta como resuelta por F6; el proyecto permanece en el plan gratuito elegido para la beta.
+- Los avisos de rendimiento son 47 claves foráneas sin índice, 28 índices todavía sin uso y seis grupos de políticas permisivas superpuestas. Son deuda del baseline/volumen inicial, no un fallo funcional del lector, y deben reevaluarse con métricas del piloto antes de eliminar o agregar índices.

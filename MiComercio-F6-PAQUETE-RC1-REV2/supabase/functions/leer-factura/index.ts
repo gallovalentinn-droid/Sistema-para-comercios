@@ -4,6 +4,7 @@ import { jsonResponse } from "../_shared/f5-auth-core.mjs";
 import {
   F6_INVOICE_MODEL,
   buildGeminiInvoiceRequest,
+  classifyGeminiProviderError,
   extractGeminiInvoice,
   extractGeminiUsage,
   validateInvoiceImageRequest,
@@ -176,6 +177,13 @@ Deno.serve(async (request: Request) => {
       signal: controller.signal,
     });
     if (!providerResponse.ok) {
+      const providerErrorText = await providerResponse.text();
+      console.error("F6_GEMINI_PROVIDER_ERROR", JSON.stringify({
+        status: providerResponse.status,
+        providerCategory: classifyGeminiProviderError(providerErrorText),
+        contentType: (providerResponse.headers.get("content-type") ?? "").slice(0, 80),
+        responseBytes: new TextEncoder().encode(providerErrorText).byteLength,
+      }));
       const failure = geminiFailureStatus(providerResponse.status);
       return respond(origin, { code: failure.code }, failure.status);
     }
@@ -184,6 +192,10 @@ Deno.serve(async (request: Request) => {
     const iaUsage = extractGeminiUsage(providerBody);
     return respond(origin, { ...invoice, iaUsage });
   } catch (error) {
+    console.error("F6_GEMINI_PROCESSING_ERROR", JSON.stringify({
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : "unknown",
+    }));
     const code = error instanceof Error && error.name === "AbortError"
       ? "IA_TIEMPO_AGOTADO"
       : "FACTURA_NO_RECONOCIDA";
