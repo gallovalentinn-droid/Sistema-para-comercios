@@ -15,18 +15,28 @@ function sliceBetween(source, start, end) {
   return source.slice(from, to);
 }
 
-function makeStorage(publicUrl = 'https://cdn.example/product-images/comercio/p1.jpg') {
+function makeStorage(signedUrl = 'https://storage.example/sign/product-images/comercio/p1.jpg?token=temporal') {
+  const calls = [];
   return {
+    calls,
+    client: {
     storage: {
       from(bucket) {
         assert.equal(bucket, 'product-images');
         return {
-          getPublicUrl(filePath) {
-            assert.equal(filePath, 'comercio/p1.jpg');
-            return { data: { publicUrl } };
+          async createSignedUrls(filePaths, expiresIn) {
+            calls.push({ filePaths, expiresIn });
+            return {
+              data: filePaths.map((filePath) => ({
+                path: filePath,
+                signedUrl: signedUrl.replace('comercio/p1.jpg', filePath),
+              })),
+              error: null,
+            };
           },
         };
       },
+    },
     },
   };
 }
@@ -37,8 +47,10 @@ function loadUi(source, extra = '') {
     '/* F6_PRODUCT_IMAGES_UI_CORE_START */',
     '/* F6_PRODUCT_IMAGES_UI_CORE_END */',
   );
+  const storage = makeStorage();
   const context = {
-    sb: makeStorage(),
+    sb: storage.client,
+    __storageCalls: storage.calls,
     esc: (value) => String(value ?? '')
       .replaceAll('&', '&amp;')
       .replaceAll('"', '&quot;')
@@ -50,16 +62,30 @@ function loadUi(source, extra = '') {
   return context;
 }
 
-test('la miniatura recupera la foto persistida y conserva un tamaño controlado', () => {
-  const context = loadUi(html(), 'this.result = miniFoto({ nombre: "Coca", fotoPath: "comercio/p1.jpg" });');
+test('la miniatura usa una URL firmada en memoria y no conserva la URL pública anterior', async () => {
+  const product = {
+    nombre: 'Coca',
+    foto: 'https://public.example/object/public/product-images/comercio/p1.jpg',
+    fotoPath: 'comercio/p1.jpg',
+  };
+  const context = loadUi(html());
 
-  assert.match(context.result, /class="thumb product-thumb"/);
-  assert.match(context.result, /src="https:\/\/cdn\.example\/product-images\/comercio\/p1\.jpg"/);
-  assert.match(context.result, /alt="Foto de Coca"/);
-  assert.match(context.result, /loading="lazy"/);
+  assert.doesNotMatch(context.miniFoto(product), /public\.example/);
+  assert.equal(await context.f6PrepararFotosProductos([product]), true);
+  const result = context.miniFoto(product);
+
+  assert.match(result, /class="thumb product-thumb"/);
+  assert.match(result, /src="https:\/\/storage\.example\/sign\/product-images\/comercio\/p1\.jpg\?token=temporal"/);
+  assert.match(result, /alt="Foto de Coca"/);
+  assert.match(result, /loading="lazy"/);
+  assert.equal(product.foto, 'https://public.example/object/public/product-images/comercio/p1.jpg');
+  assert.deepEqual(JSON.parse(JSON.stringify(context.__storageCalls)), [{
+    filePaths: ['comercio/p1.jpg'],
+    expiresIn: 3600,
+  }]);
 });
 
-test('Productos y Para pedir renderizan la misma foto guardada', () => {
+test('Productos y Para pedir renderizan la misma foto firmada', async () => {
   const source = html();
   const productTable = sliceBetween(source, 'function tablaProductos(){', '\nfunction formProducto(');
   const replenishTable = sliceBetween(source, 'function tablaRep(l){', '\n/* ── armador de pedido ── */');
@@ -69,6 +95,7 @@ test('Productos y Para pedir renderizan la misma foto guardada', () => {
       proveedor:'Distribuidora', costo:100, precio:150, stock:0, stockMin:4, stockDeseado:8,
       unidad:'unidad', origenId:'', porAtado:0, vence:''
     };
+    this.producto=producto;
     const db={productos:[producto]};
     const fProd={q:'',rubro:'',orden:'nombre'};
     const pedido={}; let repOrden='rubro';
@@ -81,12 +108,39 @@ test('Productos y Para pedir renderizan la misma foto guardada', () => {
     const ic=()=>'';
     const formAbrirAtado=()=>{}, formProducto=()=>{}, formAjuste=()=>{}, verHistorial=()=>{};
   `;
-  const context = loadUi(source, `${common}\n${productTable}\n${replenishTable}\ntablaProductos();this.productos=target.innerHTML;this.reponer=tablaRep([producto]);`);
+  const context = loadUi(source, `${common}\n${productTable}\n${replenishTable}`);
+  await context.f6PrepararFotosProductos([context.producto]);
+  vm.runInContext('tablaProductos();this.productos=target.innerHTML;this.reponer=tablaRep([producto]);', context);
 
   assert.match(context.productos, /class="product-cell"/);
-  assert.match(context.productos, /src="https:\/\/cdn\.example\/product-images\/comercio\/p1\.jpg"/);
+  assert.match(context.productos, /src="https:\/\/storage\.example\/sign\/product-images\/comercio\/p1\.jpg\?token=temporal"/);
   assert.match(context.reponer, /class="product-cell"/);
-  assert.match(context.reponer, /src="https:\/\/cdn\.example\/product-images\/comercio\/p1\.jpg"/);
+  assert.match(context.reponer, /src="https:\/\/storage\.example\/sign\/product-images\/comercio\/p1\.jpg\?token=temporal"/);
+});
+
+test('la resolución agrupa rutas, evita duplicados y reutiliza la URL firmada', async () => {
+  const context = loadUi(html());
+  const productos = [
+    { nombre: 'A', fotoPath: 'comercio/p1.jpg' },
+    { nombre: 'A repetido', fotoPath: 'comercio/p1.jpg' },
+    { nombre: 'Sin foto', fotoPath: '' },
+  ];
+
+  assert.equal(await context.f6PrepararFotosProductos(productos), true);
+  assert.equal(await context.f6PrepararFotosProductos(productos), false);
+  assert.equal(context.__storageCalls.length, 1);
+  assert.deepEqual(Array.from(context.__storageCalls[0].filePaths), ['comercio/p1.jpg']);
+});
+
+test('el cliente publicado elimina getPublicUrl y usa firmas temporales', () => {
+  const source = html();
+  const core = sliceBetween(
+    source,
+    '/* F6_PRODUCT_IMAGES_UI_CORE_START */',
+    '/* F6_PRODUCT_IMAGES_UI_CORE_END */',
+  );
+  assert.doesNotMatch(core, /getPublicUrl/u);
+  assert.match(core, /createSignedUrls/u);
 });
 
 test('todos los grupos de Para pedir reciben una grilla fija compartida', () => {
@@ -107,7 +161,7 @@ test('todos los grupos de Para pedir reciben una grilla fija compartida', () => 
   assert.match(source, /\.rep-table\{table-layout:fixed\}/);
 });
 
-test('el editor encierra la foto existente sin superponer los campos siguientes', () => {
+test('el editor encierra la foto existente sin superponer los campos siguientes', async () => {
   const source = html();
   const productForm = sliceBetween(
     source,
@@ -123,8 +177,9 @@ test('el editor encierra la foto existente sin superponer los campos siguientes'
     const atadoDe=()=>null, porAtado=()=>0, fFecha=()=>'', ic=()=>'';
     let captured=null; const modal=options=>{captured=options;};
     ${productForm}
-    formProducto('p1'); this.body=captured.cuerpo;
   `);
+  await context.f6PrepararFotosProductos([{ fotoPath: 'comercio/p1.jpg' }]);
+  vm.runInContext("formProducto('p1'); this.body=captured.cuerpo;", context);
 
   assert.match(context.body, /id="f_fotoVista" class="product-photo-preview"/);
   assert.match(context.body, /class="thumb product-thumb product-thumb-editor"/);

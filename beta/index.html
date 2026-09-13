@@ -420,7 +420,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:10,
+  packageRevision:11,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3145,6 +3145,7 @@ function render(){
   const m=$('#main');
   ({vender:vVender,resumen:vResumen,productos:vProductos,combos:vCombos,promociones:vPromociones,reponer:vReponer,
     vencimientos:vVencimientos,fiado:vFiado,caja:vCaja,movimientos:vMovimientos,config:vConfig,soporte:vSoporte}[vista])(m);
+  f6ProgramarFotosProductos(db.productos);
   window.scrollTo(0,0);
 }
 
@@ -3179,27 +3180,73 @@ async function subirFotoProducto(file,id){
     const path=f5RutaImagenProducto(f3Estado.comercioId,id);
     const {error}=await sb.storage.from('product-images').upload(path,opt.blob,{contentType:'image/jpeg',upsert:true,cacheControl:'3600'});
     if(error) throw error;
-    const {data}=sb.storage.from('product-images').getPublicUrl(path);
-    return {foto:data.publicUrl+'?v='+Date.now(),fotoPath:path};
+    f6OlvidarFotoProducto(path);
+    await f6PrepararFotosProductos([{fotoPath:path}]);
+    return {fotoPath:path};
   }
   // Modo local: una imagen muy comprimida puede vivir dentro del respaldo local.
   return {foto:opt.dataUrl,fotoPath:''};
 }
 async function borrarFotoProducto(p){
   if(sb&&sesion&&p&&p.fotoPath&&enLinea){ try{await sb.storage.from('product-images').remove([p.fotoPath]);}catch(e){console.warn(e);} }
+  f6OlvidarFotoProducto(p&&p.fotoPath);
 }
 
 /* F6_PRODUCT_IMAGES_UI_CORE_START */
-// La foto puede estar en memoria (modo local o recién subida) o persistida como ruta V4.
+const F6_PRODUCT_IMAGE_SIGNED_TTL_SECONDS=3600;
+const F6_PRODUCT_IMAGE_REFRESH_MARGIN_MS=60000;
+const f6FotosFirmadas=new Map();
+let f6FotosFirmando=null;
+
+function f6OlvidarFotoProducto(path){
+  const key=String(path||'').trim();
+  if(key) f6FotosFirmadas.delete(key);
+}
+function f6FotoFirmadaVigente(path,ahora=Date.now()){
+  const item=f6FotosFirmadas.get(path);
+  return item&&item.expiresAt>ahora+F6_PRODUCT_IMAGE_REFRESH_MARGIN_MS?item.url:'';
+}
+async function f6PrepararFotosProductos(productos){
+  if(typeof sb==='undefined'||!sb||!sb.storage) return false;
+  const ahora=Date.now();
+  const paths=[...new Set((productos||[])
+    .map(p=>String(p&&p.fotoPath||'').trim())
+    .filter(path=>path&&!f6FotoFirmadaVigente(path,ahora)))];
+  if(!paths.length) return false;
+  const bucket=sb.storage.from('product-images');
+  if(!bucket||typeof bucket.createSignedUrls!=='function') throw new Error('F6_PRODUCT_IMAGE_SIGNING_UNAVAILABLE');
+  const {data,error}=await bucket.createSignedUrls(paths,F6_PRODUCT_IMAGE_SIGNED_TTL_SECONDS);
+  if(error) throw error;
+  let cambio=false;
+  (data||[]).forEach((item,index)=>{
+    const path=String(item&&item.path||paths[index]||'').trim();
+    const url=String(item&&item.signedUrl||'').trim();
+    if(!path||!url) return;
+    f6FotosFirmadas.set(path,{url,expiresAt:ahora+F6_PRODUCT_IMAGE_SIGNED_TTL_SECONDS*1000});
+    cambio=true;
+  });
+  return cambio;
+}
+function f6RepintarFotosVisibles(){
+  if(typeof vista==='undefined') return;
+  if(vista==='vender'&&typeof pintarPOS==='function') pintarPOS();
+  else if(vista==='productos'&&typeof tablaProductos==='function') tablaProductos();
+  else if(vista==='reponer'&&typeof pintarReponer==='function') pintarReponer();
+}
+function f6ProgramarFotosProductos(productos){
+  if(f6FotosFirmando) return f6FotosFirmando;
+  f6FotosFirmando=f6PrepararFotosProductos(productos)
+    .then(cambio=>{if(cambio) f6RepintarFotosVisibles();return cambio;})
+    .catch(error=>{if(typeof console!=='undefined')console.warn('F6_PRODUCT_IMAGE_SIGNING_FAILED',error);return false;})
+    .finally(()=>{f6FotosFirmando=null;});
+  return f6FotosFirmando;
+}
+// Con ruta V4, sólo se usa una URL firmada temporal guardada en memoria.
+// `foto` queda reservado para imágenes locales que todavía no subieron a Storage.
 function f6FotoProductoUrl(p){
-  const directa=String(p&&p.foto||'').trim();
-  if(directa) return directa;
   const path=String(p&&p.fotoPath||'').trim();
-  if(!path||typeof sb==='undefined'||!sb||!sb.storage) return '';
-  try{
-    const r=sb.storage.from('product-images').getPublicUrl(path);
-    return String(r&&r.data&&r.data.publicUrl||'').trim();
-  }catch(_e){ return ''; }
+  if(path) return f6FotoFirmadaVigente(path);
+  return String(p&&p.foto||'').trim();
 }
 // Miniatura compartida por ventas, Productos y Para pedir.
 function miniFoto(p,variante='lista'){
