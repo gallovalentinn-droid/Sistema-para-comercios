@@ -67,6 +67,8 @@ El 2026-09-07 se aplicaron persistentemente `f6_employee_management_qa`, `f6_pro
 
 El 2026-09-08 se aplicaron `f6_commerce_login_codes_qa`, `f6_invoice_reader_qa`, `f6_invoice_reader_reuse_v4_qa`, `f6_invoice_reader_legacy_quota_lockdown_qa` y `f6_invoice_reader_monthly_100_qa`. Las cuatro últimas forman el incremento del lector: la revisión inicial se consolidó sobre `factura_ai_uso_v4`, se eliminó el contador paralelo sólo después de verificar que estaba vacío, se cerró la RPC legacy y el límite quedó fijado en 100 lecturas por comercio y mes operativo. Las fotos no se persisten en la base.
 
+El 2026-09-13 se aplicó persistentemente `f6_rev11_product_images_private`. La consulta posterior confirmó `storage.buckets.public=false` para `product-images` y un objeto existente. Una petición nueva a su ruta `/object/public/` devolvió HTTP 400, mientras el cliente autenticado REV11 generó una URL `/object/sign/` temporal y mostró la foto completa en Productos y Para pedir después de recargar.
+
 La reproducción de `10_invoice_reader.sql` requiere además dos objetos del baseline V4 que este paquete no crea: `public.factura_ai_uso_v4` y `private.business_date(uuid, timestamptz)`. La primera es el contador canónico; la segunda determina el mes operativo del comercio.
 
 Los secrets explícitos de allowlist y pepper quedaron configurados. El smoke histórico desde `Origin: null` perteneció a una etapa local de QA; esa autorización fue retirada antes de publicar la beta. La configuración vigente de `leer-factura` acepta únicamente `https://micomercio.ar`. El primer operador interno también quedó designado y el acceso autenticado al panel fue comprobado contra la Edge Function QA.

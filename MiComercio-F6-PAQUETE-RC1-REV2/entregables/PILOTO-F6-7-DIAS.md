@@ -11,14 +11,14 @@ Este documento es una plantilla operativa. Ningún campo vacío cuenta como evid
 
 | Gate | Resultado | Evidencia |
 |---|---|---|
-| Build observado coincide con RC2 | pendiente | |
+| Build observado coincide con RC2 | aprobado | HTML público con `packageRevision: 11` y código de URLs firmadas, verificado el 13/09/2026 |
 | Comercio QA en `v4_only` | pendiente | |
 | Baseline F2–F5 reproducible | pendiente | |
 | `verificarPin()` resuelto en dispositivo nuevo | pendiente | |
 | 16 suites SQL acumuladas PASS | aprobado | 16/16 en QA el 2026-09-08 |
-| 136 pruebas locales PASS | pendiente de verificación final | revisión 11 agrega cuatro regresiones de cierre |
+| 136 pruebas locales PASS | aprobado | verificación final REV11: 136/136 |
 | Lector IA completa una invocación | aprobado | intento 12 del dueño piloto: HTTP 200 el 12/09/2026 13:37:23 ART |
-| Fotos privadas sobreviven recarga | pendiente | exige cliente REV11 publicado y bucket privado |
+| Fotos privadas sobreviven recarga | aprobado | bucket privado; foto 600×600 cargada sin roturas en Productos y Para pedir mediante `/object/sign/`, y URL pública bloqueada con HTTP 400 el 13/09/2026 |
 | Respaldo inicial creado y recuperable | pendiente | |
 
 Si un gate permanece pendiente o falla, el piloto no empieza.

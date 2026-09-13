@@ -331,3 +331,11 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - El cliente reemplaza `getPublicUrl` por `createSignedUrls`, agrupa rutas, conserva las URLs una hora sólo en memoria y sigue renderizando de forma sincrónica desde esa caché.
 - Se eliminó `tests/lib/fixed-vm-clock.cjs` y ambos verificadores dejaron de precargarlo.
 - La entrega se empaqueta como `MiComercio-F6-PAQUETE-RC2-REV11`.
+
+### Gate vivo de fotos privadas — 2026-09-13
+
+- GitHub Pages entregó el HTML con `packageRevision: 11`, `createSignedUrls` presente y `getPublicUrl` ausente. El service worker publicado también quedó en `micomercio-beta-6.0.0-f6-rc2-rev11`.
+- Se aplicó persistentemente la migración `f6_rev11_product_images_private` al proyecto QA `qrvdfqpxutymmlcplsal`. La lectura posterior confirmó `product-images.public=false`, límite de 8 MiB y los tres MIME admitidos.
+- Una petición independiente y con caché evitada a la antigua ruta `/object/public/` respondió HTTP 400.
+- Tras recargar la beta y desbloquear la sesión del dueño, el único objeto existente se mostró completo (600×600) en Productos y Para pedir mediante una ruta `/object/sign/`; hubo cero imágenes rotas y cero rutas públicas en ambas vistas.
+- El advisor de seguridad posterior no agregó hallazgos relacionados con Storage. Conserva avisos previos del baseline sobre tablas con RLS sin policies, funciones `SECURITY DEFINER` ejecutables y protección de contraseñas filtradas desactivada; no se presentan como resueltos por esta migración.

@@ -1,9 +1,9 @@
 # Informe detallado de F6 RC2
 
-Fecha de corte: 2026-09-12
+Fecha de corte: 2026-09-13
 Build: `6.0.0-f6-rc2`
 Base congelada: F5 rev10, `5.0.0-f5-rc2`
-Estado: `candidate-pending-gemini-quota-reset-live-smoke-and-seven-day-pilot`
+Estado: `candidate-pending-seven-day-pilot`
 
 ## Resultado alcanzado
 
@@ -127,7 +127,6 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 Falta la activación y la fase operativa de QA, no más funcionalidad de diseño:
 
 - registrar en el momento los tokens de una lectura controlada; el intento 12 ya terminó con HTTP 200 pero esa telemetría sólo volvió al navegador y no quedó persistida;
-- completar el gate de recarga de fotos con el bucket privado;
 - ejecutar el piloto de siete días y decidir aprobación o repetición;
 
 Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara únicamente después de que el piloto termine aprobado.

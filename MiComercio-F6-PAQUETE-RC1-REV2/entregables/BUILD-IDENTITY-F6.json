@@ -8,7 +8,7 @@
   "license_contract": "f6-license-v1",
   "expected_local_tests": 136,
   "expected_sql_suites": 16,
-  "acceptance": "candidate-pending-private-product-image-live-gate-and-seven-day-pilot",
+  "acceptance": "candidate-pending-seven-day-pilot",
   "artifact": {
     "path": "entregables/MiComercio-F6-PRUEBA.html",
     "sha256": "9af301ce934c8ecfe66f6fd275e482df66c94d6a5afdd909bae4a68dd5d6b412"
