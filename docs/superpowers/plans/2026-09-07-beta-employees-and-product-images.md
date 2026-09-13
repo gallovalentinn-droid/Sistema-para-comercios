@@ -205,11 +205,11 @@ and exists (
 )
 ```
 
-UPDATE must have both `USING` and `WITH CHECK`; upsert receives SELECT, INSERT and UPDATE. DELETE receives `USING`. Do not change bucket public status.
+UPDATE must have both `USING` and `WITH CHECK`; upsert receives SELECT, INSERT and UPDATE. DELETE receives `USING`. La corrección REV11 agrega una migración posterior que vuelve privado el bucket; no se reescribe la migración histórica ya aplicada.
 
-- [ ] **Step 5: Implement the client path**
+- [ ] **Step 5: Implement the client path and private reads**
 
-Validate non-empty commerce and product UUIDs in `f5RutaImagenProducto`. Use it from `subirFotoProducto`; never use `sesion.user.id` as the folder. Preserve JPEG optimization, 8 MB input limit and local offline preview.
+Validate non-empty commerce and product UUIDs in `f5RutaImagenProducto`. Use it from `subirFotoProducto`; never use `sesion.user.id` as the folder. Preserve JPEG optimization, 8 MB input limit and local offline preview. Resolve persisted paths with `createSignedUrls` in one batch, keep the one-hour URLs only in memory, and never persist them in products or backups.
 
 - [ ] **Step 6: Run focused tests and SQL transaction**
 
@@ -244,9 +244,9 @@ Read security and performance advisors. Distinguish pre-existing findings from n
 
 Use the Supabase migration API with project `qrvdfqpxutymmlcplsal`. Do not use production.
 
-- [ ] **Step 4: Verify policies after migration**
+- [ ] **Step 4: Verify policies and bucket after migration**
 
-Query `pg_policies` and assert four policies, no `clientes_licencia`, and SELECT/INSERT/UPDATE/DELETE present.
+Query `pg_policies` and assert four policies, no `clientes_licencia`, SELECT/INSERT/UPDATE/DELETE present and `storage.buckets.public=false` for `product-images`.
 
 - [ ] **Step 5: Verify deployed F5 remains unchanged**
 

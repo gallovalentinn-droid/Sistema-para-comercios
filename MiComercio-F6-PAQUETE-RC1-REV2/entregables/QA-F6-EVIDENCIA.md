@@ -275,7 +275,7 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - La Edge no registra la imagen, no contiene claves y llama a Gemini con `store:false`, timeout de 25 segundos y JSON Schema.
 - La respuesta de la Edge expone el consumo real que informa Gemini, separado en entrada, salida, razonamiento, caché, herramientas y total, para medir el smoke sin estimaciones.
 - La documentación oficial vigente de `gemini-3.8-flash` informó que `minimal` no está soportado. Una regresión falló primero con `minimal !== low`; el request quedó corregido a `thinking_level: low`, la suite pasó 9/9 y `leer-factura` versión 2 quedó activa en QA.
-- Al repetir el paquete el 2026-09-09 apareció una prueba F5 dependiente de la fecha: el fixture de lease vencía ese mismo día y `f5CapturarLeaseOperacion()` consultaba `Date.now()`. Los verificadores cargan ahora `tests/lib/fixed-vm-clock.cjs`, que fija sólo el reloj de las VM de prueba al instante de emisión. El baseline, el artefacto y la lógica F5 congelada permanecen byte a byte intactos.
+- Al repetir el paquete el 2026-09-09 apareció una prueba F5 dependiente de la fecha: el fixture de lease vencía ese mismo día y `f5CapturarLeaseOperacion()` consultaba `Date.now()`. La prueba fija ahora su propio instante; la revisión 11 elimina el reemplazo global de `Date`. El baseline, el artefacto y la lógica F5 congelada permanecen byte a byte intactos.
 - Activación todavía pendiente en este checkpoint: secret `GEMINI_API_KEY` y smoke con una imagen no sensible. `leer-factura` versión 2 ya está desplegada y activa en QA.
 
 ## Activación y depuración del lector — 2026-09-11
@@ -289,12 +289,12 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - `leer-factura` versión 12 quedó desplegada, activa y con JWT obligatorio. Su SHA-256 remoto es `cf4ca312a7aa69db742005edd12de15f6b223e6324bf69adbf7b27e5ce78eb43`.
 - El primer smoke posterior al despliegue alcanzó Google y devolvió 429. El log seguro registró `QUOTA_EXCEEDED`, 459 bytes y `application/json`, sin cuerpo, prompt, imagen o clave.
 - El panel de Google confirma que el proyecto permanece en nivel gratuito. El panel de cuota no devolvió datos de uso por modelo durante la comprobación, por lo que no se inventa un momento de reposición.
-- La tabla canónica registra 12/100 intentos del comercio piloto durante el mes. Se preservan como evidencia y no se borran.
-- Queda pendiente una única repetición después de la reposición de la cuota gratuita. La aplicación ya devolverá y registrará `inputTokens`, `outputTokens`, `thoughtTokens`, `cachedTokens`, `toolUseTokens` y `totalTokens` en cuanto una lectura se complete.
+- La tabla canónica registra 12/100 intentos del comercio piloto durante el mes. Los primeros once son pruebas técnicas anteriores. El intento 12 fue reservado por el dueño piloto (`user_id=e01ba251-c179-464b-8119-fcb1ee21be36`, `operation_id=97569323-a1b6-44c2-9d15-618e1ae91840`) el 12/09/2026 a las 13:37:19 ART y terminó con HTTP 200 a las 13:37:23. Se preservan como evidencia y no se borran.
+- La aplicación devuelve `inputTokens`, `outputTokens`, `thoughtTokens`, `cachedTokens`, `toolUseTokens` y `totalTokens`, pero esos valores no se persisten. Los del intento 12 no pueden reconstruirse después de cerrar la consola; deben anotarse en el momento durante el piloto.
 
 ### Cierre local y revisión de Supabase — 2026-09-12
 
-- El verificador usa `tests/lib/fixed-vm-clock.cjs` para fijar exclusivamente el reloj de las máquinas virtuales de pruebas F5. Esto conserva F5 rev10 byte a byte y evita que el fixture de lease aprobado se vuelva rojo al avanzar el calendario.
+- Cada prueba temporal fija su propio instante. Los verificadores ejecutan Node sin precargar un reloj global, de modo que una futura dependencia accidental del calendario vuelve a fallar en vez de quedar escondida.
 - La ejecución canónica completó 121/121 pruebas. El incremento desde 120 corresponde a la regresión de clasificación de cuota del proveedor.
 - Supabase confirmó `leer-factura` versión 12, estado `ACTIVE`, JWT obligatorio y SHA-256 remoto `cf4ca312a7aa69db742005edd12de15f6b223e6324bf69adbf7b27e5ce78eb43`.
 - Los advisors se inspeccionaron después del despliegue. Las cuatro RPC F6 señaladas como `SECURITY DEFINER` son fronteras públicas deliberadas: sólo `authenticated` tiene `EXECUTE` y cada una deriva `auth.uid()` o valida membresía/propiedad antes de delegar en `private`.
@@ -311,7 +311,7 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - La ejecución canónica posterior completó 125/125 pruebas, sin fallos.
 - Supabase confirmó `leer-factura` versión 13, estado `ACTIVE`, JWT obligatorio y SHA-256 remoto `587ae23045e4331dde5a8faf7489d44d9bc069137f55d9adb5934414947e3a4f`. Los tres archivos desplegados coinciden con las fuentes locales al normalizar CRLF/LF.
 - El digest del secret de orígenes coincide con el valor exacto `https://micomercio.ar`; la función publicada no acepta `Origin: null`.
-- Sigue pendiente un único smoke con la factura sintética y la medición real de tokens cuando Google reponga la cuota gratuita. No se consumirá otro intento antes de esa reposición.
+- Esta condición quedó superada el 12/09/2026: el intento 12 completó `leer-factura` con HTTP 200. No se lo agrupa con los once errores técnicos anteriores. La medición de tokens no quedó persistida y se repetirá sólo como actividad controlada del piloto.
 
 ## Corrección RC2 revisión 9 — rotación y controles de cierre — 2026-09-12
 
@@ -321,5 +321,13 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - Google Cloud quedó con una sola clave Gemini activa. Supabase confirmó `leer-factura` versión 14, estado `ACTIVE`, JWT obligatorio y el mismo SHA-256 remoto `587ae23045e4331dde5a8faf7489d44d9bc069137f55d9adb5934414947e3a4f`; la actualización del secret no cambió el código.
 - El cliente transforma el MIME permitido a minúsculas una sola vez y envía exactamente ese valor. Se eliminó el fallback JPEG muerto.
 - `verificar.sh` y `verificar.ps1` usan el mismo detector Node. El control cubre tanto credenciales de la familia clásica `AIza` como las de la familia `AQ.` y nunca imprime el secreto detectado.
-- El plan del piloto declara que comienza con 12/100 intentos consumidos, que cada reintento autenticado puede reservar otra unidad aunque Google falle y que `LIMITE_IA_MENSUAL` obliga a carga manual hasta el mes siguiente.
-- La revisión 10 declara 132 pruebas locales, incluidas cuatro regresiones para fotos, vista previa y alineación. El smoke integral del lector continúa pendiente de la reposición de cuota gratuita y no se simula como aprobado.
+- El plan del piloto declara que comienza con 12/100 intentos consumidos: once pruebas técnicas y una invocación exitosa del dueño piloto. Cada reintento autenticado puede reservar otra unidad aunque Google falle y `LIMITE_IA_MENSUAL` obliga a carga manual hasta el mes siguiente.
+- La revisión 11 declara 136 pruebas locales. Las fotos persistidas dejan de usar URL pública, el bucket pasa a privado y el cliente firma por lote durante una hora sin persistir el token.
+
+## Corrección RC2 revisión 11 — privacidad y trazabilidad — 2026-09-12
+
+- La consulta canónica atribuyó la fila 12 al dueño piloto y el registro de invocaciones confirmó HTTP 200; se corrigieron todas las frases que la presentaban como otro 429.
+- `product-images` estaba público, por lo que la policy SELECT no protegía las descargas. `11_product_images_private.sql` lo vuelve privado y una aserción SQL congela ese estado.
+- El cliente reemplaza `getPublicUrl` por `createSignedUrls`, agrupa rutas, conserva las URLs una hora sólo en memoria y sigue renderizando de forma sincrónica desde esa caché.
+- Se eliminó `tests/lib/fixed-vm-clock.cjs` y ambos verificadores dejaron de precargarlo.
+- La entrega se empaqueta como `MiComercio-F6-PAQUETE-RC2-REV11`.

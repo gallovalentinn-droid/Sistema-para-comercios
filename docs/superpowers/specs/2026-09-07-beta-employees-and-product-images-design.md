@@ -14,7 +14,7 @@ El lector de facturas con IA queda expresamente fuera de este incremento y se re
 - `f5-members` ya permite listar miembros, crear empleados y restablecer contraseñas, pero la interfaz no expone esas operaciones.
 - `public.f5_actualizar_miembro` ya permite cambiar permisos y estado activo con auditoría e incremento de `permission_version`.
 - La pantalla llamada “Vista empleado” es solamente un bloqueo visual del dispositivo. No crea una cuenta ni representa la autoridad real de F5.
-- El bucket público `product-images` existe y está vacío.
+- El bucket `product-images` existe. La revisión 11 corrige su configuración pública inicial y lo deja privado.
 - Las políticas de escritura del bucket todavía dependen de `clientes_licencia`, una autoridad legacy que el comercio piloto ya no utiliza.
 - El cliente guarda imágenes bajo `<user_id>/<product_id>.jpg`; ese esquema impide que otro administrador autorizado reemplace la imagen de un producto compartido.
 
@@ -60,14 +60,14 @@ La ruta canónica del objeto será:
 
 No se requiere migrar objetos existentes porque el bucket está vacío al comenzar este cambio.
 
-Las políticas de `storage.objects` para `product-images` autorizarán `SELECT`, `INSERT`, `UPDATE` y `DELETE` sólo cuando se cumplan simultáneamente estas condiciones:
+Las políticas de `storage.objects` para el bucket privado `product-images` autorizarán `SELECT`, `INSERT`, `UPDATE` y `DELETE` sólo cuando se cumplan simultáneamente estas condiciones:
 
 - hay una sesión autenticada;
 - el primer segmento de la ruta coincide con un comercio donde la persona tiene membresía activa;
 - la membresía efectiva contiene `productos_editar` —dueño y administrador lo reciben por rol—;
 - la licencia efectiva del comercio permite operar.
 
-El bucket continuará siendo público para lectura por URL porque las fotos de catálogo no se consideran información privada. La escritura nunca se habilita por conocer la URL.
+Las fotos forman parte del inventario del comercio y no son públicas. El cliente guarda únicamente `foto_path`, solicita URLs firmadas de una hora por lote bajo la sesión autenticada y las conserva sólo en memoria. Conocer una ruta no permite firmarla sin pasar la policy SELECT.
 
 El cliente construirá la ruta con `f3Estado.comercioId`, no con datos editables del formulario. Un empleado con `productos_editar` podrá cargar imágenes; uno sin ese permiso verá Productos oculto y también será rechazado por Storage si intenta llamar a la API directamente.
 
@@ -78,7 +78,7 @@ El cliente construirá la ruta con `f3Estado.comercioId`, no con datos editables
 - Al suspender se pedirá confirmación indicando que el empleado perderá acceso.
 - La carga de imágenes conservará la optimización local actual y el límite de 8 MB.
 - Los errores distinguirán falta de permiso, licencia no operable, sesión vencida y fallo de red.
-- En línea, la imagen remota se mostrará sólo después de que Storage confirme la carga y entregue la URL pública. Sin conexión se conserva la vista previa local existente, pero no se afirmará que la imagen ya está en la nube.
+- En línea, la imagen remota se mostrará sólo después de que Storage confirme la carga y entregue una URL firmada temporal. Sin conexión se conserva la vista previa local existente, pero no se afirmará que la imagen ya está en la nube.
 
 ## 4. Componentes afectados
 
@@ -116,7 +116,7 @@ No se cambia el esquema de productos, el mecanismo de login F5, la duración del
 2. El navegador valida tamaño y tipo, y la optimiza a JPEG.
 3. El cliente sube a `product-images/<comercio_id>/<producto_id>.jpg` con `upsert`.
 4. Storage evalúa las cuatro condiciones de autoridad.
-5. Sólo después del éxito el producto recibe `foto` y `fotoPath`; la sincronización V4 conserva `foto_path` como hasta ahora.
+5. Sólo después del éxito el producto recibe `fotoPath`; la sincronización V4 conserva `foto_path` como dato canónico. La URL firmada se almacena únicamente en una caché de memoria.
 
 ## 6. Fallos y recuperación
 

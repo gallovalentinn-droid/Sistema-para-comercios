@@ -101,7 +101,7 @@ El código que recibe el cliente se decide por el status HTTP de Google. La cate
 - La reserva es atómica: se serializa con un `pg_advisory_xact_lock` por comercio y período, y se realiza antes de llamar a Google.
 - **Todo intento que pasa validación y autorización consume cupo**, incluso si nunca llega a Google: un error de red desde Supabase, un timeout a los 25 segundos, una foto ilegible o una respuesta que el validador rechaza. La reserva se compromete antes del pedido y no existe ninguna ruta que la libere. Es deliberado: evita eludir el límite mediante reintentos. No consumen cupo, en cambio, los intentos rechazados antes de la reserva: formato o contrato inválido, tamaño excedido, falta de sesión, falta de permiso, licencia no operable o configuración ausente.
 - El mismo `requestId` es idempotente por comercio, persona y solicitud. Como el cliente genera un UUID nuevo en cada invocación, esta protección no cubre el reintento desde la pantalla: sólo el reenvío externo del mismo identificador.
-- Al cierre de esta evidencia, la tabla canónica registra 12/100 intentos del mes para el comercio piloto, y ninguna lectura completada —los doce corresponden a pruebas técnicas controladas cuyo smoke terminó en 429 de Google—. Se conservan para dejar una medición honesta, y significa que el piloto arranca con el 12% del cupo mensual ya comprometido. Lectura tomada de la base de QA; no reproducible desde este paquete.
+- Al cierre de esta evidencia, la tabla canónica registra 12/100 intentos del mes para el comercio piloto. Los primeros once corresponden a pruebas técnicas anteriores. El intento 12 fue reservado por el dueño piloto (`user_id=e01ba251-c179-464b-8119-fcb1ee21be36`, `operation_id=97569323-a1b6-44c2-9d15-618e1ae91840`) el 12/09/2026 a las 13:37:19 ART y la invocación terminó con HTTP 200 a las 13:37:23. La tabla de cupo y el log de invocaciones prueban la reserva y el éxito HTTP; los tokens devueltos al navegador no se persisten y no pueden reconstruirse después desde esa tabla. El piloto arranca con 12% consumido y 88 intentos disponibles. Datos leídos del proyecto QA; no reproducibles únicamente desde este paquete.
 
 Además del techo de esquema de 100, Google aplica sus propios límites del nivel gratuito, medidos en solicitudes por minuto, tokens de entrada por minuto y solicitudes por día, **por proyecto y no por clave de API**. Google no publica las cifras del nivel gratuito: hay que consultarlas en AI Studio para este proyecto.
 
@@ -118,7 +118,7 @@ La función devuelve exactamente los contadores que entrega Gemini:
 
 Cualquier contador ausente o no entero se normaliza a cero, tanto en la función como en el cliente.
 
-No existe un número fijo por factura: cambia con resolución, tamaño, nitidez, cantidad de renglones y razonamiento. No se inventa una estimación. El smoke integral posterior a la corrección del esquema todavía no produjo una lectura completada porque el proyecto gratuito alcanzó el límite de Google; por eso aún no hay una fila real y defendible de tokens de una factura completa. La aplicación y la Edge Function ya están preparadas para registrar esos seis valores en el primer intento completado.
+No existe un número fijo por factura: cambia con resolución, tamaño, nitidez, cantidad de renglones y razonamiento. No se inventa una estimación. El intento 12 completó la invocación, pero los seis contadores sólo se devolvieron al navegador y no se guardan en la tabla de cupo; por eso esa medición no puede reconstruirse retrospectivamente. Durante el piloto deben anotarse desde `F6_IA_USAGE` inmediatamente después de cada lectura controlada.
 
 ## 5. Costo y privacidad del plan elegido
 
@@ -141,15 +141,15 @@ Fuentes oficiales vigentes al corte, verificadas el 2026-09-12:
 - La clave funciona, el endpoint funciona, el modelo acepta texto, imagen y un esquema liviano.
 - El esquema original, más profundo, fue aislado como la causa del HTTP 400 y fue reemplazado por el contrato liviano con validación estricta posterior.
 - La versión 14 quedó activa sin probes temporales, con mensajes de procesamiento acotados a 200 caracteres; una regresión impide reintroducir los marcadores usados durante el diagnóstico. La versión subió al reemplazar el secret, pero el paquete de código remoto conservó el mismo SHA-256 de la versión 13.
-- El intento integral llegó a Google y recibió HTTP 429 `QUOTA_EXCEEDED` del nivel gratuito. El log seguro registró categoría, 459 bytes y `application/json`, sin cuerpo, prompt, imagen ni clave.
+- Los intentos técnicos anteriores llegaron a Google y registraron HTTP 429. El intento 12, identificado arriba, completó la función con HTTP 200; queda separado de esos once intentos y no se presenta como otro error de cuota.
 - La carga de stock no fue confirmada y no se modificaron productos durante la prueba.
 - La revisión 9 normaliza una sola vez el MIME aceptado y envía ese valor normalizado al servidor; eliminó el fallback JPEG que ya no era alcanzable.
 - La revisión 9 incorpora un detector compartido por Windows y Linux para las dos familias de credenciales Gemini conocidas por el proyecto. El detector informa únicamente el archivo afectado y nunca imprime el valor encontrado.
-- La revisión 10 agrega las fotos contenidas en Productos y Para pedir, una grilla estable para todos los rubros y cuatro regresiones visuales. Su integridad y conteos se registran en la evidencia canónica del paquete.
+- La revisión 11 conserva las fotos en Ventas, Productos y Para pedir, pero sirve las persistidas desde un bucket privado mediante URLs firmadas de una hora almacenadas sólo en memoria. La grilla estable se conserva y cuatro regresiones nuevas cubren privacidad, caché, reloj y trazabilidad.
 
 Pendiente al corte:
 
-- Repetir un único smoke cuando Google reponga la cuota y anexar los tokens reales y los campos reconocidos.
+- Registrar en el momento los tokens de una lectura controlada durante el piloto; el intento 12 no dejó esa telemetría persistente.
 - Observar durante el piloto facturas extensas: el tope de salida de 8192 tokens puede truncar una respuesta antes del límite local de 200 renglones.
 
 Rotación de credencial completada el 2026-09-12:

@@ -115,7 +115,7 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 ## 9. Evidencia ejecutada
 
 - 16 suites locales descubiertas automáticamente.
-- 132 pruebas declaradas, incluidas cuatro regresiones de fotos y alineación agregadas en la revisión 10.
+- 136 pruebas declaradas. La revisión 11 agrega regresiones para URLs firmadas en memoria, bucket privado, eliminación del reloj global y trazabilidad del intento 12.
 - Identidad JSON/HTML comparada por ejecución aislada del bloque del navegador.
 - Pruebas de sintaxis del artefacto HTML y de las funciones TypeScript disponibles con Node.
 - Ocho suites SQL F6 y ocho F5 ejecutadas en PostgreSQL QA: 16/16 PASS dentro de transacciones descartables.
@@ -126,7 +126,8 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 
 Falta la activación y la fase operativa de QA, no más funcionalidad de diseño:
 
-- repetir un único smoke con la factura sintética cuando Google reponga la cuota gratuita y registrar los tokens reales; el secret ya está guardado y `leer-factura` versión 13 está activa;
+- registrar en el momento los tokens de una lectura controlada; el intento 12 ya terminó con HTTP 200 pero esa telemetría sólo volvió al navegador y no quedó persistida;
+- completar el gate de recarga de fotos con el bucket privado;
 - ejecutar el piloto de siete días y decidir aprobación o repetición;
 
 Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara únicamente después de que el piloto termine aprobado.

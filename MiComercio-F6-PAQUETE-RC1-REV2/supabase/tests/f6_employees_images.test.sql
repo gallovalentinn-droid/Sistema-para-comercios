@@ -80,7 +80,7 @@ begin
   if not exists (
     select 1 from storage.buckets
      where id='product-images'
-       and public
+       and not public
        and file_size_limit=8388608
        and allowed_mime_types @> array['image/jpeg','image/png','image/webp']::text[]
   ) then

@@ -28,13 +28,34 @@ test('la identidad normativa F6 fija contratos, conteos y hash del artefacto', (
   assert.equal(identity.projection_contract, 'f5-projection-v1');
   assert.equal(identity.config_contract, '10-canonical+6-legacy-only');
   assert.equal(identity.license_contract, 'f6-license-v1');
-  assert.equal(identity.package_revision, 10);
-  assert.equal(identity.expected_local_tests, 132);
+  assert.equal(identity.package_revision, 11);
+  assert.equal(identity.expected_local_tests, 136);
   assert.equal(identity.expected_sql_suites, 16);
-  assert.equal(identity.acceptance, 'candidate-pending-gemini-quota-reset-live-smoke-and-seven-day-pilot');
+  assert.equal(identity.acceptance, 'candidate-pending-private-product-image-live-gate-and-seven-day-pilot');
   const artifact = path.join(ROOT, identity.artifact.path);
   const hash = crypto.createHash('sha256').update(fs.readFileSync(artifact)).digest('hex');
   assert.equal(hash, identity.artifact.sha256);
+});
+
+test('el verificador no reemplaza Date globalmente en las pruebas', () => {
+  const bashVerifier = fs.readFileSync(path.join(ROOT, 'verificar.sh'), 'utf8');
+  const powershellVerifier = fs.readFileSync(path.join(ROOT, 'verificar.ps1'), 'utf8');
+
+  assert.equal(fs.existsSync(path.join(ROOT, 'tests', 'lib', 'fixed-vm-clock.cjs')), false);
+  assert.doesNotMatch(bashVerifier, /fixed-vm-clock/u);
+  assert.doesNotMatch(powershellVerifier, /fixed-vm-clock/u);
+});
+
+test('la evidencia distingue el intento 12 exitoso de los once intentos técnicos anteriores', () => {
+  const config = fs.readFileSync(path.join(ROOT, 'entregables', 'CONFIGURACION-LECTOR-IA-F6.md'), 'utf8');
+  const evidence = fs.readFileSync(path.join(ROOT, 'entregables', 'QA-F6-EVIDENCIA.md'), 'utf8');
+
+  for (const document of [config, evidence]) {
+    assert.match(document, /97569323-a1b6-44c2-9d15-618e1ae91840/u);
+    assert.match(document, /12\/09\/2026[^\n]*13:37:19[^\n]*HTTP 200/iu);
+    assert.match(document, /once[^\n]*pruebas técnicas/iu);
+    assert.doesNotMatch(document, /los doce[^\n]*429/iu);
+  }
 });
 
 test('el navegador expone la misma identidad F6 campo por campo', () => {

@@ -16,15 +16,16 @@ Este documento es una plantilla operativa. Ningún campo vacío cuenta como evid
 | Baseline F2–F5 reproducible | pendiente | |
 | `verificarPin()` resuelto en dispositivo nuevo | pendiente | |
 | 16 suites SQL acumuladas PASS | aprobado | 16/16 en QA el 2026-09-08 |
-| 132 pruebas locales PASS | pendiente de verificación final | revisión 10 agrega cuatro regresiones visuales |
-| Lector IA completa un smoke sintético | pendiente | Google todavía responde 429 por cuota del nivel gratuito |
+| 136 pruebas locales PASS | pendiente de verificación final | revisión 11 agrega cuatro regresiones de cierre |
+| Lector IA completa una invocación | aprobado | intento 12 del dueño piloto: HTTP 200 el 12/09/2026 13:37:23 ART |
+| Fotos privadas sobreviven recarga | pendiente | exige cliente REV11 publicado y bucket privado |
 | Respaldo inicial creado y recuperable | pendiente | |
 
 Si un gate permanece pendiente o falla, el piloto no empieza.
 
 ### Presupuesto operativo del lector IA
 
-- El comercio piloto comienza con 11 de 100 intentos mensuales ya consumidos por QA; quedan 89.
+- El comercio piloto comienza con 12 de 100 intentos mensuales consumidos; quedan 88. Los primeros once fueron pruebas técnicas y el número 12 fue la invocación HTTP 200 del dueño piloto del 12/09/2026.
 - Cada nueva selección o reintento manual de una foto usa otro intento si supera validación y autorización, aunque Google falle.
 - Ante `LIMITE_IA_MENSUAL`, se deja de insistir y se carga la factura manualmente.
 - Registrar por día intentos consumidos, lecturas exitosas y lecturas fallidas. Esa relación decidirá si 100 mensuales alcanza para un comercio real.

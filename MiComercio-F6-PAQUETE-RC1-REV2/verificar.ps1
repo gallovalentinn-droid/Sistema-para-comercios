@@ -5,8 +5,9 @@ $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
 
 $Manifiesto        = 'SHA256SUMS-F6.txt'
-$PruebasEsperadas  = 132
+$PruebasEsperadas  = 136
 $SuitesSqlEsperadas = 16
+$MigracionesF6Esperadas = 11
 
 Write-Host '== 1. Integridad y cobertura =='
 
@@ -87,7 +88,7 @@ if ($suitesSql.Count -ne $SuitesSqlEsperadas) {
   throw "Se esperaban $SuitesSqlEsperadas suites SQL y se encontraron $($suitesSql.Count)."
 }
 $migracionesF6 = @(Get-ChildItem -LiteralPath 'supabase/f6' -File -Filter '*.sql')
-if ($migracionesF6.Count -ne 10) { throw "Se esperaban 10 migraciones F6 y se encontraron $($migracionesF6.Count)." }
+if ($migracionesF6.Count -ne $MigracionesF6Esperadas) { throw "Se esperaban $MigracionesF6Esperadas migraciones F6 y se encontraron $($migracionesF6.Count)." }
 Write-Host "   inventario: $($suitesSql.Count) suites SQL y $($migracionesF6.Count) migraciones F6"
 Write-Host '   ejecución SQL: externa; ver entregables/SQL-REPRODUCIBILIDAD-F6.md'
 
@@ -100,8 +101,7 @@ $suites = @(
 )
 if ($suites.Count -eq 0) { throw 'No se encontró ninguna suite local.' }
 
-$testClock = Join-Path (Get-Location) 'tests/lib/fixed-vm-clock.cjs'
-$salida = & node --require $testClock --test @suites 2>&1
+$salida = & node --test @suites 2>&1
 $texto = $salida -join [Environment]::NewLine
 $codigo = $LASTEXITCODE
 $pass = if ($texto -match '(?m)^(?:#|\u2139)\s+pass\s+(\d+)\s*$') { [int]$Matches[1] } else { -1 }

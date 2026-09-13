@@ -1,16 +1,16 @@
 {
   "build": "6.0.0-f6-rc2",
   "base_build": "5.0.0-f5-rc2",
-  "package_revision": 10,
+  "package_revision": 11,
   "created_at": "2026-09-12",
   "projection_contract": "f5-projection-v1",
   "config_contract": "10-canonical+6-legacy-only",
   "license_contract": "f6-license-v1",
-  "expected_local_tests": 132,
+  "expected_local_tests": 136,
   "expected_sql_suites": 16,
-  "acceptance": "candidate-pending-gemini-quota-reset-live-smoke-and-seven-day-pilot",
+  "acceptance": "candidate-pending-private-product-image-live-gate-and-seven-day-pilot",
   "artifact": {
     "path": "entregables/MiComercio-F6-PRUEBA.html",
-    "sha256": "7cf859112cce93e3696f2021a2e27d667a68b130932aba0d36a7b16a68ce239c"
+    "sha256": "9af301ce934c8ecfe66f6fd275e482df66c94d6a5afdd909bae4a68dd5d6b412"
   }
 }

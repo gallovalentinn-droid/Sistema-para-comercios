@@ -6,8 +6,9 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 MANIFIESTO='SHA256SUMS-F6.txt'
-PRUEBAS_ESPERADAS=132
+PRUEBAS_ESPERADAS=136
 SUITES_SQL_ESPERADAS=16
+MIGRACIONES_F6_ESPERADAS=11
 
 echo '== 1. Integridad y cobertura =='
 sha256sum -c "$MANIFIESTO" > /dev/null
@@ -44,8 +45,8 @@ if [ "${#suites_sql[@]}" -ne "$SUITES_SQL_ESPERADAS" ]; then
   exit 1
 fi
 mapfile -t migraciones_f6 < <(find supabase/f6 -maxdepth 1 -type f -name '*.sql' | LC_ALL=C sort)
-if [ "${#migraciones_f6[@]}" -ne 10 ]; then
-  echo "ERROR: se esperaban 10 migraciones F6 y se encontraron ${#migraciones_f6[@]}." >&2
+if [ "${#migraciones_f6[@]}" -ne "$MIGRACIONES_F6_ESPERADAS" ]; then
+  echo "ERROR: se esperaban $MIGRACIONES_F6_ESPERADAS migraciones F6 y se encontraron ${#migraciones_f6[@]}." >&2
   exit 1
 fi
 echo "   inventario: ${#suites_sql[@]} suites SQL y ${#migraciones_f6[@]} migraciones F6"
@@ -54,7 +55,7 @@ echo '   ejecución SQL: externa; ver entregables/SQL-REPRODUCIBILIDAD-F6.md'
 echo
 echo '== 4. Pruebas locales e identidad =='
 archivos=(tests/*.test.cjs tests/*.test.mjs)
-salida="$(node --require "$(pwd)/tests/lib/fixed-vm-clock.cjs" --test "${archivos[@]}" 2>&1)" || {
+salida="$(node --test "${archivos[@]}" 2>&1)" || {
   printf '%s\n' "$salida" | grep '^not ok' >&2 || true
   echo 'ERROR: la ejecución de pruebas falló.' >&2
   exit 1
