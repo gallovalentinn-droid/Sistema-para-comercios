@@ -420,7 +420,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:11,
+  packageRevision:12,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3232,6 +3232,7 @@ function f6RepintarFotosVisibles(){
   if(vista==='vender'&&typeof pintarPOS==='function') pintarPOS();
   else if(vista==='productos'&&typeof tablaProductos==='function') tablaProductos();
   else if(vista==='reponer'&&typeof pintarReponer==='function') pintarReponer();
+  if(typeof db!=='undefined'&&Array.isArray(db.productos)) f6ProgramarFotosProductos(db.productos);
 }
 function f6ProgramarFotosProductos(productos){
   if(f6FotosFirmando) return f6FotosFirmando;
@@ -5290,6 +5291,7 @@ function abrirRevisionFactura(parsed){
   modal({titulo:'Revisá lo que leímos de la factura', ancho:true,
     cuerpo:`
       <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Así entendimos la foto. <b>"Unid. por bulto"</b> es cuántas unidades sueltas trae cada caja o pack (dejalo en 1 si se compran sueltas). El <b>descuento</b> es el total bonificado de esa fila, y se reparte entre las unidades. Revisá todo antes de confirmar.</p>
+      ${numFactura(parsed.descuentoGlobal)>0?`<div class="notice" style="margin:0 0 14px"><b>Descuento general leído: ${$m(numFactura(parsed.descuentoGlobal))}</b><br><span style="color:var(--muted)">Ya está distribuido entre los productos para calcular correctamente su costo.</span></div>`:''}
       <div id="revTabla"></div>`,
     pie:`<button class="btn ghost" data-cerrar>Descartar</button><button class="btn verde" id="okRev">Cargar a la factura</button>`,
     alAbrir:ov2=>{
