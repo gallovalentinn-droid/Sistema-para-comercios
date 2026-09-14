@@ -8,9 +8,9 @@ const artifactPath = path.resolve(__dirname, '../beta/index.html');
 const serviceWorkerPath = path.resolve(__dirname, '../beta/sw.js');
 const html = () => fs.readFileSync(artifactPath, 'utf8');
 
-test('el cache offline publicado corresponde a REV12', () => {
+test('el cache offline publicado corresponde a REV13', () => {
   const serviceWorker = fs.readFileSync(serviceWorkerPath, 'utf8');
-  assert.match(serviceWorker, /micomercio-beta-6\.0\.0-f6-rc2-rev12/);
+  assert.match(serviceWorker, /micomercio-beta-6\.0\.0-f6-rc2-rev13/);
 });
 
 function sliceBetween(source, start, end) {
