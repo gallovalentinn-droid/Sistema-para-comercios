@@ -111,11 +111,13 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 - El límite mensual se aplica de forma atómica por comercio y mes operativo; en la beta es 100 intentos que superaron las validaciones locales y la autorización del servidor. La reserva ocurre antes de llamar al proveedor: los errores de red, timeout o cuota de Google también consumen un intento.
 - Dueño y administrador pueden usarlo. Un empleado también puede si tiene `productos_editar`; la autorización se repite en servidor.
 - La salida se sanea por tipo, rango y longitud. La primera confirmación puede crear productos faltantes y preparar el borrador; el stock cambia únicamente con la segunda confirmación explícita del remito.
+- REV12 distingue el descuento general de los descuentos por renglón, lo distribuye proporcionalmente sin duplicarlo y lo muestra en la revisión. La factura sintética de regresión exige $360 de descuento sobre $3.600 y $3.240 netos.
+- El modelo y los seis contadores de tokens se guardan ahora en la tabla canónica de cupo antes de responder éxito. La telemetría conserva únicamente estructura —nombres de campos y cantidad de renglones— y no guarda textos, importes ni imágenes.
 
 ## 9. Evidencia ejecutada
 
 - 16 suites locales descubiertas automáticamente.
-- 136 pruebas declaradas. La revisión 11 agrega regresiones para URLs firmadas en memoria, bucket privado, eliminación del reloj global y trazabilidad del intento 12.
+- 141 pruebas declaradas. REV12 agrega regresiones para descuento general, reparto proporcional, telemetría segura, orden de persistencia y visualización del descuento.
 - Identidad JSON/HTML comparada por ejecución aislada del bloque del navegador.
 - Pruebas de sintaxis del artefacto HTML y de las funciones TypeScript disponibles con Node.
 - Ocho suites SQL F6 y ocho F5 ejecutadas en PostgreSQL QA: 16/16 PASS dentro de transacciones descartables.
@@ -124,9 +126,9 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 
 ## 10. Qué falta
 
-Falta la activación y la fase operativa de QA, no más funcionalidad de diseño:
+Falta la fase operativa de QA, no más funcionalidad de diseño:
 
-- registrar en el momento los tokens de una lectura controlada; el intento 12 ya terminó con HTTP 200 pero esa telemetría sólo volvió al navegador y no quedó persistida;
+- completar el smoke de la factura sintética desde una sesión recargada: el intento 13 detectó una clave inválida, la clave activa ya fue reinstalada y los intentos posteriores del navegador interno no llegaron al servidor ni consumieron cupo;
 - ejecutar el piloto de siete días y decidir aprobación o repetición;
 
 Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara únicamente después de que el piloto termine aprobado.
@@ -135,7 +137,7 @@ Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara úni
 
 - `entregables/MiComercio-F6-PRUEBA.html`: sistema comercial F6.
 - `entregables/MiComercio-Soporte-F6.html`: panel de soporte.
-- `supabase/f6/01_foundation.sql` a `10_invoice_reader.sql`: migraciones F6.
+- `supabase/f6/01_foundation.sql` a `12_invoice_reader_telemetry.sql`: doce migraciones F6.
 - `supabase/functions/f6-invitations/index.ts`, `f6-support/index.ts` y `leer-factura/index.ts`: fronteras HTTP.
 - `entregables/BUILD-IDENTITY-F6.json`: identidad normativa.
 - `entregables/QA-F6-EVIDENCIA.md`: evidencia técnica detallada.

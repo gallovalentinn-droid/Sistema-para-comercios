@@ -11,13 +11,13 @@ Este documento es una plantilla operativa. Ningún campo vacío cuenta como evid
 
 | Gate | Resultado | Evidencia |
 |---|---|---|
-| Build observado coincide con RC2 | aprobado | HTML público con `packageRevision: 11` y código de URLs firmadas, verificado el 13/09/2026 |
+| Build observado coincide con RC2 | aprobado | HTML público con `packageRevision: 12`, descuento general y telemetría REV12, verificado el 13/09/2026 |
 | Comercio QA en `v4_only` | pendiente | |
 | Baseline F2–F5 reproducible | pendiente | |
 | `verificarPin()` resuelto en dispositivo nuevo | pendiente | |
 | 16 suites SQL acumuladas PASS | aprobado | 16/16 en QA el 2026-09-08 |
-| 136 pruebas locales PASS | aprobado | verificación final REV11: 136/136 |
-| Lector IA completa una invocación | aprobado | intento 12 del dueño piloto: HTTP 200 el 12/09/2026 13:37:23 ART |
+| 141 pruebas locales PASS | aprobado | verificación de implementación REV12: 141/141 |
+| Lector IA REV12 completa una invocación | pendiente | el intento 13 encontró `API_KEY_INVALID`; la clave activa ya fue reinstalada pero el reintento del navegador no llegó al servidor |
 | Fotos privadas sobreviven recarga | aprobado | bucket privado; foto 600×600 cargada sin roturas en Productos y Para pedir mediante `/object/sign/`, y URL pública bloqueada con HTTP 400 el 13/09/2026 |
 | Respaldo inicial creado y recuperable | pendiente | |
 
@@ -25,8 +25,9 @@ Si un gate permanece pendiente o falla, el piloto no empieza.
 
 ### Presupuesto operativo del lector IA
 
-- El comercio piloto comienza con 12 de 100 intentos mensuales consumidos; quedan 88. Los primeros once fueron pruebas técnicas y el número 12 fue la invocación HTTP 200 del dueño piloto del 12/09/2026.
+- El comercio piloto tiene 13 de 100 intentos mensuales consumidos; quedan 87. El intento 12 fue la invocación HTTP 200 del 12/09/2026. El intento 13, del 13/09/2026, falló por la credencial anterior y no produjo tokens ni datos reconocidos.
 - Cada nueva selección o reintento manual de una foto usa otro intento si supera validación y autorización, aunque Google falle.
+- El próximo smoke debe usar `tests/fixtures/ticket-descuento-global.png`, verificar $360 de descuento y $3.240 netos, registrar los seis contadores de tokens y descartar la revisión sin confirmar el remito.
 - Ante `LIMITE_IA_MENSUAL`, se deja de insistir y se carga la factura manualmente.
 - Registrar por día intentos consumidos, lecturas exitosas y lecturas fallidas. Esa relación decidirá si 100 mensuales alcanza para un comercio real.
 

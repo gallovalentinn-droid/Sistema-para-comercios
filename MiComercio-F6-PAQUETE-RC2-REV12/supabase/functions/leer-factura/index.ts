@@ -4,6 +4,7 @@ import { jsonResponse } from "../_shared/f5-auth-core.mjs";
 import {
   F6_INVOICE_MODEL,
   buildGeminiInvoiceRequest,
+  buildInvoiceTelemetry,
   classifyGeminiProviderError,
   extractGeminiInvoice,
   extractGeminiUsage,
@@ -191,6 +192,26 @@ Deno.serve(async (request: Request) => {
     const providerBody = await providerResponse.json();
     const invoice = extractGeminiInvoice(providerBody);
     const iaUsage = extractGeminiUsage(providerBody);
+    const telemetry = buildInvoiceTelemetry({ invoice, usage: iaUsage });
+    const { data: telemetryResult, error: telemetryError } = await serviceClient.rpc(
+      "f6_service_registrar_resultado_lectura_factura",
+      {
+        p_actor_user_id: actorUserId,
+        p_comercio_id: input.comercioId,
+        p_request_id: input.requestId,
+        p_model: telemetry.model,
+        p_usage: telemetry.usage,
+        p_recognized_fields: telemetry.recognizedFields,
+        p_recognized_items: telemetry.recognizedItems,
+      },
+    );
+    if (telemetryError || telemetryResult?.ok !== true) {
+      console.error("F6_IA_TELEMETRY_ERROR", JSON.stringify({
+        hasDatabaseError: !!telemetryError,
+        code: String(telemetryResult?.code ?? "UNKNOWN").slice(0, 80),
+      }));
+      return respond(origin, { code: "IA_TELEMETRIA_NO_REGISTRADA" }, 503);
+    }
     return respond(origin, { ...invoice, iaUsage });
   } catch (error) {
     console.error("F6_GEMINI_PROCESSING_ERROR", JSON.stringify({

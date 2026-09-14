@@ -1,7 +1,7 @@
 # Evidencia QA F6
 
 Fecha de apertura: 2026-09-04  
-Estado general: `candidate-deployed-qa-pending-browser-gates-and-pilot`  
+Estado general: `candidate-deployed-qa-rev12-pending-final-ai-smoke-and-pilot`
 estado: pendiente
 
 ## Baseline F5 congelado
@@ -339,3 +339,16 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - Una petición independiente y con caché evitada a la antigua ruta `/object/public/` respondió HTTP 400.
 - Tras recargar la beta y desbloquear la sesión del dueño, el único objeto existente se mostró completo (600×600) en Productos y Para pedir mediante una ruta `/object/sign/`; hubo cero imágenes rotas y cero rutas públicas en ambas vistas.
 - El advisor de seguridad posterior no agregó hallazgos relacionados con Storage. Conserva avisos previos del baseline sobre tablas con RLS sin policies, funciones `SECURITY DEFINER` ejecutables y protección de contraseñas filtradas desactivada; no se presentan como resueltos por esta migración.
+
+## Corrección RC2 revisión 12 — descuento general y telemetría — 2026-09-13
+
+- La factura sintética que motivó el cambio contiene una línea bruta de $3.600, un descuento general de $360 y un total neto de $3.240. La imagen queda incluida como `tests/fixtures/ticket-descuento-global.png`; no contiene datos personales reales.
+- El contrato de Gemini incorpora `descuentoGlobal`. El saneador conserva los descuentos propios de cada renglón y distribuye el descuento general proporcionalmente sobre las bases residuales, sin duplicarlo. La revisión del cliente lo muestra por separado y aclara que ya está incorporado al costo.
+- La migración `12_invoice_reader_telemetry.sql` amplía `factura_ai_uso_v4` con modelo, entrada, salida, razonamiento, caché, herramientas, total, nombres de campos y cantidad de renglones. No persiste textos, importes ni la imagen.
+- La Edge Function guarda esa telemetría con una RPC exclusiva de `service_role` y sólo devuelve HTTP 200 si el registro quedó confirmado. Repetir exactamente el mismo resultado es idempotente; intentar reescribirlo con valores distintos se rechaza.
+- La batería local completa pasó 141/141. La suite SQL del lector pasó en una transacción descartable y `f6_rev12_invoice_reader_telemetry` quedó aplicada persistentemente en QA.
+- `leer-factura` versión 15 quedó activa con JWT obligatorio y SHA-256 remoto `c3f6393492fd32d541117ae18a9ddfcba6ea5a3da0b29c5104b8685fdd3e6070`.
+- La beta pública quedó en `packageRevision: 12`, commit `2104c26`, con caché `micomercio-beta-6.0.0-f6-rc2-rev12`.
+- El intento 13 fue reservado a las 12:38:06 ART y terminó antes de extraer datos: Google clasificó la credencial anterior como `API_KEY_INVALID`. Por eso sus columnas de telemetría son `NULL` y el stock no cambió.
+- A las 12:45:30 ART se reemplazó `GEMINI_API_KEY` en Supabase con la única clave disponible y restringida a Gemini API que muestra Google Cloud. Sólo se registró el nuevo digest, nunca el valor.
+- Dos selecciones posteriores desde el navegador interno no llegaron a la Edge Function y no reservaron cupo. El contador permanece en 13/100; el smoke final debe repetirse desde una sesión recargada y no debe confirmarse el remito.

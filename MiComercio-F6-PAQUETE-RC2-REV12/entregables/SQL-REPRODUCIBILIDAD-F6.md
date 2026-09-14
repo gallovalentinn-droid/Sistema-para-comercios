@@ -1,12 +1,12 @@
 # Reproducibilidad SQL de F6
 
-Fecha de corte: 2026-09-08
+Fecha de corte: 2026-09-13
 Proyecto usado para las pruebas incrementales: Supabase QA `qrvdfqpxutymmlcplsal`
 PostgreSQL observado: 17.6.1
 
 ## Alcance exacto
 
-F6 contiene diez migraciones y ocho suites SQL propias:
+F6 contiene doce migraciones y ocho suites SQL propias:
 
 | Orden | Migración | Suite |
 |---:|---|---|
@@ -20,6 +20,8 @@ F6 contiene diez migraciones y ocho suites SQL propias:
 | 8 | `supabase/f6/08_product_images.sql` | `supabase/tests/f6_employees_images.test.sql` |
 | 9 | `supabase/f6/09_commerce_login_codes.sql` | `supabase/tests/f6_employees_images.test.sql` |
 | 10 | `supabase/f6/10_invoice_reader.sql` | `supabase/tests/f6_invoice_reader.test.sql` |
+| 11 | `supabase/f6/11_product_images_private.sql` | `supabase/tests/f6_employees_images.test.sql` |
+| 12 | `supabase/f6/12_invoice_reader_telemetry.sql` | `supabase/tests/f6_invoice_reader.test.sql` |
 
 Cada incremento fue probado sobre el baseline real de QA dentro de una transacción descartable. El 2026-09-08, después de aplicar `07` a `10`, se ejecutaron las ocho suites F6 y las ocho suites F5, cada una en una transacción descartable independiente: 16/16 suites PASS. Después de cada `ROLLBACK` no quedaron fixtures F5/F6 persistentes. La suite de soporte se corrigió para contar sólo sus cuatro fixtures, porque QA ya contiene un operador real persistente.
 
@@ -43,7 +45,7 @@ El paquete incluye las migraciones y suites F5 disponibles, pero no reconstruye 
 2. Confirmar PostgreSQL 15+.
 3. Ejecutar el preflight de datos y exigir cero incompatibilidades.
 4. Abrir una transacción.
-5. Aplicar `01` a `10` en orden.
+5. Aplicar `01` a `12` en orden.
 6. Ejecutar las ocho suites F6.
 7. Terminar con `ROLLBACK` mientras se valida el candidato.
 8. Comprobar que no quedaron tablas, funciones o fixtures creados por la prueba.
@@ -69,13 +71,15 @@ El 2026-09-08 se aplicaron `f6_commerce_login_codes_qa`, `f6_invoice_reader_qa`,
 
 El 2026-09-13 se aplicó persistentemente `f6_rev11_product_images_private`. La consulta posterior confirmó `storage.buckets.public=false` para `product-images` y un objeto existente. Una petición nueva a su ruta `/object/public/` devolvió HTTP 400, mientras el cliente autenticado REV11 generó una URL `/object/sign/` temporal y mostró la foto completa en Productos y Para pedir después de recargar.
 
+El mismo día se aplicó persistentemente `f6_rev12_invoice_reader_telemetry`. Extiende el contador canónico `factura_ai_uso_v4` con el modelo, los seis contadores de tokens, los nombres de campos reconocidos, la cantidad de renglones y la hora del resultado. La RPC de escritura es exclusiva de `service_role`, verifica que comercio, persona y `requestId` coincidan con la reserva y es idempotente para una repetición idéntica. La suite `f6_invoice_reader.test.sql` se ejecutó en una transacción descartable después de aplicar la migración y pasó completa.
+
 La reproducción de `10_invoice_reader.sql` requiere además dos objetos del baseline V4 que este paquete no crea: `public.factura_ai_uso_v4` y `private.business_date(uuid, timestamptz)`. La primera es el contador canónico; la segunda determina el mes operativo del comercio.
 
 Los secrets explícitos de allowlist y pepper quedaron configurados. El smoke histórico desde `Origin: null` perteneció a una etapa local de QA; esa autorización fue retirada antes de publicar la beta. La configuración vigente de `leer-factura` acepta únicamente `https://micomercio.ar`. El primer operador interno también quedó designado y el acceso autenticado al panel fue comprobado contra la Edge Function QA.
 
 Después del despliegue inicial se aplicó `f6_rc1_05_support_null_name_fix_qa`, que corrige el fallback de nombre del bootstrap cuando Auth no contiene `name` ni `full_name`. La prueba de regresión falló primero con SQLSTATE `23502`, pasó después de la migración y luego se repitieron las 14 suites F5/F6 con resultado 14/14 PASS.
 
-La aplicación todavía no está habilitada para el piloto: faltan los gates F5, el recorrido funcional completo y las pruebas concurrentes. Producción no fue modificada.
+La beta pública está habilitada para el comercio piloto. Antes de dar por terminada la etapa beta siguen pendientes el recorrido funcional completo, las dos carreras concurrentes documentadas arriba y el smoke final del lector desde una sesión de navegador renovada. La base usada continúa siendo el proyecto QA declarado en este documento.
 
 ## Límite de seguridad conocido en el baseline
 

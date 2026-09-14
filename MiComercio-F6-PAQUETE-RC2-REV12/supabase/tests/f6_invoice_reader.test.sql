@@ -5,6 +5,9 @@ begin
   if to_regprocedure('public.f6_service_reservar_lectura_factura(uuid,uuid,uuid)') is null then
     raise exception 'F6_IA_RESERVATION_RPC_MISSING';
   end if;
+  if to_regprocedure('public.f6_service_registrar_resultado_lectura_factura(uuid,uuid,uuid,text,jsonb,text[],integer)') is null then
+    raise exception 'F6_IA_TELEMETRY_RPC_MISSING';
+  end if;
   if not exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='comercio_licencias'
@@ -32,6 +35,11 @@ begin
      or has_function_privilege('authenticated','public.f6_service_reservar_lectura_factura(uuid,uuid,uuid)','EXECUTE')
      or has_function_privilege('anon','public.f6_service_reservar_lectura_factura(uuid,uuid,uuid)','EXECUTE') then
     raise exception 'F6_IA_RESERVATION_RPC_PRIVILEGES_INVALID';
+  end if;
+  if not has_function_privilege('service_role','public.f6_service_registrar_resultado_lectura_factura(uuid,uuid,uuid,text,jsonb,text[],integer)','EXECUTE')
+     or has_function_privilege('authenticated','public.f6_service_registrar_resultado_lectura_factura(uuid,uuid,uuid,text,jsonb,text[],integer)','EXECUTE')
+     or has_function_privilege('anon','public.f6_service_registrar_resultado_lectura_factura(uuid,uuid,uuid,text,jsonb,text[],integer)','EXECUTE') then
+    raise exception 'F6_IA_TELEMETRY_RPC_PRIVILEGES_INVALID';
   end if;
   if to_regprocedure('public.consumir_cupo_factura_ai()') is not null
      and (
@@ -90,6 +98,45 @@ begin
      or (v_result->>'limite')::integer<>100 then
     raise exception 'F6_IA_FIRST_RESERVATION_INVALID:%',v_result;
   end if;
+
+  v_result:=public.f6_service_registrar_resultado_lectura_factura(
+    v_owner,v_comercio,v_request1,'gemini-3.8-flash',
+    '{"inputTokens":1375,"outputTokens":241,"thoughtTokens":86,"cachedTokens":0,"toolUseTokens":0,"totalTokens":1702}'::jsonb,
+    array['proveedor','nroComprobante','total','descuentoGlobal','items'],1
+  );
+  if v_result->>'ok'<>'true' or v_result->>'replayed'<>'false' then
+    raise exception 'F6_IA_TELEMETRY_FIRST_WRITE_INVALID:%',v_result;
+  end if;
+  if not exists (
+    select 1 from public.factura_ai_uso_v4 lectura
+     where lectura.comercio_id=v_comercio and lectura.user_id=v_owner
+       and lectura.operation_id=v_request1::text and lectura.provider_model='gemini-3.8-flash'
+       and lectura.input_tokens=1375 and lectura.output_tokens=241
+       and lectura.thought_tokens=86 and lectura.total_tokens=1702
+       and lectura.recognized_items=1 and lectura.result_recorded_at is not null
+  ) then
+    raise exception 'F6_IA_TELEMETRY_NOT_PERSISTED';
+  end if;
+
+  v_result:=public.f6_service_registrar_resultado_lectura_factura(
+    v_owner,v_comercio,v_request1,'gemini-3.8-flash',
+    '{"inputTokens":1375,"outputTokens":241,"thoughtTokens":86,"cachedTokens":0,"toolUseTokens":0,"totalTokens":1702}'::jsonb,
+    array['proveedor','nroComprobante','total','descuentoGlobal','items'],1
+  );
+  if v_result->>'replayed'<>'true' then
+    raise exception 'F6_IA_TELEMETRY_REPLAY_NOT_IDEMPOTENT:%',v_result;
+  end if;
+
+  begin
+    perform public.f6_service_registrar_resultado_lectura_factura(
+      v_owner,v_comercio,v_request1,'gemini-3.8-flash',
+      '{"inputTokens":1375,"outputTokens":241,"thoughtTokens":86,"cachedTokens":0,"toolUseTokens":0,"totalTokens":1703}'::jsonb,
+      array['proveedor','nroComprobante','total','descuentoGlobal','items'],1
+    );
+    raise exception 'F6_IA_TELEMETRY_CONFLICT_ACCEPTED';
+  exception when others then
+    if sqlerrm not like '%F6_IA_TELEMETRY_CONFLICT%' then raise; end if;
+  end;
 
   v_result:=public.f6_service_reservar_lectura_factura(v_owner,v_comercio,v_request1);
   if v_result->>'ok'<>'true' or v_result->>'replayed'<>'true'

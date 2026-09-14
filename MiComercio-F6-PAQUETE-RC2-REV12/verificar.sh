@@ -6,9 +6,14 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 MANIFIESTO='SHA256SUMS-F6.txt'
-PRUEBAS_ESPERADAS=136
-SUITES_SQL_ESPERADAS=16
-MIGRACIONES_F6_ESPERADAS=11
+IDENTIDAD='entregables/BUILD-IDENTITY-F6.json'
+read -r PRUEBAS_ESPERADAS SUITES_SQL_ESPERADAS MIGRACIONES_F6_ESPERADAS < <(
+  node -e 'const i=require("./entregables/BUILD-IDENTITY-F6.json"); console.log(i.expected_local_tests,i.expected_sql_suites,i.expected_f6_migrations)'
+)
+if ! [[ "$PRUEBAS_ESPERADAS" =~ ^[0-9]+$ && "$SUITES_SQL_ESPERADAS" =~ ^[0-9]+$ && "$MIGRACIONES_F6_ESPERADAS" =~ ^[0-9]+$ ]]; then
+  echo "ERROR: inventario esperado inválido en $IDENTIDAD." >&2
+  exit 1
+fi
 
 echo '== 1. Integridad y cobertura =='
 sha256sum -c "$MANIFIESTO" > /dev/null

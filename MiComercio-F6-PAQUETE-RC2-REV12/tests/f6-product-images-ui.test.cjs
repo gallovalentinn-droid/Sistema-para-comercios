@@ -132,6 +132,22 @@ test('la resolución agrupa rutas, evita duplicados y reutiliza la URL firmada',
   assert.deepEqual(Array.from(context.__storageCalls[0].filePaths), ['comercio/p1.jpg']);
 });
 
+test('un repintado directo renueva una firma vencida sin cambiar de sección', async () => {
+  const context = loadUi(html(), `
+    const db={productos:[{nombre:'A',fotoPath:'comercio/p1.jpg'}]};
+    let vista='productos',repintados=0;
+    const tablaProductos=()=>{repintados+=1;};
+    const pintarPOS=()=>{},pintarReponer=()=>{};
+  `);
+  await vm.runInContext('f6PrepararFotosProductos(db.productos)', context);
+  vm.runInContext("f6FotosFirmadas.get('comercio/p1.jpg').expiresAt=0", context);
+  await vm.runInContext('f6RepintarFotosVisibles();f6FotosFirmando', context);
+
+  assert.equal(context.__storageCalls.length, 2);
+  assert.ok(vm.runInContext('repintados', context) >= 2);
+  assert.match(vm.runInContext('f6FotoProductoUrl(db.productos[0])', context), /\/sign\/product-images\//);
+});
+
 test('el contrato elimina getPublicUrl y vuelve privado el bucket', () => {
   const source = html();
   const core = sliceBetween(

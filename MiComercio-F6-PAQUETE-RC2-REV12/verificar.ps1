@@ -5,9 +5,13 @@ $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
 
 $Manifiesto        = 'SHA256SUMS-F6.txt'
-$PruebasEsperadas  = 136
-$SuitesSqlEsperadas = 16
-$MigracionesF6Esperadas = 11
+$Identidad = Get-Content -LiteralPath 'entregables/BUILD-IDENTITY-F6.json' -Raw | ConvertFrom-Json
+$PruebasEsperadas = [int]$Identidad.expected_local_tests
+$SuitesSqlEsperadas = [int]$Identidad.expected_sql_suites
+$MigracionesF6Esperadas = [int]$Identidad.expected_f6_migrations
+if ($PruebasEsperadas -lt 1 -or $SuitesSqlEsperadas -lt 1 -or $MigracionesF6Esperadas -lt 1) {
+  throw 'Inventario esperado inválido en entregables/BUILD-IDENTITY-F6.json.'
+}
 
 Write-Host '== 1. Integridad y cobertura =='
 

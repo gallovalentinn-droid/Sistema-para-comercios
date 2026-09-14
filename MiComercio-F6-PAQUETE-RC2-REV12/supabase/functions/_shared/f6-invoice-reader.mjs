@@ -10,6 +10,7 @@ const INVOICE_SCHEMA = Object.freeze({
     proveedor: { type: 'string' },
     nroComprobante: { type: 'string' },
     total: { type: 'number' },
+    descuentoGlobal: { type: 'number' },
     items: {
       type: 'array',
       items: {
@@ -25,7 +26,7 @@ const INVOICE_SCHEMA = Object.freeze({
       },
     },
   },
-  required: ['proveedor', 'nroComprobante', 'total', 'items'],
+  required: ['proveedor', 'nroComprobante', 'total', 'descuentoGlobal', 'items'],
 });
 
 const INVOICE_PROMPT = `Leé esta factura o remito de compra para un comercio argentino.
@@ -35,7 +36,8 @@ Para cada fila de producto:
 - cantidad: cantidad facturada de cajas, packs o unidades;
 - unidadesPorBulto: unidades sueltas por caja o pack; usá 1 si se compra suelto o el dato no figura;
 - precioUnit: precio de cada caja, pack o unidad de la columna cantidad, antes del descuento, no el subtotal de la fila;
-- descuento: importe monetario total bonificado en esa fila, o 0.
+- descuento: importe monetario total bonificado específicamente en esa fila, o 0;
+- descuentoGlobal: descuento general aplicado fuera de las filas (por pago, promoción o total de la factura), o 0. No lo repitas en descuento de cada fila.
 Usá números sin símbolos de moneda ni separadores de miles. Si la imagen no es una factura legible, devolvé items vacío. La persona revisará todos los valores antes de cargarlos.`;
 
 function isRecord(value) {
@@ -153,22 +155,43 @@ export function extractGeminiInvoice(response) {
   if (!isRecord(parsed) || !Array.isArray(parsed.items) || parsed.items.length > 200) {
     throw new Error('F6_GEMINI_OUTPUT_INVALID');
   }
+  const items = parsed.items.map((item) => {
+    if (!isRecord(item)) throw new Error('F6_GEMINI_OUTPUT_INVALID');
+    const producto = boundedText(item.producto, 200);
+    if (!producto) throw new Error('F6_GEMINI_OUTPUT_INVALID');
+    return {
+      producto,
+      cantidad: boundedNumber(item.cantidad, 1_000_000),
+      unidadesPorBulto: boundedNumber(item.unidadesPorBulto, 1_000_000, { integer: true, minimum: 1 }),
+      precioUnit: boundedNumber(item.precioUnit, 1_000_000_000),
+      descuento: boundedNumber(item.descuento, 1_000_000_000_000),
+    };
+  });
+  const descuentoGlobal = boundedNumber(parsed.descuentoGlobal, 1_000_000_000_000);
+  if (descuentoGlobal > 0) {
+    const bases = items.map((item) => Math.max(0, item.cantidad * item.precioUnit - item.descuento));
+    const totalBase = bases.reduce((sum, value) => sum + value, 0);
+    if (totalBase <= 0 || descuentoGlobal > totalBase + 0.005) throw new Error('F6_GEMINI_OUTPUT_INVALID');
+
+    let descuentoRestante = Math.round(descuentoGlobal * 100);
+    let baseRestante = totalBase;
+    items.forEach((item, index) => {
+      const base = bases[index];
+      const asignado = index === items.length - 1
+        ? descuentoRestante
+        : Math.min(descuentoRestante, Math.round(descuentoRestante * base / baseRestante));
+      item.descuento = Math.round((item.descuento + asignado / 100) * 100) / 100;
+      descuentoRestante -= asignado;
+      baseRestante -= base;
+    });
+  }
+
   return {
     proveedor: boundedText(parsed.proveedor, 160),
     nroComprobante: boundedText(parsed.nroComprobante, 80),
     total: boundedNumber(parsed.total, 1_000_000_000_000),
-    items: parsed.items.map((item) => {
-      if (!isRecord(item)) throw new Error('F6_GEMINI_OUTPUT_INVALID');
-      const producto = boundedText(item.producto, 200);
-      if (!producto) throw new Error('F6_GEMINI_OUTPUT_INVALID');
-      return {
-        producto,
-        cantidad: boundedNumber(item.cantidad, 1_000_000),
-        unidadesPorBulto: boundedNumber(item.unidadesPorBulto, 1_000_000, { integer: true, minimum: 1 }),
-        precioUnit: boundedNumber(item.precioUnit, 1_000_000_000),
-        descuento: boundedNumber(item.descuento, 1_000_000_000),
-      };
-    }),
+    descuentoGlobal,
+    items,
   };
 }
 
@@ -185,5 +208,22 @@ export function extractGeminiUsage(response) {
     cachedTokens: usageToken(usage.total_cached_tokens),
     toolUseTokens: usageToken(usage.total_tool_use_tokens),
     totalTokens: usageToken(usage.total_tokens),
+  };
+}
+
+export function buildInvoiceTelemetry({ invoice, usage, model = F6_INVOICE_MODEL }) {
+  const safeUsage = isRecord(usage) ? usage : {};
+  return {
+    model,
+    usage: {
+      inputTokens: usageToken(safeUsage.inputTokens),
+      outputTokens: usageToken(safeUsage.outputTokens),
+      thoughtTokens: usageToken(safeUsage.thoughtTokens),
+      cachedTokens: usageToken(safeUsage.cachedTokens),
+      toolUseTokens: usageToken(safeUsage.toolUseTokens),
+      totalTokens: usageToken(safeUsage.totalTokens),
+    },
+    recognizedFields: ['proveedor', 'nroComprobante', 'total', 'descuentoGlobal', 'items'],
+    recognizedItems: Array.isArray(invoice?.items) ? Math.min(200, invoice.items.length) : 0,
   };
 }

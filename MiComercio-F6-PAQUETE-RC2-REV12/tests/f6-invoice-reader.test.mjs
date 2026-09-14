@@ -34,6 +34,10 @@ const f6InvoiceSql = () => readFileSync(
   new URL('../supabase/f6/10_invoice_reader.sql', import.meta.url),
   'utf8',
 );
+const f6InvoiceTelemetrySql = () => readFileSync(
+  new URL('../supabase/f6/12_invoice_reader_telemetry.sql', import.meta.url),
+  'utf8',
+);
 
 test('acepta el contrato exacto de una imagen y formatos compatibles con cámaras', () => {
   for (const mediaType of ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']) {
@@ -85,7 +89,7 @@ test('construye una solicitud Gemini estructurada, efímera y sin secretos', () 
   assert.equal(request.input[1].data, PNG_1X1);
   assert.equal(request.input[1].mime_type, 'image/png');
   assert.equal(request.response_format.mime_type, 'application/json');
-  assert.deepEqual(request.response_format.schema.required.sort(), ['items', 'nroComprobante', 'proveedor', 'total'].sort());
+  assert.deepEqual(request.response_format.schema.required.sort(), ['descuentoGlobal', 'items', 'nroComprobante', 'proveedor', 'total'].sort());
   const schemaText = JSON.stringify(request.response_format.schema);
   assert.ok(schemaText.length < 800, 'el esquema enviado debe mantenerse debajo del límite práctico del proveedor');
   assert.doesNotMatch(schemaText, /description|additionalProperties|minimum|maxItems|minItems/);
@@ -103,6 +107,7 @@ test('extrae y sanea la respuesta, sin dejar pasar campos inventados', () => {
           proveedor: '  Distribuidora Sur  ',
           nroComprobante: ' A-123 ',
           total: 12500.5,
+          descuentoGlobal: 0,
           items: [{
             producto: ' Coca Cola 2,25 L ',
             cantidad: 2,
@@ -120,8 +125,38 @@ test('extrae y sanea la respuesta, sin dejar pasar campos inventados', () => {
     proveedor: 'Distribuidora Sur',
     nroComprobante: 'A-123',
     total: 12500.5,
+    descuentoGlobal: 0,
     items: [{ producto: 'Coca Cola 2,25 L', cantidad: 2, unidadesPorBulto: 6, precioUnit: 1000, descuento: 100 }],
   });
+});
+
+test('aplica el descuento global del ticket sintético sin duplicarlo', () => {
+  const invoice = extractGeminiInvoice({
+    status: 'completed',
+    steps: [{
+      type: 'model_output',
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          proveedor: 'Proveedor Genérico S.A.',
+          nroComprobante: '0001-00001234',
+          total: 3240,
+          descuentoGlobal: 360,
+          items: [{
+            producto: 'Alfajores Jorgito',
+            cantidad: 3,
+            unidadesPorBulto: 1,
+            precioUnit: 1200,
+            descuento: 0,
+          }],
+        }),
+      }],
+    }],
+  });
+
+  assert.equal(invoice.descuentoGlobal, 360);
+  assert.equal(invoice.items[0].descuento, 360);
+  assert.equal(invoice.items[0].cantidad * invoice.items[0].precioUnit - invoice.items[0].descuento, 3240);
 });
 
 test('rechaza respuestas incompletas, no JSON o con valores fuera de dominio', () => {
@@ -163,6 +198,30 @@ test('extrae el consumo real de tokens que informa Gemini', () => {
   });
 });
 
+test('construye telemetría sin guardar valores ni texto de la factura', () => {
+  assert.equal(typeof invoiceReader.buildInvoiceTelemetry, 'function');
+  const telemetry = invoiceReader.buildInvoiceTelemetry({
+    invoice: {
+      proveedor: 'Proveedor Genérico S.A.',
+      nroComprobante: '0001-00001234',
+      total: 3240,
+      descuentoGlobal: 360,
+      items: [{ producto: 'Alfajores Jorgito', cantidad: 3, unidadesPorBulto: 1, precioUnit: 1200, descuento: 360 }],
+    },
+    usage: { inputTokens: 1375, outputTokens: 241, thoughtTokens: 86, cachedTokens: 0, toolUseTokens: 0, totalTokens: 1702 },
+  });
+
+  assert.deepEqual(telemetry, {
+    model: 'gemini-3.8-flash',
+    usage: { inputTokens: 1375, outputTokens: 241, thoughtTokens: 86, cachedTokens: 0, toolUseTokens: 0, totalTokens: 1702 },
+    recognizedFields: ['proveedor', 'nroComprobante', 'total', 'descuentoGlobal', 'items'],
+    recognizedItems: 1,
+  });
+  assert.equal(JSON.stringify(telemetry).includes('Proveedor Genérico'), false);
+  assert.equal(JSON.stringify(telemetry).includes('Alfajores Jorgito'), false);
+  assert.equal(JSON.stringify(telemetry).includes('0001-00001234'), false);
+});
+
 test('clasifica errores del proveedor sin persistir su cuerpo', () => {
   assert.equal(classifyGeminiProviderError('API key not valid. Please pass a valid API key.'), 'API_KEY_INVALID');
   assert.equal(classifyGeminiProviderError('Invalid JSON payload received. Unknown name "thinking_level"'), 'FIELD_THINKING_LEVEL');
@@ -193,6 +252,18 @@ test('la Edge exige sesión, reserva cupo mensual y guarda Gemini sólo en secre
   assert.doesNotMatch(source, /AIza[0-9A-Za-z_-]{20,}/);
 });
 
+test('la Edge persiste telemetría antes de responder una lectura exitosa', () => {
+  const source = edgeSource();
+  const extraction = source.indexOf('const invoice = extractGeminiInvoice(providerBody)');
+  const persistence = source.indexOf('f6_service_registrar_resultado_lectura_factura');
+  const success = source.indexOf('return respond(origin, { ...invoice, iaUsage });');
+
+  assert.ok(extraction >= 0 && persistence > extraction && success > persistence);
+  assert.match(source, /buildInvoiceTelemetry/);
+  assert.match(source, /IA_TELEMETRIA_NO_REGISTRADA/);
+  assert.match(f6InvoiceTelemetrySql(), /grant execute on function public\.f6_service_registrar_resultado_lectura_factura[\s\S]*to service_role/iu);
+});
+
 test('el cliente registra el consumo real devuelto por cada lectura exitosa', async () => {
   const source = clientSource();
   const start = source.indexOf('function f6RegistrarUsoIa');
@@ -206,6 +277,7 @@ test('el cliente registra el consumo real devuelto por cada lectura exitosa', as
     sb: { functions: { invoke: async () => ({
       data: {
         proveedor: 'Proveedor QA', nroComprobante: 'A-1', total: 1200,
+        descuentoGlobal: 0,
         items: [{ producto: 'Yerba', cantidad: 2, unidadesPorBulto: 1, precioUnit: 600, descuento: 0 }],
         iaUsage: { inputTokens: 1375, outputTokens: 241, thoughtTokens: 86, cachedTokens: 0, toolUseTokens: 0, totalTokens: 1702 },
       },
@@ -229,6 +301,28 @@ test('el cliente registra el consumo real devuelto por cada lectura exitosa', as
     'F6_IA_USAGE',
     { inputTokens: 1375, outputTokens: 241, thoughtTokens: 86, cachedTokens: 0, toolUseTokens: 0, totalTokens: 1702 },
   ]]);
+});
+
+test('la revisión humana muestra el descuento global reconocido', () => {
+  const source = clientSource();
+  const start = source.indexOf('let revisionFactura=[];');
+  const end = source.indexOf('function pintarRevision', start);
+  assert.ok(start >= 0 && end > start, 'falta el armador de revisión de factura');
+
+  let captured = null;
+  const context = {
+    coincidenciaProducto: () => null,
+    detectarBulto: () => 1,
+    numFactura: (value) => Number(value) || 0,
+    modal: (options) => { captured = options; },
+    $m: (value) => `$${Number(value).toFixed(2)}`,
+  };
+  vm.createContext(context);
+  vm.runInContext(source.slice(start, end), context);
+  vm.runInContext(`abrirRevisionFactura({descuentoGlobal:360,items:[{producto:'Alfajores Jorgito',cantidad:3,unidadesPorBulto:1,precioUnit:1200,descuento:360}]});`, context);
+
+  assert.match(captured?.cuerpo ?? '', /Descuento general leído/);
+  assert.match(captured?.cuerpo ?? '', /\$360\.00/);
 });
 
 test('el selector de factura anuncia exclusivamente los formatos aceptados', () => {
