@@ -1,5 +1,6 @@
 export const F6_INVOICE_MAX_BYTES = 8 * 1024 * 1024;
 export const F6_INVOICE_MODEL = 'gemini-3.8-flash';
+export const F6_INVOICE_PROVIDER_TIMEOUT_MS = 90_000;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);

@@ -28,12 +28,12 @@ test('la identidad normativa F6 fija contratos, conteos y hash del artefacto', (
   assert.equal(identity.projection_contract, 'f5-projection-v1');
   assert.equal(identity.config_contract, '10-canonical+6-legacy-only');
   assert.equal(identity.license_contract, 'f6-license-v1');
-  assert.equal(identity.package_revision, 12);
-  assert.equal(identity.expected_local_tests, 141);
+  assert.equal(identity.package_revision, 13);
+  assert.equal(identity.expected_local_tests, 143);
   assert.equal(identity.expected_sql_suites, 16);
   assert.equal(identity.expected_f6_migrations, 12);
   assert.equal(identity.acceptance, 'candidate-pending-seven-day-pilot');
-  assert.equal(path.basename(ROOT), 'MiComercio-F6-PAQUETE-RC2-REV12');
+  assert.equal(path.basename(ROOT), 'MiComercio-F6-PAQUETE-RC2-REV13');
   const artifact = path.join(ROOT, identity.artifact.path);
   const hash = crypto.createHash('sha256').update(fs.readFileSync(artifact)).digest('hex');
   assert.equal(hash, identity.artifact.sha256);

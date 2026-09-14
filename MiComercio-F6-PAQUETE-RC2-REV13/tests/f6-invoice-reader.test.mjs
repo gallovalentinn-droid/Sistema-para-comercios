@@ -236,6 +236,11 @@ test('acota a 200 caracteres el mensaje seguro de un error de procesamiento', ()
   assert.equal(invoiceReader.safeGeminiErrorMessage({ message: 'no confiable' }), 'unknown');
 });
 
+test('da a Gemini una ventana suficiente sin superar el límite de Supabase Free', () => {
+  assert.equal(invoiceReader.F6_INVOICE_PROVIDER_TIMEOUT_MS, 90_000);
+  assert.ok(invoiceReader.F6_INVOICE_PROVIDER_TIMEOUT_MS < 150_000);
+});
+
 test('la Edge exige sesión, reserva cupo mensual y guarda Gemini sólo en secretos', () => {
   const source = edgeSource();
   assert.match(source, /getClaims/);
@@ -394,6 +399,38 @@ test('el cliente normaliza el MIME aceptado antes de enviarlo al servidor', asyn
   await vm.runInContext(`leerFacturaFoto({size:32,type:'IMAGE/JPEG'},{});`, context);
 
   assert.equal(sentBody?.mediaType, 'image/jpeg');
+});
+
+test('el cliente explica cuando Gemini agotó el tiempo y permite volver a intentar', async () => {
+  const source = clientSource();
+  const start = source.indexOf('function f6RegistrarUsoIa');
+  const end = source.indexOf('let revisionFactura=[];', start);
+  assert.ok(start >= 0 && end > start, 'falta el bloque del lector IA en el cliente');
+
+  const avisos = [];
+  const context = {
+    $: () => ({ innerHTML: 'Elegir foto', style: {} }),
+    sb: { functions: { invoke: async () => ({
+      data: null,
+      error: { context: { clone: () => ({ json: async () => ({ code: 'IA_TIEMPO_AGOTADO' }) }) } },
+    }) } },
+    sesion: {},
+    f3Estado: { comercioId: COMMERCE_ID },
+    fileABase64: async () => PNG_1X1,
+    crypto: { randomUUID: () => REQUEST_ID },
+    abrirRevisionFactura: () => {},
+    aviso: (...args) => avisos.push(args),
+    document: { body: { contains: () => true } },
+    console: { info: () => {}, error: () => {} },
+  };
+  vm.createContext(context);
+  vm.runInContext(source.slice(start, end), context);
+  await vm.runInContext(`leerFacturaFoto({size:32,type:'image/png'},{});`, context);
+
+  assert.equal(
+    avisos.at(-1)?.[0],
+    'La lectura tardó más de lo esperado. No se cargó ningún producto; volvé a intentar con la misma foto.',
+  );
 });
 
 test('el permiso del lector permanece dentro del catálogo canónico F5', () => {

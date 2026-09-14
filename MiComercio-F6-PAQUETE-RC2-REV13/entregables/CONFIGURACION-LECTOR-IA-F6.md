@@ -1,6 +1,6 @@
 # Configuración del lector de facturas con IA
 
-Fecha de corte: 2026-09-13
+Fecha de corte: 2026-09-14
 Entorno: beta pública / Supabase QA `qrvdfqpxutymmlcplsal`
 Build cliente: `6.0.0-f6-rc2`
 
@@ -34,11 +34,11 @@ Cada afirmación de este documento está respaldada por el código del paquete o
 
 - Proyecto: `qrvdfqpxutymmlcplsal`.
 - Función desplegada: `leer-factura`.
-- Versión desplegada al corte: 15, activa y con JWT obligatorio a nivel de plataforma. **Informado por Supabase; no reproducible únicamente desde este paquete.** Con independencia de ese ajuste, la función exige sesión en su propio código y responde `SESION_REQUERIDA` sin token.
-- SHA-256 remoto informado por Supabase: `c3f6393492fd32d541117ae18a9ddfcba6ea5a3da0b29c5104b8685fdd3e6070`. Es el hash del bundle de plataforma y no se deriva directamente de un único archivo. La versión 15 incorpora el descuento general y la persistencia de telemetría REV12.
+- Versión desplegada al corte: 17, activa y con JWT obligatorio a nivel de plataforma. **Informado por Supabase; no reproducible únicamente desde este paquete.** Con independencia de ese ajuste, la función exige sesión en su propio código y responde `SESION_REQUERIDA` sin token.
+- SHA-256 remoto informado por Supabase: `ad4ce05e96bb6fef08225dc8ced055f89867a54e0050e933d1d80265f436de75`. Es el hash del bundle de plataforma y no se deriva directamente de un único archivo. La versión 17 amplía la ventana del proveedor después de dos timeouts reales consecutivos.
 - Límite del cuerpo HTTP: 12 MB, controlado por `content-length` y también durante la lectura del stream. Da margen al crecimiento de Base64 —8 MB decodificados son unos 10,7 MB codificados— sin permitir cuerpos arbitrariamente grandes.
 - Límite de la imagen decodificada: 8 MB, calculado desde la longitud del Base64 sin decodificar la imagen.
-- Timeout hacia Google: 25 segundos, con `AbortController`.
+- Timeout hacia Google: 90 segundos, con `AbortController`. Permanece por debajo del idle timeout de 150 segundos de Supabase Free y deja margen para autenticación, reserva y persistencia.
 - Orígenes permitidos: se leen de `F6_ALLOWED_ORIGINS`. Una solicitud **sin** cabecera `Origin` no atraviesa este control —es el comportamiento normal de CORS, y por eso el origen no es una frontera de autorización: la autorización real la dan el JWT y la RPC—. Si la variable queda vacía, toda solicitud de navegador recibe 403 mientras las que no son de navegador siguen sujetas a JWT y autorización. Al corte, el digest publicado por Supabase coincide exactamente con `https://micomercio.ar`; la allowlist no contiene `null`.
 - Secreto de proveedor: `GEMINI_API_KEY`. Este documento registra solamente el nombre; el valor no está en GitHub, HTML, evidencia ni ZIP.
 - Autorización: dueño y administrador; empleado únicamente si su membresía activa tiene `permisos.productos_editar = true`. La RPC evalúa esa regla en línea, con una definición propia equivalente a la autoridad efectiva de F5 —no puede reusar `private.f5_permisos_efectivos`, que resuelve `auth.uid()`, porque la reserva corre como `service_role` con el actor pasado por parámetro—. Una regresión local verifica que `productos_editar` siga existiendo en `private.f5_catalogo_permisos()` y que la reserva F6 use esa misma clave.
@@ -61,7 +61,7 @@ Cada afirmación de este documento está respaldada por el código del paquete o
 | Google responde 429 | 429 | `IA_AGOTADA_TEMPORALMENTE` |
 | Google responde 400 o 422 | 422 | `FACTURA_NO_RECONOCIDA` |
 | Otro error de Google | 503 | `IA_NO_DISPONIBLE` |
-| Timeout de 25 s | 504 | `IA_TIEMPO_AGOTADO` |
+| Timeout de 90 s | 504 | `IA_TIEMPO_AGOTADO` |
 | Respuesta incompleta o fuera de contrato | 422 | `FACTURA_NO_RECONOCIDA` |
 | Telemetría del resultado no persistida | 503 | `IA_TELEMETRIA_NO_REGISTRADA` |
 
@@ -101,9 +101,9 @@ El código que recibe el cliente se decide por el status HTTP de Google. La cate
 - El límite es por comercio, no por persona ni por dispositivo: el conteo del período sólo filtra por `comercio_id`.
 - El 100 no es sólo una regla de producto: la columna `comercio_licencias.limite_ia_mensual` tiene una restricción `check (limite_ia_mensual between 0 and 100)`. Bajarlo es un `UPDATE` —0 deshabilita el lector para ese comercio—, pero **subirlo por encima de 100 requiere una migración**, no un cambio de datos. Es una decisión a prever antes de ofrecer un plan pago.
 - La reserva es atómica: se serializa con un `pg_advisory_xact_lock` por comercio y período, y se realiza antes de llamar a Google.
-- **Todo intento que pasa validación y autorización consume cupo**, incluso si nunca llega a Google: un error de red desde Supabase, un timeout a los 25 segundos, una foto ilegible o una respuesta que el validador rechaza. La reserva se compromete antes del pedido y no existe ninguna ruta que la libere. Es deliberado: evita eludir el límite mediante reintentos. No consumen cupo, en cambio, los intentos rechazados antes de la reserva: formato o contrato inválido, tamaño excedido, falta de sesión, falta de permiso, licencia no operable o configuración ausente.
+- **Todo intento que pasa validación y autorización consume cupo**, incluso si nunca llega a Google: un error de red desde Supabase, un timeout del proveedor, una foto ilegible o una respuesta que el validador rechaza. La reserva se compromete antes del pedido y no existe ninguna ruta que la libere. Es deliberado: evita eludir el límite mediante reintentos. No consumen cupo, en cambio, los intentos rechazados antes de la reserva: formato o contrato inválido, tamaño excedido, falta de sesión, falta de permiso, licencia no operable o configuración ausente.
 - El mismo `requestId` es idempotente por comercio, persona y solicitud. Como el cliente genera un UUID nuevo en cada invocación, esta protección no cubre el reintento desde la pantalla: sólo el reenvío externo del mismo identificador.
-- Al cierre de esta evidencia, la tabla canónica registra 13/100 intentos del mes para el comercio piloto. El intento 13 se reservó el 13/09/2026 a las 12:38:06 ART y Google rechazó la credencial anterior con categoría segura `API_KEY_INVALID`; no se obtuvo factura ni telemetría de resultado. La credencial activa de Google se volvió a copiar a Supabase y el digest cambió a las 12:45:30 ART sin exponer el valor. Los intentos posteriores desde el navegador interno fallaron antes de llegar al servidor y no consumieron cupo. Quedan 87 intentos. Datos leídos del proyecto QA; no reproducibles únicamente desde este paquete.
+- Al cierre de esta evidencia, la tabla canónica registra 15/100 intentos del mes para el comercio piloto. El intento 13 se reservó el 13/09/2026 a las 12:38:06 ART y Google rechazó la credencial anterior con categoría segura `API_KEY_INVALID`. Los intentos 14 y 15 se reservaron el 14/09/2026 a las 11:27:19 y 11:30:49 ART; los logs muestran `AbortError` exactamente 25 segundos después en ambos casos. Ninguno produjo factura, telemetría de resultado ni cambios de stock. Quedan 85 intentos. Datos leídos del proyecto QA; no reproducibles únicamente desde este paquete.
 - La trazabilidad histórica del intento 12 se conserva: `operation_id=97569323-a1b6-44c2-9d15-618e1ae91840`, reservado por el dueño piloto el 12/09/2026 a las 13:37:19 ART y terminado con HTTP 200. Los once anteriores fueron pruebas técnicas; no se los agrupa con ese éxito ni con el fallo de credencial del intento 13.
 
 Además del techo de esquema de 100, Google aplica sus propios límites del nivel gratuito, medidos en solicitudes por minuto, tokens de entrada por minuto y solicitudes por día, **por proyecto y no por clave de API**. Google no publica las cifras del nivel gratuito: hay que consultarlas en AI Studio para este proyecto.
@@ -141,7 +141,7 @@ Fuentes oficiales vigentes al corte, verificadas el 2026-09-12:
 
 ## 6. Resultado de QA al corte
 
-- El endpoint, el modelo, la imagen y el esquema liviano habían completado una invocación HTTP 200 en el intento 12. El intento 13 reveló que el secret de Supabase ya no correspondía a una clave válida; fue reemplazado por la clave activa mostrada en Google Cloud. Falta un smoke nuevo que llegue al servidor para confirmar el reemplazo.
+- El endpoint, el modelo, la imagen y el esquema liviano habían completado una invocación HTTP 200 en el intento 12. El intento 13 reveló una clave inválida. Los intentos 14 y 15 llegaron luego al proveedor con la clave renovada y fueron abortados por el límite local de 25 segundos; esa es la causa confirmada del error reportado por el usuario.
 - El esquema original, más profundo, fue aislado como la causa del HTTP 400 y fue reemplazado por el contrato liviano con validación estricta posterior.
 - La versión 14 quedó activa sin probes temporales, con mensajes de procesamiento acotados a 200 caracteres; una regresión impide reintroducir los marcadores usados durante el diagnóstico. La versión subió al reemplazar el secret, pero el paquete de código remoto conservó el mismo SHA-256 de la versión 13.
 - Los intentos técnicos anteriores llegaron a Google y registraron HTTP 429. El intento 12, identificado arriba, completó la función con HTTP 200; queda separado de esos once intentos y no se presenta como otro error de cuota.
@@ -152,7 +152,7 @@ Fuentes oficiales vigentes al corte, verificadas el 2026-09-12:
 
 Pendiente al corte:
 
-- Repetir desde una sesión de navegador renovada la factura sintética incluida en `tests/fixtures/ticket-descuento-global.png`; debe reconocer un descuento general de $360 y un total neto de $3.240. No confirmar el remito durante el smoke.
+- Repetir con la versión 17 la factura sintética incluida en `tests/fixtures/ticket-descuento-global.png`; debe completar dentro de 90 segundos, reconocer un descuento general de $360 y un total neto de $3.240. No confirmar el remito durante el smoke.
 - Observar durante el piloto facturas extensas: el tope de salida de 8192 tokens puede truncar una respuesta antes del límite local de 200 renglones.
 
 Rotación de credencial completada el 2026-09-12:

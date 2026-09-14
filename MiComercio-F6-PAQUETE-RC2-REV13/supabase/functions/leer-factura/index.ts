@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.111.0";
 import { jsonResponse } from "../_shared/f5-auth-core.mjs";
 import {
   F6_INVOICE_MODEL,
+  F6_INVOICE_PROVIDER_TIMEOUT_MS,
   buildGeminiInvoiceRequest,
   buildInvoiceTelemetry,
   classifyGeminiProviderError,
@@ -13,7 +14,6 @@ import {
 } from "../_shared/f6-invoice-reader.mjs";
 
 const BODY_LIMIT_BYTES = 12 * 1024 * 1024;
-const GEMINI_TIMEOUT_MS = 25_000;
 
 function envFirst(...names: string[]): string {
   for (const name of names) {
@@ -163,7 +163,7 @@ Deno.serve(async (request: Request) => {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), F6_INVOICE_PROVIDER_TIMEOUT_MS);
   try {
     const providerResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
       method: "POST",

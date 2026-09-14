@@ -105,7 +105,7 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 
 - El navegador envía solamente la foto elegida, el comercio y un `requestId` a la Edge Function autenticada `leer-factura`. Cada intento manual crea un `requestId` nuevo; sólo una repetición exacta del mismo envío de transporte conserva el anterior.
 - La clave de Gemini vive únicamente como secret `GEMINI_API_KEY`; no se incorpora al HTML, al repositorio ni al ZIP.
-- El request usa `gemini-3.8-flash`, `store:false`, `thinking_level: low`, JSON Schema, máximo de 8192 tokens de salida y timeout de 25 segundos.
+- El request usa `gemini-3.8-flash`, `store:false`, `thinking_level: low`, JSON Schema, máximo de 8192 tokens de salida y timeout de 90 segundos.
 - El selector ofrece únicamente JPEG, PNG, WebP, HEIC y HEIF. El cliente rechaza tipo ausente o incompatible antes de convertir la foto a Base64 o llamar a Supabase; el servidor vuelve a validar tamaño, Base64 y tipo.
 - La imagen no se guarda en Postgres. Sólo se registra una reserva de cupo sin contenido de la factura en la tabla canónica V4 `factura_ai_uso_v4`; no existe un contador F6 paralelo.
 - El límite mensual se aplica de forma atómica por comercio y mes operativo; en la beta es 100 intentos que superaron las validaciones locales y la autorización del servidor. La reserva ocurre antes de llamar al proveedor: los errores de red, timeout o cuota de Google también consumen un intento.
@@ -117,7 +117,7 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 ## 9. Evidencia ejecutada
 
 - 16 suites locales descubiertas automáticamente.
-- 141 pruebas declaradas. REV12 agrega regresiones para descuento general, reparto proporcional, telemetría segura, orden de persistencia y visualización del descuento.
+- 143 pruebas declaradas. REV13 agrega regresiones para evitar volver al timeout insuficiente y para mostrar al usuario un mensaje específico cuando el proveedor agota el tiempo.
 - Identidad JSON/HTML comparada por ejecución aislada del bloque del navegador.
 - Pruebas de sintaxis del artefacto HTML y de las funciones TypeScript disponibles con Node.
 - Ocho suites SQL F6 y ocho F5 ejecutadas en PostgreSQL QA: 16/16 PASS dentro de transacciones descartables.
@@ -128,7 +128,7 @@ Los dos flags externos —baseline y PIN— son deliberadamente explícitos: el 
 
 Falta la fase operativa de QA, no más funcionalidad de diseño:
 
-- completar el smoke de la factura sintética desde una sesión recargada: el intento 13 detectó una clave inválida, la clave activa ya fue reinstalada y los intentos posteriores del navegador interno no llegaron al servidor ni consumieron cupo;
+- completar el smoke de la factura sintética con la Edge versión 17: los intentos 14 y 15 confirmaron que el límite anterior de 25 segundos cancelaba a Gemini; la corrección amplía la ventana a 90 segundos;
 - ejecutar el piloto de siete días y decidir aprobación o repetición;
 
 Producción queda fuera de alcance. La migración conjunta F5+F6 se prepara únicamente después de que el piloto termine aprobado.

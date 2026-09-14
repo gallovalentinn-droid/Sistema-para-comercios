@@ -352,3 +352,13 @@ Hasta completar esos puntos, el artefacto está aplicado como candidato técnico
 - El intento 13 fue reservado a las 12:38:06 ART y terminó antes de extraer datos: Google clasificó la credencial anterior como `API_KEY_INVALID`. Por eso sus columnas de telemetría son `NULL` y el stock no cambió.
 - A las 12:45:30 ART se reemplazó `GEMINI_API_KEY` en Supabase con la única clave disponible y restringida a Gemini API que muestra Google Cloud. Sólo se registró el nuevo digest, nunca el valor.
 - Dos selecciones posteriores desde el navegador interno no llegaron a la Edge Function y no reservaron cupo. El contador permanece en 13/100; el smoke final debe repetirse desde una sesión recargada y no debe confirmarse el remito.
+
+## Corrección RC2 revisión 13 — timeout del lector — 2026-09-14
+
+- Las reservas 440 y 441 corresponden a los dos errores reportados: se crearon a las 11:27:19 y 11:30:49 ART. En ambos casos las columnas de resultado quedaron en `NULL`.
+- Los logs de `leer-factura` muestran `F6_GEMINI_PROCESSING_ERROR` con `AbortError` a las 11:27:44 y 11:31:14 ART: exactamente 25 segundos después de cada reserva. La causa es el timeout local anterior, no el formato ni la legibilidad de los tickets.
+- El timeout pasa a 90 segundos, por debajo del request idle timeout de 150 segundos del plan Supabase Free. Una regresión impide volver al valor insuficiente.
+- El cliente muestra una explicación específica para `IA_TIEMPO_AGOTADO` y confirma que no cargó productos. Una segunda regresión cubre ese comportamiento.
+- `leer-factura` versión 17 quedó activa con JWT obligatorio y SHA-256 remoto `ad4ce05e96bb6fef08225dc8ced055f89867a54e0050e933d1d80265f436de75`.
+- El contador queda en 15/100; quedan 85 intentos. Ninguno de los dos fallos generó telemetría de resultado ni cambios de stock.
+- GitHub Pages completó correctamente el despliegue del commit `55c441f`. Una lectura independiente del dominio devolvió HTTP 200 y confirmó `packageRevision: 13` y el mensaje específico de timeout.
