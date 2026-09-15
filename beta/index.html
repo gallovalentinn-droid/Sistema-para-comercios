@@ -435,7 +435,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:16,
+  packageRevision:17,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -5923,8 +5923,8 @@ function vFiado(m){
     <div class="row"><button class="btn ghost" id="bMora">Configurar mora</button><button class="btn" id="nc">Nuevo cliente</button></div>
   </div>
   <div class="grid3" style="margin-bottom:20px">
-    <div class="kpi"><span>Total en la calle</span><b style="color:var(--rojo)">${$m(deuda)}</b></div>
-    <div class="kpi"><span>Clientes que deben</span><b>${deben.length}</b><small>de ${cs.length} en la libreta</small></div>
+    <div class="kpi"><span>Total adeudado</span><b style="color:var(--rojo)">${$m(deuda)}</b></div>
+    <div class="kpi"><span>Clientes con fiado</span><b>${deben.length}</b><small>de ${cs.length} en la libreta</small></div>
     <div class="kpi"><span>En mora</span><b style="color:${enMora.length?'var(--ambar)':'var(--txt)'}">${enMora.length}</b><small>tienen deuda vencida</small></div>
   </div>
   <div class="card">
@@ -6407,15 +6407,18 @@ function resumenStockBusquedaHtml({q,desde,hasta,ventas,inicioLabel='Inicio',fin
 function verVentasTurno(cierreId){
   const c=db.cierres.find(x=>x.id===cierreId); if(!c) return;
   const ventas=ventasDeCierre(c).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const cantidad=Number(c.cantVentas??ventas.length)||0;
+  const faltantes=Math.max(0,cantidad-ventas.length);
   modal({titulo:'Ventas del turno — '+fFH(c.hasta), ancho:true,
-    cuerpo: ventas.length? `
+    cuerpo: `
       <div class="grid3" style="margin-bottom:16px">
-        <div class="kpi"><span>Ventas</span><b>${ventas.length}</b></div>
+        <div class="kpi"><span>Ventas</span><b>${cantidad}</b></div>
         <div class="kpi"><span>Vendido</span><b>${$m(c.total)}</b></div>
         <div class="kpi"><span>Turno</span><b style="font-size:15px">${fFH(c.desde)} → ${fFH(c.hasta)}</b></div>
       </div>
-      <div class="card" style="margin:0"><div class="card-b"><label class="f" for="qCajaCierre">Buscar en estas ventas</label><input class="inp" id="qCajaCierre" placeholder="Nombre del producto…" autocomplete="off"></div><div id="ventasCajaCierre"></div></div>`
-      : `<div class="empty"><b>No hay ventas guardadas de este turno</b>Puede ser un cierre sin movimientos, o de una versión anterior del sistema.</div>`,
+      ${faltantes?`<div class="hint" style="margin-bottom:16px">Falta el detalle de ${faltantes} ${faltantes===1?'venta':'ventas'} en este dispositivo. El resumen muestra los importes guardados al cerrar el turno.</div>`:''}
+      ${ventas.length?`<div class="card" style="margin:0"><div class="card-b"><label class="f" for="qCajaCierre">Buscar en estas ventas</label><input class="inp" id="qCajaCierre" placeholder="Nombre del producto…" autocomplete="off"></div><div id="ventasCajaCierre"></div></div>`
+      :faltantes?'':`<div class="empty"><b>Este turno se cerró sin ventas</b>El cierre quedó guardado en el historial.</div>`}`,
     pie:`<button class="btn ghost" data-cerrar>Cerrar</button>`,
     alAbrir:ov=>{
       if(!ventas.length) return;
@@ -6504,13 +6507,38 @@ function pintarVentasCajaActual(t){
   else ventasBox.innerHTML=tablaVentasBusqueda(filtradas,{permitirAnular:true});
   $$('[data-anular-venta]',ventasBox).forEach(b=>b.onclick=()=>formAnularVenta(b.dataset.anularVenta));
 }
+function htmlCierresAnteriores(){
+  const cierres=[...(db.cierres||[])].sort((a,b)=>(Date.parse(b.hasta)||0)-(Date.parse(a.hasta)||0));
+  return `<div class="card" style="margin-top:22px">
+    <div class="card-h"><h2>Cierres anteriores</h2></div>
+    ${cierres.length?`<table class="mtable"><thead><tr><th>Fecha</th><th class="r">Ventas</th><th class="r">Vendido</th><th class="r">Gral. contado</th><th class="r">Gral. dif.</th><th class="r">Cigarrillos contado</th><th class="r">Cigarrillos dif.</th><th>Nota</th><th></th></tr></thead><tbody>
+      ${cierres.map(c=>`<tr>
+        <td data-label="Fecha" class="num">${fFH(c.hasta)}</td>
+        <td data-label="Ventas" class="r num">${c.cantVentas}</td>
+        <td data-label="Vendido" class="r num" style="font-weight:600">${$m(c.total)}</td>
+        <td data-label="Gral. contado" class="r num">${$m(c.contadoGeneral)}</td>
+        <td data-label="Gral. dif." class="r"><span class="pill ${Math.abs(c.diferenciaGeneral)<0.01?'ok':c.diferenciaGeneral<0?'bad':'warn'} num">${c.diferenciaGeneral>0?'+':''}${nfM.format(c.diferenciaGeneral)}</span></td>
+        <td data-label="Cigarrillos contado" class="r num">${$m(c.contadoCigarros)}</td>
+        <td data-label="Cigarrillos dif." class="r"><span class="pill ${Math.abs(c.diferenciaCigarros)<0.01?'ok':c.diferenciaCigarros<0?'bad':'warn'} num">${c.diferenciaCigarros>0?'+':''}${nfM.format(c.diferenciaCigarros)}</span></td>
+        <td data-label="Nota" style="color:var(--muted);font-size:13px">${esc(c.nota||'—')}</td>
+        <td class="r" style="white-space:nowrap"><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></td></tr>`).join('')}
+      </tbody></table>`
+    :`<div class="empty"><b>Sin cierres todavía</b>Los cierres de este comercio quedan registrados acá, incluidos los realizados por empleados cuando se sincronizan.</div>`}
+  </div>`;
+}
+function enlazarCierresAnteriores(m){
+  $$('[data-vt]',m).forEach(b=>b.onclick=()=>verVentasTurno(b.dataset.vt));
+  $$('[data-wa]',m).forEach(b=>b.onclick=()=>{const c=db.cierres.find(x=>x.id===b.dataset.wa);if(c)modalEnviarResumen(c);});
+}
 function vCaja(m){
   const activeSession=f3Estado&&f3Estado.session&&f3Estado.session.estado==='abierta'?f3Estado.session:null;
   const sessionId=f5SesionIds(activeSession).effectiveId;
   const t=f3Activo()?turnoActual(sessionId):turnoLegacyActual();
   if(!t){
     m.innerHTML=`<div class="head"><div><h1>Caja</h1><div class="sub">No hay un turno abierto en este dispositivo.</div></div></div>
-      <div class="card"><div class="card-b"><div class="empty"><b>No hay un turno abierto</b>Abrí uno para separar correctamente sus ventas, cobros y egresos.<br><button class="btn" id="abrirTurnoCaja" style="margin-top:16px">Abrir turno</button></div></div></div>`;
+      <div class="card"><div class="card-b"><div class="empty"><b>No hay un turno abierto</b>Abrí uno para separar correctamente sus ventas, cobros y egresos.<br><button class="btn" id="abrirTurnoCaja" style="margin-top:16px">Abrir turno</button></div></div></div>
+      ${htmlCierresAnteriores()}`;
+    enlazarCierresAnteriores(m);
     $('#abrirTurnoCaja').onclick=async()=>{
       try{if(typeof f5ExigirEscritura==='function')f5ExigirEscritura('abrir_turno');f3AsegurarSesionLocal();await f3GuardarEstadoLocal();render();aviso('Turno abierto','ok');}
       catch(error){aviso('No se puede abrir un turno mientras el sistema está en sólo lectura.','bad');}
@@ -6605,27 +6633,11 @@ function vCaja(m){
       </div>
     </div>
   </div>
-  <div class="card" style="margin-top:22px">
-    <div class="card-h"><h2>Cierres anteriores</h2></div>
-    ${db.cierres.length?`<table class="mtable"><thead><tr><th>Fecha</th><th class="r">Ventas</th><th class="r">Vendido</th><th class="r">Gral. contado</th><th class="r">Gral. dif.</th><th class="r">Cigarrillos contado</th><th class="r">Cigarrillos dif.</th><th>Nota</th><th></th></tr></thead><tbody>
-      ${[...db.cierres].reverse().map(c=>`<tr>
-        <td data-label="Fecha" class="num">${fFH(c.hasta)}</td>
-        <td data-label="Ventas" class="r num">${c.cantVentas}</td>
-        <td data-label="Vendido" class="r num" style="font-weight:600">${$m(c.total)}</td>
-        <td data-label="Gral. contado" class="r num">${$m(c.contadoGeneral)}</td>
-        <td data-label="Gral. dif." class="r"><span class="pill ${Math.abs(c.diferenciaGeneral)<0.01?'ok':c.diferenciaGeneral<0?'bad':'warn'} num">${c.diferenciaGeneral>0?'+':''}${nfM.format(c.diferenciaGeneral)}</span></td>
-        <td data-label="Cigarrillos contado" class="r num">${$m(c.contadoCigarros)}</td>
-        <td data-label="Cigarrillos dif." class="r"><span class="pill ${Math.abs(c.diferenciaCigarros)<0.01?'ok':c.diferenciaCigarros<0?'bad':'warn'} num">${c.diferenciaCigarros>0?'+':''}${nfM.format(c.diferenciaCigarros)}</span></td>
-        <td data-label="Nota" style="color:var(--muted);font-size:13px">${esc(c.nota||'—')}</td>
-        <td class="r" style="white-space:nowrap"><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></td></tr>`).join('')}
-      </tbody></table>`
-    :`<div class="empty"><b>Sin cierres todavía</b>Cada vez que cierres la caja queda registrado acá, para poder mirar atrás.</div>`}
-  </div>`;
+  ${htmlCierresAnteriores()}`;
   const qCaja=$('#qCajaTurno');
   if(qCaja) qCaja.oninput=e=>{busCajaTurno=e.target.value;pintarVentasCajaActual(t);};
   pintarVentasCajaActual(t);
-  $$('[data-vt]').forEach(b=>b.onclick=()=>verVentasTurno(b.dataset.vt));
-  $$('[data-wa]').forEach(b=>b.onclick=()=>{const c=db.cierres.find(x=>x.id===b.dataset.wa); if(c) modalEnviarResumen(c);});
+  enlazarCierresAnteriores(m);
 
   const armarDif=(inp,esperado,box)=>{
     if(!inp||!box) return;
@@ -8444,6 +8456,12 @@ const F32B_OPERATION_SPECS=[
 function f32bEstado(){
   const p=f32EstadoPull();
   p.operationalVersion=F32B_VERSION;
+  // REV17: volver a leer una vez los cierres que pudieron omitirse al cambiar
+  // de usuario en el mismo dispositivo. El mapeo por UUID evita duplicados.
+  if(!p.cierresPorUsuarioRevisados){
+    delete p.cursores.cierres_caja;
+    p.cierresPorUsuarioRevisados=true;
+  }
   if(!p.diferidosOperativos||typeof p.diferidosOperativos!=='object') p.diferidosOperativos={};
   if(!p.diferidosOperativos.venta_anulaciones) p.diferidosOperativos.venta_anulaciones={};
   if(!p.diferidosOperativos.cierre_ajustes) p.diferidosOperativos.cierre_ajustes={};
@@ -8700,9 +8718,11 @@ async function f32bProcesarFila(spec,row,extra,{desdeDiferido=false}={}){
   f32bEstado();
   const deviceIdFila=f32bDeviceFila(spec,row,extra);
 
-  // ECO PUSH->PULL: las operaciones originadas por este device ya existen en IndexedDB/legacy.
-  // Se avanza el cursor pero no se reinyecta ningún efecto. Slice B no es recovery de un db local perdido.
-  if(deviceIdFila&&String(deviceIdFila)===String(f3Estado.deviceUuid||'')){
+  // IndexedDB pertenece al usuario; el device se comparte dentro del comercio.
+  // Un cierre del mismo dispositivo sólo es eco si ya existe para este usuario.
+  // Los demás tipos conservan su deduplicación para no repetir efectos de stock/saldo.
+  const cierreLocal=spec.kind==='cierre'?f32LocalParaRemoto('cierres',row,db).actual:null;
+  if(deviceIdFila&&String(deviceIdFila)===String(f3Estado.deviceUuid||'')&&(spec.kind!=='cierre'||cierreLocal)){
     if(desdeDiferido)return {aplicados:0,borrados:0,diferidos:0,propiosOmitidos:1};
     return f32bAvanzarOmitida(spec,row,'propiosOmitidos');
   }

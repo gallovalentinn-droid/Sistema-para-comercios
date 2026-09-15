@@ -8,9 +8,14 @@ const artifactPath = path.resolve(__dirname, '../beta/index.html');
 const serviceWorkerPath = path.resolve(__dirname, '../beta/sw.js');
 const html = () => fs.readFileSync(artifactPath, 'utf8');
 
-test('el cache offline publicado corresponde a REV16', () => {
+test('el cache offline corresponde a la identidad de build del HTML', () => {
   const serviceWorker = fs.readFileSync(serviceWorkerPath, 'utf8');
-  assert.match(serviceWorker, /micomercio-beta-6\.0\.0-f6-rc2-rev16/);
+  const identity = html().match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/);
+  assert.ok(identity, 'falta la identidad del build');
+  const build = vm.runInNewContext(`(${identity[1]})`);
+  const cache = serviceWorker.match(/const CACHE='([^']+)'/);
+  assert.ok(cache, 'falta la identidad del cache');
+  assert.equal(cache[1], `micomercio-beta-${build.version}-rev${build.packageRevision}`);
 });
 
 function sliceBetween(source, start, end) {
