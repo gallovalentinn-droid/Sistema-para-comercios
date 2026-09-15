@@ -1,0 +1,175 @@
+# Configuración del lector de facturas con IA
+
+Fecha de corte: 2026-09-14
+Entorno: beta pública / Supabase QA `qrvdfqpxutymmlcplsal`
+Build cliente: `6.0.0-f6-rc2`
+
+Cada afirmación de este documento está respaldada por el código del paquete o por documentación oficial de Google vigente al corte. Lo que sólo consta como informe de la plataforma, y no puede reproducirse desde este paquete, está marcado como tal.
+
+## 1. Flujo completo
+
+1. La persona abre Productos y pulsa `Cargar factura`.
+2. El selector del navegador ofrece únicamente JPEG, PNG, WebP, HEIC y HEIF de hasta 8 MB. El cliente valida tamaño y MIME antes de leer Base64 o invocar Supabase; el servidor repite la misma lista blanca como defensa en profundidad. Un formato incompatible o sin MIME se rechaza con un mensaje específico y no consume cupo.
+3. El cliente convierte la imagen a Base64 y envía `comercioId`, `requestId`, `imageBase64` y `mediaType` a la Edge Function autenticada `leer-factura`.
+4. La función aplica, en este orden: allowlist de origen, método, tamaño del cuerpo, contrato y formato de la entrada, presencia de configuración, sesión, y luego —en una única RPC— membresía del comercio, rol o permiso, licencia operable y reserva de cupo. Recién después llama a Google.
+5. La llamada a Gemini se hace desde Supabase. La clave nunca llega al navegador.
+6. La respuesta se reduce al contrato permitido. Antes de devolver HTTP 200, la función persiste en Supabase el modelo, los seis contadores de tokens y una telemetría estructural sin valores de la factura.
+7. El sistema abre una pantalla de revisión. Hay **dos confirmaciones manuales y separadas**:
+   - Al confirmar la revisión («Cargar a la factura») se crean los productos de las filas que la persona marcó como «+ Crear producto nuevo» y se llenan los renglones del remito en borrador.
+   - El **stock se modifica recién al confirmar el remito**. Ningún dato leído por la IA cambia stock sin ese segundo paso.
+
+## 2. Configuración, campo por campo
+
+### Cliente público
+
+- Función remota: `leer-factura`.
+- Tamaño máximo previo al envío: 8 MB, medido sobre el archivo elegido.
+- Selector: `accept="image/jpeg,image/png,image/webp,image/heic,image/heif"` con `capture="environment"`.
+- MIME enviado: el que informa el navegador, normalizado a minúsculas. Si viene vacío o fuera de la lista, el cliente rechaza el archivo antes de leerlo o enviarlo; nunca lo etiqueta como JPEG por su cuenta.
+- Identificador de comercio: el comercio autenticado actualmente seleccionado.
+- `requestId`: UUID nuevo generado **en cada invocación**. No protege el reintento humano: si la persona vuelve a elegir la misma foto, el `requestId` es distinto y el intento consume un lugar nuevo del cupo. La idempotencia del servidor sólo actúa cuando se reenvía exactamente el mismo `requestId` —un reintento de transporte o una llamada externa—, no cuando la persona reintenta desde la pantalla.
+- Registro local de consumo: `F6_IA_USAGE` en la consola, con entrada, salida, razonamiento, caché, herramientas y total. La misma medición se persiste en el servidor desde REV12. Ninguno de los dos registros incluye la imagen, el texto de la factura ni la clave.
+
+### Edge Function de Supabase
+
+- Proyecto: `qrvdfqpxutymmlcplsal`.
+- Función desplegada: `leer-factura`.
+- Versión desplegada al corte: 17, activa y con JWT obligatorio a nivel de plataforma. **Informado por Supabase; no reproducible únicamente desde este paquete.** Con independencia de ese ajuste, la función exige sesión en su propio código y responde `SESION_REQUERIDA` sin token.
+- SHA-256 remoto informado por Supabase: `ad4ce05e96bb6fef08225dc8ced055f89867a54e0050e933d1d80265f436de75`. Es el hash del bundle de plataforma y no se deriva directamente de un único archivo. La versión 17 amplía la ventana del proveedor después de dos timeouts reales consecutivos.
+- Límite del cuerpo HTTP: 12 MB, controlado por `content-length` y también durante la lectura del stream. Da margen al crecimiento de Base64 —8 MB decodificados son unos 10,7 MB codificados— sin permitir cuerpos arbitrariamente grandes.
+- Límite de la imagen decodificada: 8 MB, calculado desde la longitud del Base64 sin decodificar la imagen.
+- Timeout hacia Google: 90 segundos, con `AbortController`. Permanece por debajo del idle timeout de 150 segundos de Supabase Free y deja margen para autenticación, reserva y persistencia.
+- Orígenes permitidos: se leen de `F6_ALLOWED_ORIGINS`. Una solicitud **sin** cabecera `Origin` no atraviesa este control —es el comportamiento normal de CORS, y por eso el origen no es una frontera de autorización: la autorización real la dan el JWT y la RPC—. Si la variable queda vacía, toda solicitud de navegador recibe 403 mientras las que no son de navegador siguen sujetas a JWT y autorización. Al corte, el digest publicado por Supabase coincide exactamente con `https://micomercio.ar`; la allowlist no contiene `null`.
+- Secreto de proveedor: `GEMINI_API_KEY`. Este documento registra solamente el nombre; el valor no está en GitHub, HTML, evidencia ni ZIP.
+- Autorización: dueño y administrador; empleado únicamente si su membresía activa tiene `permisos.productos_editar = true`. La RPC evalúa esa regla en línea, con una definición propia equivalente a la autoridad efectiva de F5 —no puede reusar `private.f5_permisos_efectivos`, que resuelve `auth.uid()`, porque la reserva corre como `service_role` con el actor pasado por parámetro—. Una regresión local verifica que `productos_editar` siga existiendo en `private.f5_catalogo_permisos()` y que la reserva F6 use esa misma clave.
+- Licencia: debe estar operable en el servidor (`private.licencia_activa`).
+- Logs de proveedor: sólo estado HTTP, categoría, tipo de contenido y cantidad de bytes. Los errores de procesamiento registran nombre y un mensaje acotado a 200 caracteres. No se registra el cuerpo de error, prompt, clave o imagen.
+
+### Tabla de errores
+
+| Situación | HTTP | Código al cliente |
+|---|---|---|
+| Origen fuera de la allowlist | 403 | `ORIGEN_NO_PERMITIDO` (se responde sin cabeceras CORS, así que un navegador ve un error de red y no llega a leer el código) |
+| Método distinto de POST | 405 | `METODO_NO_PERMITIDO` |
+| Cuerpo o contrato inválido, MIME fuera de la lista, Base64 inválido | 400 | `DATOS_INVALIDOS` |
+| Cuerpo o imagen fuera de límite | 413 | `IMAGEN_DEMASIADO_GRANDE` |
+| Falta configuración o secreto | 503 | `IA_NO_CONFIGURADA` (antes de reservar cupo) |
+| Sin token / token inválido | 401 | `SESION_REQUERIDA` / `SESION_INVALIDA` |
+| Sin rol ni permiso | 403 | `SIN_PERMISO` |
+| Licencia no operable | 403 | `LICENCIA_NO_OPERABLE` |
+| Cupo mensual agotado | 429 | `LIMITE_IA_MENSUAL`, con `limite` y `usados` |
+| Google responde 429 | 429 | `IA_AGOTADA_TEMPORALMENTE` |
+| Google responde 400 o 422 | 422 | `FACTURA_NO_RECONOCIDA` |
+| Otro error de Google | 503 | `IA_NO_DISPONIBLE` |
+| Timeout de 90 s | 504 | `IA_TIEMPO_AGOTADO` |
+| Respuesta incompleta o fuera de contrato | 422 | `FACTURA_NO_RECONOCIDA` |
+| Telemetría del resultado no persistida | 503 | `IA_TELEMETRIA_NO_REGISTRADA` |
+
+El código que recibe el cliente se decide por el status HTTP de Google. La categoría que se escribe en el log (`QUOTA_EXCEEDED`, `API_KEY_INVALID`, `INVALID_ARGUMENT`, etc.) se decide por separado, con una clasificación por texto del error, y prioriza cuota sobre facturación. Los dos mecanismos son independientes: un 429 cuyo cuerpo no mencione cuota se registra con otra categoría y el cliente igual recibe `IA_AGOTADA_TEMPORALMENTE`.
+
+### Solicitud a Gemini
+
+- Endpoint: `https://generativelanguage.googleapis.com/v1beta/interactions`.
+- Modelo: `gemini-3.8-flash`.
+- Persistencia pedida al proveedor: `store: false`.
+- Entrada 1: instrucciones en español para extraer únicamente datos visibles y no inventar valores.
+- Entrada 2: imagen Base64 con el MIME informado por el cliente.
+- Formato de respuesta: texto con MIME `application/json` y esquema estructurado.
+- Campos de cabecera: `proveedor`, `nroComprobante`, `total`, `descuentoGlobal`, `items`.
+- Campos por renglón: `producto`, `cantidad`, `unidadesPorBulto`, `precioUnit`, `descuento`.
+- Máximo de salida: 8192 tokens. Es un tope autoimpuesto, muy por debajo del límite del modelo, que Google documenta en 65.536. Tiene una consecuencia práctica: con 8192 tokens el tope de 200 renglones del validador es en la práctica inalcanzable, y una factura muy larga se corta por tokens antes que por renglones. El JSON truncado no parsea y la lectura se pierde completa, con el cupo ya consumido.
+- Nivel de razonamiento: `low`. La documentación del modelo indica que `minimal` no está soportado y devuelve error; QA lo confirmó.
+- Esquema enviado al proveedor: deliberadamente liviano, 483 bytes serializados (539 con el bloque `response_format` completo). Los límites finos se aplican después en código local porque la variante más profunda fue rechazada por Google con `INVALID_ARGUMENT` durante QA.
+
+### Validación de la respuesta
+
+- Se exige `status: "completed"` y se toma el último texto no vacío de un paso `model_output`.
+- Máximo: 200 renglones. Excederlo **invalida la lectura completa**; no se recorta.
+- Proveedor: texto de hasta 160 caracteres.
+- Comprobante: texto de hasta 80 caracteres.
+- Producto: texto no vacío de hasta 200 caracteres.
+- Total: número finito, entre 0 y 1.000.000.000.000.
+- Cantidad: número finito, entre 0 y 1.000.000.
+- Precio unitario y descuento: números finitos, entre 0 y 1.000.000.000.
+- Descuento general: número finito entre 0 y 1.000.000.000.000. Si existe, se distribuye proporcionalmente entre los renglones después de respetar sus descuentos propios; no se duplica sobre una bonificación que ya esté incluida por línea.
+- Unidades por bulto: entero entre 1 y 1.000.000.
+- El objeto de salida se reconstruye campo por campo, así que cualquier campo que no forme parte del contrato se descarta.
+
+## 3. Cupo propio de MiComercio
+
+- Límite: 100 intentos por comercio y mes operativo, definido por `private.business_date` del comercio.
+- El límite es por comercio, no por persona ni por dispositivo: el conteo del período sólo filtra por `comercio_id`.
+- El 100 no es sólo una regla de producto: la columna `comercio_licencias.limite_ia_mensual` tiene una restricción `check (limite_ia_mensual between 0 and 100)`. Bajarlo es un `UPDATE` —0 deshabilita el lector para ese comercio—, pero **subirlo por encima de 100 requiere una migración**, no un cambio de datos. Es una decisión a prever antes de ofrecer un plan pago.
+- La reserva es atómica: se serializa con un `pg_advisory_xact_lock` por comercio y período, y se realiza antes de llamar a Google.
+- **Todo intento que pasa validación y autorización consume cupo**, incluso si nunca llega a Google: un error de red desde Supabase, un timeout del proveedor, una foto ilegible o una respuesta que el validador rechaza. La reserva se compromete antes del pedido y no existe ninguna ruta que la libere. Es deliberado: evita eludir el límite mediante reintentos. No consumen cupo, en cambio, los intentos rechazados antes de la reserva: formato o contrato inválido, tamaño excedido, falta de sesión, falta de permiso, licencia no operable o configuración ausente.
+- El mismo `requestId` es idempotente por comercio, persona y solicitud. Como el cliente genera un UUID nuevo en cada invocación, esta protección no cubre el reintento desde la pantalla: sólo el reenvío externo del mismo identificador.
+- Al cierre de esta evidencia, la tabla canónica registra 15/100 intentos del mes para el comercio piloto. El intento 13 se reservó el 13/09/2026 a las 12:38:06 ART y Google rechazó la credencial anterior con categoría segura `API_KEY_INVALID`. Los intentos 14 y 15 se reservaron el 14/09/2026 a las 11:27:19 y 11:30:49 ART; los logs muestran `AbortError` exactamente 25 segundos después en ambos casos. Ninguno produjo factura, telemetría de resultado ni cambios de stock. Quedan 85 intentos. Datos leídos del proyecto QA; no reproducibles únicamente desde este paquete.
+- La trazabilidad histórica del intento 12 se conserva: `operation_id=97569323-a1b6-44c2-9d15-618e1ae91840`, reservado por el dueño piloto el 12/09/2026 a las 13:37:19 ART y terminado con HTTP 200. Los once anteriores fueron pruebas técnicas; no se los agrupa con ese éxito ni con el fallo de credencial del intento 13.
+
+Además del techo de esquema de 100, Google aplica sus propios límites del nivel gratuito, medidos en solicitudes por minuto, tokens de entrada por minuto y solicitudes por día, **por proyecto y no por clave de API**. Google no publica las cifras del nivel gratuito: hay que consultarlas en AI Studio para este proyecto.
+
+## 4. Tokens por llamada
+
+La función devuelve exactamente los contadores que entrega Gemini:
+
+- `inputTokens` (`total_input_tokens`): prompt más representación procesada de la imagen.
+- `outputTokens` (`total_output_tokens`): JSON de la factura.
+- `thoughtTokens` (`total_thought_tokens`): razonamiento interno facturable o medido por el modelo.
+- `cachedTokens` (`total_cached_tokens`): parte de la entrada servida desde caché.
+- `toolUseTokens` (`total_tool_use_tokens`): uso de herramientas del modelo, normalmente cero en este flujo.
+- `totalTokens` (`total_tokens`): total informado por Google.
+
+Cualquier contador ausente o no entero se normaliza a cero, tanto en la función como en el cliente. REV12 los guarda en `factura_ai_uso_v4` únicamente después de una respuesta válida y no almacena importes, textos ni la imagen.
+
+No existe un número fijo por factura: cambia con resolución, tamaño, nitidez, cantidad de renglones y razonamiento. No se inventa una estimación. Las lecturas anteriores a REV12 no pueden reconstruirse retrospectivamente; las posteriores quedan medibles en la tabla canónica. El intento 13 no tiene tokens porque Google rechazó la credencial antes de procesar la imagen.
+
+## 5. Costo y privacidad del plan elegido
+
+- Plan elegido: nivel gratuito de Gemini.
+- Costo actual de entrada y salida para `gemini-3.8-flash` en el nivel gratuito: USD 0.
+- Si el proyecto pasa a pago, la tarifa publicada hasta el 31 de diciembre de 2026 es USD 0,75 por millón de tokens de entrada y USD 3,75 por millón de tokens de salida, incluyendo razonamiento. Google publica USD 1,50 y USD 7,50 respectivamente desde el 1 de enero de 2027.
+- En el nivel gratuito, Google indica que el contenido puede usarse para mejorar sus productos. En pago indica que no. `store:false` evita guardar la interacción como recurso recuperable, pero no convierte el nivel gratuito en un contrato de no entrenamiento.
+- Por esa razón, durante QA se usa únicamente una factura sintética sin datos personales. Antes de usar facturas reales de terceros se debe revisar y aceptar esta condición o migrar al nivel pago.
+
+Fuentes oficiales vigentes al corte, verificadas el 2026-09-12:
+
+- Modelo: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash
+- Formato estructurado: https://ai.google.dev/gemini-api/docs/structured-output
+- Interactions API: https://ai.google.dev/api/interactions-api
+- Precios y uso de datos: https://ai.google.dev/gemini-api/docs/pricing
+- Límites: https://ai.google.dev/gemini-api/docs/rate-limits
+
+## 6. Resultado de QA al corte
+
+- El endpoint, el modelo, la imagen y el esquema liviano habían completado una invocación HTTP 200 en el intento 12. El intento 13 reveló una clave inválida. Los intentos 14 y 15 llegaron luego al proveedor con la clave renovada y fueron abortados por el límite local de 25 segundos; esa es la causa confirmada del error reportado por el usuario.
+- El esquema original, más profundo, fue aislado como la causa del HTTP 400 y fue reemplazado por el contrato liviano con validación estricta posterior.
+- La versión 14 quedó activa sin probes temporales, con mensajes de procesamiento acotados a 200 caracteres; una regresión impide reintroducir los marcadores usados durante el diagnóstico. La versión subió al reemplazar el secret, pero el paquete de código remoto conservó el mismo SHA-256 de la versión 13.
+- Los intentos técnicos anteriores llegaron a Google y registraron HTTP 429. El intento 12, identificado arriba, completó la función con HTTP 200; queda separado de esos once intentos y no se presenta como otro error de cuota.
+- La carga de stock no fue confirmada y no se modificaron productos durante la prueba.
+- La revisión 9 normaliza una sola vez el MIME aceptado y envía ese valor normalizado al servidor; eliminó el fallback JPEG que ya no era alcanzable.
+- La revisión 9 incorpora un detector compartido por Windows y Linux para las dos familias de credenciales Gemini conocidas por el proyecto. El detector informa únicamente el archivo afectado y nunca imprime el valor encontrado.
+- La revisión 11 conserva las fotos en Ventas, Productos y Para pedir, pero sirve las persistidas desde un bucket privado mediante URLs firmadas de una hora almacenadas sólo en memoria. La grilla estable se conserva y cuatro regresiones nuevas cubren privacidad, caché, reloj y trazabilidad.
+
+Pendiente al corte:
+
+- Repetir con la versión 17 la factura sintética incluida en `tests/fixtures/ticket-descuento-global.png`; debe completar dentro de 90 segundos, reconocer un descuento general de $360 y un total neto de $3.240. No confirmar el remito durante el smoke.
+- Observar durante el piloto facturas extensas: el tope de salida de 8192 tokens puede truncar una respuesta antes del límite local de 200 renglones.
+
+Rotación de credencial completada el 2026-09-12:
+
+- Se creó una clave nueva vinculada a la cuenta de servicio del lector y restringida exclusivamente a Gemini API.
+- `GEMINI_API_KEY` se reemplazó en Supabase. El digest y la fecha de actualización cambiaron; el valor no se registró en este documento, Git, logs ni paquetes.
+- La credencial anterior fue revocada después de verificar la sustitución. Google Cloud muestra únicamente la nueva clave entre las credenciales activas.
+- El 13/09/2026 el intento 13 mostró que Supabase conservaba un valor inválido. Se volvió a tomar la única clave disponible en Google Cloud y se reemplazó `GEMINI_API_KEY`; el digest de Supabase cambió. El valor sigue fuera de Git, HTML, logs y paquetes.
+- La revisión del panel previo a la rotación mostró errores 400/429 y un máximo visible de 16 errores en el período consultado. Varias gráficas no cargaron y no hubo desglose atribuible por solicitud, por lo que no se afirma ni se descarta uso de terceros.
+
+## 7. Dependencias de baseline del lector
+
+Las migraciones del lector consumen objetos que este paquete no reconstruye. Además del baseline general de `SQL-REPRODUCIBILIDAD-F6.md`, la reserva de cupo requiere:
+
+- `public.factura_ai_uso_v4`, la tabla canónica de consumo heredada de V4. La migración falla con `F6_IA_USAGE_V4_TABLE_MISSING` si no existe.
+- `private.business_date(uuid, timestamptz)`, que define el mes operativo del comercio. No está definida en este paquete.
+- `private.licencia_activa(uuid)`, definida en `supabase/f6/04_licenses.sql`.
+- `public.comercio_miembros` y `public.comercio_licencias`.
+
+Un fallo por cualquiera de estos objetos ausentes no debe presentarse como un fallo de lógica del lector.

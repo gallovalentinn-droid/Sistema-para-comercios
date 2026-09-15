@@ -1,0 +1,12 @@
+{
+  "build": "5.0.0-f5-rc2",
+  "package_revision": 10,
+  "created_at": "2026-09-04",
+  "projection_contract": "f5-projection-v1",
+  "config_contract": "10-canonical+6-legacy-only",
+  "acceptance": "candidate-pending-v4-only-browser-gate",
+  "artifact": {
+    "path": "entregables/MiComercio-F5-PRUEBA.html",
+    "sha256": "05412b8b2edcd785716f854f88fc863c47c51a659f17394fb05bbd7a5a537d43"
+  }
+}
