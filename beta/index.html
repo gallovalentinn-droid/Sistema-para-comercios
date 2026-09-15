@@ -459,13 +459,14 @@ const sb = (typeof supabase!=='undefined' && SUPABASE_URL.startsWith('http'))
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 /* F5_EMPLOYEE_LOGIN_CORE_START */
+function f5ErrorLoginEmpleado(code){const error=new Error(code);error.code=code;return error;}
 function f5CredencialesEmpleado(value={}){
   const comercio=String(value.comercio||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
   const usuario=String(value.usuario||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
   const clave=typeof value.clave==='string'?value.clave:'';
-  if(!/^[a-z0-9]{10}$/.test(comercio))throw new Error('F5_LOGIN_COMERCIO_INVALIDO');
-  if(!usuario||usuario.length>80||!/^[a-z0-9._-]+$/.test(usuario))throw new Error('F5_LOGIN_USUARIO_INVALIDO');
-  if(clave.length<8||clave.length>128)throw new Error('F5_LOGIN_CLAVE_INVALIDA');
+  if(!/^[a-z0-9]{10}$/.test(comercio))throw f5ErrorLoginEmpleado('F5_LOGIN_COMERCIO_INVALIDO');
+  if(!usuario||usuario.length>80||!/^[a-z0-9._-]+$/.test(usuario))throw f5ErrorLoginEmpleado('F5_LOGIN_USUARIO_INVALIDO');
+  if(clave.length<8||clave.length>128)throw f5ErrorLoginEmpleado('F5_LOGIN_CLAVE_INVALIDA');
   return {comercio,usuario,clave};
 }
 function f5CrearSolicitudLoginEmpleado({fetchFn,url,anonKey}){

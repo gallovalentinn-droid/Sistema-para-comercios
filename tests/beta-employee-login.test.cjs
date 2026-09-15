@@ -35,10 +35,14 @@ test('normaliza código y usuario antes de autenticar al empleado', () => {
     usuario: 'caja_1',
     clave: 'peludito12',
   });
-  assert.throws(
-    () => f5CredencialesEmpleado({ comercio: 'corto', usuario: 'caja', clave: 'peludito12' }),
-    /F5_LOGIN_COMERCIO_INVALIDO/,
-  );
+  let validationError = null;
+  try {
+    f5CredencialesEmpleado({ comercio: 'corto', usuario: 'caja', clave: 'peludito12' });
+  } catch (error) {
+    validationError = error;
+  }
+  assert.match(validationError?.message || '', /F5_LOGIN_COMERCIO_INVALIDO/);
+  assert.equal(validationError.code, 'F5_LOGIN_COMERCIO_INVALIDO');
 });
 
 test('envía las credenciales al endpoint público sin simular un correo técnico', async () => {
