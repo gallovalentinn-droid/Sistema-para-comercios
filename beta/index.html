@@ -435,7 +435,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:14,
+  packageRevision:15,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -11096,11 +11096,26 @@ async function f6PrepararInvitacion(){
   }
   return result;
 }
+/* F6_ONBOARDING_GATE_CORE_START */
+// `f6_onboarding_actual` exige rol 'duenio' (private._f6_assert_owner) y levanta
+// F6_ONBOARDING_OWNER_REQUIRED para cualquier otro miembro. El onboarding es del
+// dueño: un empleado no lo ve ni debe quedar bloqueado por él al iniciar sesión.
+function f6EsErrorSoloDuenio(error){
+  if(!error)return false;
+  const partes=[error.message,error.code,error.details,error.hint,error];
+  return partes.some(p=>String(p==null?'':p).includes('F6_ONBOARDING_OWNER_REQUIRED'));
+}
 async function f6OnboardingPendiente(){
   if(!f3Estado.comercioId||!window.MiComercioF6Onboarding)return false;
-  f6WizardState=await window.MiComercioF6Onboarding.cargar(f3Estado.comercioId);
+  try{
+    f6WizardState=await window.MiComercioF6Onboarding.cargar(f3Estado.comercioId);
+  }catch(error){
+    if(f6EsErrorSoloDuenio(error))return false;
+    throw error;
+  }
   return f6WizardState.estado!=='completo';
 }
+/* F6_ONBOARDING_GATE_CORE_END */
 const F6_WIZARD_COPY=Object.freeze({
   datos_comercio:['Datos del comercio','Nombre, zona horaria y horario de corte del día.'],
   caja_inicial:['Caja inicial','Creá la primera caja y definí su fondo.'],
@@ -11215,7 +11230,15 @@ $('#onboardingForm').addEventListener('submit',async event=>{
       }
       catch(err){ console.error(err); r={ok:false,msg:'Error inesperado: '+(err.message||err)}; }
       btn.disabled=false; btn.textContent='Ingresar';
-      if(r.ok&&!f6InvitationReady)await f43PostLoginSuccess();
+      if(r.ok&&!f6InvitationReady){
+        // Sin este try, una falla al abrir el comercio deja la pantalla muerta:
+        // el submit termina con una promesa rechazada y nadie avisa nada.
+        try{ await f43PostLoginSuccess(); }
+        catch(err){
+          console.error(err);
+          mostrarLogin({texto:'Entraste, pero no pudimos abrir el comercio. Revisá tu conexión y volvé a intentar.',tipo:'warn'});
+        }
+      }
       else mostrarLogin({texto:r.msg,tipo:r.tipo||'bad'});
     });
     $('#btnCrearAcceso').addEventListener('click',async()=>{
