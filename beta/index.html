@@ -445,7 +445,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:19,
+  packageRevision:20,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -7346,6 +7346,44 @@ function f5AbrirCambioClaveEmpleado(miembro){
     const btn=$('#f5ConfirmarClaveEmpleado',ov);btn.onclick=async()=>{const clave=$('#f5NuevaClaveEmpleado',ov).value,repetida=$('#f5RepetirClaveEmpleado',ov).value;if(clave.length<8||clave.length>128){aviso('La clave debe tener al menos 8 caracteres','bad');return;}if(clave!==repetida){aviso('Las claves no coinciden','bad');return;}btn.disabled=true;try{await f5MembersRequest({accion:'restablecer_clave',usuario:miembro.usuario,clave});cerrarModal();aviso('Clave actualizada','ok');}catch(e){aviso('No pudimos cambiar la clave','bad');btn.disabled=false;}};
   }});
 }
+/* F5_BUSINESS_CONFIG_CORE_START */
+function f5CrearGuardadoDatosComercio({guardarNombreRemoto,aplicarLocal}){
+  if(typeof guardarNombreRemoto!=='function'||typeof aplicarLocal!=='function')throw new Error('F5_COMERCIO_GUARDADO_INVALIDO');
+  return async function guardarDatosComercio(input={}){
+    const nombre=String(input.nombre||'').trim()||'Mi Comercio';
+    const nroVenta=Math.max(1,Math.floor(Number(input.nroVenta)||1));
+    const whatsappDueno=String(input.whatsappDueno||'').trim();
+    const datos={nombre,nroVenta,whatsappDueno};
+    const confirmado=await guardarNombreRemoto(nombre);
+    if(!confirmado||String(confirmado.nombre||'').trim()!==nombre)throw new Error('F5_COMERCIO_NOMBRE_NO_CONFIRMADO');
+    await aplicarLocal(datos);
+    return datos;
+  };
+}
+/* F5_BUSINESS_CONFIG_CORE_END */
+async function f5GuardarNombreComercioRemoto(nombre){
+  if(!(sb&&sesion))return {id:null,nombre};
+  if(!enLinea)throw new Error('F5_COMERCIO_GUARDADO_SIN_CONEXION');
+  const comercioId=f3Estado.comercioId;
+  if(!comercioId)throw new Error('F5_COMERCIO_GUARDADO_SIN_CONTEXTO');
+  if(nombre===f3Estado.comercioNombre)return {id:comercioId,nombre};
+  const {data,error}=await sb.from('comercios').update({nombre}).eq('id',comercioId).select('id,nombre').maybeSingle();
+  if(error)throw error;
+  return data;
+}
+const f5GuardarDatosComercio=f5CrearGuardadoDatosComercio({
+  guardarNombreRemoto:f5GuardarNombreComercioRemoto,
+  aplicarLocal:async datos=>{
+    db.config.nombre=datos.nombre;
+    db.config.nroVenta=datos.nroVenta;
+    db.config.whatsappDueno=datos.whatsappDueno;
+    f3Estado.comercioNombre=datos.nombre;
+    await f3GuardarEstadoLocal();
+    guardar();
+    await esperarPersistenciaLocal();
+    render();
+  }
+});
 function vConfig(m){
   const perm=db.config.permisosEmpleado||{};
   const u=db.config.ultBackup;
@@ -7367,7 +7405,7 @@ function vConfig(m){
     <div class="card-b">
       <div class="grid2">
         <div><label class="f" for="cfgNom">Nombre en el ticket</label>
-          <input id="cfgNom" class="inp" value="${esc(db.config.nombre)}"></div>
+          <input id="cfgNom" class="inp" maxlength="120" value="${esc(db.config.nombre)}"></div>
         <div><label class="f" for="cfgNro">Próximo Nº de ticket</label>
           <input id="cfgNro" class="inp num" value="${db.config.nroVenta}"></div>
       </div>
@@ -7472,10 +7510,17 @@ function vConfig(m){
     if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
   });
   $('#okCfg').onclick=async()=>{
-    db.config.nombre=$('#cfgNom').value.trim()||'Mi Comercio';
-    db.config.nroVenta=Math.max(1,Math.floor(num($('#cfgNro').value))||1);
-    db.config.whatsappDueno=$('#cfgWa').value.trim();
-    guardar();render();aviso('Datos guardados','ok');
+    const btn=$('#okCfg');
+    btn.disabled=true;
+    try{
+      await f5GuardarDatosComercio({nombre:$('#cfgNom').value,nroVenta:$('#cfgNro').value,whatsappDueno:$('#cfgWa').value});
+      aviso('Datos guardados','ok');
+    }catch(e){
+      console.error('No se pudieron guardar los datos del comercio:',e);
+      aviso('No pudimos guardar los datos. Revisá la conexión e intentá nuevamente.','bad');
+    }finally{
+      if(document.body.contains(btn))btn.disabled=false;
+    }
   };
   $('#cambiarPinDispositivo').onclick=async()=>{
     if(!f3RolServidorAdmin())return;
