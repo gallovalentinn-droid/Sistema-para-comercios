@@ -130,8 +130,11 @@ tbody tr:last-child td{border-bottom:0}
 @media (min-width:761px){
   #tabProd{max-height:65vh;overflow:auto}
   html.modo-pantalla-completa #tabProd{max-height:calc(100vh - 220px);max-height:calc(100dvh - 220px)}
+  html.modo-pantalla-completa #tabProd .product-thumb{width:50px;height:50px;flex-basis:50px;border-radius:10px}
+  html.modo-pantalla-completa #tabProd .product-cell{gap:12px}
   #tabProd th{position:sticky;top:0;background:var(--paper);z-index:1}
   #tabProd td[data-label="Producto"]{min-width:260px;max-width:360px}
+  html.modo-pantalla-completa #tabProd td[data-label="Producto"]{min-width:300px;max-width:420px}
   .rep-table{min-width:1100px}
   .rep-table th{white-space:normal}
 }
@@ -446,7 +449,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:21,
+  packageRevision:22,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
