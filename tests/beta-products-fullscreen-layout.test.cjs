@@ -80,9 +80,9 @@ test('agranda la foto y la columna de producto sólo en pantalla completa', () =
 
   assert.match(html, /\.product-thumb\{width:42px;height:42px;/,
     'el modo normal debe conservar miniaturas de 42 px');
-  assert.match(html, /html\.modo-pantalla-completa #tabProd \.product-thumb\{width:50px;height:50px;flex-basis:50px;border-radius:10px\}/,
-    'la miniatura ampliada debe estar limitada a Productos en pantalla completa');
-  assert.match(html, /html\.modo-pantalla-completa #tabProd \.product-cell\{gap:12px\}/,
+  assert.match(html, /html\.modo-pantalla-completa \.product-thumb:not\(\.product-thumb-editor\)\{width:50px;height:50px;flex-basis:50px;border-radius:10px\}/,
+    'la miniatura ampliada debe alcanzar todas las listas en pantalla completa');
+  assert.match(html, /html\.modo-pantalla-completa \.product-cell\{gap:12px\}/,
     'la foto ampliada necesita una separación proporcionada');
   assert.match(html, /html\.modo-pantalla-completa #tabProd td\[data-label="Producto"\]\{min-width:300px;max-width:420px\}/,
     'la columna Producto debe ganar espacio únicamente en pantalla completa');

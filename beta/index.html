@@ -130,8 +130,8 @@ tbody tr:last-child td{border-bottom:0}
 @media (min-width:761px){
   #tabProd{max-height:65vh;overflow:auto}
   html.modo-pantalla-completa #tabProd{max-height:calc(100vh - 220px);max-height:calc(100dvh - 220px)}
-  html.modo-pantalla-completa #tabProd .product-thumb{width:50px;height:50px;flex-basis:50px;border-radius:10px}
-  html.modo-pantalla-completa #tabProd .product-cell{gap:12px}
+  html.modo-pantalla-completa .product-thumb:not(.product-thumb-editor){width:50px;height:50px;flex-basis:50px;border-radius:10px}
+  html.modo-pantalla-completa .product-cell{gap:12px}
   #tabProd th{position:sticky;top:0;background:var(--paper);z-index:1}
   #tabProd td[data-label="Producto"]{min-width:260px;max-width:360px}
   html.modo-pantalla-completa #tabProd td[data-label="Producto"]{min-width:300px;max-width:420px}
@@ -449,7 +449,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:22,
+  packageRevision:23,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3406,6 +3406,7 @@ function f6RepintarFotosVisibles(){
   if(vista==='vender'&&typeof pintarPOS==='function') pintarPOS();
   else if(vista==='productos'&&typeof tablaProductos==='function') tablaProductos();
   else if(vista==='reponer'&&typeof pintarReponer==='function') pintarReponer();
+  else if(['movimientos','resumen','vencimientos'].includes(vista)&&typeof render==='function') render();
   if(typeof db!=='undefined'&&Array.isArray(db.productos)) f6ProgramarFotosProductos(db.productos);
 }
 function f6ProgramarFotosProductos(productos){
@@ -4505,7 +4506,7 @@ function pintarPreviewPrecios(ov){
       ${muestra.map(f=>{
         const mg=f.costoNuevo>0?((f.precioNuevo-f.costoNuevo)/f.costoNuevo*100):null;
         return `<tr>
-        <td data-label="Producto"><b>${esc(f.p.nombre)}</b></td>
+        <td data-label="Producto">${celdaProductoConFoto(f.p,`<b>${esc(f.p.nombre)}</b>`)}</td>
         ${tocaCosto?`<td data-label="Costo actual" class="r num" style="color:var(--muted)">${$m(f.p.costo)}</td>
         <td data-label="Costo nuevo" class="r num" style="font-weight:600">${$m(f.costoNuevo)}</td>`:''}
         ${tocaVenta?`<td data-label="Venta actual" class="r num" style="color:var(--muted)">${$m(f.p.precio)}</td>
@@ -5559,7 +5560,7 @@ function pintarRemito(){
       const un=unidadesLinea(l);
       const cu=costoLinea(l,p);
       return `<tr>
-      <td data-label="Producto"><b>${esc(p.nombre)}</b>${kg?' <span class="pill info">kg</span>':''}<br><span style="font-size:12px;color:var(--muted)">stock ${fmtCant(p,p.stock)} → <b>${fmtCant(p,p.stock+un)}</b> · costo actual ${$m(p.costo)}${kg?'/kg':''}</span></td>
+      <td data-label="Producto">${celdaProductoConFoto(p,`<b>${esc(p.nombre)}</b>${kg?' <span class="pill info">kg</span>':''}<br><span style="font-size:12px;color:var(--muted)">stock ${fmtCant(p,p.stock)} → <b>${fmtCant(p,p.stock+un)}</b> · costo actual ${$m(p.costo)}${kg?'/kg':''}</span>`)}</td>
       <td data-label="Cantidad"><div class="qty"><button data-rm="${ix}" aria-label="Restar">–</button><input class="num" data-rc="${ix}" value="${l.cant}"><button data-ra="${ix}" aria-label="Sumar">+</button></div>${kg?'<div style="font-size:11px;color:var(--muted);margin-top:3px">kg</div>':''}</td>
       <td data-label="Unid. x bulto"><input class="inp num" data-rbulto="${ix}" value="${upb}" ${kg?'disabled':''}></td>
       <td data-label="Precio unit."><input class="inp num" data-rcostou="${ix}" placeholder="${nfM.format(p.costo*upb)}" value="${l.costoU}"></td>
@@ -5803,7 +5804,7 @@ function vVencimientos(m){
 function tablaVence(l){
   return `<table class="mtable"><thead><tr><th>Producto</th><th>Rubro</th><th class="r">Stock</th><th>Vence</th><th class="r">Valor en riesgo</th><th></th></tr></thead><tbody>
   ${l.map(p=>`<tr>
-    <td data-label="Producto"><b>${esc(p.nombre)}</b></td>
+    <td data-label="Producto">${celdaProductoConFoto(p,`<b>${esc(p.nombre)}</b>`)}</td>
     <td data-label="Rubro" style="color:var(--muted)">${esc(p.rubro||'—')}</td>
     <td data-label="Stock" class="r num">${fmtCant(p,p.stock)}</td>
     <td data-label="Vence"><span class="pill ${estaVencido(p)?'bad':'warn'}">${esc(textoVence(p))}</span> <span style="color:var(--muted);font-size:12.5px">${fFecha(p.vence+'T12:00:00')}</span></td>
@@ -6438,7 +6439,7 @@ function resumenStockBusquedaHtml({q,desde,hasta,ventas,inicioLabel='Inicio',fin
   return `<div class="card-b" style="border-bottom:1px solid var(--line);padding-top:12px">
     <div class="row" style="justify-content:space-between;margin-bottom:8px"><b>Movimiento de stock</b><span class="pill mute">${todos.length} ${todos.length===1?'producto':'productos'}</span></div>
     <table class="mtable"><thead><tr><th>Producto</th><th class="r">${esc(inicioLabel)}</th><th class="r">Vendidas</th><th class="r">${esc(finLabel)}</th></tr></thead><tbody>
-      ${lista.map(r=>`<tr><td data-label="Producto"><b>${esc(r.producto.nombre)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(r.producto.rubro||'Sin rubro')}${r.otros!=null&&Math.abs(r.otros)>0.0009?` · Otros movimientos: ${r.otros>0?'+':''}${fmtCant(r.producto,r.otros)}`:''}</span></td>
+      ${lista.map(r=>`<tr><td data-label="Producto">${celdaProductoConFoto(r.producto,`<b>${esc(r.producto.nombre)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(r.producto.rubro||'Sin rubro')}${r.otros!=null&&Math.abs(r.otros)>0.0009?` · Otros movimientos: ${r.otros>0?'+':''}${fmtCant(r.producto,r.otros)}`:''}</span>`)}</td>
         <td data-label="${esc(inicioLabel)}" class="r num">${r.inicio==null?'—':fmtCant(r.producto,r.inicio)}</td>
         <td data-label="Vendidas" class="r num">${fmtCant(r.producto,r.vendidas)}</td>
         <td data-label="${esc(finLabel)}" class="r num" style="font-weight:600">${r.final==null?'—':fmtCant(r.producto,r.final)}</td></tr>`).join('')}
@@ -6779,7 +6780,7 @@ function pintarMovimientosDia(){
     ${d.filtrados.map(r=>{
       const otros=r.otros==null?'—':Math.abs(r.otros)<0.0009?'—':`${r.otros>0?'+':''}${fmtCant(r.producto,r.otros)}`;
       return `<tr>
-        <td data-label="Producto"><b>${esc(r.producto.nombre)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(r.producto.rubro||'Sin rubro')}</span>${r.llegadasTardias?`<br><span class="pill info" title="El movimiento ocurrió este día y llegó al servidor después">Sincronizado tarde</span>`:''}</td>
+        <td data-label="Producto">${celdaProductoConFoto(r.producto,`<b>${esc(r.producto.nombre)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(r.producto.rubro||'Sin rubro')}</span>${r.llegadasTardias?`<br><span class="pill info" title="El movimiento ocurrió este día y llegó al servidor después">Sincronizado tarde</span>`:''}`)}</td>
         <td data-label="Stock inicial" class="r num">${r.inicio==null?'—':fmtCant(r.producto,r.inicio)}</td>
         <td data-label="Vendidas" class="r num">${fmtCant(r.producto,r.vendidas)}</td>
         <td data-label="Otros movimientos" class="r num"><span class="pill ${r.otros>0.0009?'ok':r.otros<-0.0009?'warn':'mute'}">${otros}</span></td>
@@ -6977,7 +6978,7 @@ function pintarDetalleResumen(d){
   detalleBox.innerHTML=`<table class="mtable"><thead><tr><th>Producto</th><th>Rubro</th><th class="r">Cantidad</th><th class="r">Facturado</th></tr></thead><tbody>
     ${productos.map(p=>{
       const pr=p.pid?prod(p.pid):null;
-      return `<tr><td data-label="Producto"><b>${esc(p.nombre)}</b></td>
+      return `<tr><td data-label="Producto">${pr?celdaProductoConFoto(pr,`<b>${esc(p.nombre)}</b>`):`<b>${esc(p.nombre)}</b>`}</td>
       <td data-label="Rubro" style="color:var(--muted)">${esc((pr&&pr.rubro)||p.rubro||'—')}</td>
       <td data-label="Cantidad" class="r num">${pr?fmtCant(pr,p.cant):p.cant}</td>
       <td data-label="Facturado" class="r num" style="font-weight:600">${$m(p.importe)}</td></tr>`;

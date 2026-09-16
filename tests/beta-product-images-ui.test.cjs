@@ -172,6 +172,22 @@ test('todos los grupos de Para pedir reciben una grilla fija compartida', () => 
   assert.match(source, /\.rep-table\{table-layout:fixed\}/);
 });
 
+test('las listas operativas muestran la foto compartida del producto', () => {
+  const source = html();
+  const casos = [
+    ['cambio de precios', sliceBetween(source, 'function pintarPreviewPrecios(ov){', '\nfunction aplicarPrecios('), /celdaProductoConFoto\(f\.p,/],
+    ['carga de factura', sliceBetween(source, 'function pintarRemito(){', '\nfunction resumenCostos('), /celdaProductoConFoto\(p,/],
+    ['búsqueda de stock', sliceBetween(source, 'function resumenStockBusquedaHtml(', '\nfunction verVentasTurno('), /celdaProductoConFoto\(r\.producto,/],
+    ['movimientos de stock', sliceBetween(source, 'function pintarMovimientosDia(){', '\nfunction vMovimientos('), /celdaProductoConFoto\(r\.producto,/],
+    ['vencimientos', sliceBetween(source, 'function tablaVence(l){', '\nfunction wireVence('), /celdaProductoConFoto\(p,/],
+    ['resumen de ventas', sliceBetween(source, 'function pintarDetalleResumen(d){', '\nfunction f6CierresResumenHtml('), /celdaProductoConFoto\(pr,/],
+  ];
+
+  casos.forEach(([nombre, bloque, patron]) => {
+    assert.match(bloque, patron, `${nombre} debe reutilizar la miniatura del producto`);
+  });
+});
+
 test('el editor encierra la foto existente sin superponer los campos siguientes', async () => {
   const source = html();
   const productForm = sliceBetween(

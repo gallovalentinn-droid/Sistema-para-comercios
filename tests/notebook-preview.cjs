@@ -42,7 +42,12 @@ function page() {
     FORMAS:{efectivo:'Efectivo',transferencia:'Transferencia',tarjeta:'Tarjeta'},busCajaTurno:'',
     enlazarCierresAnteriores:()=>{},fHora:v=>v,formaKey:v=>v,detalleForma:()=> 'Fiado',
     cli:()=>({nombre:'María del Carmen Rodríguez'}),prod:()=>products[0],
-    pintarVentasCajaActual:()=>{context.$('#ventasCajaTurno').innerHTML=context.tablaVentasBusqueda(ventas,{permitirAnular:true});}
+    pintarVentasCajaActual:()=>{context.$('#ventasCajaTurno').innerHTML=context.tablaVentasBusqueda(ventas,{permitirAnular:true});},
+    filtrosMovimientos:{q:'',rubro:''},
+    datosMovimientosDia:()=>({
+      total:products.map((producto,i)=>({producto,inicio:10+i,vendidas:2,otros:i?0:1,final:9+i,llegadasTardias:0})),
+      filtrados:products.map((producto,i)=>({producto,inicio:10+i,vendidas:2,otros:i?0:1,final:9+i,llegadasTardias:0}))
+    })
   });
   vm.runInContext([
     between('/* F6_PRODUCT_IMAGES_UI_CORE_START */','/* F6_PRODUCT_IMAGES_UI_CORE_END */'),
@@ -50,6 +55,7 @@ function page() {
     between('function tablaProductos(){','\nfunction formProducto('),
     between('function formProducto(id,pre={},luego){','\n/* ═══════════════════════════════════════════════'),
     between('function tablaRep(l){','\n/* ── armador de pedido ── */'),
+    between('function pintarMovimientosDia(){','\nfunction vMovimientos('),
     fn('htmlCierresAnteriores'), fn('vCaja'), fn('detalleVentaTexto'), fn('tablaVentasBusqueda'), fn('f33Css'), fn('f34Css')
   ].join('\n'),context);
   const productMain={innerHTML:''}; context.vProductos(productMain); context.formProducto();
@@ -57,10 +63,12 @@ function page() {
   const css=source.match(/<style>([\s\S]*?)<\/style>/)[1]+context.f33Css()+context.f34Css();
   const activeMain={innerHTML:''};context.vCaja(activeMain);
   const activeHtml=activeMain.innerHTML.replace(/<div id="ventasCajaTurno"[^>]*>/,tag=>tag+nodes.get('#ventasCajaTurno').innerHTML);
-  const views={productos:productsHtml,caja:'<h1>Caja</h1>'+context.htmlCierresAnteriores(),activa:activeHtml,pedir:'<h1>Para pedir</h1><div class="card">'+context.tablaRep(products)+'</div>'};
+  context.pintarMovimientosDia();
+  const movimientosHtml='<h1>Movimientos de stock</h1><div class="card"><div class="card-h"><h2>Detalle del día</h2><span class="pill mute">'+nodes.get('#cuentaMovimientos').textContent+'</span></div>'+nodes.get('#tablaMovimientos').innerHTML+'</div>';
+  const views={productos:productsHtml,caja:'<h1>Caja</h1>'+context.htmlCierresAnteriores(),activa:activeHtml,pedir:'<h1>Para pedir</h1><div class="card">'+context.tablaRep(products)+'</div>',movimientos:movimientosHtml};
   return `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prueba visual de notebooks</title>
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>${css}</style>
-    <div class="app"><aside class="rail"><div class="brand">Prueba visual</div><nav class="nav"><button data-view="productos">Productos</button><button data-view="caja">Caja</button><button data-view="activa">Caja abierta</button><button data-view="pedir">Para pedir</button><button id="collapse">Contraer / expandir</button><button id="form">Nuevo producto</button><button id="check">Comprobar diseño</button></nav><output id="result" style="padding:12px;font-size:12px;overflow-wrap:anywhere"></output></aside><main class="main"></main></div>
+    <div class="app"><aside class="rail"><div class="brand">Prueba visual</div><nav class="nav"><button data-view="productos">Productos</button><button data-view="caja">Caja</button><button data-view="activa">Caja abierta</button><button data-view="pedir">Para pedir</button><button data-view="movimientos">Movimientos de stock</button><button id="collapse">Contraer / expandir</button><button id="form">Nuevo producto</button><button id="check">Comprobar diseño</button></nav><output id="result" style="padding:12px;font-size:12px;overflow-wrap:anywhere"></output></aside><main class="main"></main></div>
     <button id="f33-status">Licencia activa</button>
     <script>const views=${JSON.stringify(views)}, form=${JSON.stringify(productForm)};
     if(new URLSearchParams(location.search).has('fullscreen')) document.documentElement.classList.add('modo-pantalla-completa');
