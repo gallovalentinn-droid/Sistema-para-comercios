@@ -1,5 +1,5 @@
 const CACHE_PREFIX='micomercio-beta-';
-const CACHE='micomercio-beta-6.0.0-f6-rc2-rev23';
+const CACHE='micomercio-beta-6.0.0-f6-rc2-rev24';
 const BASE=['./','./index.html'];
 
 const EXTERNOS = [

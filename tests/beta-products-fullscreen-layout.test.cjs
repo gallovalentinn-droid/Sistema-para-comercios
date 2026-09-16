@@ -75,9 +75,13 @@ test('también reconoce la API de pantalla completa sin depender del tamaño', (
   }), true);
 });
 
-test('agranda la foto y la columna de producto sólo en pantalla completa', () => {
+test('aprovecha el alto disponible siempre y reserva la ampliación visual para pantalla completa', () => {
   const html = fs.readFileSync(artifactPath, 'utf8');
 
+  assert.match(html, /#tabProd\{max-height:calc\(100vh - 220px\);max-height:calc\(100dvh - 220px\);overflow:auto\}/,
+    'Productos debe llegar cerca del borde inferior también en modo normal');
+  assert.doesNotMatch(html, /#tabProd\{max-height:65vh;/,
+    'el límite porcentual anterior deja espacio vacío en notebooks');
   assert.match(html, /\.product-thumb\{width:42px;height:42px;/,
     'el modo normal debe conservar miniaturas de 42 px');
   assert.match(html, /html\.modo-pantalla-completa \.product-thumb:not\(\.product-thumb-editor\)\{width:50px;height:50px;flex-basis:50px;border-radius:10px\}/,
