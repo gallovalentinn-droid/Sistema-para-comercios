@@ -63,6 +63,7 @@ function page() {
     <div class="app"><aside class="rail"><div class="brand">Prueba visual</div><nav class="nav"><button data-view="productos">Productos</button><button data-view="caja">Caja</button><button data-view="activa">Caja abierta</button><button data-view="pedir">Para pedir</button><button id="collapse">Contraer / expandir</button><button id="form">Nuevo producto</button><button id="check">Comprobar diseño</button></nav><output id="result" style="padding:12px;font-size:12px;overflow-wrap:anywhere"></output></aside><main class="main"></main></div>
     <button id="f33-status">Licencia activa</button>
     <script>const views=${JSON.stringify(views)}, form=${JSON.stringify(productForm)};
+    if(new URLSearchParams(location.search).has('fullscreen')) document.documentElement.classList.add('modo-pantalla-completa');
     const main=document.querySelector('main'); main.innerHTML=views.productos;
     document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{main.innerHTML=views[b.dataset.view]});
     document.querySelector('#collapse').onclick=()=>document.querySelector('.app').classList.toggle('colapsado');
