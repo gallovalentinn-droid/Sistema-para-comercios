@@ -145,6 +145,44 @@ tbody tr:last-child td{border-bottom:0}
 .pill.mute{background:#EFF2F6;color:var(--muted)}
 .empty{padding:48px 20px;text-align:center;color:var(--muted)}
 .empty b{display:block;color:var(--txt);font-size:17px;margin-bottom:7px;font-weight:700}
+.products-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.products-actions .btn{white-space:nowrap}
+.products-more{position:relative}
+.products-more-trigger[aria-expanded="true"]{background:#F1F4F8;border-color:var(--primary);color:var(--primary-d)}
+.products-more-dots{font-size:16px;line-height:1;letter-spacing:1px;transform:translateY(-2px)}
+.products-more-menu{position:absolute;top:calc(100% + 7px);left:0;z-index:20;width:265px;padding:8px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 34px rgba(15,22,32,.16)}
+.products-menu-item{width:100%;min-height:44px;padding:9px 10px;border:0;border-radius:8px;background:transparent;display:flex;align-items:center;gap:11px;text-align:left;cursor:pointer;font-weight:600;font-size:14px}
+.products-menu-item:hover,.products-menu-item:focus-visible{background:#F1F4F8}
+.products-menu-item small{display:block;margin-top:1px;color:var(--muted);font-size:11.5px;font-weight:400}
+.btn.primary-outline{background:var(--paper);color:var(--primary);border-color:var(--primary)}
+.btn.primary-outline:hover{background:var(--primary-l);border-color:var(--primary-d);color:var(--primary-d)}
+.products-invoice-button{position:relative;box-shadow:0 10px 22px rgba(24,87,214,.22)}
+.ai-badge{position:absolute;top:-11px;right:-9px;display:inline-flex;align-items:center;justify-content:center;min-width:29px;height:23px;padding:0 7px;border-radius:99px;background:#0AA3A3;color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em;box-shadow:0 4px 10px rgba(10,163,163,.2)}
+.products-empty-card{min-height:clamp(360px,calc(100dvh - 205px),560px);border-style:dashed;display:flex;align-items:stretch}
+#tabProd.products-empty-shell{max-height:none;overflow:visible;width:100%;display:flex;align-items:stretch}
+.products-empty{width:100%;padding:50px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted)}
+.products-empty-icon{width:64px;height:64px;border-radius:16px;background:var(--primary-l);color:var(--primary);display:flex;align-items:center;justify-content:center;margin-bottom:27px}
+.products-empty-icon svg{width:28px;height:28px}
+.products-empty h2{margin:0 0 7px;color:var(--txt);font-size:23px;letter-spacing:-.02em}
+.products-empty p{max-width:510px;margin:0;line-height:1.55}
+.products-empty-actions{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:28px}
+.products-empty-manual{margin-top:20px;border:0;background:transparent;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-weight:500}
+.products-empty-manual:hover{color:var(--primary-d)}
+.invoice-modal{max-width:640px}
+.invoice-modal .mod-b{padding:28px 30px 25px}
+.invoice-ai-card{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:32px 26px 31px;border:2px solid var(--primary);border-radius:16px;background:#F8FAFF;cursor:pointer}
+.invoice-ai-card:hover{background:#F2F6FF;border-color:var(--primary-d)}
+.invoice-ai-icon{width:68px;height:68px;border-radius:16px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:17px;box-shadow:0 10px 22px rgba(24,87,214,.18)}
+.invoice-ai-icon svg{width:30px;height:30px}
+.invoice-ai-card h4{margin:0 0 6px;font-size:20px;letter-spacing:-.015em}
+.invoice-ai-card p{max-width:470px;margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+.invoice-ai-choose{margin-top:19px;box-shadow:0 9px 20px rgba(24,87,214,.23)}
+.invoice-manual-toggle{width:100%;margin:18px 0 0;padding:8px;border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer}
+.invoice-manual-toggle:hover{color:var(--primary-d)}
+.invoice-manual-toggle span[aria-hidden]{display:inline-block;margin-left:5px;transition:transform .15s ease}
+.invoice-manual-toggle[aria-expanded="true"] span[aria-hidden]{transform:rotate(90deg)}
+.invoice-manual-content{margin-top:15px;padding-top:20px;border-top:1px solid var(--line)}
+.invoice-manual-help{margin:0 0 16px;color:var(--muted);font-size:13.5px;line-height:1.6}
 .kpi{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:16px 17px}
 .kpi span{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
 .kpi b{display:block;font-family:var(--mono);font-size:25px;font-weight:600;letter-spacing:-.02em;margin-top:7px}
@@ -277,6 +315,20 @@ tbody tr:last-child td{border-bottom:0}
   .nav .nav-grupo{display:none}
   .main{padding:18px 14px 100px}
   .grid2,.grid3{grid-template-columns:1fr}
+  .products-actions{width:100%;justify-content:flex-start}
+  .products-more-menu{left:0;right:auto}
+}
+@media (max-width:560px){
+  .products-actions{display:grid;grid-template-columns:1fr 1fr}
+  .products-actions .products-more{grid-column:1/-1}
+  .products-actions .products-more>.btn{width:100%}
+  .products-actions .products-invoice-button,.products-actions>#bNuevo{width:100%}
+  .products-more-menu{width:100%}
+  .products-empty{padding:36px 18px}
+  .products-empty-actions{width:100%;flex-direction:column}
+  .products-empty-actions .btn{width:100%}
+  .invoice-modal .mod-b{padding:20px 18px}
+  .invoice-ai-card{padding:27px 18px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 
@@ -448,7 +500,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:24,
+  packageRevision:25,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -2739,6 +2791,8 @@ const ICONS={
   backup:'<path d="M12 3a9 9 0 1 0 8.94 8"/><path d="M21 3v6h-6"/>',
   buscar:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.5-4.5"/>',
   scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3"/><path d="M20 8V5a1 1 0 0 0-1-1h-3"/><path d="M4 16v3a1 1 0 0 0 1 1h3"/><path d="M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M4 12h16"/>',
+  camara:'<path d="M4 7.5h3l1.5-2h7l1.5 2h3a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18V9A1.5 1.5 0 0 1 4 7.5Z"/><circle cx="12" cy="13" r="3.5"/>',
+  subir:'<path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/>',
   cerrar:'<path d="M6 6l12 12M18 6 6 18"/>',
   editar:'<path d="M4 20h4l10.5-10.5a2 2 0 0 0-4-4L4 16v4Z"/>',
   ajustar:'<path d="M4 6h10"/><path d="M18 6h2"/><circle cx="15" cy="6" r="2"/><path d="M4 12h4"/><path d="M12 12h8"/><circle cx="9" cy="12" r="2"/><path d="M4 18h10"/><path d="M18 18h2"/><circle cx="15" cy="18" r="2"/>',
@@ -4110,19 +4164,58 @@ function imprimirTicket(v){
    ═══════════════════════════════════════════════════════ */
 let fProd={q:'',rubro:'',orden:'nombre'};
 
+function cerrarMenuProductos(devolverFoco=false){
+  const menu=$('#menuProductos'),boton=$('#bMasProductos');
+  if(menu)menu.hidden=true;
+  if(boton){boton.setAttribute('aria-expanded','false');if(devolverFoco)boton.focus();}
+}
+function wireProductosActions(root){
+  const boton=$('#bMasProductos',root),menu=$('#menuProductos',root);
+  if(boton&&menu){
+    boton.onclick=()=>{
+      const abrir=menu.hidden;
+      menu.hidden=!abrir;
+      boton.setAttribute('aria-expanded',String(abrir));
+      if(abrir){const primero=menu.querySelector('button');primero&&primero.focus();}
+    };
+  }
+  const nuevo=$('#bNuevo',root),ingreso=$('#bIngreso',root),importar=$('#bImportar',root),precios=$('#bPrecios',root);
+  if(nuevo)nuevo.onclick=()=>formProducto();
+  if(ingreso)ingreso.onclick=()=>panelIngreso();
+  if(importar)importar.onclick=()=>{cerrarMenuProductos();panelImportar();};
+  if(precios)precios.onclick=()=>{cerrarMenuProductos();panelPrecios();};
+}
+function wireProductosVacio(root){
+  const importar=$('#bImportarVacio',root),ingreso=$('#bIngresoVacio',root),nuevo=$('#bNuevoVacio',root);
+  if(importar)importar.onclick=()=>panelImportar();
+  if(ingreso)ingreso.onclick=()=>panelIngreso();
+  if(nuevo)nuevo.onclick=()=>formProducto();
+}
+document.addEventListener('click',e=>{
+  const dentro=e.target&&e.target.closest&&e.target.closest('.products-more');
+  if(!dentro)cerrarMenuProductos();
+});
+document.addEventListener('keydown',e=>{const menu=$('#menuProductos');if(e.key==='Escape'&&menu&&!menu.hidden)cerrarMenuProductos(true);});
+
 function vProductos(m){
+  const catalogoVacio=!db.productos.length;
   m.innerHTML=`
   <div class="head">
-    <div><h1>Productos</h1><div class="sub">${db.productos.length} cargados · ${db.productos.filter(bajo).length} en el mínimo o por debajo</div></div>
-    <div class="row">
-      <button class="btn ghost" id="bPrecios">Cambiar precios</button>
-      <button class="btn ghost" id="bImportar">Importar Excel/CSV</button>
-      <button class="btn ghost" id="bIngreso">Cargar factura</button>
-      <button class="btn" id="bNuevo">Nuevo producto</button>
-    </div>
+    <div><h1>Productos</h1><div class="sub">${catalogoVacio?'Todavía no cargaste ningún producto':`${db.productos.length} cargados · ${db.productos.filter(bajo).length} en el mínimo o por debajo`}</div></div>
+    ${catalogoVacio?'':`<div class="products-actions">
+      <div class="products-more">
+        <button class="btn ghost products-more-trigger" id="bMasProductos" aria-haspopup="menu" aria-expanded="false" aria-controls="menuProductos"><span class="products-more-dots" aria-hidden="true">•••</span> Más opciones</button>
+        <div class="products-more-menu" id="menuProductos" role="menu" hidden>
+          <button class="products-menu-item" id="bPrecios" role="menuitem">${ic('mas')}<span>Cambiar precios</span></button>
+          <button class="products-menu-item" id="bImportar" role="menuitem">${ic('subir')}<span>Importar Excel/CSV<small>Para catálogos grandes</small></span></button>
+        </div>
+      </div>
+      <button class="btn primary-outline" id="bNuevo">${ic('mas')} Nuevo producto</button>
+      <button class="btn products-invoice-button" id="bIngreso">${ic('camara')} Cargar factura<span class="ai-badge" aria-label="Función con inteligencia artificial">IA</span></button>
+    </div>`}
   </div>
-  <div class="card">
-    <div class="card-h">
+  <div class="card ${catalogoVacio?'products-empty-card':''}">
+    ${catalogoVacio?'':`<div class="card-h">
       <div class="row" style="flex:1">
         <input class="inp" id="q" placeholder="Buscar por nombre, código o rubro…" value="${esc(fProd.q)}" style="max-width:340px">
         <select class="inp" id="fr" style="max-width:190px">
@@ -4136,16 +4229,14 @@ function vProductos(m){
           <option value="margen" ${fProd.orden==='margen'?'selected':''}>Ordenar por margen</option>
         </select>
       </div>
-    </div>
-    <div id="tabProd" class="table-scroll" role="region" aria-label="Lista de productos" tabindex="0"></div>
+    </div>`}
+    <div id="tabProd" class="table-scroll ${catalogoVacio?'products-empty-shell':''}" role="region" aria-label="Lista de productos" tabindex="0"></div>
   </div>`;
-  $('#bNuevo').onclick=()=>formProducto();
-  $('#bIngreso').onclick=()=>panelIngreso();
-  $('#bImportar').onclick=()=>panelImportar();
-  $('#bPrecios').onclick=()=>panelPrecios();
-  $('#q').oninput=e=>{fProd.q=e.target.value;tablaProductos();};
-  $('#fr').onchange=e=>{fProd.rubro=e.target.value;tablaProductos();};
-  $('#fo').onchange=e=>{fProd.orden=e.target.value;tablaProductos();};
+  wireProductosActions(m);
+  const q=$('#q',m),fr=$('#fr',m),fo=$('#fo',m);
+  if(q)q.oninput=e=>{fProd.q=e.target.value;tablaProductos();};
+  if(fr)fr.onchange=e=>{fProd.rubro=e.target.value;tablaProductos();};
+  if(fo)fo.onchange=e=>{fProd.orden=e.target.value;tablaProductos();};
   tablaProductos();
 }
 
@@ -4167,7 +4258,18 @@ function tablaProductos(){
   const l=listaFiltrada();
   const c=$('#tabProd');
   if(!db.productos.length){
-    c.innerHTML=`<div class="empty"><b>El depósito está vacío</b>Cargá el primer producto con nombre, precio y stock. Después el lector hace el resto.</div>`;return;
+    c.innerHTML=`<div class="products-empty">
+      <div class="products-empty-icon" aria-hidden="true">${ic('subir')}</div>
+      <h2>Empecemos cargando tu catálogo</h2>
+      <p>Elegí cómo preferís arrancar. Esta pantalla solo se ve así hasta que tengas tu primer producto cargado.</p>
+      <div class="products-empty-actions">
+        <button class="btn" id="bImportarVacio">${ic('subir')} Importar Excel/CSV</button>
+        <button class="btn primary-outline products-invoice-button" id="bIngresoVacio">${ic('camara')} Cargar factura<span class="ai-badge" aria-label="Función con inteligencia artificial">IA</span></button>
+      </div>
+      <button class="products-empty-manual" id="bNuevoVacio">o cargar un producto a mano</button>
+    </div>`;
+    wireProductosVacio(c);
+    return;
   }
   if(!l.length){ c.innerHTML=`<div class="empty"><b>Sin resultados</b>Probá con otra palabra o quitá el filtro de rubro.</div>`; return; }
   c.innerHTML=`<table class="mtable"><thead><tr>
@@ -5265,36 +5367,59 @@ function formAnularIngreso(movId,prodId){
 /* ─── cargar factura / ingreso de mercadería ─── */
 let remito=[];
 let remitoHeader={proveedor:'',nroComprobante:'',total:''};
+function mostrarCargaManualFactura(ov,{focus=true}={}){
+  const contenido=$('#facManualContent',ov),toggle=$('#facManualToggle',ov);
+  if(!contenido)return;
+  contenido.hidden=false;
+  if(toggle)toggle.setAttribute('aria-expanded','true');
+  if(focus){const buscador=$('#iScan',ov);buscador&&buscador.focus();}
+}
 function panelIngreso(reset=true){
   if(reset){ remito=[]; remitoHeader={proveedor:'',nroComprobante:'',total:''}; }
+  const mostrarManual=!reset||remito.length>0;
   modal({titulo:'Cargar factura de compra', ancho:true,
     cuerpo:`
-      <div class="card" style="margin-bottom:16px;background:var(--primary-l);border-color:var(--primary-l)">
-        <div class="card-b" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-          <span class="ic" style="color:var(--primary-d)">${ic('scan')}</span>
-          <div style="flex:1;min-width:220px">
-            <b style="display:block;margin-bottom:2px">Leer la factura con una foto</b>
-            <span style="color:var(--muted);font-size:13px">Sacale una foto al remito y probamos completar todo solos. Después revisás antes de confirmar.</span>
-          </div>
-          <label class="btn" id="facFotoLabel" style="cursor:pointer">Elegir foto<input type="file" id="facFoto" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none"></label>
+      <label class="invoice-ai-card" id="facFotoLabel" role="button" tabindex="0">
+        <span class="ai-badge" aria-label="Función con inteligencia artificial">IA</span>
+        <span class="invoice-ai-icon">${ic('camara')}</span>
+        <h4>Sacale una foto a la factura</h4>
+        <p>Probamos completar todo solos: productos, cantidades y precios. Después revisás antes de confirmar.</p>
+        <span class="btn invoice-ai-choose">Elegir foto</span>
+        <input type="file" id="facFoto" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" hidden>
+      </label>
+      <button type="button" class="invoice-manual-toggle" id="facManualToggle" aria-expanded="${mostrarManual?'true':'false'}">¿Preferís cargar los productos a mano? <span aria-hidden="true">›</span></button>
+      <div class="invoice-manual-content" id="facManualContent" ${mostrarManual?'':'hidden'}>
+        <p class="invoice-manual-help">Escaneá o buscá cada producto. Cargá lo que pagaste en total o el costo por unidad; con uno alcanza y el otro se calcula solo.</p>
+        <div class="grid3" style="margin-bottom:16px">
+          <div><label class="f" for="facProv">Proveedor</label><input id="facProv" class="inp" placeholder="Opcional" value="${esc(remitoHeader.proveedor)}"></div>
+          <div><label class="f" for="facNro">Nº de comprobante</label><input id="facNro" class="inp" placeholder="Opcional" value="${esc(remitoHeader.nroComprobante)}"></div>
+          <div><label class="f" for="facTotal">Total de la factura</label><input id="facTotal" class="inp num" inputmode="decimal" placeholder="Para verificar" value="${esc(remitoHeader.total)}"></div>
         </div>
+        <div class="scan"><span class="ic">${ic('scan')}</span><input id="iScan" placeholder="Código o nombre del producto…" autocomplete="off"></div>
+        <div class="results"><ul id="iRes" hidden></ul></div>
+        <div id="iTabla" style="margin-top:16px"></div>
+        <div id="iCheck" style="margin-top:12px"></div>
       </div>
-      <p style="margin:0 0 16px;color:var(--muted);line-height:1.6">O cargá a mano: escaneá o buscá cada producto. Por cada uno, cargá <b>lo que pagaste en total</b> o <b>el costo por unidad</b> — con uno de los dos alcanza, el otro se calcula solo.</p>
-      <div class="grid3" style="margin-bottom:16px">
-        <div><label class="f" for="facProv">Proveedor</label><input id="facProv" class="inp" placeholder="Opcional" value="${esc(remitoHeader.proveedor)}"></div>
-        <div><label class="f" for="facNro">Nº de comprobante</label><input id="facNro" class="inp" placeholder="Opcional" value="${esc(remitoHeader.nroComprobante)}"></div>
-        <div><label class="f" for="facTotal">Total de la factura</label><input id="facTotal" class="inp num" inputmode="decimal" placeholder="Para verificar" value="${esc(remitoHeader.total)}"></div>
-      </div>
-      <div class="scan"><span class="ic">${ic('scan')}</span><input id="iScan" placeholder="Código o nombre del producto…" autocomplete="off"></div>
-      <div class="results"><ul id="iRes" hidden></ul></div>
-      <div id="iTabla" style="margin-top:16px"></div>
-      <div id="iCheck" style="margin-top:12px"></div>`,
+      `,
     pie:`<div style="margin-right:auto;color:var(--muted)" id="iTot"></div>
          <button class="btn ghost" data-cerrar>Cancelar</button>
-         <button class="btn verde" id="okIng">Confirmar factura</button>`,
+         <button class="btn verde" id="okIng" ${remito.length?'':'disabled'}>Confirmar factura</button>`,
     alAbrir:ov=>{
+      const ventana=$('.mod',ov);ventana&&ventana.classList.add('invoice-modal');
       const inp=$('#iScan',ov);
-      inp.focus();
+      const fotoLabel=$('#facFotoLabel',ov),fotoInput=$('#facFoto',ov);
+      fotoLabel.onkeydown=e=>{
+        if(e.key!=='Enter'&&e.key!==' ')return;
+        e.preventDefault();fotoInput.click();
+      };
+      const manualToggle=$('#facManualToggle',ov);
+      manualToggle.onclick=()=>{
+        const contenido=$('#facManualContent',ov),abrir=contenido.hidden;
+        contenido.hidden=!abrir;
+        manualToggle.setAttribute('aria-expanded',String(abrir));
+        if(abrir)inp.focus();
+      };
+      if(mostrarManual)inp.focus();
       inp.oninput=()=>{
         const r=buscarProductos(inp.value), ul=$('#iRes',ov);
         if(!r.length||inp.value.trim().length<2){ul.hidden=true;return;}
@@ -5309,7 +5434,7 @@ function panelIngreso(reset=true){
         if(p){addRemito(p.id);inp.value='';$('#iRes',ov).hidden=true;}
         else aviso('No encontré ese producto','bad');
       };
-      $('#facFoto',ov).onchange=e=>{ if(e.target.files[0]) leerFacturaFoto(e.target.files[0],ov); };
+      fotoInput.onchange=e=>{ if(e.target.files[0]) leerFacturaFoto(e.target.files[0],ov); };
       $('#facProv',ov).onchange=e=>remitoHeader.proveedor=e.target.value;
       $('#facNro',ov).onchange=e=>remitoHeader.nroComprobante=e.target.value;
       $('#facTotal',ov).oninput=()=>{ remitoHeader.total=$('#facTotal',ov).value; pintarRemito(); };
@@ -5407,8 +5532,10 @@ function f6RegistrarUsoIa(usage){
 
 async function leerFacturaFoto(file,ov){
   const label=$('#facFotoLabel',ov);
-  const original=label.innerHTML;
-  label.innerHTML='Leyendo la foto…';
+  const estado=$('.invoice-ai-choose',label);
+  const original=estado?estado.textContent:'';
+  if(estado)estado.textContent='Leyendo la foto…';
+  label.setAttribute('aria-busy','true');
   label.style.pointerEvents='none';
   label.style.opacity='.7';
   try{
@@ -5434,7 +5561,7 @@ async function leerFacturaFoto(file,ov){
       throw falla;
     }
     f6RegistrarUsoIa(data&&data.iaUsage);
-    if(!data||!data.items||!data.items.length){ aviso('No pude reconocer productos en esa foto','bad'); return; }
+    if(!data||!data.items||!data.items.length){ aviso('No pude reconocer productos en esa foto','bad'); mostrarCargaManualFactura(ov,{focus:false}); return; }
     abrirRevisionFactura(data);
   }catch(e){
     console.error(e);
@@ -5451,8 +5578,13 @@ async function leerFacturaFoto(file,ov){
       ?'No pude reconocer esa factura. Probá con una foto más nítida o cargala a mano.'
       :'No pude leer la factura automáticamente. Cargala a mano abajo.';
     aviso(msg,'bad');
+    mostrarCargaManualFactura(ov,{focus:false});
   }finally{
-    if(document.body.contains(label)){ label.innerHTML=original; label.style.pointerEvents=''; label.style.opacity=''; }
+    if(document.body.contains(label)){
+      if(estado)estado.textContent=original;
+      label.removeAttribute('aria-busy');
+      label.style.pointerEvents='';label.style.opacity='';
+    }
   }
 }
 
@@ -5551,6 +5683,7 @@ function costoLinea(l,p){
 function unidadesLinea(l){ return l.cant*Math.max(1,l.porBulto||1); }
 function pintarRemito(){
   const c=$('#iTabla'); if(!c) return;
+  const okIng=$('#okIng');if(okIng)okIng.disabled=!remito.length;
   if(!remito.length){ c.innerHTML=`<div class="empty" style="padding:26px"><b>Todavía no cargaste la factura</b>Cada producto que escanees se suma acá.</div>`; $('#iTot').textContent=''; $('#iCheck').innerHTML=''; return; }
   c.innerHTML=`<table class="mtable"><thead><tr><th>Producto</th><th style="width:105px">Cantidad</th><th style="width:90px">Unid. x bulto</th><th style="width:115px">Precio unit.</th><th style="width:110px">Descuento</th><th style="width:110px">Venta nueva</th><th>Se carga</th><th></th></tr></thead><tbody>
     ${remito.map((l,ix)=>{
