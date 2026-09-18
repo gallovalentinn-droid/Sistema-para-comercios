@@ -168,6 +168,12 @@ tbody tr:last-child td{border-bottom:0}
 .products-empty-actions{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:28px}
 .products-empty-manual{margin-top:20px;border:0;background:transparent;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-weight:500}
 .products-empty-manual:hover{color:var(--primary-d)}
+#tabProd .product-number{text-align:right;font-family:var(--sans);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+#tabProd td.product-cost{color:var(--muted);font-weight:400}
+#tabProd td.product-sale{color:var(--txt);font-weight:600}
+#tabProd td.product-margin.product-value{color:var(--verde-d);font-weight:600}
+#tabProd td.product-margin.product-empty{color:var(--muted);font-weight:400}
+#tabProd td.product-stock>.pill{min-width:36px;justify-content:center;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
 .invoice-modal{max-width:640px}
 .invoice-modal .mod-b{padding:28px 30px 25px}
 .invoice-ai-card{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:32px 26px 31px;border:2px solid var(--primary);border-radius:16px;background:#F8FAFF;cursor:pointer}
@@ -500,7 +506,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:25,
+  packageRevision:26,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -4273,7 +4279,7 @@ function tablaProductos(){
   }
   if(!l.length){ c.innerHTML=`<div class="empty"><b>Sin resultados</b>Probá con otra palabra o quitá el filtro de rubro.</div>`; return; }
   c.innerHTML=`<table class="mtable"><thead><tr>
-    <th>Producto</th><th>Código</th><th>Rubro</th><th class="r">Costo</th><th class="r">Venta</th><th class="r">Margen</th><th class="r">Stock</th><th></th>
+    <th>Producto</th><th>Código</th><th>Rubro</th><th class="product-number product-cost">Costo</th><th class="product-number product-sale">Venta</th><th class="product-number product-margin">Margen</th><th class="product-number product-stock">Stock</th><th></th>
   </tr></thead><tbody>${l.map(p=>{
     const mg=Number(p.costo)>0?((p.precio-p.costo)/p.costo*100):null;
     const ficha=`<b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${esSuelto(p)?` <span class="pill warn">suelto</span>`:''}${alertaVence(p)?` <span class="pill ${estaVencido(p)?'bad':'warn'}">${esc(textoVence(p))}</span>`:(p.vence?` <span class="pill mute">vence ${fFecha(p.vence+'T12:00:00')}</span>`:'')}${esSuelto(p)?`<br><span style="font-size:12px;color:var(--muted)">sale de ${esc((atadoDe(p)||{}).nombre||'(atado eliminado)')} · ${porAtado(p)} por atado</span>`:(p.proveedor?`<br><span class="mt" style="font-size:12px;color:var(--muted)">${esc(p.proveedor)}</span>`:'')}`;
@@ -4281,10 +4287,10 @@ function tablaProductos(){
       <td data-label="Producto">${celdaProductoConFoto(p,ficha)}</td>
       <td data-label="Código" class="num" style="font-size:12.5px;color:var(--muted)">${esc(p.ean||'—')}</td>
       <td data-label="Rubro">${p.rubro?`<span class="pill mute">${esc(p.rubro)}</span>`:'—'}</td>
-      <td data-label="Costo" class="r num">${$m(p.costo)}</td>
-      <td data-label="Venta" class="r num" style="font-weight:600">${$m(p.precio)}</td>
-      <td data-label="Margen" class="r num" style="color:var(--muted)">${mg===null?'—':mg.toFixed(0)+'%'}</td>
-      <td data-label="Stock" class="r"><span class="pill ${p.stock<=0?'bad':bajo(p)?'warn':'ok'} num">${fmtCant(p,p.stock)}</span><br><span style="font-size:11px;color:var(--muted)">${esSuelto(p)?`quedan ${fmtCant(atadoDe(p)||p,(atadoDe(p)||{}).stock||0)} atados`:`mín ${fmtCant(p,p.stockMin)} · ideal ${fmtCant(p,deseado(p))}`}</span></td>
+      <td data-label="Costo" class="r num product-number product-cost">${Number(p.costo)>0?$m(p.costo):'—'}</td>
+      <td data-label="Venta" class="r num product-number product-sale">${$m(p.precio)}</td>
+      <td data-label="Margen" class="r num product-number product-margin ${mg===null?'product-empty':'product-value'}">${mg===null?'—':mg.toFixed(0)+'%'}</td>
+      <td data-label="Stock" class="r product-number product-stock"><span class="pill ${Number(p.stock)<=0?'bad':'mute'} num">${fmtCant(p,p.stock)}</span><br><span style="font-size:11px;color:var(--muted)">${esSuelto(p)?`quedan ${fmtCant(atadoDe(p)||p,(atadoDe(p)||{}).stock||0)} atados`:`mín ${fmtCant(p,p.stockMin)} · ideal ${fmtCant(p,deseado(p))}`}</span></td>
       <td class="r" style="white-space:nowrap">
         ${esSuelto(p)?`<button class="btn ghost sm" data-abrir="${p.id}">${ic('combo')} Abrir atado</button>`:''}
         <button class="btn ghost sm" data-ed="${p.id}">${ic('editar')} Editar</button>

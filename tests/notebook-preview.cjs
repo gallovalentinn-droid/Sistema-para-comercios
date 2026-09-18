@@ -23,10 +23,15 @@ function page() {
     classList:{add(){},remove(){},toggle(){}}, style:{}
   });
   const sampleNames = ['7UP 2L', 'Aceite de Girasol Cocinero 900ml', 'Acondicionador Sedal Brillo Ceramidas 10ml'];
+  const sampleNumbers = [
+    { costo:0, precio:3300, stock:0 },
+    { costo:2900, precio:4400, stock:6 },
+    { costo:1100, precio:2000, stock:12 }
+  ];
   const products = Array.from({length:18}, (_, i) => ({
     nombre: sampleNames[i%sampleNames.length]+(i>=sampleNames.length?` ${i+1}`:''),
     id: `p${i}`, ean: '7791234567890', rubro: 'Higiene Personal', proveedor: 'Proveedor de ejemplo',
-    costo: 1250, precio: 1900, stock: 0, stockMin: 3, stockDeseado: 8, unidad: 'unidad', fotoPath: '', vence: ''
+    ...sampleNumbers[i%sampleNumbers.length], stockMin: 4, stockDeseado: 12, unidad: 'unidad', fotoPath: '', vence: ''
   }));
   let capturedModal;
   const context = {
