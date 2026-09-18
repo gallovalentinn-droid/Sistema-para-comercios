@@ -97,4 +97,8 @@ Código:
 
 ### Verificado en el entorno público
 
-Este apartado se completa después de publicar la revisión 25 y comprobar que el servidor entregue tanto el HTML como el service worker actualizados.
+- La beta pública entrega `packageRevision: 25`.
+- El service worker público entrega el caché `micomercio-beta-6.0.0-f6-rc2-rev25`.
+- Se abrió la sección Productos con el catálogo real y se comprobó visualmente el nuevo encabezado.
+- Se abrió **Más opciones** y se verificaron **Cambiar precios** e **Importar Excel/CSV**.
+- Se abrió **Cargar factura** y se verificó la vista inicial por foto, la alternativa manual cerrada y el botón de confirmación deshabilitado mientras la factura está vacía.
