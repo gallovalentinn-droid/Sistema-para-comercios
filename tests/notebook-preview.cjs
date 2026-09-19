@@ -51,7 +51,7 @@ function page() {
   const ventas=[{id:'v1',nro:123,fecha:'12:16',forma:'fiado',clienteId:'cliente1',total:1900,items:[{prodId:'p1',cant:1,nombre:products[1].nombre}]}];
   Object.assign(context,{
     f3Estado:{session:{id:'s1',estado:'abierta'}},f5SesionIds:()=>({effectiveId:'s1'}),f3Activo:()=>true,
-    turnoActual:()=>({desde:'15/09/26 09:00',ventas,ventasTodas:ventas,total:1900,costo:1250,porForma:{efectivo:0,transferencia:0,tarjeta:0,fiado:1900},cigTotal:0,genEfectivo:0,cigEfectivo:0,cobEfectivo:0,egrGeneral:100,egrCigarros:0,egrOtros:0,egresos:[{id:'e1',fecha:'12:00',motivo:'Pago a proveedor de ejemplo',forma:'efectivo',caja:'cigarrillos',monto:100}]}),
+    turnoActual:()=>({desde:'15/09/26 09:00',ventas,ventasTodas:ventas,total:1900,costo:1250,porForma:{efectivo:1200,transferencia:0,tarjeta:0,fiado:700},cigTotal:0,genEfectivo:1200,cigEfectivo:0,cobEfectivo:0,egrGeneral:100,egrCigarros:0,egrOtros:0,egresos:[{id:'e1',fecha:'12:00',motivo:'Pago a proveedor de ejemplo',forma:'efectivo',caja:'general',monto:100}]}),
     FORMAS:{efectivo:'Efectivo',transferencia:'Transferencia',tarjeta:'Tarjeta'},busCajaTurno:'',
     enlazarCierresAnteriores:()=>{},fHora:v=>v,formaKey:v=>v,detalleForma:()=> 'Fiado',
     cli:()=>({nombre:'María del Carmen Rodríguez'}),prod:()=>products[0],
@@ -69,6 +69,7 @@ function page() {
     between('function tablaProductos(){','\nfunction formProducto('),
     between('function formProducto(id,pre={},luego){','\n/* ═══════════════════════════════════════════════'),
     between('let remito=[];','\nfunction addRemito('),
+    between('const MOTIVOS_EGRESO=','\n/* F6_TURNOS_CORE_START */'),
     between('function tablaRep(l){','\n/* ── armador de pedido ── */'),
     between('function pintarMovimientosDia(){','\nfunction vMovimientos('),
     fn('htmlCierresAnteriores'), fn('vCaja'), fn('detalleVentaTexto'), fn('tablaVentasBusqueda'), fn('f33Css'), fn('f34Css')
@@ -86,20 +87,24 @@ function page() {
   const css=source.match(/<style>([\s\S]*?)<\/style>/)[1]+context.f33Css()+context.f34Css();
   const activeMain={innerHTML:''};context.vCaja(activeMain);
   const activeHtml=activeMain.innerHTML.replace(/<div id="ventasCajaTurno"[^>]*>/,tag=>tag+nodes.get('#ventasCajaTurno').innerHTML);
+  context.formEgreso();const expenseForm=capturedModal;
   context.pintarMovimientosDia();
   const movimientosHtml='<h1>Movimientos de stock</h1><div class="card"><div class="card-h"><h2>Detalle del día</h2><span class="pill mute">'+nodes.get('#cuentaMovimientos').textContent+'</span></div>'+nodes.get('#tablaMovimientos').innerHTML+'</div>';
   const views={productos:productsHtml,menu:productsMenuHtml,vacio:emptyHtml,caja:'<h1>Caja</h1>'+context.htmlCierresAnteriores(),activa:activeHtml,pedir:'<h1>Para pedir</h1><div class="card">'+context.tablaRep(products)+'</div>',movimientos:movimientosHtml};
   return `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prueba visual de notebooks</title>
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>${css}</style>
-    <div class="app"><aside class="rail"><div class="brand">Prueba visual</div><nav class="nav"><button data-view="productos">Productos</button><button data-view="menu">Menú abierto</button><button data-view="vacio">Catálogo vacío</button><button id="invoice">Cargar factura</button><button data-view="caja">Caja</button><button data-view="activa">Caja abierta</button><button data-view="pedir">Para pedir</button><button data-view="movimientos">Movimientos de stock</button><button id="collapse">Contraer / expandir</button><button id="form">Nuevo producto</button><button id="check">Comprobar diseño</button></nav><output id="result" style="padding:12px;font-size:12px;overflow-wrap:anywhere"></output></aside><main class="main"></main></div>
+    <div class="app"><aside class="rail"><div class="brand">Prueba visual</div><nav class="nav"><button data-view="productos">Productos</button><button data-view="menu">Menú abierto</button><button data-view="vacio">Catálogo vacío</button><button id="invoice">Cargar factura</button><button data-view="caja">Caja</button><button data-view="activa">Caja abierta</button><button id="expense">Registrar egreso</button><button data-view="pedir">Para pedir</button><button data-view="movimientos">Movimientos de stock</button><button id="collapse">Contraer / expandir</button><button id="form">Nuevo producto</button><button id="check">Comprobar diseño</button></nav><output id="result" style="padding:12px;font-size:12px;overflow-wrap:anywhere"></output></aside><main class="main"></main></div>
     <button id="f33-status">Licencia activa</button>
-    <script>const views=${JSON.stringify(views)}, form=${JSON.stringify(productForm)}, invoice=${JSON.stringify(invoiceForm)};
+    <script>const views=${JSON.stringify(views)}, form=${JSON.stringify(productForm)}, invoice=${JSON.stringify(invoiceForm)}, expense=${JSON.stringify(expenseForm)};
     if(new URLSearchParams(location.search).has('fullscreen')) document.documentElement.classList.add('modo-pantalla-completa');
-    const main=document.querySelector('main'); main.innerHTML=views.productos;
-    document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{main.innerHTML=views[b.dataset.view]});
+    const main=document.querySelector('main');
+    const wireCash=()=>{main.querySelectorAll('[data-caja-tab]').forEach(tab=>tab.onclick=()=>{main.querySelectorAll('[data-caja-tab]').forEach(x=>{const on=x===tab;x.classList.toggle('active',on);x.setAttribute('aria-selected',String(on));});main.querySelectorAll('[data-caja-panel]').forEach(panel=>panel.hidden=panel.dataset.cajaPanel!==tab.dataset.cajaTab);});const toggle=main.querySelector('[data-caja-cig-toggle]'),content=main.querySelector('[data-caja-cig-content]');if(toggle&&content)toggle.onclick=()=>{content.hidden=!content.hidden;toggle.textContent=(content.hidden?'Mostrar':'Ocultar')+' caja de cigarrillos ›';};};
+    const showView=name=>{main.innerHTML=views[name];wireCash();};showView('productos');
+    document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
     document.querySelector('#collapse').onclick=()=>document.querySelector('.app').classList.toggle('colapsado');
     document.querySelector('#form').onclick=()=>{const ov=document.createElement('div');ov.className='ov';ov.innerHTML='<div class="mod wide"><div class="mod-h"><h3>'+form.titulo+'</h3><button id="close">Cerrar</button></div><div class="mod-b">'+form.cuerpo+'</div><div class="mod-f"><button class="btn">Guardar</button></div></div>';document.body.append(ov);ov.querySelector('#close').onclick=()=>ov.remove();};
     document.querySelector('#invoice').onclick=()=>{const ov=document.createElement('div');ov.className='ov';ov.innerHTML='<div class="mod invoice-modal"><div class="mod-h"><h3>'+invoice.titulo+'</h3><button id="closeInvoice">Cerrar</button></div><div class="mod-b">'+invoice.cuerpo+'</div><div class="mod-f">'+invoice.pie+'</div></div>';document.body.append(ov);ov.querySelector('#closeInvoice').onclick=()=>ov.remove();const toggle=ov.querySelector('#facManualToggle'),content=ov.querySelector('#facManualContent');toggle.onclick=()=>{content.hidden=!content.hidden;toggle.setAttribute('aria-expanded',String(!content.hidden));};};
+    document.querySelector('#expense').onclick=()=>{const ov=document.createElement('div');ov.className='ov';ov.innerHTML='<div class="mod expense-modal"><div class="mod-h"><h3>'+expense.titulo+'</h3><button id="closeExpense">Cerrar</button></div><div class="mod-b">'+expense.cuerpo+'</div><div class="mod-f">'+expense.pie+'</div></div>';document.body.append(ov);ov.querySelector('#closeExpense').onclick=()=>ov.remove();};
     document.querySelector('#check').onclick=()=>{
       const failures=[]; if(document.documentElement.scrollWidth>document.documentElement.clientWidth+1) failures.push('La página desborda');
       if(main.innerHTML===views.productos&&!main.querySelector('table')) failures.push('Falta la tabla de prueba');

@@ -67,6 +67,6 @@ test('el rediseño publica una identidad de caché nueva y alineada', () => {
   const identity = source.match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/);
   assert.ok(identity, 'falta la identidad del build');
   const build = vm.runInNewContext(`(${identity[1]})`);
-  assert.equal(build.packageRevision, 26);
-  assert.match(serviceWorker, /micomercio-beta-6\.0\.0-f6-rc2-rev26/);
+  assert.equal(build.packageRevision, 27);
+  assert.match(serviceWorker, /micomercio-beta-6\.0\.0-f6-rc2-rev27/);
 });

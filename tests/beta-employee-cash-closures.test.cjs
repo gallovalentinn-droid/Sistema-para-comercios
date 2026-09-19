@@ -83,6 +83,7 @@ function load() {
     },
     esc: (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
     $m: (value) => `$${Number(value).toFixed(2)}`,
+    num: (value) => Number(value) || 0,
     fFH: (value) => value,
     nfM: { format: (value) => String(value) },
     FORMAS: { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' },
@@ -168,6 +169,27 @@ test('el historial sigue visible con un turno abierto y ordena por fecha de cier
   assert.match(main.innerHTML, /Turno de empleado/);
   assert.ok(main.innerHTML.indexOf('Cierre reciente') < main.innerHTML.indexOf('Turno de empleado'));
   assert.equal(context.f3Estado.session.id, 'turno-duenio');
+});
+
+test('el arqueo reserva el rojo para una diferencia negativa real', () => {
+  const { context, main, nodes } = load();
+  const turno = context.turnoActual('turno-duenio');
+  context.turnoActual = () => ({ ...turno, genEfectivo: 1000 });
+  context.f3Estado.session = { id: 'turno-duenio', estado: 'abierta' };
+  context.vCaja(main);
+
+  const contado = nodes.get('#contadoG');
+  const diferencia = nodes.get('#difG');
+  contado.value = '800';
+  contado.oninput();
+  assert.equal(diferencia.className, 'cash-difference negative');
+  assert.match(diferencia.innerHTML, /Falta/);
+  assert.match(diferencia.innerHTML, /\$200\.00/);
+
+  contado.value = '1000';
+  contado.oninput();
+  assert.equal(diferencia.className, 'cash-difference ok');
+  assert.doesNotMatch(diferencia.innerHTML, /Falta|Sobra/);
 });
 
 test('sin turno y sin cierres muestra el historial vacío junto a Abrir turno', () => {

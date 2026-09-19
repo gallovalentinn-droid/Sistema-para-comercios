@@ -115,6 +115,13 @@ td{padding:12px 14px;border-bottom:1px solid #EEF1F5;vertical-align:middle;font-
 tbody tr:hover{background:#F7F9FB}
 tbody tr:last-child td{border-bottom:0}
 .r{text-align:right}
+table th.r,table td.r{text-align:right;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+table td.r .qty{margin-left:auto}
+table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.value-primary{color:var(--txt);font-weight:600}
+.value-reference{color:var(--muted);font-weight:400}
+.value-empty{color:var(--muted);font-weight:400}
+.value-positive{color:var(--verde-d);font-weight:600}
 .product-cell{display:flex;align-items:center;gap:10px;min-width:0}
 .product-cell-copy{min-width:0;overflow-wrap:anywhere}
 .product-thumb{width:42px;height:42px;border-radius:8px;flex:0 0 42px;background:#EEF1F5;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;overflow:hidden;font-size:13px;font-weight:700;color:var(--muted)}
@@ -193,9 +200,64 @@ tbody tr:last-child td{border-bottom:0}
 .kpi span{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
 .kpi b{display:block;font-family:var(--mono);font-size:25px;font-weight:600;letter-spacing:-.02em;margin-top:7px}
 .kpi small{color:var(--muted);font-size:12.5px}
+.cash-tabs{display:flex;align-items:center;gap:28px;margin:-2px 0 24px;border-bottom:1px solid var(--line)}
+.cash-tab{position:relative;min-height:48px;padding:10px 3px;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer}
+.cash-tab:hover{color:var(--txt)}
+.cash-tab.active{color:var(--primary)}
+.cash-tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:var(--primary)}
+.cash-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.cash-kpis .kpi{min-width:0}
+.cash-kpis .kpi b{font-family:var(--sans);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;font-size:23px;white-space:nowrap}
+.cash-kpi-profit{background:#F4FAF7;border-color:#CBE7DA}
+.cash-kpi-profit span,.cash-kpi-profit b,.cash-kpi-profit small{color:var(--verde-d)}
+.cash-payment-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cash-payment-grid .kpi b{font-family:var(--sans);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;font-size:19px}
+.cash-close-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,420px);gap:22px;align-items:start}
+.cash-section-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 10px;padding:0 2px}
+.cash-section-heading h2{margin:0;color:#98A1AE;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em}
+.cash-toggle{border:0;background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;cursor:pointer;padding:8px 0}
+.cash-toggle:hover{color:var(--primary-d)}
+.cash-calculation td{padding:13px 0;color:var(--muted)}
+.cash-calculation tr:last-child td{padding-top:16px;border-top:1px solid var(--line);color:var(--txt);font-weight:600}
+.cash-calculation tr:hover{background:transparent}
+.cash-count-box{margin-top:18px;padding:18px 20px;border:2px solid var(--primary);border-radius:16px;background:var(--primary-l)}
+.cash-count-box label.f{color:var(--primary);margin-bottom:9px}
+.cash-count-input{min-height:62px;border-color:var(--primary);font-family:var(--sans);font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.cash-count-help{margin-top:8px;color:var(--muted);font-size:12.5px}
+.cash-difference{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding:13px 16px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.cash-difference span{font-size:13.5px;font-weight:600}
+.cash-difference b{font-family:var(--sans);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;font-size:17px}
+.cash-difference.neutral{color:var(--muted)}
+.cash-difference.ok{border-color:#CBE7DA;background:var(--verde-l);color:var(--verde-d)}
+.cash-difference.negative{border-color:#F1C4BB;background:var(--rojo-l);color:var(--rojo)}
+.cash-difference.positive{border-color:#EAD5A9;background:var(--ambar-l);color:var(--ambar)}
+.cash-cigarette-card{margin-top:18px}
+.cash-action-card{margin-top:16px}
+.cash-close-layout>div:last-child>.cash-action-card:first-child{margin-top:41px}
+.cash-history-card{margin-top:0 !important}
+.expense-modal{max-width:560px}
+.expense-modal .mod-b{padding:20px 28px 25px}
+.expense-modal .seg{margin-bottom:20px}
+.expense-modal #eg_monto{min-height:54px;border-color:var(--primary);font-family:var(--sans);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.expense-modal .expense-secondary{margin-top:14px}
+
+@media (max-width:1280px){
+  .cash-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:1150px){
+  .cash-close-layout{grid-template-columns:1fr}
+  .cash-close-layout>div:last-child>.cash-action-card:first-child{margin-top:16px}
+  .cash-payment-grid{grid-template-columns:1fr 1fr 1fr}
+}
 
 /* tablas -> tarjetas en pantallas chicas, para que sean legibles en el celular */
 @media (max-width:760px){
+  .cash-tabs{gap:18px;overflow-x:auto;margin-bottom:18px}
+  .cash-tab{white-space:nowrap}
+  .cash-kpis{grid-template-columns:1fr 1fr;gap:10px}
+  .cash-kpis .kpi:last-child{grid-column:1/-1}
+  .cash-payment-grid{grid-template-columns:1fr}
+  .cash-count-box{padding:16px}
   table.mtable thead{display:none}
   table.mtable, table.mtable tbody, table.mtable tr{display:block;width:100%}
   table.mtable tr{background:var(--paper);border:1px solid var(--line);border-radius:11px;margin-bottom:10px;padding:4px 14px}
@@ -506,7 +568,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:26,
+  packageRevision:27,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3720,13 +3782,13 @@ function pintarPOS(){
   /* tabla de ítems */
   $('#posTabla').innerHTML = !ticket.length
     ? `<div class="empty"><b>Todavía no cargaste nada</b>Pasá el lector por el código de barras o escribí el nombre del producto arriba.</div>`
-    : `<table class="mtable"><thead><tr><th>Producto</th><th style="width:130px">Cantidad</th><th class="r">Precio</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>
+    : `<table class="mtable"><thead><tr><th>Producto</th><th class="r" style="width:130px">Cantidad</th><th class="r">Precio</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>
       ${ticket.map(i=>{
         if(i.tipo==='combo'){
           const disp=Math.min(...i.componentes.map(c=>{const p=prod(c.prodId);return p?Math.floor(Number(p.stock)/c.cant):0;}));
           return `<tr>
             <td data-label="Producto"><b>${esc(i.nombre)}</b> <span class="pill info">Combo</span>${i.cant>disp?`<br><span class="pill bad">alcanza para ${disp}</span>`:''}<br><span style="font-size:12px;color:var(--muted)">${esc(i.componentes.map(c=>c.cant+'× '+c.nombre).join(' + '))}</span></td>
-            <td data-label="Cantidad"><div class="qty"><button data-menos="${i.id}" aria-label="Restar">–</button><input class="num" data-cant="${i.id}" value="${i.cant}"><button data-mas="${i.id}" aria-label="Sumar">+</button></div></td>
+            <td data-label="Cantidad" class="r"><div class="qty"><button data-menos="${i.id}" aria-label="Restar">–</button><input class="num" data-cant="${i.id}" value="${i.cant}"><button data-mas="${i.id}" aria-label="Sumar">+</button></div></td>
             <td data-label="Precio" class="r num">${$m(i.precio)}</td>
             <td data-label="Subtotal" class="r num" style="font-weight:600">${$m(i.precio*i.cant)}</td>
             <td class="r"><button class="x" data-quita="${i.id}" title="Sacar del ticket" aria-label="Sacar del ticket">${ic('cerrar')}</button></td></tr>`;
@@ -3736,7 +3798,7 @@ function pintarPOS(){
         const precioProm=pct>0?Math.round(i.precio*(1-pct/100)*10000)/10000:i.precio;
         return `<tr>
         <td data-label="Producto"><b>${esc(i.nombre)}</b>${pct>0?` <span class="pill ok">Promo −${pct}%</span>`:''}${p&&i.cant>p.stock?`<br><span class="pill bad">stock ${fmtCant(p,p?p.stock:0)}</span>`:''}</td>
-        <td data-label="Cantidad"><div class="qty"><button data-menos="${i.id}" aria-label="Restar">–</button><input class="num" data-cant="${i.id}" value="${i.cant}"><button data-mas="${i.id}" aria-label="Sumar">+</button></div>${p&&p.unidad==='kg'?'<div style="font-size:11px;color:var(--muted);margin-top:3px">kg</div>':''}</td>
+        <td data-label="Cantidad" class="r"><div class="qty"><button data-menos="${i.id}" aria-label="Restar">–</button><input class="num" data-cant="${i.id}" value="${i.cant}"><button data-mas="${i.id}" aria-label="Sumar">+</button></div>${p&&p.unidad==='kg'?'<div style="font-size:11px;color:var(--muted);margin-top:3px">kg</div>':''}</td>
         <td data-label="Precio" class="r num">${pct>0?`<span style="text-decoration:line-through;color:var(--muted);font-size:12px;display:block">${$m(i.precio)}</span>${$m(precioProm)}`:$m(i.precio)}${p&&p.unidad==='kg'?'/kg':''}</td>
         <td data-label="Subtotal" class="r num" style="font-weight:600">${$m(precioProm*i.cant)}</td>
         <td class="r"><button class="x" data-quita="${i.id}" title="Sacar del ticket" aria-label="Sacar del ticket">${ic('cerrar')}</button></td></tr>`;}).join('')}
@@ -5337,12 +5399,12 @@ function verHistorial(id){
           <span style="color:var(--muted);font-size:13px">antes ${$m(ultCambio.costoAnterior)}</span>
           ${pillVariacion(ultCambio.costoAnterior,ultCambio.costoNuevo)}
         </div></div>`:''}
-      <table class="mtable"><thead><tr><th>Cuándo</th><th>Qué pasó</th><th class="r">Cantidad</th><th>Costo</th><th>Motivo</th><th></th></tr></thead><tbody>
+      <table class="mtable"><thead><tr><th>Cuándo</th><th>Qué pasó</th><th class="r">Cantidad</th><th class="r">Costo</th><th>Motivo</th><th></th></tr></thead><tbody>
       ${ms.map(m=>`<tr${m.anulado?' style="opacity:.5"':''}>
         <td data-label="Cuándo" class="num" style="font-size:12.5px">${fFH(m.fecha)}</td>
         <td data-label="Qué pasó"><span class="pill ${m.anulado?'bad':m.tipo==='venta'?'info':m.tipo==='ingreso'?'ok':m.tipo==='apertura'?'info':'warn'}">${m.anulado?'Anulado':(nom[m.tipo]||m.tipo)}</span></td>
         <td data-label="Cantidad" class="r num" style="font-weight:600;color:${m.cant<0?'var(--rojo)':'var(--verde)'}${m.anulado?';text-decoration:line-through':''}">${m.cant>0?'+':''}${fmtCant(p,m.cant)}</td>
-        <td data-label="Costo">${m.costoAnterior!=null?pillVariacion(m.costoAnterior,m.costoNuevo)+` <span style="font-size:12px;color:var(--muted)">${$m(m.costoAnterior)} → ${$m(m.costoNuevo)}</span>`:'—'}</td>
+        <td data-label="Costo" class="r">${m.costoAnterior!=null?pillVariacion(m.costoAnterior,m.costoNuevo)+` <span style="font-size:12px;color:var(--muted)">${$m(m.costoAnterior)} → ${$m(m.costoNuevo)}</span>`:'—'}</td>
         <td data-label="Motivo" style="color:var(--muted)">${esc(m.motivo||'—')}</td>
         <td class="r">${(m.tipo==='ingreso'&&!m.anulado)?`<button class="btn text sm" data-anular-mov="${m.id}" style="color:var(--rojo)">Anular</button>`:''}</td></tr>`).join('')}
       </tbody></table>`
@@ -5645,7 +5707,7 @@ function abrirRevisionFactura(parsed){
 function pintarRevision(ov2){
   const c=$('#revTabla',ov2);
   const opciones=db.productos.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
-  c.innerHTML=`<table class="mtable"><thead><tr><th>Leído en la factura</th><th style="width:190px">Emparejado con</th><th style="width:80px">Cantidad</th><th style="width:95px">Unid. x bulto</th><th style="width:110px">Precio unit.</th><th style="width:110px">Descuento</th><th>Se carga</th></tr></thead><tbody>
+  c.innerHTML=`<table class="mtable"><thead><tr><th>Leído en la factura</th><th style="width:190px">Emparejado con</th><th class="r" style="width:80px">Cantidad</th><th class="r" style="width:95px">Unid. x bulto</th><th class="r" style="width:110px">Precio unit.</th><th class="r" style="width:110px">Descuento</th><th class="r">Se carga</th></tr></thead><tbody>
     ${revisionFactura.map((r,ix)=>{
       const upb=Math.max(1,r.porBulto||1);
       const unidades=r.cantidad*upb;
@@ -5659,11 +5721,11 @@ function pintarRevision(ov2){
           <option value="__nuevo__">+ Crear producto nuevo</option>
           ${opciones.map(p=>`<option value="${p.id}" ${r.prodId===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}
         </select></td>
-      <td data-label="Cantidad"><input class="inp num" data-rev-cant="${ix}" value="${r.cantidad}"></td>
-      <td data-label="Unid. x bulto"><input class="inp num" data-rev-bulto="${ix}" value="${upb}"></td>
-      <td data-label="Precio unit."><input class="inp num" data-rev-costo="${ix}" value="${r.costoU}"></td>
-      <td data-label="Descuento"><input class="inp num" data-rev-dto="${ix}" value="${r.descuento||0}"></td>
-      <td data-label="Se carga"><b class="num">${unidades}</b> unidades<br><span style="font-size:12px;color:var(--muted)">a ${$m(costoU)} c/u${r.descuento>0?` <span class="pill ok">con dto.</span>`:''}</span></td>
+      <td data-label="Cantidad" class="r"><input class="inp num" data-rev-cant="${ix}" value="${r.cantidad}"></td>
+      <td data-label="Unid. x bulto" class="r"><input class="inp num" data-rev-bulto="${ix}" value="${upb}"></td>
+      <td data-label="Precio unit." class="r"><input class="inp num" data-rev-costo="${ix}" value="${r.costoU}"></td>
+      <td data-label="Descuento" class="r"><input class="inp num" data-rev-dto="${ix}" value="${r.descuento||0}"></td>
+      <td data-label="Se carga" class="r"><b class="num">${unidades}</b> unidades<br><span style="font-size:12px;color:var(--muted)">a ${$m(costoU)} c/u${r.descuento>0?` <span class="pill ok">con dto.</span>`:''}</span></td>
     </tr>`;}).join('')}</tbody></table>`;
   $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>revisionFactura[s.dataset.revProd].prodId=s.value);
   $$('[data-rev-cant]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revCant].cantidad=Math.max(0,num(i.value));pintarRevision(ov2);});
@@ -5691,7 +5753,7 @@ function pintarRemito(){
   const c=$('#iTabla'); if(!c) return;
   const okIng=$('#okIng');if(okIng)okIng.disabled=!remito.length;
   if(!remito.length){ c.innerHTML=`<div class="empty" style="padding:26px"><b>Todavía no cargaste la factura</b>Cada producto que escanees se suma acá.</div>`; $('#iTot').textContent=''; $('#iCheck').innerHTML=''; return; }
-  c.innerHTML=`<table class="mtable"><thead><tr><th>Producto</th><th style="width:105px">Cantidad</th><th style="width:90px">Unid. x bulto</th><th style="width:115px">Precio unit.</th><th style="width:110px">Descuento</th><th style="width:110px">Venta nueva</th><th>Se carga</th><th></th></tr></thead><tbody>
+  c.innerHTML=`<table class="mtable"><thead><tr><th>Producto</th><th class="r" style="width:105px">Cantidad</th><th class="r" style="width:90px">Unid. x bulto</th><th class="r" style="width:115px">Precio unit.</th><th class="r" style="width:110px">Descuento</th><th class="r" style="width:110px">Venta nueva</th><th class="r">Se carga</th><th></th></tr></thead><tbody>
     ${remito.map((l,ix)=>{
       const p=prod(l.prodId);const kg=p.unidad==='kg';
       const upb=Math.max(1,l.porBulto||1);
@@ -5699,12 +5761,12 @@ function pintarRemito(){
       const cu=costoLinea(l,p);
       return `<tr>
       <td data-label="Producto">${celdaProductoConFoto(p,`<b>${esc(p.nombre)}</b>${kg?' <span class="pill info">kg</span>':''}<br><span style="font-size:12px;color:var(--muted)">stock ${fmtCant(p,p.stock)} → <b>${fmtCant(p,p.stock+un)}</b> · costo actual ${$m(p.costo)}${kg?'/kg':''}</span>`)}</td>
-      <td data-label="Cantidad"><div class="qty"><button data-rm="${ix}" aria-label="Restar">–</button><input class="num" data-rc="${ix}" value="${l.cant}"><button data-ra="${ix}" aria-label="Sumar">+</button></div>${kg?'<div style="font-size:11px;color:var(--muted);margin-top:3px">kg</div>':''}</td>
-      <td data-label="Unid. x bulto"><input class="inp num" data-rbulto="${ix}" value="${upb}" ${kg?'disabled':''}></td>
-      <td data-label="Precio unit."><input class="inp num" data-rcostou="${ix}" placeholder="${nfM.format(p.costo*upb)}" value="${l.costoU}"></td>
-      <td data-label="Descuento"><input class="inp num" data-rdto="${ix}" placeholder="0" value="${l.descuento||''}"></td>
-      <td data-label="Venta nueva"><input class="inp num" data-rprecio="${ix}" placeholder="${nfM.format(p.precio)}" value="${l.precio}"></td>
-      <td data-label="Se carga"><b class="num">${fmtCant(p,un)}</b>${cu!==null?`<br><span style="font-size:12px;color:var(--muted)">a ${$m(cu)} c/u</span><br>${pillVariacion(p.costo,cu)}`:''}</td>
+      <td data-label="Cantidad" class="r"><div class="qty"><button data-rm="${ix}" aria-label="Restar">–</button><input class="num" data-rc="${ix}" value="${l.cant}"><button data-ra="${ix}" aria-label="Sumar">+</button></div>${kg?'<div style="font-size:11px;color:var(--muted);margin-top:3px">kg</div>':''}</td>
+      <td data-label="Unid. x bulto" class="r"><input class="inp num" data-rbulto="${ix}" value="${upb}" ${kg?'disabled':''}></td>
+      <td data-label="Precio unit." class="r"><input class="inp num" data-rcostou="${ix}" placeholder="${nfM.format(p.costo*upb)}" value="${l.costoU}"></td>
+      <td data-label="Descuento" class="r"><input class="inp num" data-rdto="${ix}" placeholder="0" value="${l.descuento||''}"></td>
+      <td data-label="Venta nueva" class="r"><input class="inp num" data-rprecio="${ix}" placeholder="${nfM.format(p.precio)}" value="${l.precio}"></td>
+      <td data-label="Se carga" class="r"><b class="num">${fmtCant(p,un)}</b>${cu!==null?`<br><span style="font-size:12px;color:var(--muted)">a ${$m(cu)} c/u</span><br>${pillVariacion(p.costo,cu)}`:''}</td>
       <td class="r"><button class="x" data-rx="${ix}" aria-label="Sacar de la factura">${ic('cerrar')}</button></td></tr>`;}).join('')}</tbody></table>`;
   const costoTot=remito.reduce((a,l)=>{const p=prod(l.prodId);const cu=costoLinea(l,p);return a+unidadesLinea(l)*(cu!==null?cu:Number(p.costo)||0);},0);
   $('#iTot').innerHTML=`${remito.length} productos · ${remito.reduce((a,l)=>a+unidadesLinea(l),0)} unidades · costo total <b class="num">${$m(costoTot)}</b>`;
@@ -5872,10 +5934,10 @@ function pintarPedido(ov){
     const sub=g.reduce((a,x)=>a+x.cant*(Number(x.p.costo)||0),0);
     return `<div class="card" style="margin-bottom:14px">
       <div class="card-h"><h2>${esc(prov)}</h2><span class="pill mute">${g.length} productos · ${$m(sub)}</span></div>
-      <table class="mtable"><thead><tr><th>Producto</th><th style="width:130px">Cantidad</th><th class="r">Costo unit.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>
+      <table class="mtable"><thead><tr><th>Producto</th><th class="r" style="width:130px">Cantidad</th><th class="r">Costo unit.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>
         ${g.map(x=>`<tr>
           <td data-label="Producto">${celdaProductoConFoto(x.p,`<b>${esc(x.p.nombre)}</b><br><span style="font-size:12px;color:var(--muted)">tenés ${fmtCant(x.p,x.p.stock)} · querés llegar a ${fmtCant(x.p,deseado(x.p))}</span>`)}</td>
-          <td data-label="Cantidad"><div class="qty">
+          <td data-label="Cantidad" class="r"><div class="qty">
             <button data-pm="${x.p.id}" aria-label="Restar">–</button>
             <input class="num" data-pc="${x.p.id}" value="${x.cant}">
             <button data-pp="${x.p.id}" aria-label="Sumar">+</button></div></td>
@@ -6328,37 +6390,36 @@ function formEgreso(){
   let cajaEgreso='general', formaEg='efectivo';
   modal({titulo:'Registrar egreso',
     cuerpo:`
-      <p style="margin:0 0 16px;color:var(--muted);line-height:1.6">Plata que sale: pagos a proveedores, retiros, gastos. Los que salen <b>en efectivo</b> se descuentan del arqueo de la caja; los de transferencia o tarjeta quedan registrados como gasto pero no tocan el efectivo del mostrador.</p>
-      <label class="f">¿Cómo se pagó?</label>
-      <div class="seg" style="margin-bottom:14px">
+      <div class="seg" aria-label="Forma de pago">
         <button type="button" data-fe="efectivo" class="on">Efectivo</button>
         <button type="button" data-fe="transferencia">Transferencia</button>
         <button type="button" data-fe="tarjeta">Tarjeta</button>
       </div>
-      <div id="eg_cajaWrap">
-        <label class="f">¿De qué caja sale?</label>
-        <div class="seg" style="margin-bottom:14px">
-          <button type="button" data-ce="general" class="on">Caja general</button>
-          ${moduloCigarros?'<button type="button" data-ce="cigarrillos">Caja de cigarrillos</button>':''}
-        </div>
-      </div>
       <label class="f" for="eg_monto">Monto</label>
       <input id="eg_monto" class="inp num" inputmode="decimal" placeholder="0,00">
-      <label class="f" for="eg_mot" style="margin-top:14px">Motivo</label>
+      <label class="f expense-secondary" for="eg_mot">Motivo</label>
       <select id="eg_mot" class="inp">
         ${motivosEgresoTodos().map(m=>`<option>${esc(m)}</option>`).join('')}
         <option value="__otro__">+ Escribir otro motivo…</option>
       </select>
+      <div id="eg_cajaWrap" class="expense-secondary">
+        <label class="f">¿De qué caja sale?</label>
+        <div class="seg">
+          <button type="button" data-ce="general" class="on">Caja general</button>
+          ${moduloCigarros?'<button type="button" data-ce="cigarrillos">Caja de cigarrillos</button>':''}
+        </div>
+      </div>
       <div id="eg_otroWrap" hidden style="margin-top:10px">
         <input id="eg_otro" class="inp" placeholder="Escribí el motivo">
         <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;color:var(--muted);cursor:pointer">
           <input type="checkbox" id="eg_guardarMot" checked style="width:auto;min-height:auto"> Guardarlo para la próxima vez
         </label>
       </div>
-      <label class="f" for="eg_nota" style="margin-top:14px">Detalle</label>
+      <label class="f expense-secondary" for="eg_nota">Detalle</label>
       <input id="eg_nota" class="inp" placeholder="Opcional: a quién, por qué concepto…">`,
-    pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn rojo" id="okEg">Registrar egreso</button>`,
+    pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okEg">Registrar egreso</button>`,
     alAbrir:ov=>{
+      const modalEgreso=$('.mod',ov);if(modalEgreso)modalEgreso.classList.add('expense-modal');
       const cajaWrap=$('#eg_cajaWrap',ov);
       if(cajaWrap) cajaWrap.hidden=!moduloCigarros;
       $$('[data-ce]',ov).forEach(b=>b.onclick=()=>{cajaEgreso=b.dataset.ce;$$('[data-ce]',ov).forEach(x=>x.classList.toggle('on',x===b));});
@@ -6689,7 +6750,7 @@ function pintarVentasCajaActual(t){
 }
 function htmlCierresAnteriores(){
   const cierres=[...(db.cierres||[])].sort((a,b)=>(Date.parse(b.hasta)||0)-(Date.parse(a.hasta)||0));
-  return `<div class="card" style="margin-top:22px">
+  return `<div class="card cash-history-card">
     <div class="card-h"><h2>Cierres anteriores</h2></div>
     ${cierres.length?`<div class="table-scroll" role="region" aria-label="Cierres anteriores" tabindex="0"><table class="mtable"><thead><tr><th>Fecha</th><th class="r">Ventas</th><th class="r">Vendido</th><th class="r">Gral. contado</th><th class="r">Gral. dif.</th><th class="r">Cigarrillos contado</th><th class="r">Cigarrillos dif.</th><th>Nota</th><th></th></tr></thead><tbody>
       ${cierres.map(c=>`<tr>
@@ -6731,25 +6792,37 @@ function vCaja(m){
   const fondoGeneralEfectivo=fondoGeneralTurno+(moduloCigarros?0:fondoCigarrosTurno);
   const espGeneral=fondoGeneralEfectivo+t.genEfectivo+t.cobEfectivo-t.egrGeneral;
   const espCigarros=moduloCigarros?fondoCigarrosTurno+t.cigEfectivo-t.egrCigarros:0;
+  const gananciaEstimada=t.total-t.costo-t.egrGeneral-t.egrCigarros-t.egrOtros;
+  const vistasCaja=['turno','cierre','historial'];
+  const cajaVista=vistasCaja.includes(globalThis.__miCajaVista)?globalThis.__miCajaVista:'turno';
+  const cajaCigarrosPlegada=db.config.cajaCigarrosPlegada===true;
   m.innerHTML=`
   <div class="head">
     <div><h1>Caja</h1><div class="sub">Turno abierto desde ${fFH(t.desde)}</div></div>
-    <div class="row"><button class="btn ghost" id="bEgreso">Registrar egreso</button></div>
+    <div class="row"><button class="btn" id="bEgreso">Registrar egreso</button></div>
   </div>
-  <div class="grid3" style="margin-bottom:16px">
-    <div class="kpi"><span>Vendido en el turno</span><b>${$m(t.total)}</b><small>${t.ventas.length} ventas${t.ventas.length?` · ticket promedio ${$m(t.total/t.ventas.length)}`:''}</small></div>
-    <div class="kpi"><span>Egresos del turno</span><b style="color:var(--rojo)">${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b><small>${t.egresos.length} salidas${t.egrOtros>0.009?` · ${$m(t.egrOtros)} no fue en efectivo`:''}</small></div>
-    <div class="kpi"><span>Vendido en cigarrillos</span><b>${$m(t.cigTotal)}</b><small>de los ${$m(t.total)} totales</small></div>
+  <div class="cash-tabs" role="tablist" aria-label="Secciones de Caja">
+    <button type="button" class="cash-tab ${cajaVista==='turno'?'active':''}" data-caja-tab="turno" role="tab" aria-selected="${cajaVista==='turno'}">Turno actual</button>
+    <button type="button" class="cash-tab ${cajaVista==='cierre'?'active':''}" data-caja-tab="cierre" role="tab" aria-selected="${cajaVista==='cierre'}">Cierre de caja</button>
+    <button type="button" class="cash-tab ${cajaVista==='historial'?'active':''}" data-caja-tab="historial" role="tab" aria-selected="${cajaVista==='historial'}">Historial</button>
   </div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-h"><h2>Cobros por forma de pago</h2><span class="pill warn">Fiado del turno ${$m(t.porForma.fiado)}</span></div>
-    <div class="card-b" style="display:flex;gap:10px;flex-wrap:wrap">
-      ${['efectivo','transferencia','tarjeta'].map(f=>`<div class="kpi" style="flex:1;min-width:140px"><span>${FORMAS[f]}</span><b style="font-size:19px">${$m(t.porForma[f])}</b></div>`).join('')}
+
+  <section data-caja-panel="turno" ${cajaVista==='turno'?'':'hidden'}>
+    <div class="cash-kpis">
+      <div class="kpi"><span>Vendido en el turno</span><b>${$m(t.total)}</b><small>${t.ventas.length} ventas${t.ventas.length?` · ticket ${$m(t.total/t.ventas.length)}`:''}</small></div>
+      <div class="kpi"><span>Vendido en cigarrillos</span><b>${$m(t.cigTotal)}</b><small>de los ${$m(t.total)} totales</small></div>
+      <div class="kpi"><span>Egresos del turno</span><b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b><small>${t.egresos.length} salidas${t.egrOtros>0.009?` · ${$m(t.egrOtros)} sin efectivo`:''}</small></div>
+      <div class="kpi"><span>Fiado del turno</span><b>${$m(t.porForma.fiado)}</b><small>plata todavía no cobrada</small></div>
+      <div class="kpi cash-kpi-profit"><span>Ganancia estimada</span><b>${$m(gananciaEstimada)}</b><small>sobre lo vendido en el turno</small></div>
     </div>
-  </div>
-  <div class="pos">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-h"><h2>Cobros por forma de pago</h2></div>
+      <div class="card-b cash-payment-grid">
+        ${['efectivo','transferencia','tarjeta'].map(f=>`<div class="kpi"><span>${FORMAS[f]}</span><b>${$m(t.porForma[f])}</b></div>`).join('')}
+      </div>
+    </div>
     <div class="card">
-      <div class="card-h"><h2>Ventas del turno</h2><span class="pill mute">Ganancia estimada ${$m(t.total-t.costo-t.egrGeneral-t.egrCigarros-t.egrOtros)}</span></div>
+      <div class="card-h"><h2>Ventas del turno</h2></div>
       ${t.ventasTodas.length?`<div class="card-b"><label class="f" for="qCajaTurno">Buscar en las ventas del turno</label><input class="inp" id="qCajaTurno" value="${esc(busCajaTurno)}" placeholder="Nombre del producto…" autocomplete="off"></div>`:''}
       <div id="ventasCajaTurno" class="table-scroll" role="region" aria-label="Ventas del turno" tabindex="0"></div>
       ${t.egresos.length?`
@@ -6759,41 +6832,56 @@ function vCaja(m){
           <td data-label="Hora" class="num">${fHora(e.fecha)}</td>
           <td data-label="Motivo"><b>${esc(e.motivo)}</b>${e.nota?`<br><span style="font-size:12px;color:var(--muted)">${esc(e.nota)}</span>`:''}</td>
           <td data-label="Forma"><span class="pill ${(e.forma||'efectivo')==='efectivo'?(e.caja==='cigarrillos'?'warn':'mute'):'info'}">${(e.forma||'efectivo')==='efectivo'?(moduloCigarros&&e.caja==='cigarrillos'?'Efectivo · Cigarrillos':'Efectivo · General'):esc(FORMAS[e.forma]||e.forma)}</span></td>
-          <td data-label="Monto" class="r num" style="font-weight:600;color:var(--rojo)">– ${$m(e.monto)}</td>
+          <td data-label="Monto" class="r num value-reference">– ${$m(e.monto)}</td>
           <td class="r"><button class="x" data-del-eg="${e.id}" aria-label="Eliminar egreso">${ic('cerrar')}</button></td></tr>`).join('')}
       </tbody></table></div>`:''}
     </div>
-    <div>
+  </section>
+
+  <section data-caja-panel="cierre" ${cajaVista==='cierre'?'':'hidden'}>
+    <div class="cash-close-layout">
+      <div>
+        <div class="cash-section-heading">
+          <h2>Caja general</h2>
+          ${moduloCigarros?`<button type="button" class="cash-toggle" data-caja-cig-toggle>${cajaCigarrosPlegada?'Mostrar':'Ocultar'} caja de cigarrillos ›</button>`:''}
+        </div>
       <div class="card">
-        <div class="card-h"><h2>Caja general</h2></div>
         <div class="card-b">
-          <table style="margin-bottom:6px">
+          <table class="cash-calculation">
             <tr><td style="padding-left:0">Fondo inicial${!moduloCigarros&&Number(db.config.fondoCajaCigarros||0)?' (incluye fondo de cigarrillos)':''}</td><td class="r num">${$m(fondoGeneralEfectivo)}</td></tr>
             <tr><td style="padding-left:0">Ventas en efectivo</td><td class="r num">+ ${$m(t.genEfectivo)}</td></tr>
             <tr><td style="padding-left:0">Cobros de fiado en efectivo</td><td class="r num">+ ${$m(t.cobEfectivo)}</td></tr>
-            ${t.egrGeneral>0?`<tr><td style="padding-left:0;color:var(--rojo)">Egresos</td><td class="r num" style="color:var(--rojo)">– ${$m(t.egrGeneral)}</td></tr>`:''}
-            <tr><td style="padding-left:0;font-weight:600">Debería haber</td><td class="r num" style="font-weight:600;font-size:17px">${$m(espGeneral)}</td></tr>
+            ${t.egrGeneral>0?`<tr><td style="padding-left:0">Egresos</td><td class="r num">– ${$m(t.egrGeneral)}</td></tr>`:''}
+            <tr><td style="padding-left:0">Debería haber</td><td class="r num" style="font-size:17px">${$m(espGeneral)}</td></tr>
           </table>
-          <label class="f" for="contadoG" style="margin-top:14px">Efectivo contado</label>
-          <input id="contadoG" class="inp num" inputmode="decimal" placeholder="0,00">
-          <div id="difG" style="margin-top:10px"></div>
+          <div class="cash-count-box">
+            <label class="f" for="contadoG">Efectivo contado</label>
+            <input id="contadoG" class="inp num cash-count-input" inputmode="decimal" placeholder="0,00">
+            <div class="cash-count-help">Contá la plata física del mostrador y escribila acá.</div>
+          </div>
+          <div id="difG" class="cash-difference neutral"><span>Diferencia</span><b>—</b></div>
         </div>
       </div>
-      ${moduloCigarros?`<div class="card" style="margin-top:16px;border-color:#E9C9A0">
-        <div class="card-h"><h2 style="color:var(--ambar)">Caja de cigarrillos</h2></div>
+      ${moduloCigarros?`<div class="card cash-cigarette-card" data-caja-cig-content ${cajaCigarrosPlegada?'hidden':''}>
+        <div class="card-h"><h2>Caja de cigarrillos</h2></div>
         <div class="card-b">
-          <table style="margin-bottom:6px">
+          <table class="cash-calculation">
             <tr><td style="padding-left:0">Fondo inicial</td><td class="r num">${$m(fondoCigarrosTurno)}</td></tr>
             <tr><td style="padding-left:0">Ventas de cigarrillos en efectivo</td><td class="r num">+ ${$m(t.cigEfectivo)}</td></tr>
-            ${t.egrCigarros>0?`<tr><td style="padding-left:0;color:var(--rojo)">Egresos</td><td class="r num" style="color:var(--rojo)">– ${$m(t.egrCigarros)}</td></tr>`:''}
-            <tr><td style="padding-left:0;font-weight:600">Debería haber</td><td class="r num" style="font-weight:600;font-size:17px">${$m(espCigarros)}</td></tr>
+            ${t.egrCigarros>0?`<tr><td style="padding-left:0">Egresos</td><td class="r num">– ${$m(t.egrCigarros)}</td></tr>`:''}
+            <tr><td style="padding-left:0">Debería haber</td><td class="r num" style="font-size:17px">${$m(espCigarros)}</td></tr>
           </table>
-          <label class="f" for="contadoC" style="margin-top:14px">Efectivo contado</label>
-          <input id="contadoC" class="inp num" inputmode="decimal" placeholder="0,00">
-          <div id="difC" style="margin-top:10px"></div>
+          <div class="cash-count-box">
+            <label class="f" for="contadoC">Efectivo contado</label>
+            <input id="contadoC" class="inp num cash-count-input" inputmode="decimal" placeholder="0,00">
+            <div class="cash-count-help">Contá el efectivo reservado para cigarrillos y escribilo acá.</div>
+          </div>
+          <div id="difC" class="cash-difference neutral"><span>Diferencia</span><b>—</b></div>
         </div>
       </div>`:''}
-      <div class="card" style="margin-top:16px">
+      </div>
+      <div>
+      <div class="card cash-action-card">
         <div class="card-b">
           <label class="f" for="notaC">Nota del cierre</label>
           <input id="notaC" class="inp" placeholder="Opcional: turno tarde, retiro, etc.">
@@ -6801,7 +6889,7 @@ function vCaja(m){
           <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.55">Al cerrar se guarda una copia de seguridad automática de toda la base.</div>
         </div>
       </div>
-      <div class="card" style="margin-top:16px">
+      <div class="card cash-action-card">
         <div class="card-h"><h2>Fondos iniciales</h2></div>
         <div class="card-b">
           <label class="f" for="fondo">Caja general</label>
@@ -6811,25 +6899,55 @@ function vCaja(m){
           <button class="btn ghost" id="okFondo" style="margin-top:12px;width:100%">Guardar fondos</button>
         </div>
       </div>
+      </div>
     </div>
-  </div>
-  ${htmlCierresAnteriores()}`;
+  </section>
+
+  <section data-caja-panel="historial" ${cajaVista==='historial'?'':'hidden'}>
+    ${htmlCierresAnteriores()}
+  </section>`;
   const qCaja=$('#qCajaTurno');
   if(qCaja) qCaja.oninput=e=>{busCajaTurno=e.target.value;pintarVentasCajaActual(t);};
   pintarVentasCajaActual(t);
   enlazarCierresAnteriores(m);
 
-  const armarDif=(inp,esperado,box)=>{
+  const aplicarVistaCaja=vista=>{
+    const siguiente=vistasCaja.includes(vista)?vista:'turno';
+    globalThis.__miCajaVista=siguiente;
+    $$('[data-caja-tab]',m).forEach(tab=>{
+      const activa=tab.dataset.cajaTab===siguiente;
+      tab.classList.toggle('active',activa);tab.setAttribute('aria-selected',String(activa));
+    });
+    $$('[data-caja-panel]',m).forEach(panel=>panel.hidden=panel.dataset.cajaPanel!==siguiente);
+  };
+  $$('[data-caja-tab]',m).forEach(tab=>tab.onclick=()=>aplicarVistaCaja(tab.dataset.cajaTab));
+  aplicarVistaCaja(cajaVista);
+
+  const actualizarDiferencia=(inp,esperado,box)=>{
     if(!inp||!box) return;
     inp.oninput=()=>{
+      if(inp.value===''){
+        box.className='cash-difference neutral';
+        box.innerHTML='<span>Diferencia</span><b>—</b>';
+        return;
+      }
       const d=num(inp.value)-esperado;
-      box.innerHTML=inp.value===''?'':`<div class="vuelto ${d<-0.009?'falta':''}">
-        <span>${Math.abs(d)<0.01?'Justo':d<0?'Falta':'Sobra'}</span><b>${$m(Math.abs(d))}</b></div>`;
+      const estado=d<-0.009?'negative':d>0.009?'positive':'ok';
+      box.className=`cash-difference ${estado}`;
+      box.innerHTML=`<span>${Math.abs(d)<0.01?'Diferencia':d<0?'Falta':'Sobra'}</span><b>${d>0.009?'+ ':d<-0.009?'– ':''}${$m(Math.abs(d))}</b>`;
     };
   };
   const inpG=$('#contadoG'), inpC=$('#contadoC');
-  armarDif(inpG,espGeneral,$('#difG'));
-  armarDif(inpC,espCigarros,$('#difC'));
+  actualizarDiferencia(inpG,espGeneral,$('#difG'));
+  actualizarDiferencia(inpC,espCigarros,$('#difC'));
+  const toggleCig=$('[data-caja-cig-toggle]',m);
+  if(toggleCig)toggleCig.onclick=()=>{
+    const contenido=$('[data-caja-cig-content]',m);if(!contenido)return;
+    contenido.hidden=!contenido.hidden;
+    db.config.cajaCigarrosPlegada=contenido.hidden;
+    toggleCig.textContent=`${contenido.hidden?'Mostrar':'Ocultar'} caja de cigarrillos ›`;
+    guardar();
+  };
   $('#bEgreso').onclick=()=>formEgreso();
   $$('[data-del-eg]').forEach(b=>b.onclick=()=>{
     const e=(db.egresos||[]).find(x=>x.id===b.dataset.delEg); if(!e) return;
