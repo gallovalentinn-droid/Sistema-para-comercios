@@ -501,6 +501,45 @@ body.offline .app{padding-top:34px}
   .onboarding-head,.onboarding-body{padding-left:20px;padding-right:20px}.onboarding-grid{grid-template-columns:1fr}
   .onboarding-grid .wide{grid-column:auto}.onboarding-actions{flex-direction:column-reverse}.onboarding-actions .btn{width:100%}
 }
+/* Revisión UX integral */
+.ux-banner{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid #BED0FA;border-radius:12px;background:var(--primary-l);color:var(--ink-2);font-size:14px;line-height:1.55}
+.ux-banner.warn{background:var(--ambar-l);border-color:#E8CD96}.ux-banner.bad{background:var(--rojo-l);border-color:#F0C9C0}
+.pos-feedback{min-height:38px;margin-top:9px}.pos-feedback>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;border-radius:9px;background:var(--verde-l);color:var(--verde-d);font-size:13px;font-weight:600}
+.pos-shortcuts{margin-top:12px;color:var(--muted);font-size:12px;line-height:1.5}.pos-shortcuts kbd{font:600 11px var(--mono);background:var(--paper);border:1px solid var(--line-2);border-bottom-width:2px;border-radius:5px;padding:2px 5px;color:var(--ink-2)}
+.stock-state{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:2px 7px;font:600 11px var(--mono)}
+.stock-state.ok{background:var(--verde-l);color:var(--verde-d)}.stock-state.warn{background:var(--ambar-l);color:var(--ambar)}.stock-state.bad{background:var(--rojo-l);color:var(--rojo)}
+.cash-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:9px 0 14px}.cash-quick .btn{padding:8px 6px}
+.vuelto.vacio{background:var(--bg);color:var(--muted);border-color:var(--line)}
+.filter-tabs{display:flex;gap:5px;padding:4px;background:#E8ECF2;border-radius:10px;width:max-content}.filter-tabs button{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 12px;border-radius:8px;cursor:pointer}.filter-tabs button.on{background:var(--paper);color:var(--primary);box-shadow:0 1px 4px rgba(15,22,32,.1)}
+.pedido-provider-head{position:sticky;top:0;z-index:2;background:var(--paper)}
+.combo-result{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.combo-cost-warning,.resumen-cost-warning{margin:12px 0}
+.stock-negative{background:var(--rojo-l)}.stock-negative td:first-child{box-shadow:inset 3px 0 var(--rojo)}
+.expiry-coverage{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}.expiry-coverage-bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}.expiry-coverage-bar span{display:block;height:100%;background:var(--primary)}
+.toggle-switch{position:relative;width:44px;height:24px;border:0;border-radius:99px;background:var(--line-2);padding:0;cursor:pointer;transition:.15s}.toggle-switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,22,32,.22);transition:.15s}.toggle-switch[aria-checked="true"]{background:var(--primary)}.toggle-switch[aria-checked="true"]::after{transform:translateX(20px)}
+.permission-order{margin-bottom:16px}.settings-wide{max-width:none}.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.danger-zone{border-color:#E7B4AA;background:#FFF9F8}.config-nav button.active{background:var(--primary-l);color:var(--primary-d);border-color:#BED0FA}
+.support-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:16px}.support-diagnostic{font:12px/1.55 var(--mono);background:var(--bg)}
+@media(max-width:1440px) and (min-width:761px){
+  #tabProd th:nth-child(2),#tabProd td:nth-child(2),#tabProd th:nth-child(3),#tabProd td:nth-child(3){display:none}
+  #tabProd td[data-label="Producto"]{min-width:220px;max-width:300px}
+  #tabProd td:last-child .btn{width:38px;padding:8px;font-size:0;gap:0}
+  #tabProd td:last-child .btn svg{width:16px;height:16px}
+}
+@media(max-width:1100px) and (min-width:761px){
+  #tabProd th:nth-child(6),#tabProd td:nth-child(6){display:none}
+  .rep-table{min-width:0}
+  .rep-table col:nth-child(1){width:55%}
+  .rep-table col:nth-child(2),.rep-table th:nth-child(2),.rep-table td:nth-child(2){display:none}
+  .rep-table col:nth-child(3){width:12%}
+  .rep-table col:nth-child(4),.rep-table col:nth-child(5),.rep-table th:nth-child(4),.rep-table td:nth-child(4),.rep-table th:nth-child(5),.rep-table td:nth-child(5){display:none}
+  .rep-table col:nth-child(6){width:18%}
+  .rep-table col:nth-child(7){width:15%}
+  .rep-table th,.rep-table td{padding-left:5px;padding-right:5px}
+  #tablaMovimientos .mov-table th,#tablaMovimientos .mov-table td{padding-left:9px;padding-right:9px}
+  #tablaMovimientos .mov-table th:last-child,#tablaMovimientos .mov-table td:last-child{display:none}
+  #tablaMovimientos .mov-table tbody tr{cursor:pointer}
+}
+@media(max-width:900px){.cash-quick{grid-template-columns:repeat(2,1fr)}.settings-grid,.support-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -568,7 +607,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:27,
+  packageRevision:28,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3326,7 +3365,11 @@ function vistaVisible(v,esD){
   const membership=f5MembresiaActual();
   if(!membership) return !(sb&&sesion) && (v.id!=='config'||esD);
   if(!f5VistaPermitida(v.id,membership)) return false;
-  if((membership.rol==='duenio'||membership.rol==='admin')&&interfazProtegida&&v.id!=='vender'&&v.id!=='soporte') return false;
+  if((membership.rol==='duenio'||membership.rol==='admin')&&interfazProtegida){
+    if(v.id==='vender'||v.id==='soporte') return true;
+    if(v.id==='config') return false;
+    if(SECCIONES_PERMISO.includes(v.id)) return (db.config.permisosEmpleado||{})[v.id]!==false;
+  }
   return true;
 }
 const vistasVisibles=()=>VISTAS.filter(v=>vistaVisible(v,esDuenio()));
@@ -3450,6 +3493,7 @@ function render(){
 let ticket=[];                 // {id, tipo:'producto'|'combo', prodId?, comboId?, nombre, precio, cant, componentes?}
 let pago='efectivo', clienteFiado='', recibido='';
 let pagoMixto=[];              // [{forma,monto}] cuando pago==='mixto'
+let ultimoAgregado=null;
 
 /* F5_PRODUCT_IMAGE_CORE_START */
 function f5RutaImagenProducto(comercioId,productoId){
@@ -3573,7 +3617,9 @@ function agregarAlTicket(p,cant=1){
   if(l) l.cant+=cant; else ticket.push({id:p.id,tipo:'producto',prodId:p.id,nombre:p.nombre,precio:Number(p.precio)||0,cant});
   const total=ticket.find(i=>i.id===p.id).cant;
   if(total>Number(p.stock)) aviso(`Ojo: quedan ${fmtCant(p,p.stock)} de ${p.nombre}`,'bad');
+  ultimoAgregado={id:p.id,cant,nombre:p.nombre,total:Number(p.precio||0)*cant};
   pintarPOS();
+  mostrarFeedbackProducto();
 }
 function comboStockDisponible(combo){
   return Math.min(...combo.items.map(it=>{const p=prod(it.prodId); return p? Math.floor(Number(p.stock)/it.cant) : 0;}));
@@ -3587,7 +3633,29 @@ function agregarComboAlTicket(combo,cant=1){
   const linea=ticket.find(i=>i.id===id);
   const disponible=comboStockDisponible(combo);
   if(linea.cant>disponible) aviso(`Ojo: con el stock actual solo podés armar ${disponible} combos de "${combo.nombre}"`,'bad');
+  ultimoAgregado={id,nombre:combo.nombre,cant,total:Number(combo.precio||0)*cant};
   pintarPOS();
+  mostrarFeedbackProducto();
+}
+function mostrarFeedbackProducto(){
+  const box=$('#posFeedback'); if(!box||!ultimoAgregado) return;
+  box.innerHTML=`<div><span>✓ ${esc(ultimoAgregado.nombre)} agregado · <span class="num">${$m(ultimoAgregado.total)}</span></span><button type="button" class="btn text sm" data-deshacer-agregado>Deshacer</button></div>`;
+  const undo=$('[data-deshacer-agregado]',box);
+  if(undo) undo.onclick=()=>{
+    const item=ticket.find(i=>i.id===ultimoAgregado.id);
+    if(item){item.cant=Math.max(0,item.cant-ultimoAgregado.cant);if(item.cant<=0.0009)ticket=ticket.filter(i=>i!==item);}
+    ultimoAgregado=null;box.innerHTML='';pintarPOS();$('#scan')&&$('#scan').focus();
+  };
+}
+function confirmarProductoSinStock(p,luego){
+  const enTicket=Number((ticket.find(i=>i.id===p.id)||{}).cant)||0;
+  const disponible=Number(p.stock)-enTicket;
+  const vencido=typeof estaVencido==='function'&&estaVencido(p);
+  if(disponible>0&&!vencido){luego();return;}
+  const detalle=vencido
+    ? `<b>${esc(p.nombre)}</b> figura vencido desde el ${esc(textoVence(p))}. Revisá el producto físico antes de venderlo.`
+    : `<b>${esc(p.nombre)}</b> no tiene stock disponible. Si lo agregás, el inventario va a quedar en negativo.`;
+  confirmar(vencido?'Producto vencido':'Producto sin stock',detalle,luego,'Agregar igual','rojo');
 }
 function seleccionarProducto(p){
   if(!p) return;
@@ -3601,7 +3669,7 @@ function seleccionarProducto(p){
       if(a){ aviso(`No quedan sueltos ni atados de ${a.nombre}`,'bad'); }
     }
   }
-  agregarAlTicket(p,1);
+  confirmarProductoSinStock(p,()=>agregarAlTicket(p,1));
 }
 function ofrecerAbrirAtado(s,a){
   const upa=porAtado(s);
@@ -3672,14 +3740,13 @@ function vigentePromo(pr){
   if(pr.hasta&&h>pr.hasta) return false;
   return true;
 }
-// mejor % de promo para un producto: la promo puntual del producto gana por sobre la de su categoría
+// Se aplica un solo descuento de producto/rubro: siempre el porcentaje más alto.
 function promoParaProducto(p){
   if(!p) return 0;
   const activas=(db.promociones||[]).filter(vigentePromo);
   const porProd=activas.filter(pr=>pr.tipo==='producto'&&pr.objetivoId===p.id);
-  if(porProd.length) return Math.max(...porProd.map(pr=>num(pr.porcentaje)));
   const porCat=activas.filter(pr=>pr.tipo==='categoria'&&pr.objetivoId&&pr.objetivoId===p.rubro);
-  return porCat.length ? Math.max(...porCat.map(pr=>num(pr.porcentaje))) : 0;
+  return Math.max(0,...porProd.map(pr=>num(pr.porcentaje)),...porCat.map(pr=>num(pr.porcentaje)));
 }
 // detalle por línea de ticket (para mostrar el tag "Promo -X%"); no toca combos
 function detallePromoAuto(){
@@ -3701,7 +3768,8 @@ function promoPagoPct(forma){
 function descuentoPromoPago(){
   const pct=promoPagoPct(pago);
   if(!pct) return 0;
-  const base=Math.max(0,subtotalTicket()-descuentoPromoAuto()-montoDescuento());
+  const baseProductos=ticket.filter(i=>i.tipo!=='combo').reduce((a,i)=>a+Number(i.precio||0)*Number(i.cant||0),0);
+  const base=Math.max(0,baseProductos-descuentoPromoAuto());
   return Math.round(base*pct/100*100)/100;
 }
 const totalTicket=()=>Math.max(0,Math.round((subtotalTicket()-descuentoPromoAuto()-montoDescuento()-descuentoPromoPago())*100)/100);
@@ -3717,9 +3785,11 @@ function vVender(m){
       <div class="scan"><span class="ic">${ic('scan')}</span>
         <input id="scan" placeholder="Escaneá el código o escribí el nombre del producto…" autocomplete="off" spellcheck="false">
       </div>
-      <div class="scan-hint">Al elegir un producto o combo, se agrega solo al ticket de la derecha. Los que se venden por peso te van a preguntar cuánto pesa.</div>
+      <div class="scan-hint">Al elegir un producto o combo, se agrega al ticket. Los que se venden por peso te van a preguntar cuánto pesa.</div>
+      <div class="pos-feedback" id="posFeedback" aria-live="polite"></div>
       <div class="results"><ul id="res" hidden></ul></div>
       <div class="card" style="margin-top:16px"><div id="posTabla"></div></div>
+      <div class="pos-shortcuts">Atajos: <kbd>F1</kbd> buscar · <kbd>F2</kbd> cobrar · <kbd>Esc</kbd> cerrar una ventana</div>
     </div>
     <div class="tik-wrap">
       <div class="tik" id="tik"></div>
@@ -3740,9 +3810,9 @@ function vVender(m){
       rc.map(c=>`<li data-tipo="combo" data-id="${c.id}">
         <span><span class="nm">${esc(c.nombre)} <span class="pill info">Combo</span></span><br><span class="mt">${esc(c.items.map(it=>{const p=prod(it.prodId);return it.cant+'× '+(p?p.nombre:'?');}).join(' + '))}</span></span>
         <span class="num" style="font-weight:600">${$m(c.precio)}</span></li>`).join('')
-      + r.map(p=>`<li data-tipo="producto" data-id="${p.id}">${miniFoto(p)}
-        <span style="flex:1;min-width:0"><span class="nm">${esc(p.nombre)}${p.unidad==='kg'?' · x kg':''}</span><br><span class="mt">${esc(p.ean||'sin código')} · stock ${fmtCant(p,p.stock)}</span></span>
-        <span class="num" style="font-weight:600">${$m(p.precio)}${p.unidad==='kg'?'/kg':''}</span></li>`).join('');
+      + r.map(p=>{const s=Number(p.stock);const estado=s<=0?'bad':s<=Number(p.stockMin)?'warn':'ok';return `<li data-tipo="producto" data-id="${p.id}">${miniFoto(p)}
+        <span style="flex:1;min-width:0"><span class="nm">${esc(p.nombre)}${p.unidad==='kg'?' · x kg':''}</span><br><span class="mt">${p.ean?esc(p.ean)+' · ':esc(p.rubro||'Sin código')+' · '}<span class="stock-state ${estado}">stock ${fmtCant(p,p.stock)}</span></span></span>
+        <span class="num" style="font-weight:600">${$m(p.precio)}${p.unidad==='kg'?'/kg':''}</span></li>`;}).join('');
     $$('#res li').forEach(li=>li.onclick=()=>{ elegirResultado(li.dataset.tipo,li.dataset.id); inp.value=''; cerrarRes(); inp.focus(); });
   });
   inp.addEventListener('keydown',e=>{
@@ -3777,10 +3847,12 @@ function codigoDesconocido(cod){
 
 function pintarPOS(){
   if(vista!=='vender') return;
+  const posTabla=$('#posTabla');
+  if(!posTabla) return;
   const t=totalTicket();
 
   /* tabla de ítems */
-  $('#posTabla').innerHTML = !ticket.length
+  posTabla.innerHTML = !ticket.length
     ? `<div class="empty"><b>Todavía no cargaste nada</b>Pasá el lector por el código de barras o escribí el nombre del producto arriba.</div>`
     : `<table class="mtable"><thead><tr><th>Producto</th><th class="r" style="width:130px">Cantidad</th><th class="r">Precio</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>
       ${ticket.map(i=>{
@@ -3818,14 +3890,7 @@ function pintarPOS(){
   const pAuto=descuentoPromoAuto(), pPago=descuentoPromoPago();
   $('#tik').innerHTML=`
     <div class="tik-top"><b>${esc(db.config.nombre)}</b>Ticket Nº ${String(db.config.nroVenta).padStart(5,'0')} · ${fFH(Date.now())}</div>
-    ${ticket.length?`<ul class="tik-items">${ticket.map(i=>{
-        const p=i.tipo==='combo'?null:prod(i.prodId);
-        const pct=i.tipo==='combo'?0:promoParaProducto(p);
-        const pu=pct>0?Math.round(i.precio*(1-pct/100)*10000)/10000:i.precio;
-        return `<li>
-        <div class="tik-l1"><span>${esc(i.nombre)}${i.tipo==='combo'?' <span style="font-size:11px;color:var(--muted)">(combo)</span>':''}${pct>0?` <span style="font-size:11px;color:var(--verde)">promo −${pct}%</span>`:''}</span><span class="dots"></span></div>
-        <div class="tik-l2"><span class="um">${fmtCant(p,i.cant)} × ${$m(pu)}</span><span class="num" style="font-weight:600">${$m(i.cant*pu)}</span></div>
-      </li>`;}).join('')}</ul>`
+    ${ticket.length?`<div class="tik-empty"><b style="display:block;color:var(--txt);font-size:15px">${ticket.length} ${ticket.length===1?'renglón':'renglones'} en la venta</b>Los productos se editan en la lista principal.</div>`
       :`<div class="tik-empty">— ticket en blanco —<br>esperando el primer producto</div>`}
     ${(pAuto>0||montoDescuento()>0||pPago>0)?`<div class="tik-dto">
       <div class="tik-fila-dto"><span>Subtotal</span><b class="num">${$m(subtotalTicket())}</b></div>
@@ -3852,18 +3917,24 @@ function pintarPOS(){
       :`<button type="button" class="btn ghost sm" id="dtoAbrir" style="width:100%">${ic('mas')} Aplicar descuento</button>`}
     </div>`:''}
     ${ticket.length?`<button class="btn verde big" id="abrirPago">Elegir medio de pago</button>
-      <button class="btn ghost sm" id="limpiar" style="width:100%;margin-top:9px">Cancelar la venta</button>`
+      <button class="btn text sm" id="limpiar" style="width:100%;margin-top:9px;color:var(--muted)">Cancelar la venta</button>`
     :`<div class="hint" style="text-align:center;padding:18px 4px">Cargá al menos un producto para poder cobrar.</div>`}`;
 
   const bda=$('#dtoAbrir'); if(bda) bda.onclick=()=>formDescuento();
   const bde=$('#dtoEditar'); if(bde) bde.onclick=()=>formDescuento();
   const bdq=$('#dtoQuitar'); if(bdq) bdq.onclick=()=>{limpiarDescuento();pintarPOS();aviso('Descuento quitado');};
-  const bl=$('#limpiar'); if(bl) bl.onclick=()=>{ticket=[];recibido='';pagoMixto=[];pago='';limpiarDescuento();pintarPOS();aviso('Venta cancelada');};
+  const bl=$('#limpiar'); if(bl) bl.onclick=confirmarCancelacionVenta;
   const bap=$('#abrirPago'); if(bap) bap.onclick=()=>abrirModalPago();
 
   const hoyV=db.ventas.filter(v=>fechaLocalISO(v.fecha)===hoy()&&!v.anulada);
   const el=$('#posVentasHoy');
-  if(el) el.textContent=`Hoy: ${hoyV.length} ventas · ${$m(hoyV.reduce((a,v)=>a+v.total,0))}`;
+  if(el) el.textContent=`Hoy: ${hoyV.length} ${hoyV.length===1?'venta':'ventas'} · ${$m(hoyV.reduce((a,v)=>a+v.total,0))}`;
+}
+function confirmarCancelacionVenta(){
+  if(!ticket.length) return;
+  const ejecutar=()=>{ticket=[];recibido='';pagoMixto=[];pago='';ultimoAgregado=null;limpiarDescuento();pintarPOS();const f=$('#posFeedback');if(f)f.innerHTML='';aviso('Venta cancelada');};
+  if(ticket.length<3){ejecutar();return;}
+  confirmar('Cancelar esta venta',`Se van a quitar <b>${ticket.length} productos o combos</b> del ticket.`,ejecutar,'Cancelar venta','rojo');
 }
 
 /* ── modal de medio de pago: todo el flujo de cobro vive acá ── */
@@ -3879,6 +3950,7 @@ function pintarPagoModal(ov){
   const t=totalTicket();
   const vuelto=num(recibido)-t;
   const pctPago=promoPagoPct(pago);
+  const billetes=[5000,10000,20000].filter((v,i,a)=>v>=t&&a.indexOf(v)===i).slice(0,3);
   $('#pagoBody',ov).innerHTML=`
     <div class="kpi" style="margin-bottom:18px"><span>Total a cobrar</span><b style="font-size:24px">${$m(t)}</b>${pctPago>0?`<small style="display:block;color:var(--verde);font-weight:600;margin-top:3px">Incluye −${pctPago}% por pagar con ${FORMAS[pago]}</small>`:''}</div>
     <div class="seg">
@@ -3888,10 +3960,11 @@ function pintarPagoModal(ov){
     ${pago==='efectivo'?`
       <label class="f" for="rec">Con cuánto paga</label>
       <input id="rec" class="inp num" inputmode="decimal" placeholder="0,00" value="${esc(recibido)}">
-      <div class="vuelto ${recibido&&vuelto<0?'falta':''}">
+      <div class="cash-quick"><button type="button" class="btn ghost sm" data-cash-quick="${t}">Justo</button>${billetes.map(v=>`<button type="button" class="btn ghost sm" data-cash-quick="${v}">${$m(v)}</button>`).join('')}</div>
+      <div class="vuelto ${!recibido?'vacio':vuelto<0?'falta':''}">
         <span>${recibido&&vuelto<0?'Falta':'Vuelto'}</span><b>${recibido?$m(Math.abs(vuelto)):'—'}</b>
       </div>
-      <button class="btn verde big" id="cobrar" style="margin-top:8px">Cobrar ${$m(t)}</button>`
+      <button class="btn verde big" id="cobrar" style="margin-top:8px" ${recibido&&num(recibido)>=t?'':'disabled'}>Cobrar ${$m(t)}</button>`
     : pago==='fiado'?`
       <label class="f" for="cliF">¿A quién se lo anotamos?</label>
       <select id="cliF" class="inp">
@@ -3920,8 +3993,10 @@ function pintarPagoModal(ov){
   if(rec){
     rec.focus();
     rec.oninput=()=>{ recibido=rec.value; const v=num(recibido)-t;
-      const box=$('.vuelto',ov); box.className='vuelto '+(recibido&&v<0?'falta':'');
-      box.innerHTML=`<span>${recibido&&v<0?'Falta':'Vuelto'}</span><b>${recibido?$m(Math.abs(v)):'—'}</b>`; };
+      const box=$('.vuelto',ov); box.className='vuelto '+(!recibido?'vacio':v<0?'falta':'');
+      box.innerHTML=`<span>${recibido&&v<0?'Falta':'Vuelto'}</span><b>${recibido?$m(Math.abs(v)):'—'}</b>`;
+      const cobrar=$('#cobrar',ov);if(cobrar)cobrar.disabled=!(recibido&&num(recibido)>=t); };
+    $$('[data-cash-quick]',ov).forEach(b=>b.onclick=()=>{recibido=String(b.dataset.cashQuick);rec.value=recibido;rec.oninput();rec.focus();});
   }
   const cf=$('#cliF',ov); if(cf) cf.onchange=()=>clienteFiado=cf.value;
   const nc=$('#nuevoCliRapido',ov); if(nc) nc.onclick=()=>formCliente(null,c=>{clienteFiado=c.id;pintarPagoModal(ov);});
@@ -4230,7 +4305,12 @@ function imprimirTicket(v){
 /* ═══════════════════════════════════════════════════════
    5. PRODUCTOS
    ═══════════════════════════════════════════════════════ */
-let fProd={q:'',rubro:'',orden:'nombre'};
+let fProd={q:'',rubro:'',orden:'nombre',incompletos:false};
+function nombreProductoIncompleto(nombre){
+  const limpio=String(nombre||'').trim();
+  return limpio.length<5||/^\d+(?:[.,]\d+)?\s*(?:g|gr|kg|ml|l|u|un|cm)?$/i.test(limpio);
+}
+function productoIncompleto(p){return !String(p.ean||'').trim()||Number(p.costo)<=0||nombreProductoIncompleto(p.nombre);}
 
 function cerrarMenuProductos(devolverFoco=false){
   const menu=$('#menuProductos'),boton=$('#bMasProductos');
@@ -4267,6 +4347,7 @@ document.addEventListener('keydown',e=>{const menu=$('#menuProductos');if(e.key=
 
 function vProductos(m){
   const catalogoVacio=!db.productos.length;
+  const incompletos=db.productos.filter(productoIncompleto).length;
   m.innerHTML=`
   <div class="head">
     <div><h1>Productos</h1><div class="sub">${catalogoVacio?'Todavía no cargaste ningún producto':`${db.productos.length} cargados · ${db.productos.filter(bajo).length} en el mínimo o por debajo`}</div></div>
@@ -4282,6 +4363,7 @@ function vProductos(m){
       <button class="btn products-invoice-button" id="bIngreso">${ic('camara')} Cargar factura<span class="ai-badge" aria-label="Función con inteligencia artificial">IA</span></button>
     </div>`}
   </div>
+  ${ultimoCambioPrecios?`<div class="ux-banner" style="margin-bottom:14px"><div style="flex:1"><b>Último cambio masivo aplicado</b><br>${esc(ultimoCambioPrecios.descripcion)} · ${ultimoCambioPrecios.items.length} productos.</div><button class="btn ghost sm" id="deshacerPrecios">Deshacer</button></div>`:''}
   <div class="card ${catalogoVacio?'products-empty-card':''}">
     ${catalogoVacio?'':`<div class="card-h">
       <div class="row" style="flex:1">
@@ -4296,15 +4378,18 @@ function vProductos(m){
           <option value="rubro" ${fProd.orden==='rubro'?'selected':''}>Ordenar por rubro</option>
           <option value="margen" ${fProd.orden==='margen'?'selected':''}>Ordenar por margen</option>
         </select>
+        ${incompletos?`<button type="button" class="btn ${fProd.incompletos?'':'ghost'} sm" id="filtrarIncompletos">${incompletos} con datos faltantes</button>`:''}
       </div>
     </div>`}
     <div id="tabProd" class="table-scroll ${catalogoVacio?'products-empty-shell':''}" role="region" aria-label="Lista de productos" tabindex="0"></div>
   </div>`;
   wireProductosActions(m);
+  const undo=$('#deshacerPrecios',m);if(undo)undo.onclick=deshacerUltimoCambioPrecios;
   const q=$('#q',m),fr=$('#fr',m),fo=$('#fo',m);
   if(q)q.oninput=e=>{fProd.q=e.target.value;tablaProductos();};
   if(fr)fr.onchange=e=>{fProd.rubro=e.target.value;tablaProductos();};
   if(fo)fo.onchange=e=>{fProd.orden=e.target.value;tablaProductos();};
+  const bi=$('#filtrarIncompletos',m);if(bi)bi.onclick=()=>{fProd.incompletos=!fProd.incompletos;vProductos(m);};
   tablaProductos();
 }
 
@@ -4312,6 +4397,7 @@ function listaFiltrada(){
   const q=fProd.q.trim().toLowerCase();
   let l=db.productos.filter(p=>
     (!fProd.rubro||p.rubro===fProd.rubro) &&
+    (!fProd.incompletos||productoIncompleto(p)) &&
     (!q||(p.nombre||'').toLowerCase().includes(q)||(p.ean||'').toLowerCase().includes(q)||(p.rubro||'').toLowerCase().includes(q))
   );
   const marg=p=>Number(p.costo)>0?(p.precio-p.costo)/p.costo:0;
@@ -4516,6 +4602,13 @@ function formProducto(id,pre={},luego){
       $('#guardarP',ov).onclick=async()=>{
         const nom=$('#f_nom',ov).value.trim();
         if(!nom){aviso('Falta el nombre del producto','bad');$('#f_nom',ov).focus();return;}
+        if(nombreProductoIncompleto(nom)&&ov.dataset.nombreRevisado!=='1'){
+          ov.dataset.nombreRevisado='1';
+          $('#f_nom',ov).style.borderColor='var(--ambar)';
+          $('#guardarP',ov).textContent='Guardar igual';
+          aviso('El nombre parece incompleto. Revisalo o tocá “Guardar igual”.','bad');
+          $('#f_nom',ov).focus();return;
+        }
         const ean=$('#f_ean',ov).value.trim();
         const dup=db.productos.find(x=>ean&&x.ean===ean&&x.id!==(p?p.id:''));
         if(dup){aviso(`Ese código ya lo usa ${dup.nombre}`,'bad');return;}
@@ -4561,10 +4654,11 @@ function formProducto(id,pre={},luego){
 /* ═══════════════════════════════════════════════════════
    CAMBIO MASIVO DE PRECIOS
    ═══════════════════════════════════════════════════════ */
-let pxConf={campo:'precio',tipo:'porcentaje',modo:'aumentar',valor:'',rubro:'',proveedor:'',redondeo:'0',soloSel:false,sel:{}};
+let pxConf={campo:'precio',tipo:'porcentaje',modo:'aumentar',valor:'',alcance:'',rubro:'',proveedor:'',redondeo:'0',sel:{}};
+let ultimoCambioPrecios=null;
 
 function panelPrecios(){
-  pxConf={campo:'precio',tipo:'porcentaje',modo:'aumentar',valor:'',rubro:'',proveedor:'',redondeo:'0',soloSel:false,sel:{}};
+  pxConf={campo:'precio',tipo:'porcentaje',modo:'aumentar',valor:'',alcance:'',rubro:'',proveedor:'',redondeo:'0',sel:{}};
   modal({titulo:'Cambiar precios en conjunto', ancho:true,
     cuerpo:`
       <div class="grid2" style="margin-bottom:14px">
@@ -4573,7 +4667,6 @@ function panelPrecios(){
           <div class="seg" style="margin-bottom:0">
             <button type="button" data-pxc="precio" class="on">De venta</button>
             <button type="button" data-pxc="costo">De costo</button>
-            <button type="button" data-pxc="ambos">Los dos</button>
           </div>
         </div>
         <div>
@@ -4598,10 +4691,10 @@ function panelPrecios(){
         </div>
       </div>
       <div class="grid3" style="margin-bottom:14px">
-        <div><label class="f" for="px_rubro">Solo el rubro</label>
-          <select id="px_rubro" class="inp"><option value="">Todos los rubros</option>${rubros().map(r=>`<option>${esc(r)}</option>`).join('')}</select></div>
-        <div><label class="f" for="px_prov">Solo el proveedor</label>
-          <select id="px_prov" class="inp"><option value="">Todos los proveedores</option>${proveedores().map(r=>`<option>${esc(r)}</option>`).join('')}</select></div>
+        <div><label class="f" for="px_alcance">Alcance</label>
+          <select id="px_alcance" class="inp"><option value="">Elegí qué querés cambiar…</option><option value="catalogo">Todo el catálogo</option><option value="rubro">Un rubro</option><option value="proveedor">Un proveedor</option></select></div>
+        <div><label class="f" for="px_objetivo">Rubro o proveedor</label>
+          <select id="px_objetivo" class="inp" disabled><option value="">Primero elegí el alcance</option></select></div>
         <div><label class="f" for="px_red">Redondear a</label>
           <select id="px_red" class="inp">
             <option value="0">No redondear</option>
@@ -4628,8 +4721,8 @@ function panelPrecios(){
       seg('data-pxc','campo'); seg('data-pxm','modo'); seg('data-pxt','tipo');
       etiquetas();
       $('#px_valor',ov).oninput=()=>{pxConf.valor=$('#px_valor',ov).value;pintarPreviewPrecios(ov);};
-      $('#px_rubro',ov).onchange=e=>{pxConf.rubro=e.target.value;pintarPreviewPrecios(ov);};
-      $('#px_prov',ov).onchange=e=>{pxConf.proveedor=e.target.value;pintarPreviewPrecios(ov);};
+      $('#px_alcance',ov).onchange=e=>{pxConf.alcance=e.target.value;pxConf.rubro='';pxConf.proveedor='';pxConf.sel={};const s=$('#px_objetivo',ov);if(pxConf.alcance==='rubro'){s.disabled=false;s.innerHTML='<option value="">Elegí un rubro…</option>'+rubros().map(r=>`<option>${esc(r)}</option>`).join('');}else if(pxConf.alcance==='proveedor'){s.disabled=false;s.innerHTML='<option value="">Elegí un proveedor…</option>'+proveedores().map(r=>`<option>${esc(r)}</option>`).join('');}else{s.disabled=true;s.innerHTML='<option value="">No hace falta elegir otro dato</option>';}pintarPreviewPrecios(ov);};
+      $('#px_objetivo',ov).onchange=e=>{if(pxConf.alcance==='rubro')pxConf.rubro=e.target.value;if(pxConf.alcance==='proveedor')pxConf.proveedor=e.target.value;pxConf.sel={};pintarPreviewPrecios(ov);};
       $('#px_red',ov).onchange=e=>{pxConf.redondeo=e.target.value;pintarPreviewPrecios(ov);};
       $('#px_valor',ov).focus();
       pintarPreviewPrecios(ov);
@@ -4644,10 +4737,14 @@ function redondearPrecio(n,modo){
   return Math.round(n/m)*m;
 }
 function productosAfectados(){
+  if(!pxConf.alcance) return [];
+  if(pxConf.alcance==='rubro'&&!pxConf.rubro) return [];
+  if(pxConf.alcance==='proveedor'&&!pxConf.proveedor) return [];
   return db.productos.filter(p=>
     (!pxConf.rubro||p.rubro===pxConf.rubro) &&
     (!pxConf.proveedor||p.proveedor===pxConf.proveedor));
 }
+function productosSeleccionados(){return productosAfectados().filter(p=>pxConf.sel[p.id]!==false);}
 function nuevoPrecio(actual){
   const v=num(pxConf.valor);
   if(!v||actual<=0) return actual;
@@ -4660,43 +4757,51 @@ function pintarPreviewPrecios(ov){
   const cont=$('#px_preview',ov);
   const lista=productosAfectados();
   const v=num(pxConf.valor);
-  const tocaVenta=pxConf.campo==='precio'||pxConf.campo==='ambos';
-  const tocaCosto=pxConf.campo==='costo'||pxConf.campo==='ambos';
+  const tocaVenta=pxConf.campo==='precio';
+  const tocaCosto=pxConf.campo==='costo';
   const filas=lista.map(p=>({
     p,
     precioNuevo: tocaVenta?nuevoPrecio(Number(p.precio)):Number(p.precio),
     costoNuevo:  tocaCosto?nuevoPrecio(Number(p.costo)):Number(p.costo)
   }));
-  const cambian=filas.filter(f=>Math.abs(f.precioNuevo-Number(f.p.precio))>0.001||Math.abs(f.costoNuevo-Number(f.p.costo))>0.001);
+  const cambian=filas.filter(f=>pxConf.sel[f.p.id]!==false&&(Math.abs(f.precioNuevo-Number(f.p.precio))>0.001||Math.abs(f.costoNuevo-Number(f.p.costo))>0.001));
   const muestra=filas.slice(0,10);
+  const promedioAntes=lista.length?lista.reduce((a,p)=>a+Number(tocaVenta?p.precio:p.costo||0),0)/lista.length:0;
+  const promedioDespues=cambian.length?cambian.reduce((a,f)=>a+Number(tocaVenta?f.precioNuevo:f.costoNuevo||0),0)/cambian.length:promedioAntes;
+  const mayor=cambian.slice().sort((a,b)=>Math.abs((tocaVenta?b.precioNuevo-b.p.precio:b.costoNuevo-b.p.costo))-Math.abs((tocaVenta?a.precioNuevo-a.p.precio:a.costoNuevo-a.p.costo)))[0];
   cont.innerHTML = !lista.length
-    ? `<div class="empty" style="padding:26px"><b>Ningún producto coincide con esos filtros</b>Probá quitando el rubro o el proveedor.</div>`
-    : `<table class="mtable"><thead><tr><th>Producto</th>${tocaCosto?'<th class="r">Costo actual</th><th class="r">Costo nuevo</th>':''}${tocaVenta?'<th class="r">Venta actual</th><th class="r">Venta nueva</th>':''}<th class="r">Margen</th></tr></thead><tbody>
+    ? `<div class="empty" style="padding:26px"><b>${pxConf.alcance?'Ningún producto coincide':'Elegí el alcance del cambio'}</b>${pxConf.alcance?'Probá otro rubro o proveedor.':'El catálogo completo también es posible, pero tenés que seleccionarlo de forma explícita.'}</div>`
+    : `<div class="grid3" style="margin-bottom:12px"><div class="kpi"><span>Productos incluidos</span><b>${cambian.length}</b><small>podés excluir filas</small></div><div class="kpi"><span>Precio promedio</span><b class="num">${v?$m(promedioAntes)+' → '+$m(promedioDespues):'—'}</b></div><div class="kpi"><span>Mayor cambio</span><b style="font-size:15px">${mayor?esc(mayor.p.nombre):'—'}</b><small>${mayor?$m(Math.abs((tocaVenta?mayor.precioNuevo-mayor.p.precio:mayor.costoNuevo-mayor.p.costo))):'Ingresá un valor'}</small></div></div>
+      <table class="mtable"><thead><tr><th style="width:42px">Incluir</th><th>Producto</th>${tocaCosto?'<th class="r">Costo actual</th><th class="r">Costo nuevo</th>':''}${tocaVenta?'<th class="r">Venta actual</th><th class="r">Venta nueva</th>':''}<th class="r">Margen</th></tr></thead><tbody>
       ${muestra.map(f=>{
         const mg=f.costoNuevo>0?((f.precioNuevo-f.costoNuevo)/f.costoNuevo*100):null;
         return `<tr>
+        <td><input type="checkbox" data-px-sel="${f.p.id}" ${pxConf.sel[f.p.id]===false?'':'checked'} aria-label="Incluir ${esc(f.p.nombre)}"></td>
         <td data-label="Producto">${celdaProductoConFoto(f.p,`<b>${esc(f.p.nombre)}</b>`)}</td>
-        ${tocaCosto?`<td data-label="Costo actual" class="r num" style="color:var(--muted)">${$m(f.p.costo)}</td>
-        <td data-label="Costo nuevo" class="r num" style="font-weight:600">${$m(f.costoNuevo)}</td>`:''}
+        ${tocaCosto?`<td data-label="Costo actual" class="r num" style="color:var(--muted)">${Number(f.p.costo)>0?$m(f.p.costo):'—'}</td>
+        <td data-label="Costo nuevo" class="r num" style="font-weight:600">${v?$m(f.costoNuevo):'—'}</td>`:''}
         ${tocaVenta?`<td data-label="Venta actual" class="r num" style="color:var(--muted)">${$m(f.p.precio)}</td>
-        <td data-label="Venta nueva" class="r num" style="font-weight:600;color:${f.precioNuevo>Number(f.p.precio)?'var(--verde-d)':f.precioNuevo<Number(f.p.precio)?'var(--rojo)':'inherit'}">${$m(f.precioNuevo)}</td>`:''}
-        <td data-label="Margen" class="r num" style="color:var(--muted)">${mg===null?'—':mg.toFixed(0)+'%'}</td>
+        <td data-label="Venta nueva" class="r num" style="font-weight:600;color:${f.precioNuevo<Number(f.p.precio)?'var(--rojo)':'inherit'}">${v?$m(f.precioNuevo):'—'}</td>`:''}
+        <td data-label="Margen" class="r num" style="color:var(--muted)">${v&&mg!==null?mg.toFixed(0)+'%':'—'}</td>
       </tr>`;}).join('')}</tbody></table>
       ${lista.length>10?`<div style="padding:12px 4px;color:var(--muted);font-size:13px">…y ${lista.length-10} productos más con el mismo criterio.</div>`:''}`;
   const res=$('#px_resumen');
   if(res) res.innerHTML = v? `Van a cambiar <b>${cambian.length}</b> de ${lista.length} productos` : `${lista.length} productos alcanzados — poné un valor`;
-  const btn=$('#okPx'); if(btn) btn.disabled = !v || !cambian.length;
+  $$('[data-px-sel]',cont).forEach(ch=>ch.onchange=()=>{pxConf.sel[ch.dataset.pxSel]=ch.checked;pintarPreviewPrecios(ov);});
+  const valorValido=v>0&&(pxConf.tipo!=='porcentaje'||v<=100);
+  const btn=$('#okPx'); if(btn) btn.disabled = !valorValido || !cambian.length;
 }
 function aplicarPrecios(ov){
-  const lista=productosAfectados();
-  const tocaVenta=pxConf.campo==='precio'||pxConf.campo==='ambos';
-  const tocaCosto=pxConf.campo==='costo'||pxConf.campo==='ambos';
+  const lista=productosSeleccionados();
+  const tocaVenta=pxConf.campo==='precio';
+  const tocaCosto=pxConf.campo==='costo';
   const v=num(pxConf.valor);
   const desc=`${pxConf.modo==='aumentar'?'Aumento':'Baja'} de ${pxConf.tipo==='porcentaje'?v+'%':$m(v)}`;
   const alcance=pxConf.rubro?`del rubro ${esc(pxConf.rubro)}`:pxConf.proveedor?`del proveedor ${esc(pxConf.proveedor)}`:'de todos los productos';
   confirmar('Aplicar cambio de precios',
-    `${desc} en el precio ${pxConf.campo==='ambos'?'de costo y de venta':pxConf.campo==='costo'?'de costo':'de venta'} ${alcance}.<br><br>Afecta a <b>${lista.length}</b> productos. Esto no se puede deshacer automáticamente — si querés una red de seguridad, bajate una copia desde Respaldo antes.`,
+    `${desc} en el precio ${pxConf.campo==='costo'?'de costo':'de venta'} ${alcance}.<br><br>Afecta a <b>${lista.length}</b> productos. Al terminar vas a poder deshacer este lote desde Productos.`,
     ()=>{
+      const anteriores=lista.map(p=>({id:p.id,precio:Number(p.precio)||0,costo:Number(p.costo)||0}));
       let n=0;
       lista.forEach(p=>{
         let cambio=false;
@@ -4706,9 +4811,14 @@ function aplicarPrecios(ov){
           p.costo=nc; cambio=true; } }
         if(cambio) n++;
       });
+      ultimoCambioPrecios={items:anteriores,descripcion:`${desc} ${alcance}`,fecha:new Date().toISOString()};
       guardar(); cerrarModal(); render();
       aviso(`Precios actualizados en ${n} productos`,'ok');
     },'Aplicar','verde');
+}
+function deshacerUltimoCambioPrecios(){
+  if(!ultimoCambioPrecios)return;
+  confirmar('Deshacer cambio masivo',`Se restaurarán los precios anteriores de <b>${ultimoCambioPrecios.items.length} productos</b>.`,()=>{ultimoCambioPrecios.items.forEach(anterior=>{const p=prod(anterior.id);if(p){p.precio=anterior.precio;p.costo=anterior.costo;}});ultimoCambioPrecios=null;guardar();render();aviso('Cambio masivo deshecho','ok');},'Deshacer','rojo');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -5048,12 +5158,12 @@ function vPromociones(m){
   m.innerHTML=`
   <div class="head">
     <div><h1>Descuentos</h1><div class="sub">Descuentos por producto, por categoría o por medio de pago, con fecha de inicio y fin.</div></div>
-    <div class="row"><button class="btn" id="bNuevaPromo">Nueva promoción</button></div>
+    <div class="row"><button class="btn" id="bNuevaPromo">Nuevo descuento</button></div>
   </div>
   <div class="card" style="margin-bottom:16px;background:var(--primary-l);border-color:var(--primary-l)">
     <div class="card-b" style="display:flex;gap:12px;align-items:flex-start">
       <span class="ic" style="color:var(--primary-d)">${ic('info')}</span>
-      <div style="font-size:14px;line-height:1.55;color:var(--ink-2)">Las promociones <b>activas y vigentes se aplican automáticamente</b> al cobrar. Si hay varias para el mismo producto o medio de pago, se usa el mejor porcentaje disponible.</div>
+      <div style="font-size:14px;line-height:1.55;color:var(--ink-2)">Los descuentos <b>activos y vigentes se aplican automáticamente</b> al cobrar. Para un producto se usa el porcentaje más alto entre producto y rubro; después puede sumarse el descuento del medio de pago. Los descuentos no se aplican a combos.</div>
     </div>
   </div>
   <div id="listaPromos"></div>`;
@@ -5063,9 +5173,10 @@ function vPromociones(m){
 function pintarPromociones(){
   const c=$('#listaPromos'); if(!c) return;
   const l=(db.promociones||[]).slice().sort((a,b)=>(b.creada||'').localeCompare(a.creada||''));
-  if(!l.length){ c.innerHTML=`<div class="card"><div class="empty"><b>Todavía no cargaste ninguna</b>Creá una promoción por producto, por categoría o por medio de pago, con o sin fecha límite.</div></div>`; return; }
-  c.innerHTML=`<div class="card"><table class="mtable"><thead><tr><th>Tipo</th><th>Aplica a</th><th class="r">Descuento</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead><tbody>
+  if(!l.length){ c.innerHTML=`<div class="card"><div class="empty"><b>Todavía no cargaste ningún descuento</b>Un descuento baja el precio de productos que ya vendés. Un combo crea una opción nueva con precio propio.<div style="margin-top:14px"><button class="btn" id="promoVaciaCta">Crear descuento</button></div></div></div>`;$('#promoVaciaCta').onclick=()=>formPromocion();return; }
+  c.innerHTML=`<div class="card"><table class="mtable"><thead><tr><th>Nombre</th><th>Tipo</th><th>Aplica a</th><th class="r">Descuento</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead><tbody>
     ${l.map(pr=>{ const e=estadoPromo(pr); return `<tr>
+      <td data-label="Nombre"><b>${esc(pr.nombre||('Descuento en '+objetivoPromo(pr)))}</b></td>
       <td data-label="Tipo">${esc(TIPOS_PROMO[pr.tipo]||pr.tipo)}</td>
       <td data-label="Aplica a"><b>${esc(objetivoPromo(pr))}</b></td>
       <td data-label="Descuento" class="r num" style="font-weight:600">${num(pr.porcentaje)}%</td>
@@ -5081,19 +5192,21 @@ function pintarPromociones(){
     const pr=(db.promociones||[]).find(x=>x.id===b.dataset.tp); if(!pr) return;
     pr.activa = pr.activa===false;
     guardar(); pintarPromociones(); pintarNav();
-    aviso(pr.activa?'Promoción activada':'Promoción pausada','ok');
+    aviso(pr.activa?'Descuento activado':'Descuento pausado','ok');
   });
   $$('[data-xp]',c).forEach(b=>b.onclick=()=>{
     const pr=(db.promociones||[]).find(x=>x.id===b.dataset.xp); if(!pr) return;
-    confirmar('Eliminar promoción',`Vas a borrar "${esc(TIPOS_PROMO[pr.tipo]||pr.tipo)} — ${esc(objetivoPromo(pr))}". Esto no se puede deshacer.`,
-      ()=>{ db.promociones=db.promociones.filter(x=>x.id!==pr.id); guardar(); pintarPromociones(); aviso('Promoción eliminada'); },'Eliminar');
+    confirmar('Eliminar descuento',`Vas a borrar "${esc(TIPOS_PROMO[pr.tipo]||pr.tipo)} — ${esc(objetivoPromo(pr))}". Esto no se puede deshacer.`,
+      ()=>{ db.promociones=db.promociones.filter(x=>x.id!==pr.id); guardar(); pintarPromociones(); aviso('Descuento eliminado'); },'Eliminar');
   });
 }
 function formPromocion(id){
   const pr=id?(db.promociones||[]).find(x=>x.id===id):null;
-  const v=pr||{tipo:'producto',objetivoId:'',porcentaje:'',desde:'',hasta:'',activa:true};
-  modal({titulo:pr?'Editar promoción':'Nueva promoción',
+  const v=pr||{nombre:'',tipo:'producto',objetivoId:'',porcentaje:'',desde:'',hasta:'',activa:true};
+  modal({titulo:pr?'Editar descuento':'Nuevo descuento',
     cuerpo:`
+      <label class="f" for="pr_nombre">Nombre</label>
+      <input id="pr_nombre" class="inp" value="${esc(v.nombre||'')}" placeholder="Se sugiere automáticamente">
       <label class="f">¿A qué aplica?</label>
       <div class="seg" style="margin-bottom:16px">
         <button type="button" data-tipo="producto" class="${v.tipo==='producto'?'on':''}">Producto</button>
@@ -5109,15 +5222,30 @@ function formPromocion(id){
         <div><label class="f" for="pr_hasta">Hasta (opcional)</label>
           <input type="date" id="pr_hasta" class="inp" value="${esc(v.hasta)}"></div>
       </div>
-      <div class="hint" style="margin-top:10px">Dejá las fechas vacías si la promoción no tiene vencimiento.</div>`,
+      <div class="hint" style="margin-top:10px">Dejá las fechas vacías si el descuento no tiene vencimiento.</div>
+      <div id="pr_impacto" class="combo-result" style="margin-top:16px"><b>Qué va a pasar</b><div class="hint">Elegí el alcance y el porcentaje para ver el impacto.</div></div>`,
     pie:`${pr?`<button class="btn ghost" id="borrarPromo" style="margin-right:auto;color:var(--rojo)">Eliminar</button>`:''}
-        <button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okPromo">Guardar</button>`,
+        <button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okPromo" disabled>Guardar descuento</button>`,
     alAbrir:ov=>{
       let tipo=v.tipo;
+      let nombreTocado=Boolean(v.nombre);
+      const objetivoSeleccionado=()=>$('#pr_obj',ov)?$('#pr_obj',ov).value:'';
+      const actualizarImpacto=()=>{
+        const obj=objetivoSeleccionado(),pct=num($('#pr_pct',ov).value);let alcanzados=[];
+        if(tipo==='producto'){const p=prod(obj);if(p)alcanzados=[p];}
+        if(tipo==='categoria')alcanzados=db.productos.filter(p=>p.rubro===obj);
+        if(tipo==='pago')alcanzados=db.productos.slice();
+        const ejemplos=alcanzados.slice(0,3),sinCosto=alcanzados.filter(p=>Number(p.costo)<=0).length;
+        $('#pr_impacto',ov).innerHTML=`<b>Qué va a pasar</b><div style="margin-top:7px"><b>${alcanzados.length}</b> productos alcanzados${pct?` · ${pct}% de descuento`:''}</div>${ejemplos.length&&pct?`<div style="margin-top:8px;font-size:13px">${ejemplos.map(p=>`${esc(p.nombre)}: <span class="num">${$m(p.precio)} → ${$m(Number(p.precio)*(1-pct/100))}</span>`).join('<br>')}</div>`:''}${sinCosto?`<div class="hint" style="color:var(--ambar);margin-top:8px">${sinCosto} sin costo: no podemos validar su margen final.</div>`:''}`;
+        if(!nombreTocado&&obj&&pct){const objetivo=tipo==='producto'?(prod(obj)||{}).nombre:tipo==='pago'?(FORMAS[obj]||obj):obj;$('#pr_nombre',ov).value=`${pct}% en ${objetivo}`;}
+        const desde=$('#pr_desde',ov).value,hasta=$('#pr_hasta',ov).value;$('#okPromo',ov).disabled=!obj||pct<=0||pct>100||(desde&&hasta&&hasta<desde);
+      };
       const pintarObjetivo=()=>{
         const wrap=$('#objetivoWrap',ov);
         if(tipo==='producto'){
-          wrap.innerHTML=`<label class="f" for="pr_obj">Producto</label>
+          wrap.innerHTML=`<label class="f" for="pr_obj_buscar">Buscar producto</label>
+            <input id="pr_obj_buscar" class="inp" placeholder="Escribí nombre, código o rubro…" autocomplete="off">
+            <label class="f" for="pr_obj" style="margin-top:8px">Producto elegido</label>
             <select id="pr_obj" class="inp"><option value="">Elegí un producto…</option>
               ${db.productos.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(p=>`<option value="${p.id}" ${v.objetivoId===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}
             </select>`;
@@ -5132,24 +5260,34 @@ function formPromocion(id){
               ${['efectivo','transferencia','tarjeta'].map(f=>`<option value="${f}" ${formaKey(v.objetivoId)===f?'selected':''}>${FORMAS[f]}</option>`).join('')}
             </select>`;
         }
+        const obj=$('#pr_obj',ov);if(obj)obj.onchange=actualizarImpacto;
+        const buscar=$('#pr_obj_buscar',ov);if(buscar)buscar.oninput=()=>{
+          const actual=obj.value,q=normalizarBusqueda(buscar.value);
+          const opciones=db.productos.filter(p=>!q||normalizarBusqueda(`${p.nombre} ${p.ean||''} ${p.rubro||''}`).includes(q)).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+          obj.innerHTML=`<option value="">${opciones.length?'Elegí un producto…':'Sin coincidencias'}</option>${opciones.map(p=>`<option value="${p.id}" ${actual===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}`;
+        };
+        actualizarImpacto();
       };
       $$('[data-tipo]',ov).forEach(b=>b.onclick=()=>{ tipo=b.dataset.tipo; $$('[data-tipo]',ov).forEach(x=>x.classList.toggle('on',x===b)); v.objetivoId=''; pintarObjetivo(); });
       pintarObjetivo();
+      $('#pr_nombre',ov).oninput=()=>{nombreTocado=true;};
+      $('#pr_pct',ov).oninput=actualizarImpacto;$('#pr_desde',ov).onchange=actualizarImpacto;$('#pr_hasta',ov).onchange=actualizarImpacto;
       const bb=$('#borrarPromo',ov);
-      if(bb) bb.onclick=()=>{ cerrarModal(); confirmar('Eliminar promoción','Esto no se puede deshacer.',
-        ()=>{ db.promociones=db.promociones.filter(x=>x.id!==pr.id); guardar(); pintarPromociones(); aviso('Promoción eliminada'); },'Eliminar'); };
+      if(bb) bb.onclick=()=>{ cerrarModal(); confirmar('Eliminar descuento','Esto no se puede deshacer.',
+        ()=>{ db.promociones=db.promociones.filter(x=>x.id!==pr.id); guardar(); pintarPromociones(); aviso('Descuento eliminado'); },'Eliminar'); };
       $('#okPromo',ov).onclick=()=>{
         const obj=$('#pr_obj',ov)?$('#pr_obj',ov).value:'';
         const pct=num($('#pr_pct',ov).value);
-        if(!obj){ aviso('Elegí a qué aplica la promoción','bad'); return; }
+        if(!obj){ aviso('Elegí a qué aplica el descuento','bad'); return; }
         if(!pct||pct<=0||pct>100){ aviso('Poné un porcentaje entre 1 y 100','bad'); return; }
         const desde=$('#pr_desde',ov).value, hasta=$('#pr_hasta',ov).value;
         if(desde&&hasta&&hasta<desde){ aviso('La fecha de hasta no puede ser anterior a la de desde','bad'); return; }
-        const datos={tipo,objetivoId:obj,porcentaje:pct,desde,hasta,activa:v.activa!==false};
+        const nombre=$('#pr_nombre',ov).value.trim()||`${pct}% en ${tipo==='producto'?(prod(obj)||{}).nombre:tipo==='pago'?(FORMAS[obj]||obj):obj}`;
+        const datos={nombre,tipo,objetivoId:obj,porcentaje:pct,desde,hasta,activa:v.activa!==false};
         if(pr) Object.assign(pr,datos);
         else db.promociones.push({id:uid(),creada:new Date().toISOString(),...datos});
         guardar(); cerrarModal(); pintarPromociones(); pintarNav();
-        aviso(pr?'Promoción actualizada':'Promoción cargada','ok');
+        aviso(pr?'Descuento actualizado':'Descuento creado','ok');
       };
     }});
 }
@@ -5160,8 +5298,9 @@ function pintarCombos(){
   c.innerHTML=combos.map(cb=>{
     const suma=sumaComponentes(cb.items);
     const costo=sumaCostoComponentes(cb.items);
-    const ganancia=cb.precio-costo;
-    const margen=costo>0?(ganancia/costo*100):null;
+    const costosCompletos=cb.items.every(it=>{const p=prod(it.prodId);return p&&Number(p.costo)>0;});
+    const ganancia=costosCompletos?cb.precio-costo:null;
+    const margen=costosCompletos&&costo>0?(ganancia/costo*100):null;
     const disp=comboStockDisponible(cb);
     const ahorro=suma-cb.precio;
     return `<div class="card" style="margin-bottom:14px">
@@ -5173,7 +5312,7 @@ function pintarCombos(){
         <div style="text-align:right">
           <span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Margen</span>
           <div style="font-family:var(--mono);font-size:25px;font-weight:600;color:${margen===null?'var(--muted)':margen>=0?'var(--verde-d)':'var(--rojo)'}">${margen===null?'—':margen.toFixed(0)+'%'}</div>
-          <div style="font-size:12.5px;color:var(--muted)">ganás ${$m(ganancia)} · precio ${$m(cb.precio)}</div>
+          <div style="font-size:12.5px;color:var(--muted)">${ganancia===null?'Faltan costos para calcular la ganancia':'ganás '+$m(ganancia)} · precio ${$m(cb.precio)}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:3px">${ahorro>0.009?`el cliente ahorra ${$m(ahorro)} vs. por separado`:ahorro<-0.009?`sale ${$m(Math.abs(ahorro))} más caro que por separado`:'mismo precio que por separado'}</div>
         </div>
         <div class="row">
@@ -5209,16 +5348,18 @@ function formCombo(id){
         <div><label class="f" for="cb_precio">Precio del combo</label>
           <input id="cb_precio" class="inp num" inputmode="decimal" value="${combo?combo.precio:''}"></div>
         <div><label class="f">Suma por separado</label>
-          <div class="inp" style="background:#F4F6F9;color:var(--muted)" id="cb_suma">$0,00</div></div>
+          <div class="combo-result num" id="cb_suma">$0,00</div></div>
       </div>
+      <div id="cb_costos" class="combo-cost-warning"></div>
       <div class="kpi" style="margin-top:14px">
         <span>Margen de ganancia</span>
         <b id="cb_margenVal" style="font-size:26px">—</b>
         <small id="cb_gananciaVal"></small>
       </div>
-      <div id="cb_ahorro" style="margin-top:8px;font-size:12.5px;color:var(--muted)"></div>`,
+      <div id="cb_ahorro" style="margin-top:8px;font-size:12.5px;color:var(--muted)"></div>
+      <label id="cb_confirmar_caro" class="ux-banner warn" style="margin-top:12px" hidden><input type="checkbox" id="confirmarPrecioCombo"> Entiendo que el combo queda más caro que comprar los productos por separado.</label>`,
     pie:`${combo?`<button class="btn ghost" id="borrarCombo" style="margin-right:auto;color:var(--rojo)">Eliminar</button>`:''}
-        <button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="guardarCombo">Guardar</button>`,
+        <button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="guardarCombo" disabled>Guardar</button>`,
     alAbrir:ov=>{
       $('#cb_nom',ov).focus();
       const buscar=$('#cb_buscar',ov), res=$('#cb_res',ov);
@@ -5230,6 +5371,7 @@ function formCombo(id){
         $$('li',res).forEach(li=>li.onclick=()=>{
           const ex=comboItems.find(it=>it.prodId===li.dataset.id);
           if(ex) ex.cant++; else comboItems.push({prodId:li.dataset.id,cant:1});
+          if(!$('#cb_nom',ov).value.trim()&&comboItems.length>=2)$('#cb_nom',ov).value=comboItems.map(it=>{const p=prod(it.prodId);return p?p.nombre:'';}).filter(Boolean).join(' + ');
           buscar.value=''; res.hidden=true; buscar.focus();
           pintarComboItems(ov);
         });
@@ -5242,9 +5384,10 @@ function formCombo(id){
       $('#guardarCombo',ov).onclick=()=>{
         const nom=$('#cb_nom',ov).value.trim();
         if(!nom){aviso('Falta el nombre del combo','bad');return;}
-        if(!comboItems.length){aviso('Agregá al menos un producto al combo','bad');return;}
+        if(comboItems.length<2){aviso('Agregá al menos dos productos al combo','bad');return;}
         const precio=num($('#cb_precio',ov).value);
         if(precio<=0){aviso('Poné un precio para el combo','bad');return;}
+        if(precio>sumaComponentes(comboItems)&&!$('#confirmarPrecioCombo',ov).checked){aviso('Confirmá que querés guardar un combo más caro que sus partes','bad');return;}
         if(combo){ combo.nombre=nom; combo.items=comboItems; combo.precio=precio; }
         else{ db.combos.push({id:uid(),nombre:nom,items:comboItems,precio,activo:true}); }
         guardar(); cerrarModal();
@@ -5258,8 +5401,8 @@ function pintarComboItems(ov){
   const c=$('#cb_items',ov);
   if(!comboItems.length){ c.innerHTML=`<div class="empty" style="padding:18px;font-size:13.5px">Todavía no agregaste productos a este combo.</div>`; }
   else{
-    c.innerHTML=comboItems.map((it,ix)=>{const p=prod(it.prodId);return `<div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)">
-      <span>${p?esc(p.nombre):'(producto eliminado)'}</span>
+    c.innerHTML=`<div class="row" style="padding:0 0 7px;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase"><span style="flex:1">Producto</span><span style="width:110px;text-align:right">Precio unitario</span><span style="width:82px;text-align:right">Stock</span><span style="width:154px"></span></div>`+comboItems.map((it,ix)=>{const p=prod(it.prodId);return `<div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)">
+      <span style="flex:1">${p?esc(p.nombre):'(producto eliminado)'}</span><span class="num" style="width:110px;text-align:right">${p?$m(p.precio):'—'}</span><span class="num" style="width:82px;text-align:right;color:${p&&Number(p.stock)<=0?'var(--rojo)':'var(--muted)'}">${p?fmtCant(p,p.stock):'—'}</span>
       <div class="row">
         <div class="qty"><button type="button" data-ci-menos="${ix}" aria-label="Restar">–</button><input class="num" data-ci-cant="${ix}" value="${it.cant}"><button type="button" data-ci-mas="${ix}" aria-label="Sumar">+</button></div>
         <button type="button" class="x" data-ci-quita="${ix}" aria-label="Quitar del combo">${ic('cerrar')}</button>
@@ -5271,17 +5414,24 @@ function pintarComboItems(ov){
   }
   const suma=sumaComponentes(comboItems);
   const costo=sumaCostoComponentes(comboItems);
+  const sinCosto=comboItems.filter(it=>{const p=prod(it.prodId);return !p||Number(p.costo)<=0;});
   $('#cb_suma',ov).textContent=$m(suma);
   const precioInp=$('#cb_precio',ov);
   const actualizarAhorro=()=>{
-    const precio=num(precioInp.value), dif=suma-precio, ganancia=precio-costo;
-    const margen = costo>0 ? (ganancia/costo*100) : null;
+    const precio=num(precioInp.value), dif=suma-precio, costosCompletos=comboItems.length>0&&!sinCosto.length, ganancia=costosCompletos?precio-costo:null;
+    const margen = costosCompletos&&costo>0 ? (ganancia/costo*100) : null;
     $('#cb_margenVal',ov).textContent = margen===null?'—':margen.toFixed(1)+'%';
     $('#cb_margenVal',ov).style.color = margen===null?'var(--muted)':margen>=0?'var(--verde-d)':'var(--rojo)';
-    $('#cb_gananciaVal',ov).textContent = costo>0 ? `ganás ${$m(ganancia)} por combo · costo ${$m(costo)}` : 'Cargá el costo de los productos para calcular el margen';
-    $('#cb_ahorro',ov).innerHTML = precio<=0?'' : dif>0.009?`El cliente ahorra <b class="num" style="color:var(--verde)">${$m(dif)}</b> respecto de comprarlo por separado.`
+    $('#cb_gananciaVal',ov).textContent = costosCompletos ? `ganás ${$m(ganancia)} por combo · costo ${$m(costo)}` : 'Cargá el costo de todos los productos para calcular el margen';
+    $('#cb_costos',ov).innerHTML=sinCosto.length?`<div class="ux-banner warn"><div style="flex:1"><b>Faltan costos en ${sinCosto.length} productos</b><br>El margen queda sin calcular hasta completarlos.</div><button type="button" class="btn ghost sm" id="cbIrCostos">Ir a Productos</button></div>`:'';
+    const irCostos=$('#cbIrCostos',ov);if(irCostos)irCostos.onclick=()=>{cerrarModal();ir('productos');};
+    const pct=suma>0?Math.abs(dif)/suma*100:0;
+    $('#cb_ahorro',ov).innerHTML = precio<=0?'' : dif>0.009?`El cliente ahorra <b class="num" style="color:var(--verde)">${$m(dif)} (${pct.toFixed(1)}%)</b> respecto de comprarlo por separado.`
       : dif<-0.009?`Este precio es <b class="num" style="color:var(--rojo)">${$m(Math.abs(dif))} más caro</b> que comprarlo por separado.`
       : 'El precio del combo es igual a la suma por separado.';
+    const confirmar=$('#cb_confirmar_caro',ov);confirmar.hidden=!(precio>0&&dif<-0.009);precioInp.style.borderColor=confirmar.hidden?'': 'var(--rojo)';
+    const check=$('#confirmarPrecioCombo',ov);const btn=$('#guardarCombo',ov);if(btn)btn.disabled=!$('#cb_nom',ov).value.trim()||comboItems.length<2||precio<=0||(!confirmar.hidden&&!check.checked);
+    if(check)check.onchange=actualizarAhorro;$('#cb_nom',ov).oninput=actualizarAhorro;
   };
   precioInp.oninput=actualizarAhorro;
   actualizarAhorro();
@@ -5806,8 +5956,18 @@ function resumenCostos(cambios){
 let repOrden='rubro';
 let fRep={q:'',rubro:''};
 let pedido={};        // {prodId: cantidad}
+let pedidoInicializado=false;
+function asegurarPedidoInicial(){
+  if(pedidoInicializado)return;
+  db.productos.filter(seRepone).forEach(p=>{if(faltante(p)>0)pedido[p.id]=faltante(p);});
+  pedidoInicializado=true;
+}
+function actualizarContadorPedido(){
+  const b=$('#bPedido');if(!b)return;const cant=Object.keys(pedido).filter(k=>pedido[k]>0).length;b.textContent=`Armar pedido${cant?` (${cant})`:''}`;
+}
 
 function vReponer(m){
+  asegurarPedidoInicial();
   const l=db.productos.filter(seRepone);
   const enPedido=Object.keys(pedido).filter(k=>pedido[k]>0).length;
   m.innerHTML=`
@@ -5870,38 +6030,40 @@ function pintarReponer(){
       aviso('Productos agregados al pedido','ok');
     });
   }
+  wirePedidoLista();actualizarContadorPedido();
+}
+function wirePedidoLista(){
+  $$('[data-ped-sel]').forEach(ch=>ch.onchange=()=>{const p=prod(ch.dataset.pedSel);if(!p)return;if(ch.checked)pedido[p.id]=pedido[p.id]>0?pedido[p.id]:faltante(p);else delete pedido[p.id];pintarReponer();});
+  $$('[data-ped-lista]').forEach(inp=>inp.onchange=()=>{const p=prod(inp.dataset.pedLista);if(!p)return;const n=p.unidad==='kg'?Math.round(num(inp.value)*1000)/1000:Math.floor(num(inp.value));if(n>0)pedido[p.id]=n;else delete pedido[p.id];pintarReponer();});
 }
 function tablaRep(l){
   const otra=repOrden==='proveedor'?'Rubro':'Proveedor';
   return `<div class="table-scroll" role="region" aria-label="Productos para pedir" tabindex="0"><table class="mtable rep-table"><colgroup><col class="rep-product"><col class="rep-context"><col class="rep-number"><col class="rep-number"><col class="rep-number"><col class="rep-number"><col class="rep-cost"></colgroup><thead><tr><th>Producto</th><th>${otra}</th><th class="r">Stock</th><th class="r">Mínimo</th><th class="r">Deseado</th><th class="r">Pedir</th><th class="r">Costo estimado</th></tr></thead><tbody>
   ${l.map(p=>`<tr>
-    <td data-label="Producto">${celdaProductoConFoto(p,`<b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${pedido[p.id]>0?' <span class="pill ok">en el pedido</span>':''}`)}</td>
+    <td data-label="Producto"><div style="display:flex;align-items:center;gap:10px"><input type="checkbox" data-ped-sel="${p.id}" aria-label="Incluir ${esc(p.nombre)} en el pedido" ${pedido[p.id]>0?'checked':''}>${celdaProductoConFoto(p,`<b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${pedido[p.id]>0?' <span class="pill ok">en el pedido</span>':''}`)}</div></td>
     <td data-label="${otra}" style="color:var(--muted)">${esc((repOrden==='proveedor'?p.rubro:p.proveedor)||'—')}</td>
     <td data-label="Stock" class="r"><span class="pill ${p.stock<=0?'bad':'warn'} num">${fmtCant(p,p.stock)}</span></td>
     <td data-label="Mínimo" class="r num" style="color:var(--muted)">${fmtCant(p,p.stockMin)}</td>
     <td data-label="Deseado" class="r num" style="color:var(--muted)">${fmtCant(p,deseado(p))}</td>
-    <td data-label="Pedir" class="r num" style="font-weight:600">${fmtCant(p,faltante(p))}</td>
-    <td data-label="Costo estimado" class="r num" style="color:var(--muted)">${$m(faltante(p)*(Number(p.costo)||0))}</td>
+    <td data-label="Pedir" class="r"><input class="inp num" data-ped-lista="${p.id}" inputmode="decimal" value="${pedido[p.id]||0}" style="width:86px;text-align:right" ${pedido[p.id]>0?'':'disabled'}></td>
+    <td data-label="Costo estimado" class="r num" style="color:var(--muted)">${Number(p.costo)>0?$m((pedido[p.id]||0)*Number(p.costo)):'—'}</td>
   </tr>`).join('')}</tbody></table></div>`;
 }
 
 /* ── armador de pedido ── */
 function abrirPedido(){
-  // arranca con todo lo que está bajo el mínimo, salvo que ya hayas armado algo antes
-  if(!Object.keys(pedido).length){
-    db.productos.filter(seRepone).forEach(p=>{ if(faltante(p)>0) pedido[p.id]=faltante(p); });
-  }
+  asegurarPedidoInicial();
   modal({titulo:'Pedido a proveedores', ancho:true,
     cuerpo:`
-      <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Las cantidades salen de lo que falta para llegar al <b>stock deseado</b> de cada producto. Ajustá lo que quieras antes de mandarlo.</p>
+      <div class="ux-banner" style="margin-bottom:14px">Agrupamos por proveedor para que puedas revisar y mandar cada pedido por separado. Las cantidades salen de lo que falta para llegar al <b>stock deseado</b>.</div>
       <div id="pedCuerpo"></div>`,
     pie:`<div style="margin-right:auto;color:var(--muted)" id="pedTot"></div>
-         <button class="btn ghost" id="pedVaciar">Vaciar</button>
+         <button class="btn text" id="pedVaciar" style="color:var(--muted)">Vaciar</button>
          <button class="btn ghost" id="pedCopiar">Copiar</button>
          <button class="btn verde" id="pedWa">Enviar por WhatsApp</button>`,
     alAbrir:ov=>{
       pintarPedido(ov);
-      $('#pedVaciar',ov).onclick=()=>{pedido={};pintarPedido(ov);};
+      $('#pedVaciar',ov).onclick=()=>confirmar('Vaciar pedido','Se van a quitar todos los productos y cantidades que preparaste.',()=>{pedido={};pedidoInicializado=true;pintarPedido(ov);pintarReponer();},'Vaciar','rojo');
       $('#pedCopiar',ov).onclick=()=>{
         const t=textoPedido();
         navigator.clipboard?.writeText(t).then(()=>aviso('Pedido copiado','ok'),
@@ -5923,7 +6085,7 @@ function pintarPedido(ov){
   const cont=$('#pedCuerpo',ov);
   const lineas=lineasPedido();
   if(!lineas.length){
-    cont.innerHTML=`<div class="empty" style="padding:30px"><b>El pedido está vacío</b>Volvé al listado y agregá productos, o cerrá y abrí de nuevo para recargar los que están bajo el mínimo.</div>`;
+    cont.innerHTML=`<div class="empty" style="padding:30px"><b>El pedido está vacío</b>Volvé al listado y marcá los productos que querés incluir.</div>`;
     $('#pedTot').textContent=''; return;
   }
   // agrupado por proveedor, que es como se manda en la práctica
@@ -5933,7 +6095,7 @@ function pintarPedido(ov){
     const g=porProv[prov];
     const sub=g.reduce((a,x)=>a+x.cant*(Number(x.p.costo)||0),0);
     return `<div class="card" style="margin-bottom:14px">
-      <div class="card-h"><h2>${esc(prov)}</h2><span class="pill mute">${g.length} productos · ${$m(sub)}</span></div>
+      <div class="card-h pedido-provider-head"><h2>${esc(prov)}</h2><div class="row"><span class="pill mute">${g.length} productos · ${$m(sub)}</span><button type="button" class="btn ghost sm" data-ped-wa-prov="${esc(prov)}">Mandar a ${esc(prov)}</button></div></div>
       <table class="mtable"><thead><tr><th>Producto</th><th class="r" style="width:130px">Cantidad</th><th class="r">Costo unit.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>
         ${g.map(x=>`<tr>
           <td data-label="Producto">${celdaProductoConFoto(x.p,`<b>${esc(x.p.nombre)}</b><br><span style="font-size:12px;color:var(--muted)">tenés ${fmtCant(x.p,x.p.stock)} · querés llegar a ${fmtCant(x.p,deseado(x.p))}</span>`)}</td>
@@ -5961,9 +6123,10 @@ function pintarPedido(ov){
     if(n<=0) delete pedido[i.dataset.pc]; else pedido[i.dataset.pc]=n;
     pintarPedido(ov);
   });
+  $$('[data-ped-wa-prov]',cont).forEach(b=>b.onclick=()=>window.open('https://wa.me/?text='+encodeURIComponent(textoPedido(b.dataset.pedWaProv)),'_blank'));
 }
-function textoPedido(){
-  const lineas=lineasPedido();
+function textoPedido(proveedor=''){
+  const lineas=lineasPedido().filter(x=>!proveedor||(x.p.proveedor||'Sin proveedor')===proveedor);
   const porProv={};
   lineas.forEach(x=>{const k=x.p.proveedor||'Sin proveedor';(porProv[k]=porProv[k]||[]).push(x);});
   const out=[`*Pedido — ${db.config.nombre}*`,fFecha(Date.now()),''];
@@ -5984,12 +6147,21 @@ function vVencimientos(m){
   const l=productosVencimiento();
   const vencidos=l.filter(estaVencido);
   const porVencerL=l.filter(p=>!estaVencido(p));
+  const conFecha=db.productos.filter(p=>p.vence).length;
+  const cobertura=db.productos.length?Math.round(conFecha/db.productos.length*100):0;
+  const conStockYFecha=db.productos.filter(p=>p.vence&&Number(p.stock)>0);
+  const valorTramo=lista=>({conocido:lista.reduce((a,p)=>a+(Number(p.costo)>0?Number(p.stock)*Number(p.costo):0),0),sinCosto:lista.filter(p=>Number(p.costo)<=0).length});
+  const estaSemana=conStockYFecha.filter(p=>{const d=diasParaVencer(p);return d>=0&&d<=7;});
+  const esteMes=conStockYFecha.filter(p=>{const d=diasParaVencer(p);return d>7&&d<=30;});
+  const riesgos=[['Vencido',valorTramo(vencidos)],['Esta semana',valorTramo(estaSemana)],['Este mes',valorTramo(esteMes)]];
   m.innerHTML=`
   <div class="head">
-    <div><h1>Vencimientos</h1><div class="sub">${l.length?`${l.length} productos con stock vencidos o por vencer.`:'Nada vencido ni por vencer.'} Te avisamos con ${DIAS_AVISO()} días de anticipación.</div></div>
-    <div class="row"><button class="btn ghost" id="bDiasAviso">Configurar aviso</button></div>
+    <div><h1>Vencimientos</h1><div class="sub">${conFecha?`${conFecha} productos tienen fecha cargada.`:'Todavía no hay fechas cargadas.'} Te avisamos con ${DIAS_AVISO()} días de anticipación.</div></div>
+    <div class="row"><button class="btn ghost" id="bDiasAviso">Configurar aviso</button><button class="btn" id="bCargarFechas">Cargar fechas</button></div>
   </div>
-  ${!l.length?`<div class="card"><div class="empty"><b>Todo en fecha</b>Cuando le cargues una fecha de vencimiento a un producto y esté por cumplirse, va a aparecer acá.</div></div>`:`
+  <div class="card" style="margin-bottom:16px"><div class="card-b expiry-coverage"><b>Cobertura de fechas</b><div class="expiry-coverage-bar"><span style="width:${cobertura}%"></span></div><span class="num">${conFecha}/${db.productos.length} · ${cobertura}%</span></div></div>
+  ${conFecha?`<div class="grid3" style="margin-bottom:16px">${riesgos.map(([nombre,r])=>`<div class="kpi"><span>${nombre}</span><b class="num">${r.sinCosto?'—':$m(r.conocido)}</b><small>${r.sinCosto?`${r.sinCosto} productos sin costo impiden valorizar`:'mercadería en riesgo'}</small></div>`).join('')}</div>`:''}
+  ${!conFecha?`<div class="card"><div class="empty"><b>Todavía no podemos avisarte de nada</b>Ninguno de tus ${db.productos.length} productos tiene una fecha cargada. Empezá por los rubros perecederos.<div style="margin-top:14px"><button class="btn" id="venceVacioCta">Cargar fechas</button></div></div></div>`:!l.length?`<div class="card"><div class="empty"><b>No hay productos próximos a vencer</b>Las fechas cargadas están fuera del plazo de aviso.</div></div>`:`
   ${vencidos.length?`<div class="card" style="margin-bottom:16px;border-color:#F0C9C0">
     <div class="card-h"><h2 style="color:var(--rojo)">Ya vencidos</h2><span class="pill bad">${vencidos.length}</span></div>
     ${tablaVence(vencidos)}
@@ -5999,6 +6171,7 @@ function vVencimientos(m){
     ${tablaVence(porVencerL)}
   </div>`:''}`}`;
   $('#bDiasAviso').onclick=()=>formDiasAviso();
+  $('#bCargarFechas').onclick=()=>ir('productos');const vacio=$('#venceVacioCta');if(vacio)vacio.onclick=()=>ir('productos');
   wireVence();
 }
 function tablaVence(l){
@@ -6008,15 +6181,21 @@ function tablaVence(l){
     <td data-label="Rubro" style="color:var(--muted)">${esc(p.rubro||'—')}</td>
     <td data-label="Stock" class="r num">${fmtCant(p,p.stock)}</td>
     <td data-label="Vence"><span class="pill ${estaVencido(p)?'bad':'warn'}">${esc(textoVence(p))}</span> <span style="color:var(--muted);font-size:12.5px">${fFecha(p.vence+'T12:00:00')}</span></td>
-    <td data-label="Valor en riesgo" class="r num" style="font-weight:600">${$m(Number(p.stock)*Number(p.costo||0))}</td>
+    <td data-label="Valor en riesgo" class="r num" style="font-weight:600">${Number(p.costo)>0?$m(Number(p.stock)*Number(p.costo)):'—'}</td>
     <td class="r" style="white-space:nowrap">
       <button class="btn ghost sm" data-vaj="${p.id}">Ajustar stock</button>
+      <button class="btn ghost sm" data-liquidar="${p.id}">Liquidar −40%</button>
       <button class="btn text sm" data-ved="${p.id}">Editar fecha</button>
     </td></tr>`).join('')}</tbody></table>`;
 }
 function wireVence(){
   $$('[data-vaj]').forEach(b=>b.onclick=()=>formAjuste(b.dataset.vaj));
   $$('[data-ved]').forEach(b=>b.onclick=()=>formProducto(b.dataset.ved));
+  $$('[data-liquidar]').forEach(b=>b.onclick=()=>liquidarVencimiento(b.dataset.liquidar));
+}
+function liquidarVencimiento(id){
+  const p=prod(id);if(!p)return;
+  confirmar('Liquidar producto',`Se creará un descuento del <b>40%</b> para <b>${esc(p.nombre)}</b>, vigente hasta hoy.`,()=>{db.promociones=db.promociones||[];const existente=db.promociones.find(pr=>pr.tipo==='producto'&&pr.objetivoId===p.id&&pr.nombre==='Liquidación por vencimiento');if(existente)Object.assign(existente,{porcentaje:40,desde:hoy(),hasta:hoy(),activa:true});else db.promociones.push({id:uid(),nombre:'Liquidación por vencimiento',tipo:'producto',objetivoId:p.id,porcentaje:40,desde:hoy(),hasta:hoy(),activa:true,creada:new Date().toISOString()});guardar();render();aviso('Descuento de liquidación creado','ok');},'Crear descuento','verde');
 }
 function formDiasAviso(){
   modal({titulo:'Aviso de vencimiento',
@@ -6154,6 +6333,15 @@ function formConfigMora(){
       };
     }});
 }
+let fiadoFiltro='saldo';
+function abrirVentaFiadaPara(clienteId){
+  clienteFiado=clienteId||'';pago='fiado';ir('vender');
+  aviso(clienteId?`Cliente seleccionado: ${cli(clienteId).nombre}. Cargá los productos y cobrá como fiado.`:'Cargá los productos y elegí el cliente al cobrar.','ok');
+}
+function elegirClienteParaFiado(){
+  if(!db.clientes.length){formCliente(null,c=>abrirVentaFiadaPara(c.id));return;}
+  modal({titulo:'Registrar fiado',cuerpo:`<label class="f" for="fiadoCli">Cliente</label><select id="fiadoCli" class="inp"><option value="">Elegí un cliente…</option>${db.clientes.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.id}">${esc(c.nombre)}${Number(c.saldo)>0.009?` — debe ${$m(c.saldo)}`:''}</option>`).join('')}</select><div class="hint" style="margin-top:10px">Después vas a cargar los productos en Vender con este cliente ya seleccionado.</div>`,pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okFiadoCli" disabled>Continuar a Vender</button>`,alAbrir:ov=>{const s=$('#fiadoCli',ov),b=$('#okFiadoCli',ov);s.onchange=()=>b.disabled=!s.value;b.onclick=()=>{const id=s.value;if(!id)return;cerrarModal();abrirVentaFiadaPara(id);};}});
+}
 function vFiado(m){
   const cs=[...db.clientes].sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0)||a.nombre.localeCompare(b.nombre));
   const deuda=cs.reduce((a,c)=>a+Number(c.saldo||0),0);
@@ -6161,46 +6349,51 @@ function vFiado(m){
   const enMora=deben.filter(clienteEnMora);
   m.innerHTML=`
   <div class="head">
-    <div><h1>Fiado</h1><div class="sub">${deben.length} clientes con saldo abierto</div></div>
-    <div class="row"><button class="btn ghost" id="bMora">Configurar mora</button><button class="btn" id="nc">Nuevo cliente</button></div>
+    <div><h1>Fiado</h1><div class="sub">${deben.length} ${deben.length===1?'cliente con saldo abierto':'clientes con saldo abierto'}</div></div>
+    <div class="row"><button class="btn ghost" id="bMora">Configurar mora</button><button class="btn ghost" id="nc">Nuevo cliente</button><button class="btn" id="nuevoFiado">Registrar fiado</button></div>
   </div>
   <div class="grid3" style="margin-bottom:20px">
-    <div class="kpi"><span>Total adeudado</span><b style="color:var(--rojo)">${$m(deuda)}</b></div>
+    <div class="kpi"><span>Total adeudado</span><b>${$m(deuda)}</b></div>
     <div class="kpi"><span>Clientes con fiado</span><b>${deben.length}</b><small>de ${cs.length} en la libreta</small></div>
-    <div class="kpi"><span>En mora</span><b style="color:${enMora.length?'var(--ambar)':'var(--txt)'}">${enMora.length}</b><small>tienen deuda vencida</small></div>
+    <div class="kpi"><span>En mora</span><b style="color:${enMora.length?'var(--rojo)':'var(--txt)'}">${enMora.length}</b><small>${$m(enMora.reduce((a,c)=>a+estadoMoraCliente(c).montoVencido,0))} de monto vencido</small></div>
   </div>
   <div class="card">
-    <div class="card-h"><h2>La libreta</h2>
+    <div class="card-h"><div><h2>La libreta</h2><div class="filter-tabs" style="margin-top:10px"><button type="button" data-fiado-filtro="saldo" class="${fiadoFiltro==='saldo'?'on':''}">Con saldo (${deben.length})</button><button type="button" data-fiado-filtro="todos" class="${fiadoFiltro==='todos'?'on':''}">Todos (${cs.length})</button></div></div>
       <input class="inp" id="qc" placeholder="Buscar cliente…" style="max-width:260px"></div>
     <div id="tabCli"></div>
   </div>`;
   $('#nc').onclick=()=>formCliente();
+  $('#nuevoFiado').onclick=elegirClienteParaFiado;
   $('#bMora').onclick=()=>formConfigMora();
   $('#qc').oninput=e=>tablaClientes(e.target.value);
+  $$('[data-fiado-filtro]').forEach(b=>b.onclick=()=>{fiadoFiltro=b.dataset.fiadoFiltro;$$('[data-fiado-filtro]').forEach(x=>x.classList.toggle('on',x===b));tablaClientes($('#qc').value);});
   tablaClientes('');
 }
 function tablaClientes(q){
   q=(q||'').toLowerCase();
-  const cs=[...db.clientes].filter(c=>!q||c.nombre.toLowerCase().includes(q)||(c.tel||'').includes(q))
+  const cs=[...db.clientes].filter(c=>(fiadoFiltro==='todos'||Number(c.saldo)>0.009)&&(!q||c.nombre.toLowerCase().includes(q)||(c.tel||'').includes(q)))
     .sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0)||a.nombre.localeCompare(b.nombre));
   const c=$('#tabCli');
-  if(!db.clientes.length){ c.innerHTML=`<div class="empty"><b>La libreta está vacía</b>Cargá un cliente y después vas a poder marcar ventas como fiado.</div>`;return;}
+  if(!db.clientes.length){ c.innerHTML=`<div class="empty"><b>Empezá tu libreta de fiado</b><span>1. Cargá al cliente · 2. Registrá lo que se lleva · 3. Anotá cada cobro.</span><div class="row" style="justify-content:center;margin-top:16px"><button class="btn ghost" id="fiadoVacioCliente">Nuevo cliente</button><button class="btn" id="fiadoVacioVenta">Registrar fiado</button></div></div>`;$('#fiadoVacioCliente').onclick=()=>formCliente();$('#fiadoVacioVenta').onclick=elegirClienteParaFiado;return;}
+  if(fiadoFiltro==='saldo'&&!cs.length&&!q){ c.innerHTML=`<div class="empty"><b>Nadie tiene saldo pendiente</b>Podés ver toda la libreta desde la pestaña “Todos” o registrar un nuevo fiado.<div style="margin-top:14px"><button class="btn" id="fiadoSinSaldo">Registrar fiado</button></div></div>`;$('#fiadoSinSaldo').onclick=elegirClienteParaFiado;return;}
   if(!cs.length){ c.innerHTML=`<div class="empty"><b>Sin resultados</b>Ningún cliente coincide con esa búsqueda.</div>`;return;}
-  c.innerHTML=`<table class="mtable"><thead><tr><th>Cliente</th><th>Teléfono</th><th class="r">Última compra</th><th class="r">Saldo</th><th></th></tr></thead><tbody>
+  c.innerHTML=`<table class="mtable"><thead><tr><th>Cliente</th><th>Teléfono</th><th class="r">Sin pagar hace</th><th class="r">Saldo</th><th></th></tr></thead><tbody>
   ${cs.map(cl=>{
-    const u=db.ventas.filter(v=>v.clienteId===cl.id&&!v.anulada).sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')))[0];
+    const estado=estadoMoraCliente(cl);const pagoUltimo=(db.pagos||[]).filter(p=>p.clienteId===cl.id).sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')))[0];const deudaMasVieja=estado.abiertos.slice().sort((a,b)=>String(a.fecha||'').localeCompare(String(b.fecha||'')))[0];const dias=Number(cl.saldo)>0.009?diasDesdeFechaLocal((pagoUltimo&&pagoUltimo.fecha)||(deudaMasVieja&&deudaMasVieja.fecha)):null;
     return `<tr>
       <td data-label="Cliente"><b>${esc(cl.nombre)}</b></td>
-      <td data-label="Teléfono" class="num" style="color:var(--muted)">${esc(cl.tel||'—')}</td>
-      <td data-label="Última compra" class="r num" style="color:var(--muted)">${u?fFecha(u.fecha):'—'}</td>
+      <td data-label="Teléfono" class="num" style="color:var(--muted)">${cl.tel?`<a href="https://wa.me/${esc(String(cl.tel).replace(/\D/g,''))}" target="_blank" rel="noopener" title="Abrir WhatsApp">${esc(cl.tel)} · WhatsApp</a>`:'—'}</td>
+      <td data-label="Sin pagar hace" class="r num" style="color:${estado.montoVencido>0.009?'var(--rojo)':'var(--muted)'}">${dias===null?'—':dias===0?'hoy':dias+' días'}</td>
       <td data-label="Saldo" class="r"><span class="pill ${Number(cl.saldo)>0.009?'bad':'ok'} num" style="font-size:13px">${$m(cl.saldo||0)}</span>${clienteEnMora(cl)?` <span class="pill warn" style="font-size:11px">En mora</span>`:''}</td>
       <td class="r" style="white-space:nowrap">
         <button class="btn ghost sm" data-cta="${cl.id}">Ver cuenta</button>
         ${Number(cl.saldo)>0.009?`<button class="btn sm" data-pago="${cl.id}">Cobrar</button>`:''}
+        <button class="btn ghost sm" data-fiar="${cl.id}">Fiar</button>
         ${puedeRecargarMora(cl)?`<button class="btn rojo sm" data-rec="${cl.id}">Recargo</button>`:''}
       </td></tr>`;}).join('')}</tbody></table>`;
   $$('[data-cta]').forEach(b=>b.onclick=()=>verCuenta(b.dataset.cta));
   $$('[data-pago]').forEach(b=>b.onclick=()=>formPago(b.dataset.pago));
+  $$('[data-fiar]').forEach(b=>b.onclick=()=>abrirVentaFiadaPara(b.dataset.fiar));
   $$('[data-rec]').forEach(b=>b.onclick=()=>formRecargo(b.dataset.rec));
 }
 function formCliente(id,luego){
@@ -6998,6 +7191,7 @@ function vCaja(m){
    ═══════════════════════════════════════════════════════ */
 let fechaMovimientos=hoy();
 let filtrosMovimientos={q:'',rubro:''};
+let movRango='dia';
 
 function rangoDiaMovimientos(fecha){
   const dia=/^\d{4}-\d{2}-\d{2}$/.test(String(fecha||''))?fecha:hoy();
@@ -7007,6 +7201,7 @@ function rangoDiaMovimientos(fecha){
 }
 function datosMovimientosDia(){
   const rango=rangoDiaMovimientos(fechaMovimientos);
+  if(movRango==='7'||movRango==='30'){const d=new Date(rango.desde);d.setDate(d.getDate()-(Number(movRango)-1));rango.desde=d.toISOString();}
   const ini=Date.parse(rango.desde), fin=Date.parse(rango.hasta);
   const ventas=db.ventas.filter(v=>{
     const fecha=Date.parse(v&&v.fecha);
@@ -7016,7 +7211,12 @@ function datosMovimientosDia(){
   return {
     rango,
     total:movimientosProductosPeriodo(base),
-    filtrados:movimientosProductosPeriodo({...base,q:filtrosMovimientos.q,rubro:filtrosMovimientos.rubro})
+    filtrados:movimientosProductosPeriodo({...base,q:filtrosMovimientos.q,rubro:filtrosMovimientos.rubro}).map(r=>{
+      const movs=db.movs.filter(x=>x.prodId===r.producto.id&&Date.parse(x.fecha)>=ini&&Date.parse(x.fecha)<=fin);
+      const ingresos=movs.filter(x=>x.tipo==='ingreso').reduce((a,x)=>a+Number(x.cant||0),0);
+      const ajustes=movs.filter(x=>x.tipo!=='ingreso'&&x.tipo!=='venta').reduce((a,x)=>a+Number(x.cant||0),0);
+      return {...r,ingresos,ajustes,movs};
+    })
   };
 }
 function pintarMovimientosDia(){
@@ -7032,41 +7232,56 @@ function pintarMovimientosDia(){
     cont.innerHTML=`<div class="empty"><b>No encontramos productos</b>Probá otro nombre, código o rubro.</div>`;
     return;
   }
-  cont.innerHTML=`<table class="mtable"><thead><tr><th>Producto</th><th class="r">Stock inicial</th><th class="r">Vendidas</th><th class="r">Otros movimientos</th><th class="r">Stock final</th></tr></thead><tbody>
+  const negativos=d.filtrados.filter(r=>Number(r.final)<0);
+  const totales=d.filtrados.reduce((a,r)=>({ingresos:a.ingresos+r.ingresos,vendidas:a.vendidas+r.vendidas,ajustes:a.ajustes+r.ajustes}),{ingresos:0,vendidas:0,ajustes:0});
+  cont.innerHTML=`${negativos.length?`<div class="ux-banner bad" style="margin:14px"><div><b>${negativos.length} productos terminaron con stock negativo</b><br>Revisá el detalle y cargá el conteo real para corregir la diferencia.</div></div>`:''}<div class="table-scroll" role="region" aria-label="Movimientos de stock" tabindex="0"><table class="mtable mov-table"><thead><tr><th>Producto</th><th class="r">Stock inicial</th><th class="r">Ingresos</th><th class="r">Vendidas</th><th class="r">Ajustes</th><th class="r">Stock final</th><th></th></tr></thead><tbody>
     ${d.filtrados.map(r=>{
-      const otros=r.otros==null?'—':Math.abs(r.otros)<0.0009?'—':`${r.otros>0?'+':''}${fmtCant(r.producto,r.otros)}`;
-      return `<tr>
+      return `<tr class="${Number(r.final)<0?'stock-negative':''}" data-mov-fila="${r.producto.id}" tabindex="0" aria-label="Ver movimientos de ${esc(r.producto.nombre)}">
         <td data-label="Producto">${celdaProductoConFoto(r.producto,`<b>${esc(r.producto.nombre)}</b><br><span style="font-size:12px;color:var(--muted)">${esc(r.producto.rubro||'Sin rubro')}</span>${r.llegadasTardias?`<br><span class="pill info" title="El movimiento ocurrió este día y llegó al servidor después">Sincronizado tarde</span>`:''}`)}</td>
         <td data-label="Stock inicial" class="r num">${r.inicio==null?'—':fmtCant(r.producto,r.inicio)}</td>
-        <td data-label="Vendidas" class="r num">${fmtCant(r.producto,r.vendidas)}</td>
-        <td data-label="Otros movimientos" class="r num"><span class="pill ${r.otros>0.0009?'ok':r.otros<-0.0009?'warn':'mute'}">${otros}</span></td>
-        <td data-label="Stock final" class="r num" style="font-weight:700">${r.final==null?'—':fmtCant(r.producto,r.final)}</td>
+        <td data-label="Ingresos" class="r num">${r.ingresos?`+${fmtCant(r.producto,r.ingresos)}`:'—'}</td>
+        <td data-label="Vendidas" class="r num">${r.vendidas?`−${fmtCant(r.producto,r.vendidas)}`:'—'}</td>
+        <td data-label="Ajustes" class="r num">${r.ajustes?`${r.ajustes>0?'+':'−'}${fmtCant(r.producto,Math.abs(r.ajustes))}`:'—'}</td>
+        <td data-label="Stock final" class="r num" style="font-weight:700;color:${Number(r.final)<0?'var(--rojo)':'inherit'}">${r.final==null?'—':fmtCant(r.producto,r.final)}</td>
+        <td class="r"><button class="btn ghost sm" data-mov-detalle="${r.producto.id}">Detalle</button>${Number(r.final)<0?`<button class="btn sm" data-mov-ajustar="${r.producto.id}">Corregir</button>`:''}</td>
       </tr>`;
     }).join('')}
-  </tbody></table>`;
+  </tbody><tfoot><tr><th class="r">Totales del período</th><th></th><th class="r num">+${nfKg.format(totales.ingresos)}</th><th class="r num">−${nfKg.format(totales.vendidas)}</th><th class="r num">${totales.ajustes>=0?'+':'−'}${nfKg.format(Math.abs(totales.ajustes))}</th><th></th><th></th></tr></tfoot></table></div>`;
+  $$('[data-mov-fila]',cont).forEach(fila=>{
+    const abrir=()=>verDetalleMovimientos(fila.dataset.movFila,d.rango);
+    fila.onclick=e=>{if(!e.target.closest('button'))abrir();};
+    fila.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('button')){e.preventDefault();abrir();}};
+  });
+  $$('[data-mov-detalle]',cont).forEach(b=>b.onclick=()=>verDetalleMovimientos(b.dataset.movDetalle,d.rango));
+  $$('[data-mov-ajustar]',cont).forEach(b=>b.onclick=()=>formAjuste(b.dataset.movAjustar));
+}
+function responsableMovimiento(m){return m.actorNombre||m.empleadoNombre||'Este dispositivo';}
+function verDetalleMovimientos(prodId,rango){
+  const p=prod(prodId);const movs=db.movs.filter(x=>x.prodId===prodId&&x.fecha>=rango.desde&&x.fecha<=rango.hasta).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+  modal({titulo:'Movimientos — '+(p?p.nombre:'Producto'),ancho:true,cuerpo:movs.length?`<table class="mtable"><thead><tr><th>Quién / cuándo</th><th>Tipo</th><th>Motivo</th><th class="r">Cantidad</th></tr></thead><tbody>${movs.map(x=>`<tr><td><b>${esc(responsableMovimiento(x))}</b><br><span class="hint">${fFH(x.fecha)}</span></td><td>${esc(x.tipo||'Movimiento')}</td><td>${esc(x.motivo||'—')}</td><td class="r num">${Number(x.cant)>0?'+':''}${fmtCant(p,Number(x.cant)||0)}</td></tr>`).join('')}</tbody></table>`:`<div class="empty">Sin movimientos individuales</div>`,pie:`<button class="btn ghost" data-cerrar>Cerrar</button>${p?`<button class="btn" id="movCorregir">Cargar conteo real</button>`:''}`,alAbrir:ov=>{const b=$('#movCorregir',ov);if(b)b.onclick=()=>{cerrarModal();formAjuste(prodId);};}});
 }
 function vMovimientos(m){
   m.innerHTML=`
   <div class="head">
-    <div><h1>Movimientos de stock</h1><div class="sub">Elegí un día para ver con cuánto stock empezaste y con cuánto terminaste.</div></div>
-    <button class="btn ghost" id="movHoy">Ver hoy</button>
+    <div><h1>Movimientos de stock</h1><div class="sub">Auditá ingresos, ventas y ajustes, y corregí diferencias desde el mismo lugar.</div></div>
   </div>
   <div class="card" style="margin-bottom:16px"><div class="card-b">
     <div class="row" style="align-items:flex-end">
-      <div style="min-width:180px"><label class="f" for="fechaMovimientos">Día</label><input type="date" class="inp" id="fechaMovimientos" value="${esc(fechaMovimientos)}" max="${hoy()}"></div>
+      <div style="min-width:180px"><label class="f" for="movRango">Período</label><select class="inp" id="movRango"><option value="dia" ${movRango==='dia'?'selected':''}>Un día</option><option value="7" ${movRango==='7'?'selected':''}>Últimos 7 días</option><option value="30" ${movRango==='30'?'selected':''}>Últimos 30 días</option></select></div>
+      <div style="min-width:180px"><label class="f" for="fechaMovimientos">Hasta</label><input type="date" class="inp" id="fechaMovimientos" value="${esc(fechaMovimientos)}" max="${hoy()}"></div>
       <div style="flex:2;min-width:220px"><label class="f" for="qMovimientos">Buscar producto</label><input class="inp" id="qMovimientos" value="${esc(filtrosMovimientos.q)}" placeholder="Nombre o código…" autocomplete="off"></div>
       <div style="flex:1;min-width:180px"><label class="f" for="rubroMovimientos">Rubro</label><select class="inp" id="rubroMovimientos"><option value="">Todos los rubros</option>${rubros().map(r=>`<option value="${esc(r)}" ${filtrosMovimientos.rubro===r?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
     </div>
   </div></div>
-  <div class="nota-dash" style="margin-bottom:16px">Mostramos sólo los productos que tuvieron ventas, ingresos o ajustes ese día. <b>Otros movimientos</b> reúne todo lo que no fue una venta.</div>
+  <div class="nota-dash" style="margin-bottom:16px">La cuenta se lee de izquierda a derecha: stock inicial + ingresos − ventas ± ajustes = stock final. Tocá “Detalle” para ver hora, motivo y responsable disponible.</div>
   <div class="card">
     <div class="card-h"><h2>Detalle del día</h2><span class="pill mute" id="cuentaMovimientos"></span></div>
     <div id="tablaMovimientos"></div>
   </div>`;
   $('#fechaMovimientos').onchange=e=>{fechaMovimientos=e.target.value||hoy();pintarMovimientosDia();};
+  $('#movRango').onchange=e=>{movRango=e.target.value;pintarMovimientosDia();};
   $('#qMovimientos').oninput=e=>{filtrosMovimientos.q=e.target.value;pintarMovimientosDia();};
   $('#rubroMovimientos').onchange=e=>{filtrosMovimientos.rubro=e.target.value;pintarMovimientosDia();};
-  $('#movHoy').onclick=()=>{fechaMovimientos=hoy();$('#fechaMovimientos').value=fechaMovimientos;pintarMovimientosDia();};
   pintarMovimientosDia();
 }
 
@@ -7120,15 +7335,30 @@ function descargarBackup(){
 function restaurar(obj,origen){
   const d=obj.db||obj;
   if(!d||!Array.isArray(d.productos)){aviso('Ese archivo no es una copia válida','bad');return;}
-  confirmar('Restaurar copia',
-    `Vas a reemplazar todo lo que hay ahora por la copia ${origen}: <b>${d.productos.length}</b> productos, <b>${(d.ventas||[]).length}</b> ventas y <b>${(d.clientes||[]).length}</b> clientes. Lo actual se pierde.`,
-    ()=>{ db={...VACIA(),...d,config:{...VACIA().config,...(d.config||{})}}; guardar(); ticket=[]; render(); aviso('Copia restaurada','ok'); },
-    'Restaurar');
+  modal({titulo:'Restaurar copia',cuerpo:`
+    <div class="ux-banner bad"><div><b>Esta acción reemplaza todos los datos actuales.</b><br>La copia ${esc(origen)} contiene ${d.productos.length} productos, ${(d.ventas||[]).length} ventas y ${(d.clientes||[]).length} clientes.</div></div>
+    <label class="f" for="confirmarRestauracion" style="margin-top:16px">Confirmá escribiendo RESTAURAR</label>
+    <input id="confirmarRestauracion" class="inp" autocomplete="off" placeholder="RESTAURAR">
+    <div class="hint" style="margin-top:8px">Antes de reemplazar los datos vamos a guardar una copia automática del estado actual.</div>`,
+    pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn rojo" id="okRestaurar" disabled>Restaurar copia</button>`,
+    alAbrir:ov=>{
+      const inp=$('#confirmarRestauracion',ov),btn=$('#okRestaurar',ov);
+      inp.oninput=()=>btn.disabled=inp.value.trim().toUpperCase()!=='RESTAURAR';
+      btn.onclick=async()=>{
+        btn.disabled=true;
+        const respaldoOk=await backupAuto();
+        if(!respaldoOk){btn.disabled=false;aviso('No pudimos guardar la copia de seguridad previa','bad');return;}
+        db={...VACIA(),...d,config:{...VACIA().config,...(d.config||{})}};
+        guardar();ticket=[];cerrarModal();render();aviso('Copia restaurada','ok');
+      };
+      inp.focus();
+    }});
 }
 /* ═══════════════════════════════════════════════════════
    RESUMEN — dashboards para el dueño
    ═══════════════════════════════════════════════════════ */
 let periodoResumen='hoy', desdePers='', hastaPers='', busResumen='';
+const INSIGHTS_MIN_VENTAS=10;
 
 function rangoPeriodo(p){
   const ahora=new Date();
@@ -7152,7 +7382,7 @@ function datosPeriodo(p){
   const porHora=Array(24).fill(0), porHoraCant=Array(24).fill(0);
   const porDiaSemana=Array(7).fill(0);
   const porRubro={}, porProducto={};
-  let costo=0, cigTotal=0, cigCosto=0, dtoTotal=0;
+  let costo=0, cigTotal=0, cigCosto=0, dtoTotal=0, costosIncompletos=0, cigCostosIncompletos=0, otroCostosIncompletos=0;
 
   ventas.forEach(v=>{
     dtoTotal+=(Number(v.descuento)||0)+(Number(v.promoAuto)||0)+(Number(v.promoPago)||0);
@@ -7171,7 +7401,11 @@ function datosPeriodo(p){
       porRubro[r].importe+=importe; porRubro[r].cant+=cant;
     };
     (v.items||[]).forEach(i=>{
-      costo+=(i.costo||0)*i.cant;
+      if(i.tipo==='combo'){
+        const faltan=(i.componentes||[]).filter(c=>Number(c.costo)<=0).length;
+        costosIncompletos+=faltan;
+      }else if(Number(i.costo)<=0) costosIncompletos++;
+      if(Number(i.costo)>0)costo+=Number(i.costo)*i.cant;
       const netoLinea=netoItemVenta(i,v);
       if(i.tipo==='combo'){
         const suma=(i.componentes||[]).reduce((a,x)=>a+(Number(x.precio)||0)*(Number(x.cant)||0),0)||1;
@@ -7181,13 +7415,15 @@ function datosPeriodo(p){
           const peso=((Number(c.precio)||0)*(Number(c.cant)||0))/suma;
           const importe=netoLinea*peso;
           sumar(c.prodId,c.nombre,c.cant*i.cant,importe,rubro);
-          if(esCigarrillo(rubro)){ cigTotal+=importe; cigCosto+=(c.costo||0)*c.cant*i.cant; }
+          if(esCigarrillo(rubro)){ cigTotal+=importe;if(Number(c.costo)>0)cigCosto+=Number(c.costo)*c.cant*i.cant;else cigCostosIncompletos++; }
+          else if(Number(c.costo)<=0)otroCostosIncompletos++;
         });
       } else {
         const pr=prod(i.prodId);
         const rubro=i.rubro||(pr?pr.rubro:'');
         sumar(i.prodId,i.nombre,i.cant,netoLinea,rubro);
-        if(esCigarrillo(rubro)){ cigTotal+=netoLinea; cigCosto+=(i.costo||0)*i.cant; }
+        if(esCigarrillo(rubro)){ cigTotal+=netoLinea;if(Number(i.costo)>0)cigCosto+=Number(i.costo)*i.cant;else cigCostosIncompletos++; }
+        else if(Number(i.costo)<=0)otroCostosIncompletos++;
       }
     });
   });
@@ -7198,12 +7434,19 @@ function datosPeriodo(p){
   const productos=Object.values(porProducto).sort((a,b)=>b.importe-a.importe);
   const rubrosOrden=Object.entries(porRubro).map(([k,v])=>({nombre:k,...v})).sort((a,b)=>b.importe-a.importe);
   // margen bruto separado: cigarrillos suele tener un margen mucho más chico que el resto
-  const cigMargen=cigTotal-cigCosto;
+  const cigMargen=cigCostosIncompletos?null:cigTotal-cigCosto;
   const otroTotal=total-cigTotal, otroCosto=costo-cigCosto;
-  const otroMargen=otroTotal-otroCosto;
+  const otroMargen=otroCostosIncompletos?null:otroTotal-otroCosto;
   return {ini,fin,ventas,pagos,egresos,porForma,total,cobrado,costo,egrTotal,dtoTotal,
           cigTotal,cigCosto,cigMargen,otroTotal,otroCosto,otroMargen,
-          productos,rubros:rubrosOrden,porHora,porHoraCant,porDiaSemana,ganancia:total-costo-egrTotal};
+          productos,rubros:rubrosOrden,porHora,porHoraCant,porDiaSemana,costosIncompletos,
+          ganancia:costosIncompletos?null:total-costo-egrTotal};
+}
+function compararPeriodoAnterior(d){
+  const ini=new Date(d.ini),fin=new Date(d.fin),duracion=Math.max(1,fin-ini+1),anteriorFin=new Date(ini.getTime()-1),anteriorIni=new Date(anteriorFin.getTime()-duracion+1);
+  const totalAnterior=db.ventas.filter(v=>v.fecha>=anteriorIni.toISOString()&&v.fecha<=anteriorFin.toISOString()&&!v.anulada).reduce((a,v)=>a+Number(v.total||0),0);
+  const variacion=totalAnterior>0?(d.total-totalAnterior)/totalAnterior*100:null;
+  return {totalAnterior,variacion,etiqueta:'período anterior'};
 }
 function serieDiaria(ini,fin){
   const dias=[]; const d=new Date(ini); d.setHours(0,0,0,0);
@@ -7255,6 +7498,8 @@ function f6CierresResumenHtml(groups){
 
 function vResumen(m){
   const d=datosPeriodo(periodoResumen);
+  const comparacion=compararPeriodoAnterior(d);
+  const hayInsights=d.ventas.length>=INSIGHTS_MIN_VENTAS||d.productos.length>=3;
   const etiqueta={hoy:'Hoy',ayer:'Ayer',semana:'Últimos 7 días',mes:'Últimos 30 días',pers:'Período elegido'}[periodoResumen];
   const hayVentas=d.ventas.length>0;
   const legacyResumen=f5GruposLegacyResumen({
@@ -7289,14 +7534,16 @@ function vResumen(m){
 
   ${!hayVentas?`<div class="card"><div class="empty"><b>No hubo ventas en este período</b>Elegí otro rango de fechas arriba para ver los números.</div></div>`:`
 
+  ${d.costosIncompletos?`<div class="ux-banner warn resumen-cost-warning" style="margin-bottom:18px"><div style="flex:1"><b>No podemos calcular la ganancia todavía</b><br>${d.costosIncompletos} líneas vendidas no tienen un costo conocido. Las ventas siguen siendo correctas; costo, margen y ganancia quedan como “—”.</div><button class="btn ghost sm" id="resIrCostos">Completar costos</button></div>`:''}
+
   <div class="grid3" style="margin-bottom:26px">
-    <div class="kpi"><span>Vendido</span><b>${$m(d.total)}</b><small>${d.ventas.length} ventas · promedio ${$m(d.total/d.ventas.length)}</small></div>
-    <div class="kpi"><span>Costo de la mercadería vendida</span><b style="color:var(--rojo)">${$m(d.costo)}</b><small>${d.total>0?`el ${(d.costo/d.total*100).toFixed(0)}% de lo que vendiste`:'lo que te costó reponer lo vendido'}</small></div>
-    <div class="kpi"><span>Ganancia estimada</span><b style="color:${d.ganancia>=0?'var(--verde-d)':'var(--rojo)'}">${$m(d.ganancia)}</b>
-      <small class="formula"><span class="num">${$m(d.total)}</span> ventas − <span class="num">${$m(d.costo)}</span> costo − <span class="num">${$m(d.egrTotal)}</span> egresos${d.dtoTotal>0.009?`<br>Ya diste <span class="num">${$m(d.dtoTotal)}</span> en descuentos`:''}</small></div>
+    <div class="kpi"><span>Vendido</span><b>${$m(d.total)}</b><small>${d.ventas.length} ventas · promedio ${$m(d.total/d.ventas.length)}${comparacion.variacion===null?' · sin base en el período anterior':` · ${comparacion.variacion>=0?'+':''}${comparacion.variacion.toFixed(0)}% vs. período anterior`}</small></div>
+    <div class="kpi"><span>Costo de la mercadería vendida</span><b style="color:var(--muted)">${d.costosIncompletos?'—':$m(d.costo)}</b><small>${d.costosIncompletos?'faltan costos para completar este dato':d.total>0?`el ${(d.costo/d.total*100).toFixed(0)}% de lo que vendiste`:'lo que te costó reponer lo vendido'}</small></div>
+    <div class="kpi"><span>Ganancia estimada</span><b style="color:${d.ganancia===null?'var(--muted)':d.ganancia>=0?'var(--verde-d)':'var(--rojo)'}">${d.ganancia===null?'—':$m(d.ganancia)}</b>
+      <small class="formula">${d.ganancia===null?'Pendiente de completar costos':`<span class="num">${$m(d.total)}</span> ventas<br>− <span class="num">${$m(d.costo)}</span> costo<br>− <span class="num">${$m(d.egrTotal)}</span> egresos`}${d.dtoTotal>0.009?`<br>Ya diste <span class="num">${$m(d.dtoTotal)}</span> en descuentos`:''}</small></div>
   </div>
 
-  <div class="card" style="margin-bottom:20px">
+  ${d.costosIncompletos?'':`<div class="card" style="margin-bottom:20px">
     <div class="card-h"><h2>De dónde sale tu margen</h2>
       <span class="pill mute">antes de egresos</span></div>
     <div class="card-b">
@@ -7314,11 +7561,11 @@ function vResumen(m){
           <div class="margen-pct">${d.otroTotal>0?`Margen del <b>${(d.otroMargen/d.otroTotal*100).toFixed(1)}%</b> sobre lo vendido`:'Sin ventas'}</div>
         </div>
       </div>
-      ${d.cigTotal>0.009&&d.otroTotal>0.009?`<div class="nota-dash" style="margin-top:16px">
+      ${d.cigTotal>0.009&&d.otroTotal>0.009&&d.cigMargen!==null&&d.otroMargen!==null?`<div class="nota-dash" style="margin-top:16px">
         Los cigarrillos son el <b>${Math.round(d.cigTotal/d.total*100)}%</b> de lo que vendés, pero aportan el <b>${d.cigMargen+d.otroMargen>0?Math.round(d.cigMargen/(d.cigMargen+d.otroMargen)*100):0}%</b> de tu margen. ${(d.cigTotal/d.total)>(d.cigMargen/((d.cigMargen+d.otroMargen)||1))?'Mueven mucha plata pero dejan poco: son para traer gente al mostrador.':'Están rindiendo bien en relación a lo que ocupan.'}
       </div>`:''}
     </div>
-  </div>
+  </div>`}
 
   <div class="card" style="margin-bottom:20px">
     <div class="card-h"><h2>Cómo te pagaron</h2></div>
@@ -7349,8 +7596,7 @@ function vResumen(m){
   </div>
 
   <div class="card" style="margin-bottom:20px">
-    <div class="card-h"><h2>Lo que más vendiste</h2>
-      <button class="btn ghost sm" id="expProd">Descargar detalle</button></div>
+    <div class="card-h"><h2>Lo que más vendiste</h2></div>
     <div class="card-b" id="rankProd"></div>
   </div>
 
@@ -7360,7 +7606,7 @@ function vResumen(m){
   </div>
 
   <div class="card">
-    <div class="card-h"><h2>Detalle completo</h2><span class="pill mute">${d.productos.length} productos distintos</span></div>
+    <div class="card-h"><h2>Detalle completo</h2><div class="row"><span class="pill mute">${d.productos.length} productos distintos</span><button class="btn ghost sm" id="expProd">Descargar detalle</button></div></div>
     <div class="card-b"><label class="f" for="qResumen">Buscar producto en el período</label><input class="inp" id="qResumen" value="${esc(busResumen)}" placeholder="Nombre o código…" autocomplete="off"></div>
     <div id="detalleResumen"></div>
   </div>`}`;
@@ -7370,9 +7616,15 @@ function vResumen(m){
   if(pd) pd.onchange=()=>{desdePers=pd.value;render();};
   if(ph) ph.onchange=()=>{hastaPers=ph.value;render();};
   if(!hayVentas) return;
+  const irCostos=$('#resIrCostos');if(irCostos)irCostos.onclick=()=>ir('productos');
   $('#expProd').onclick=()=>exportarProductos(d);
   $('#qResumen').oninput=e=>{busResumen=e.target.value;pintarDetalleResumen(d);};
   pintarDetalleResumen(d);
+
+  if(!hayInsights){
+    const graf=$('#graf');if(graf){graf.closest('.card').innerHTML=`<div class="empty"><b>Todavía hay pocos datos para detectar patrones</b>Con ${INSIGHTS_MIN_VENTAS} ventas o 3 productos distintos vamos a mostrar horarios fuertes, rankings y rubros. Por ahora, el detalle completo de abajo es la lectura más honesta.</div>`;}
+    const rank=$('#rankProd');if(rank)rank.closest('.card').hidden=true;const rubros=$('#rubrosBox');if(rubros)rubros.closest('.card').hidden=true;return;
+  }
 
   if(periodoResumen==='hoy'||periodoResumen==='ayer'){
     pintarBarrasHora($('#graf'),d.porHora);
@@ -7397,7 +7649,7 @@ function pintarBarrasHora(cont,porHora){
     ${porHora.map((v,h)=>{
       const alt=Math.max(3,(v/max)*130);
       return `<div class="hora-col" title="${String(h).padStart(2,'0')}:00 — ${$m(v)}">
-        <div class="hora-barra" style="height:${alt}px;background:${h===pico?'var(--rojo)':v>0?'var(--verde)':'#E2E6EC'}"></div>
+        <div class="hora-barra" style="height:${alt}px;background:${h===pico?'var(--primary)':v>0?'var(--verde)':'#E2E6EC'}"></div>
       </div>`;}).join('')}
   </div>
   <div class="graf-ejes"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>`;
@@ -7486,47 +7738,66 @@ function exportarProductos(d){
 const SOPORTE_WA='5491150500618';
 function vSoporte(m){
   const tel='+54 9 11 5050-0618';
+  const idDispositivo=String((f3Estado&&f3Estado.deviceUuid)||deviceId||'WEB');
+  const diagnostico=[
+    `Versión: ${MICOMERCIO_BUILD.version} · revisión ${MICOMERCIO_BUILD.packageRevision}`,
+    `Dispositivo: …${idDispositivo.slice(-8)}`,
+    `Rol: ${f5RolActual()||'local'}`,
+    `Conexión: ${enLinea?'en línea':'sin conexión'}`,
+    `Navegador: ${navigator.userAgent}`
+  ].join('\n');
   m.innerHTML=`
-  <div class="head"><div><h1>Soporte</h1><div class="sub">¿Algo no anda como esperabas? Escribinos.</div></div></div>
-
-  <div class="card" style="max-width:680px;margin-bottom:16px">
-    <div class="card-b" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
-      <div style="flex:1;min-width:200px">
-        <span style="font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">WhatsApp</span>
-        <div style="font-family:var(--mono);font-size:21px;font-weight:600;margin-top:4px">${tel}</div>
+  <div class="head"><div><h1>Soporte</h1><div class="sub">Contanos qué pasó y abrí WhatsApp con el mensaje listo.</div></div></div>
+  <div class="support-grid">
+    <div class="card">
+      <div class="card-h"><h2>¿En qué te ayudamos?</h2><span class="pill info">${tel}</span></div>
+      <div class="card-b">
+        <label class="f" for="supportTema">Tema</label>
+        <select id="supportTema" class="inp">
+          <option value="Ventas y cobros">Ventas y cobros</option>
+          <option value="Productos y stock">Productos y stock</option>
+          <option value="Caja y cierres">Caja y cierres</option>
+          <option value="Fiado">Fiado</option>
+          <option value="Accesos y configuración">Accesos y configuración</option>
+          <option value="Otro">Otro</option>
+        </select>
+        <label class="f" for="supportUrgencia" style="margin-top:14px">Urgencia</label>
+        <select id="supportUrgencia" class="inp"><option value="Puedo seguir trabajando">Puedo seguir trabajando</option><option value="Me bloquea una tarea">Me bloquea una tarea</option><option value="No puedo vender">No puedo vender</option></select>
+        <label class="f" for="supportMensaje" style="margin-top:14px">Contanos qué estabas haciendo</label>
+        <textarea id="supportMensaje" class="inp" rows="6" maxlength="1200" placeholder="Ej: estaba cerrando la caja y…"></textarea>
+        <div class="hint" style="margin-top:8px">No incluyas contraseñas, PIN ni datos de tarjetas.</div>
+        <button class="btn verde" id="waSop" style="margin-top:16px;width:100%">Abrir WhatsApp con todo cargado</button>
       </div>
-      <button class="btn verde" id="waSop">Abrir WhatsApp</button>
     </div>
-  </div>
-
-  <div class="card" style="max-width:680px;margin-bottom:16px">
-    <div class="card-h"><h2>Antes de escribir, probá esto</h2></div>
-    <div class="card-b">
-      <ul style="margin:0;padding-left:20px;line-height:1.9;color:var(--muted);font-size:14.5px">
-        <li>Si algo no se ve actualizado, recargá con <b>Ctrl+F5</b>.</li>
-        <li>Si el lector escanea raro, revisá que esté en modo teclado estándar.</li>
-        <li>Antes de un cambio grande, bajate una copia desde <b>Respaldo</b>.</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="card" style="max-width:680px">
-    <div class="card-h"><h2>Datos de tu sistema</h2>
-      <button class="btn ghost sm" id="copSop">Copiar</button></div>
-    <div class="card-b">
-      <div class="hint" style="margin:0 0 10px">Si te lo piden, copiá esto y mandalo junto a tu consulta.</div>
-      <textarea id="datosSop" class="inp" rows="4" readonly style="font-family:var(--mono);font-size:12.5px">${esc(
-        `Comercio: ${db.config.nombre}\nUsuario: ${sesion?sesion.user.email:'(modo local)'}\nProductos: ${db.productos.length} · Ventas: ${db.ventas.length} · Clientes: ${db.clientes.length}\nÚltimo respaldo: ${db.config.ultBackup?fFH(db.config.ultBackup):'nunca'}`
-      )}</textarea>
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h"><h2>Diagnóstico técnico</h2><button class="btn ghost sm" id="copSop">Copiar</button></div>
+        <div class="card-b">
+          <div class="hint" style="margin:0 0 10px">Se adjunta al mensaje para identificar la versión y el dispositivo. No incluye ventas, clientes ni importes.</div>
+          <textarea id="datosSop" class="inp support-diagnostic" rows="7" readonly>${esc(diagnostico)}</textarea>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Antes de escribir</h2></div>
+        <div class="card-b"><ul style="margin:0;padding-left:20px;line-height:1.9;color:var(--muted);font-size:14px">
+          <li>Si algo no se actualizó, recargá con <b>Ctrl+F5</b>.</li>
+          <li>Si el lector escanea raro, comprobá que funcione como teclado.</li>
+          <li>Para una restauración, descargá primero una copia.</li>
+        </ul></div>
+      </div>
     </div>
   </div>`;
   $('#waSop').onclick=()=>{
-    const txt=`Hola, necesito ayuda con Mi Comercio (${db.config.nombre}).`;
+    const tema=$('#supportTema').value,urgencia=$('#supportUrgencia').value,detalle=$('#supportMensaje').value.trim();
+    if(!detalle){$('#supportMensaje').focus();aviso('Contanos brevemente qué pasó','bad');return;}
+    const txt=`Hola, necesito ayuda con Mi Comercio.\n\nTema: ${tema}\nUrgencia: ${urgencia}\nDetalle: ${detalle}\n\nDiagnóstico:\n${diagnostico}`;
     window.open(linkWhatsapp(SOPORTE_WA,txt),'_blank');
   };
   $('#copSop').onclick=()=>{
     const t=$('#datosSop').value;
-    navigator.clipboard?.writeText(t).then(()=>aviso('Datos copiados','ok'),()=>{ $('#datosSop').select(); aviso('Seleccionado — copialo con Ctrl+C'); });
+    const copia=navigator.clipboard?.writeText(t);
+    if(copia)copia.then(()=>aviso('Datos copiados','ok'),()=>{ $('#datosSop').select(); aviso('Seleccionado — copialo con Ctrl+C'); });
+    else{$('#datosSop').select();aviso('Seleccionado — copialo con Ctrl+C');}
   };
 }
 
@@ -7583,9 +7854,9 @@ function f5EmpleadosListaHtml(){
           <div class="hint" style="margin-top:3px">${miembro.usuario?`Usuario: <span class="num">${esc(miembro.usuario)}</span> · `:''}${rol==='duenio'?'Dueño':rol==='admin'?'Administrador':'Empleado'}</div></div>
         <span class="pill ${activo?'ok':'warn'}">${activo?'Activo':'Suspendido'}</span>
       </div>
-      ${empleado?`<div class="grid2" style="margin-top:13px;gap:8px 18px">
+      ${empleado?`<details style="margin-top:12px"><summary class="btn ghost sm" style="display:inline-flex;cursor:pointer">Editar permisos · ${Object.values(permisos).filter(Boolean).length} habilitados</summary><div class="grid2" style="margin-top:10px;gap:8px 18px">
         ${F5_EMPLOYEE_PERMISSION_KEYS.map(key=>{const copy=F5_PERMISO_EMPLEADO_UI[key];return `<label style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;cursor:pointer"><input type="checkbox" data-f5-perm="${key}" ${permisos[key]?'checked':''} ${activo?'':'disabled'}><span><b style="font-size:14px">${copy[0]}</b><span class="sub-config">${copy[1]}</span></span></label>`;}).join('')}
-      </div>
+      </div></details>
       <div class="row" style="margin-top:12px">
         ${activo?`<button class="btn sm" data-f5-guardar>Guardar permisos</button>`:''}
         <button class="btn ghost sm" data-f5-clave ${miembro.usuario?'':'disabled'}>Cambiar clave</button>
@@ -7675,6 +7946,8 @@ const f5GuardarDatosComercio=f5CrearGuardadoDatosComercio({
 function vConfig(m){
   const perm=db.config.permisosEmpleado||{};
   const u=db.config.ultBackup;
+  const seccionesConfigurables=SECCIONES_PERMISO.filter(id=>moduloActivo(id));
+  const seccionesOcultas=seccionesConfigurables.filter(id=>perm[id]===false).length;
   m.innerHTML=`
   <div class="head"><div><h1>Configuración</h1><div class="sub">Los datos de tu comercio, quién puede ver qué, y tus copias de seguridad.</div></div></div>
 
@@ -7685,7 +7958,7 @@ function vConfig(m){
     <button type="button" data-ir-a="cf-empleado">Bloqueo de mostrador</button>
     <button type="button" data-ir-a="cf-respaldo">Copias de seguridad</button>
     <button type="button" data-ir-a="cf-demo">Comercio de ejemplo</button>
-    <button type="button" data-ir-a="cf-zona">Zona delicada</button>
+    <button type="button" data-ir-a="cf-zona">Acciones irreversibles</button>
   </div>
 
   <div class="card config-card" id="cf-datos" style="margin-bottom:16px">
@@ -7695,7 +7968,8 @@ function vConfig(m){
         <div><label class="f" for="cfgNom">Nombre en el ticket</label>
           <input id="cfgNom" class="inp" maxlength="120" value="${esc(db.config.nombre)}"></div>
         <div><label class="f" for="cfgNro">Próximo Nº de ticket</label>
-          <input id="cfgNro" class="inp num" value="${db.config.nroVenta}"></div>
+          <input id="cfgNro" class="inp num" value="${db.config.nroVenta}">
+          <div class="hint">Cambiarlo puede generar números repetidos. Usalo solo para continuar otra numeración.</div></div>
       </div>
       <div class="grid2" style="margin-top:14px">
         <div><label class="f" for="cfgWa">WhatsApp del dueño</label>
@@ -7714,28 +7988,28 @@ function vConfig(m){
     <div class="card-b">
       <div class="fila-config">
         <div><b>Fiado</b><span class="sub-config">Cuentas corrientes de clientes. Si lo apagás, desaparece del menú para todos.</span></div>
-        <button class="btn ${db.config.moduloFiado!==false?'verde':'ghost'} sm" data-mod="moduloFiado">${db.config.moduloFiado!==false?'Activado':'Desactivado'}</button>
+        <button class="toggle-switch" role="switch" aria-label="Activar Fiado" aria-checked="${db.config.moduloFiado!==false}" data-mod="moduloFiado"></button>
       </div>
       <div class="fila-config">
         <div><b>Vencimientos</b><span class="sub-config">Aviso de productos por vencer. Si lo apagás, desaparece del menú para todos.</span></div>
-        <button class="btn ${db.config.moduloVencimientos!==false?'verde':'ghost'} sm" data-mod="moduloVencimientos">${db.config.moduloVencimientos!==false?'Activado':'Desactivado'}</button>
+        <button class="toggle-switch" role="switch" aria-label="Activar Vencimientos" aria-checked="${db.config.moduloVencimientos!==false}" data-mod="moduloVencimientos"></button>
       </div>
       <div class="fila-config">
         <div><b>Caja separada de cigarrillos</b><span class="sub-config">Si está activa, el efectivo de cigarrillos tiene arqueo propio. Si la apagás, ventas, egresos y fondo de cigarrillos se integran a la caja general sin alterar los cierres anteriores.</span></div>
-        <button class="btn ${db.config.moduloCigarros!==false?'verde':'ghost'} sm" data-mod="moduloCigarros">${db.config.moduloCigarros!==false?'Activada':'Desactivada'}</button>
+        <button class="toggle-switch" role="switch" aria-label="Activar caja separada de cigarrillos" aria-checked="${db.config.moduloCigarros!==false}" data-mod="moduloCigarros"></button>
       </div>
     </div>
   </div>
 
-  <div class="card config-card" id="cf-empleados" style="margin-bottom:16px">
-    <div class="card-h"><h2>Empleados</h2><span class="pill mute">Código: <b class="num" id="f5CodigoComercio">—</b></span></div>
+  <div class="card config-card settings-wide" id="cf-empleados" style="margin-bottom:16px">
+    <div class="card-h"><h2>Empleados</h2><div class="row"><span class="pill mute">Código: <b class="num" id="f5CodigoComercio">—</b></span><button type="button" class="btn ghost sm" id="copiarCodigoComercio">Copiar código</button></div></div>
     <div class="card-b">
       <p class="hint" style="margin:0 0 14px">Creá una cuenta distinta para cada persona. Para ingresar usarán el código del comercio, su usuario y su clave; nunca necesitan la cuenta del dueño.</p>
       <div class="grid2">
         <div><label class="f" for="f5EmpleadoNombre">Nombre</label><input id="f5EmpleadoNombre" class="inp" maxlength="120" placeholder="Ej: Ana"></div>
         <div><label class="f" for="f5EmpleadoUsuario">Usuario</label><input id="f5EmpleadoUsuario" class="inp" maxlength="80" autocomplete="off" placeholder="Ej: caja_ana"></div>
       </div>
-      <div style="margin-top:12px;max-width:420px"><label class="f" for="f5EmpleadoClave">Clave inicial</label><input id="f5EmpleadoClave" class="inp" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></div>
+      <div style="margin-top:12px;max-width:620px"><label class="f" for="f5EmpleadoClave">Clave inicial</label><div class="row" style="flex-wrap:nowrap"><input id="f5EmpleadoClave" class="inp" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Mínimo 8 caracteres"><button type="button" class="btn ghost sm" id="f5VerClave">Mostrar</button><button type="button" class="btn ghost sm" id="f5GenerarClave">Generar segura</button></div></div>
       <div style="margin-top:16px"><b style="font-size:14px">Qué podrá hacer</b><div class="grid2" style="margin-top:6px;gap:8px 18px">
         ${F5_EMPLOYEE_PERMISSION_KEYS.map(key=>{const copy=F5_PERMISO_EMPLEADO_UI[key],on=key==='ventas_registrar';return `<label style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;cursor:pointer"><input type="checkbox" data-f5-new-perm="${key}" ${on?'checked':''}><span><b style="font-size:14px">${copy[0]}</b><span class="sub-config">${copy[1]}</span></span></label>`;}).join('')}
       </div></div>
@@ -7745,17 +8019,17 @@ function vConfig(m){
     </div>
   </div>
 
-  <div class="card config-card" id="cf-empleado" style="margin-bottom:16px">
-    <div class="card-h"><h2>Bloqueo de mostrador</h2></div>
+  <div class="card config-card settings-wide" id="cf-empleado" style="margin-bottom:16px">
+    <div class="card-h"><h2>Bloqueo de mostrador</h2><span class="pill ${seccionesOcultas?'warn':'ok'}">${seccionesOcultas} secciones ocultas</span></div>
     <div class="card-b">
-      <p class="hint" style="margin:0 0 14px">Esta es una restricción visual para dejar temporalmente el equipo en el mostrador. No reemplaza las cuentas reales de la sección Empleados ni sus permisos del servidor.</p>
-      ${SECCIONES_PERMISO.filter(id=>moduloActivo(id)).map(id=>{
+      <div class="ux-banner permission-order"><div><b>Orden de permisos</b><br>Primero se aplican los permisos de la cuenta del empleado. Después, este bloqueo puede ocultar todavía más secciones cuando protegés el dispositivo.</div></div>
+      <div class="settings-grid">${seccionesConfigurables.map(id=>{
         const on=perm[id]!==false;
         return `<div class="fila-config">
           <div><b>${TXT_PERMISO[id]}</b><span class="sub-config">${DESC_PERMISO[id]}</span></div>
-          <button class="btn ${on?'verde':'ghost'} sm" data-perm="${id}">${on?'Puede ver':'Oculto'}</button>
+          <button class="toggle-switch" role="switch" aria-label="Mostrar ${TXT_PERMISO[id]} en el bloqueo de mostrador" aria-checked="${on}" data-perm="${id}"></button>
         </div>`;
-      }).join('')}
+      }).join('')}</div>
       ${!SECCIONES_PERMISO.some(moduloActivo)?`<div class="empty" style="padding:20px"><b>No hay nada para configurar acá</b>Fiado y Vencimientos están apagados — el resto siempre está disponible para el empleado.</div>`:''}
     </div>
   </div>
@@ -7785,8 +8059,8 @@ function vConfig(m){
     </div>
   </div>
 
-  <div class="card config-card" id="cf-zona" style="border-color:#F0C9C0">
-    <div class="card-h"><h2 style="color:var(--rojo)">Zona delicada</h2></div>
+  <div class="card config-card danger-zone" id="cf-zona">
+    <div class="card-h"><h2 style="color:var(--rojo)">Acciones irreversibles</h2></div>
     <div class="card-b row" style="justify-content:space-between">
       <span style="font-size:13px;color:var(--muted)">Borra productos, ventas, clientes y saldos. No se puede deshacer.</span>
       <button class="btn rojo sm" id="bBorrar">Borrar todo</button>
@@ -7794,6 +8068,7 @@ function vConfig(m){
   </div>`;
 
   $$('[data-ir-a]').forEach(b=>b.onclick=()=>{
+    $$('[data-ir-a]').forEach(x=>x.classList.toggle('active',x===b));
     const el=document.getElementById(b.dataset.irA);
     if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
   });
@@ -7814,11 +8089,26 @@ function vConfig(m){
     if(!f3RolServidorAdmin())return;
     if(await f6SolicitarCambioPinDispositivo()){render();aviso('PIN de este dispositivo actualizado','ok');}
   };
+  const verClave=$('#f5VerClave'),campoClave=$('#f5EmpleadoClave');if(verClave&&campoClave)verClave.onclick=()=>{
+    const mostrar=campoClave.type==='password';campoClave.type=mostrar?'text':'password';verClave.textContent=mostrar?'Ocultar':'Mostrar';
+  };
+  const generarClave=$('#f5GenerarClave');if(generarClave&&campoClave)generarClave.onclick=()=>{
+    const alfabeto='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#';
+    const bytes=new Uint32Array(14);crypto.getRandomValues(bytes);
+    campoClave.value=Array.from(bytes,n=>alfabeto[n%alfabeto.length]).join('');campoClave.focus();aviso('Clave segura generada','ok');
+  };
   const crearEmpleado=$('#f5CrearEmpleado');if(crearEmpleado)crearEmpleado.onclick=async()=>{
     const permisos=Object.fromEntries($$('[data-f5-new-perm]').map(x=>[x.dataset.f5NewPerm,x.checked]));
     let payload;try{payload=f5PayloadCrearEmpleado({nombre:$('#f5EmpleadoNombre').value,usuario:$('#f5EmpleadoUsuario').value,clave:$('#f5EmpleadoClave').value},permisos);}catch(e){const code=String(e.message||e);aviso(code.includes('NOMBRE')?'Ingresá el nombre del empleado':code.includes('USUARIO')?'Usá un usuario con letras, números, punto, guion o guion bajo':'La clave debe tener al menos 8 caracteres','bad');return;}
     crearEmpleado.disabled=true;
     try{await f5MembersRequest(payload);$('#f5EmpleadoNombre').value='';$('#f5EmpleadoUsuario').value='';$('#f5EmpleadoClave').value='';aviso('Empleado creado','ok');await f5CargarGestionEmpleados(true);}catch(e){aviso('No pudimos crear el empleado. Revisá si ese usuario ya existe.','bad');}finally{crearEmpleado.disabled=false;}
+  };
+  const copiarCodigo=$('#copiarCodigoComercio');if(copiarCodigo)copiarCodigo.onclick=()=>{
+    const codigo=f5GestionEmpleados.codigo||$('#f5CodigoComercio')?.textContent||'';
+    if(!codigo||codigo==='—'){aviso('El código todavía se está cargando','bad');return;}
+    const copia=navigator.clipboard?.writeText(codigo);
+    if(copia)copia.then(()=>aviso('Código copiado','ok'),()=>aviso('No pudimos copiar el código','bad'));
+    else aviso(`Código: ${codigo}`,'ok');
   };
   $$('[data-mod]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.mod, on=db.config[k]!==false;
@@ -7828,7 +8118,6 @@ function vConfig(m){
     aviso(`${etiqueta} ${!on?'activada':'desactivada'}`,'ok');
   });
   $$('[data-perm]').forEach(b=>b.onclick=()=>{
-    if(!f5AutoridadLegacyEditable()){aviso('No se pueden cambiar los permisos del empleado durante la migración (v4_only).','bad');return;}
     db.config.permisosEmpleado=db.config.permisosEmpleado||{};
     const k=b.dataset.perm, on=db.config.permisosEmpleado[k]!==false;
     db.config.permisosEmpleado[k]=!on;
@@ -10724,10 +11013,10 @@ setInterval(comprobarLicenciaActiva,5*60*1000);
    10. ATAJOS + ARRANQUE
    ═══════════════════════════════════════════════════════ */
 document.addEventListener('keydown',e=>{
-  if(e.key==='F2'&&vista==='vender'&&ticket.length){e.preventDefault();pago='efectivo';pintarPOS();cerrarVenta('efectivo');}
-  if(e.key==='F4'&&vista==='vender'&&ticket.length){e.preventDefault();pago='fiado';pintarPOS();
-    if(!clienteFiado) aviso('Elegí a qué cliente se lo anotás','bad'); else cerrarVenta('fiado');}
-  if(e.key==='Escape'&&vista==='vender'&&ticket.length&&!$('#ov')){ticket=[];recibido='';pintarPOS();aviso('Ticket vacío de nuevo');}
+  if(e.key==='F1'&&vista==='vender'){e.preventDefault();const scan=$('#scan');if(scan){scan.focus();scan.select();}}
+  if(e.key==='F2'&&vista==='vender'&&ticket.length&&!$('#ov')){e.preventDefault();pago='efectivo';abrirModalPago();}
+  if(e.key==='F4'&&vista==='vender'&&ticket.length&&!$('#ov')){e.preventDefault();pago='fiado';abrirModalPago();}
+  if(e.key==='Escape'&&vista==='vender'&&!$('#ov')){const res=$('#res');if(res&&!res.hidden){res.hidden=true;const scan=$('#scan');if(scan){scan.value='';scan.focus();}}}
 });
 
 

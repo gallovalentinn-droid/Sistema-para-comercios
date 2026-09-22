@@ -154,6 +154,21 @@ test('el cliente publicado elimina getPublicUrl y usa firmas temporales', () => 
   assert.match(core, /createSignedUrls/u);
 });
 
+test('un repintado tardío no intenta dibujar Vender si su contenido ya no está montado', () => {
+  const source = html();
+  const pintarPos = sliceBetween(source, 'function pintarPOS(){', '\n/* ── modal de medio de pago:');
+  const context = {
+    vista: 'vender',
+    totalCalls: 0,
+    totalTicket() { this.totalCalls += 1; return 0; },
+    $() { return null; },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${pintarPos}\npintarPOS();`, context, { filename: artifactPath });
+
+  assert.equal(context.totalCalls, 0, 'no debe calcular ni escribir sobre una vista desmontada');
+});
+
 test('todos los grupos de Para pedir reciben una grilla fija compartida', () => {
   const source = html();
   const replenishTable = sliceBetween(source, 'function tablaRep(l){', '\n/* ── armador de pedido ── */');
