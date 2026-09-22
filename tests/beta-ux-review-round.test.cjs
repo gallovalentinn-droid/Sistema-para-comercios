@@ -158,7 +158,8 @@ test('Productos compacta columnas y acciones en notebooks de hasta 1440 px', () 
 
 test('Para pedir y Movimientos contienen sus tablas en notebooks angostas', () => {
   const text = source();
-  assert.match(text, /@media\(max-width:1100px\) and \(min-width:761px\)[\s\S]*\.rep-table\{min-width:0\}/);
+  assert.match(text, /@media\(max-width:1440px\) and \(min-width:761px\)[\s\S]*\.rep-table\{min-width:0;width:calc\(100% - 2px\)\}/);
+  assert.match(text, /\.rep-table col:nth-child\(4\).*\.rep-table td:nth-child\(5\)\{display:none\}/s);
   assert.match(text, /\.rep-table th,\.rep-table td\{padding-left:5px/);
   assert.match(text, /\.rep-table col:nth-child\(2\),\.rep-table th:nth-child\(2\),\.rep-table td:nth-child\(2\)\{display:none\}/);
   assert.match(text, /aria-label="Movimientos de stock"[^>]*><table class="mtable mov-table"/);

@@ -524,14 +524,20 @@ body.offline .app{padding-top:34px}
   #tabProd td[data-label="Producto"]{min-width:220px;max-width:300px}
   #tabProd td:last-child .btn{width:38px;padding:8px;font-size:0;gap:0}
   #tabProd td:last-child .btn svg{width:16px;height:16px}
+  .rep-table{min-width:0;width:calc(100% - 2px)}
+  .rep-table col:nth-child(1){width:40%}
+  .rep-table col:nth-child(2){width:25%}
+  .rep-table col:nth-child(3){width:10%}
+  .rep-table col:nth-child(4),.rep-table col:nth-child(5),.rep-table th:nth-child(4),.rep-table td:nth-child(4),.rep-table th:nth-child(5),.rep-table td:nth-child(5){display:none}
+  .rep-table col:nth-child(6){width:15%}
+  .rep-table col:nth-child(7){width:10%}
+  .rep-table th,.rep-table td{padding-left:8px;padding-right:8px}
 }
 @media(max-width:1100px) and (min-width:761px){
   #tabProd th:nth-child(6),#tabProd td:nth-child(6){display:none}
-  .rep-table{min-width:0}
   .rep-table col:nth-child(1){width:55%}
   .rep-table col:nth-child(2),.rep-table th:nth-child(2),.rep-table td:nth-child(2){display:none}
   .rep-table col:nth-child(3){width:12%}
-  .rep-table col:nth-child(4),.rep-table col:nth-child(5),.rep-table th:nth-child(4),.rep-table td:nth-child(4),.rep-table th:nth-child(5),.rep-table td:nth-child(5){display:none}
   .rep-table col:nth-child(6){width:18%}
   .rep-table col:nth-child(7){width:15%}
   .rep-table th,.rep-table td{padding-left:5px;padding-right:5px}
@@ -607,7 +613,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:28,
+  packageRevision:29,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',

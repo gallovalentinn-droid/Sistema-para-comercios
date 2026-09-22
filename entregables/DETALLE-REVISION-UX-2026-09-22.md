@@ -1,7 +1,7 @@
 # MiComercio — revisión UX integral
 
 Fecha: 22 de septiembre de 2026
-Build: `6.0.0-f6-rc2`, revisión de paquete `28`
+Build: `6.0.0-f6-rc2`, revisión de paquete `29`
 
 ## Alcance
 
@@ -139,7 +139,7 @@ Código principal: `beta/index.html`, líneas 7739–7944.
 ## Archivos modificados
 
 - `beta/index.html`: interfaz, comportamiento y reglas responsive.
-- `beta/sw.js`: caché actualizada a `micomercio-beta-6.0.0-f6-rc2-rev28`.
+- `beta/sw.js`: caché actualizada a `micomercio-beta-6.0.0-f6-rc2-rev29`.
 - `tests/beta-cash-ux-redesign.test.cjs`: identidad del build 28.
 - `tests/beta-products-ux-redesign.test.cjs`: identidad del build 28.
 - `tests/beta-product-images-ui.test.cjs`: protección frente a repintados tardíos de Vender.
@@ -149,7 +149,7 @@ Código principal: `beta/index.html`, líneas 7739–7944.
 
 ### Verificado en código
 
-- Identidad de `beta/index.html`, caché de `beta/sw.js` y pruebas alineadas en revisión 28.
+- Identidad de `beta/index.html`, caché de `beta/sw.js` y pruebas alineadas en revisión 29.
 - Sintaxis del script embebido validada.
 - Contratos automatizados para los cambios de Vender, Productos, Para pedir, Vencimientos, Fiado, Combos, Descuentos, Caja, Movimientos, Resumen, Configuración y Soporte.
 
