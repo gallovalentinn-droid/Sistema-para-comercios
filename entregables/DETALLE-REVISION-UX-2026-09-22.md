@@ -21,7 +21,7 @@ La implementación conserva el sistema como una aplicación autocontenida y actu
 - Se eliminó la lista duplicada del ticket lateral; ese panel queda como resumen y total.
 - Los descuentos eligen la mejor regla aplicable y excluyen combos para evitar dobles beneficios.
 
-Código principal: `beta/index.html`, líneas 3615–3657, 3848–4035.
+Código principal: `beta/index.html`, líneas 3621–3663, 3854–4041.
 
 ### Productos y cambios masivos de precios
 
@@ -33,7 +33,7 @@ Código principal: `beta/index.html`, líneas 3615–3657, 3848–4035.
 - Antes de aplicar se muestra cantidad afectada, promedio anterior/nuevo, mayor variación y exclusiones.
 - El lote aplicado puede deshacerse desde Productos.
 
-Código principal: `beta/index.html`, líneas 4348–4822.
+Código principal: `beta/index.html`, líneas 4354–4828.
 
 ### Adaptación para notebooks
 
@@ -43,7 +43,7 @@ Código principal: `beta/index.html`, líneas 4348–4822.
 - Movimientos mantiene todas las cifras, oculta la columna de botón y permite abrir el detalle tocando la fila. En pantallas más anchas conserva el botón “Detalle”.
 - Ninguna de estas reglas cambia la presentación amplia de escritorio.
 
-Código principal: `beta/index.html`, líneas 522–547 y 7222–7261.
+Código principal: `beta/index.html`, líneas 522–553 y 7228–7267.
 
 ### Para pedir
 
@@ -52,7 +52,7 @@ Código principal: `beta/index.html`, líneas 522–547 y 7222–7261.
 - “Vaciar pedido” pide confirmación.
 - El pedido final se agrupa por proveedor, explica la agrupación y permite preparar el mensaje de cada proveedor por separado.
 
-Código principal: `beta/index.html`, líneas 5969–6144.
+Código principal: `beta/index.html`, líneas 5975–6150.
 
 ### Vencimientos
 
@@ -61,7 +61,7 @@ Código principal: `beta/index.html`, líneas 5969–6144.
 - Se incorporó la acción de liquidar productos próximos a vencer mediante un descuento del 40 %.
 - Vender advierte si se intenta agregar un producto vencido.
 
-Código principal: `beta/index.html`, líneas 6146–6343.
+Código principal: `beta/index.html`, líneas 6152–6349.
 
 ### Fiado
 
@@ -71,7 +71,7 @@ Código principal: `beta/index.html`, líneas 6146–6343.
 - Desde la lista se puede iniciar un fiado para ese cliente o preparar un contacto por WhatsApp.
 - Los estados vacíos diferencian entre no tener clientes y no tener saldos pendientes.
 
-Código principal: `beta/index.html`, líneas 6345–6576.
+Código principal: `beta/index.html`, líneas 6351–6582.
 
 ### Combos y Descuentos
 
@@ -81,7 +81,7 @@ Código principal: `beta/index.html`, líneas 6345–6576.
 - Descuentos usa una terminología uniforme, nombre editable/autogenerado, búsqueda de productos y vista previa de alcance e impacto.
 - Se validan las fechas y se avisa cuando faltan costos para evaluar rentabilidad.
 
-Código principal: `beta/index.html`, líneas 5137–5474.
+Código principal: `beta/index.html`, líneas 5143–5480.
 
 ### Caja
 
@@ -93,7 +93,7 @@ Código principal: `beta/index.html`, líneas 5137–5474.
 - Registrar egreso usa el mismo azul operativo que el resto del sistema.
 - Los cierres anteriores siguen mostrando el responsable, incluso cuando cerró un empleado.
 
-Código principal: `beta/index.html`, líneas 203–242, 6578–6630 y 6935–7155.
+Código principal: `beta/index.html`, líneas 203–242, 6584–6636 y 6941–7161.
 
 ### Movimientos de stock
 
@@ -103,7 +103,7 @@ Código principal: `beta/index.html`, líneas 203–242, 6578–6630 y 6935–71
 - El detalle informa responsable, momento, tipo, motivo y cantidad.
 - En notebook, tocar una fila abre el detalle sin depender de una acción recortada.
 
-Código principal: `beta/index.html`, líneas 7222–7358.
+Código principal: `beta/index.html`, líneas 7228–7340.
 
 ### Resumen
 
@@ -111,7 +111,7 @@ Código principal: `beta/index.html`, líneas 7222–7358.
 - Los gráficos e indicadores requieren un mínimo de ventas para evitar conclusiones engañosas.
 - Se agregó comparación con el período anterior.
 
-Código principal: `beta/index.html`, líneas 7361–7737.
+Código principal: `beta/index.html`, líneas 7367–7743.
 
 ### Configuración
 
@@ -125,7 +125,7 @@ Código principal: `beta/index.html`, líneas 7361–7737.
 - Restaurar exige escribir `RESTAURAR` y crea una copia automática antes de reemplazar datos.
 - Las acciones irreversibles tienen un bloque visual propio.
 
-Código principal: `beta/index.html`, líneas 7335–7355 y 7946–8155.
+Código principal: `beta/index.html`, líneas 7341–7361 y 7952–8161.
 
 ### Soporte
 
@@ -134,7 +134,7 @@ Código principal: `beta/index.html`, líneas 7335–7355 y 7946–8155.
 - El diagnóstico no incluye ventas, clientes, importes, contraseñas ni PIN.
 - El sistema prepara el mensaje en WhatsApp; no lo envía automáticamente.
 
-Código principal: `beta/index.html`, líneas 7739–7944.
+Código principal: `beta/index.html`, líneas 7745–7950.
 
 ## Archivos modificados
 
@@ -167,4 +167,10 @@ Código principal: `beta/index.html`, líneas 7739–7944.
 
 ### Verificado en la beta pública
 
-- PENDIENTE_PUBLICO
+- La revisión 29 está publicada en `https://micomercio.ar/beta/`.
+- Se navegó en modo de solo lectura por Productos, Para pedir, Vencimientos, Combos, Descuentos, Fiado, Caja, Movimientos de stock, Resumen y Soporte.
+- En 1024 × 768, Productos y Para pedir no presentan desplazamiento horizontal; ninguna sección desborda la página ni el contenido principal.
+- En 1366 × 768, Productos y Para pedir conservan todas las acciones visibles y no presentan recortes ni barras horizontales.
+- Soporte muestra revisión 29, identificador de dispositivo enmascarado y diagnóstico sin métricas comerciales.
+- Una carga limpia de la revisión 29 terminó sin errores nuevos en la consola.
+- La validación pública no registró ventas, cobros, egresos, cierres ni cambios de configuración.
