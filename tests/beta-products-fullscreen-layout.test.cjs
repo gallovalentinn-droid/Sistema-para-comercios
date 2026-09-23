@@ -98,6 +98,6 @@ test('Productos deja visibles las acciones y distribuye los filtros según el an
   assert.match(html, /@media\(max-width:1904px\) and \(min-width:761px\)\{[\s\S]*?#tabProd td:last-child \.btn\{width:38px/);
   assert.match(html, /\.products-filters #filtrarIncompletos\{margin-left:auto;white-space:nowrap\}/);
   assert.match(html, /@media\(max-width:1400px\)\{\.products-filters\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(html, /status\.hidden=guard\.ok&&ev\.estado==='activa'/);
+  assert.match(html, /status\.hidden=guard\.ok&&ev\.estado==='activa'&&ev\.online/);
   assert.match(html, /id="abrirEstadoSistema">Ver sincronización y licencia/);
 });

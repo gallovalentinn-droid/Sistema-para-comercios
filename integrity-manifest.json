@@ -6,7 +6,7 @@
   "files": {
     "index.html": "91cfcf41f8e044b277c9c8ba514feed1063e671b615d4667bb05de8fe73d5164",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "4d5ad720335ffe1a49e89fcd1682bcbe0f0ff300e1f05e007dfe0aacfd369e64",
+    "beta/index.html": "44c9366e0355970b7c69ebf6958c6241c5e6f44f7d880a64906b982957c151ca",
     "beta/sw.js": "54bba64feaf63d055b2af32b3f157ee827d7175f948f1728e5d72d5f3bd52ba9",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",

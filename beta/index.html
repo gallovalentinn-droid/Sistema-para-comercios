@@ -10771,7 +10771,7 @@ async function f33UIActualizar(){
   let counts={pendientes:0,problemas:0,licencia:0};try{counts=f33ContarOutbox(await f33LeerOutboxRuntime());}catch(_e){}
   const guard=assertWritable('ui_mutation');
   status.dataset.bad=guard.ok?'0':'1';status.dataset.warn=guard.ok&&(!ev.online||counts.problemas+counts.licencia>0)?'1':'0';
-  status.hidden=guard.ok&&ev.estado==='activa'&&!counts.pendientes&&!counts.problemas&&!counts.licencia;
+  status.hidden=guard.ok&&ev.estado==='activa'&&ev.online&&!counts.pendientes&&!counts.problemas&&!counts.licencia;
   document.getElementById('f33-status-text').textContent=`${f33EstadoTexto(ev)}${counts.problemas+counts.licencia?` · ${counts.problemas+counts.licencia} excepción(es)`:''}`;
   if(guard.ok){banner.style.display='none';document.documentElement.removeAttribute('data-f33-readonly');}
   else{banner.style.display='block';banner.textContent=f5MensajeCausas(guard.causas);document.documentElement.setAttribute('data-f33-readonly','1');}
