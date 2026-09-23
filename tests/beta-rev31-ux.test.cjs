@@ -112,4 +112,6 @@ test('la tabla de notebooks conserva el nombre al agregar la selección en lote'
 test('la migración incluye el contrato de sincronización de archivos y turnos', () => {
   const sql=fs.readFileSync(path.join(__dirname,'../REV31-MIGRACION.sql'),'utf8');
   for(const field of ['archivado_at','archivo_historial','maneja_turnos','aviso_turno_horas','f31_actualizar_preferencias_turno','f5_colecciones_por_permisos'])assert.ok(sql.includes(field),field);
+  assert.match(sql,/revoke all on function public\.f31_actualizar_preferencias_turno\(uuid,boolean,integer\) from public, anon, authenticated;/);
+  assert.match(sql,/revoke all on function private\.f5_colecciones_por_permisos\(text\[\]\) from public, anon, authenticated;/);
 });

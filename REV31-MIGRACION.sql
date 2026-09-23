@@ -56,7 +56,7 @@ begin
 end;
 $function$;
 
-revoke all on function public.f31_actualizar_preferencias_turno(uuid,boolean,integer) from public;
+revoke all on function public.f31_actualizar_preferencias_turno(uuid,boolean,integer) from public, anon, authenticated;
 grant execute on function public.f31_actualizar_preferencias_turno(uuid,boolean,integer) to authenticated;
 
 -- El manifiesto F5 limita las columnas que puede descargar cada dispositivo.
@@ -88,3 +88,7 @@ begin
   return v_collections;
 end;
 $function$;
+
+-- Conservar el alcance del contrato anterior: la función privada original
+-- sólo era ejecutable por el rol de mantenimiento, no por el cliente.
+revoke all on function private.f5_colecciones_por_permisos(text[]) from public, anon, authenticated;
