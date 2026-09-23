@@ -132,7 +132,7 @@ test('el paquete incluye verificación de integridad y la ruta anterior ya no ca
   assert.ok(fs.existsSync(path.resolve(__dirname, '../verificar.ps1')));
   assert.ok(fs.existsSync(path.resolve(__dirname, '../tools/verificar-integridad.cjs')));
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  assert.equal(manifest.packageRevision, 31);
+  assert.equal(manifest.packageRevision, 32);
   assert.equal(manifest.algorithm, 'sha256');
   assert.ok(manifest.files['beta/index.html']);
   assert.ok(manifest.files['beta/vendor/supabase-js-2.112.3.min.js']);
@@ -141,9 +141,9 @@ test('el paquete incluye verificación de integridad y la ruta anterior ya no ca
   assert.doesNotMatch(legacy, /SUPABASE_(?:URL|ANON_KEY)/);
 });
 
-test('la identidad de la corrección queda alineada en REV31', () => {
+test('la identidad de la corrección queda alineada en REV32', () => {
   const text = source();
   const sw = fs.readFileSync(swPath, 'utf8');
-  assert.match(text, /packageRevision:31/);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev31/);
+  assert.match(text, /packageRevision:32/);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev32/);
 });

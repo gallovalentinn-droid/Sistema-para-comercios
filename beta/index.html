@@ -631,7 +631,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:31,
+  packageRevision:32,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -2935,6 +2935,7 @@ const ICONS={
   scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3"/><path d="M20 8V5a1 1 0 0 0-1-1h-3"/><path d="M4 16v3a1 1 0 0 0 1 1h3"/><path d="M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M4 12h16"/>',
   camara:'<path d="M4 7.5h3l1.5-2h7l1.5 2h3a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18V9A1.5 1.5 0 0 1 4 7.5Z"/><circle cx="12" cy="13" r="3.5"/>',
   subir:'<path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/>',
+  descargar:'<path d="M12 4v13"/><path d="m7 12 5 5 5-5"/><path d="M5 20h14"/>',
   cerrar:'<path d="M6 6l12 12M18 6 6 18"/>',
   editar:'<path d="M4 20h4l10.5-10.5a2 2 0 0 0-4-4L4 16v4Z"/>',
   ajustar:'<path d="M4 6h10"/><path d="M18 6h2"/><circle cx="15" cy="6" r="2"/><path d="M4 12h4"/><path d="M12 12h8"/><circle cx="9" cy="12" r="2"/><path d="M4 18h10"/><path d="M18 18h2"/><circle cx="15" cy="18" r="2"/>',
@@ -4532,10 +4533,13 @@ function wireProductosActions(root){
     };
   }
   const nuevo=$('#bNuevo',root),ingreso=$('#bIngreso',root),importar=$('#bImportar',root),precios=$('#bPrecios',root);
+  const exportarExcel=$('#bExportarExcel',root),exportarCSV=$('#bExportarCSV',root);
   if(nuevo)nuevo.onclick=()=>formProducto();
   if(ingreso)ingreso.onclick=()=>panelIngreso();
   if(importar)importar.onclick=()=>{cerrarMenuProductos();panelImportar();};
   if(precios)precios.onclick=()=>{cerrarMenuProductos();panelPrecios();};
+  if(exportarExcel)exportarExcel.onclick=()=>{cerrarMenuProductos();descargarCatalogoExcel();};
+  if(exportarCSV)exportarCSV.onclick=()=>{cerrarMenuProductos();descargarCatalogoCSV();};
 }
 function wireProductosVacio(root){
   const importar=$('#bImportarVacio',root),ingreso=$('#bIngresoVacio',root),nuevo=$('#bNuevoVacio',root);
@@ -4562,6 +4566,8 @@ function vProductos(m){
         <div class="products-more-menu" id="menuProductos" role="menu" hidden>
           <button class="products-menu-item" id="bPrecios" role="menuitem">${ic('mas')}<span>Cambiar precios</span></button>
           <button class="products-menu-item" id="bImportar" role="menuitem">${ic('subir')}<span>Importar Excel/CSV<small>Para catálogos grandes</small></span></button>
+          <button class="products-menu-item" id="bExportarExcel" role="menuitem">${ic('descargar')}<span>Exportar catálogo a Excel<small>Conserva los códigos de barras</small></span></button>
+          <button class="products-menu-item" id="bExportarCSV" role="menuitem">${ic('descargar')}<span>Exportar catálogo a CSV<small>Para otras planillas y sistemas</small></span></button>
         </div>
       </div>
       <button class="btn primary-outline" id="bNuevo">${ic('mas')} Nuevo producto</button>
@@ -8072,8 +8078,42 @@ function pintarRubros(cont,d){
 function csvSeguro(v){
   let s=String(v??'');
   // Excel interpreta = + - @ como fórmulas. Prefijar apóstrofe mantiene el texto literal.
-  if(/^[\s\t\r\n]*[=+\-@]/.test(s)) s="'"+s;
+  if(typeof v!=='number'&&/^[\s\t\r\n]*[=+\-@]/.test(s)) s="'"+s;
   return `"${s.replace(/"/g,'""')}"`;
+}
+/* CATALOG_EXPORT_START */
+function filasCatalogoExportacion(productos){
+  const numero=v=>{const n=Number(v);return v==null||v===''||!Number.isFinite(n)?'':n;};
+  return [
+    ['Nombre','Código de barras','Rubro','Proveedor','Precio de costo','Precio de venta','Stock','Stock mínimo','Stock deseado','Unidad','Vencimiento','Estado','Archivado el','Archivado por'],
+    ...(productos||[]).map(p=>[
+      String(p.nombre||''),String(p.ean||''),String(p.rubro||''),String(p.proveedor||''),
+      numero(p.costo),numero(p.precio),numero(p.stock),numero(p.stockMin),numero(p.stockDeseado),
+      String(p.unidad||'unidad'),String(p.vence||''),p.archivadoAt?'Archivado':'Activo',
+      String(p.archivadoAt||''),String(p.archivadoPor||'')
+    ])
+  ];
+}
+function csvCatalogoExportacion(productos){
+  return '\ufeff'+filasCatalogoExportacion(productos).map(f=>f.map(csvSeguro).join(',')).join('\r\n')+'\r\n';
+}
+/* CATALOG_EXPORT_END */
+function descargarCatalogoCSV(){
+  const blob=new Blob([csvCatalogoExportacion(db.productos)],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`catalogo-productos-${hoy()}.csv`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  aviso(`${db.productos.length} productos exportados a CSV`,'ok');
+}
+function descargarCatalogoExcel(){
+  if(typeof XLSX==='undefined'){aviso('No se pudo cargar Excel. Usá la opción CSV.','bad');return;}
+  try{
+    const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(filasCatalogoExportacion(db.productos));
+    ws['!cols']=[{wch:36},{wch:20},{wch:20},{wch:24},{wch:18},{wch:18},{wch:12},{wch:15},{wch:16},{wch:12},{wch:16},{wch:14},{wch:23},{wch:22}];
+    XLSX.utils.book_append_sheet(wb,ws,'Productos');
+    XLSX.writeFile(wb,`catalogo-productos-${hoy()}.xlsx`,{compression:true});
+    aviso(`${db.productos.length} productos exportados a Excel`,'ok');
+  }catch(error){console.error(error);aviso('No se pudo generar el Excel. Probá con CSV.','bad');}
 }
 function exportarProductos(d){
   const filas=[['Producto','Rubro','Cantidad','Facturado']];
