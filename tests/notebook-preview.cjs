@@ -36,11 +36,13 @@ function page() {
   let capturedModal;
   const context = {
     db: { productos: products, config: {}, cierres: [{ id:'c1', hasta:'15/09/26 12:16', cantVentas:1, total:1300, contadoGeneral:1300, diferenciaGeneral:0, contadoCigarros:0, diferenciaCigarros:0, nota:'Turno de ejemplo' }] },
-    fProd:{q:'',rubro:'',orden:'nombre',incompletos:false}, pedido:{}, repOrden:'rubro',ultimoCambioPrecios:null,
+    fProd:{q:'',rubros:[],actividad:'',estado:'activos',orden:'nombre',incompletos:false}, pedido:{}, repOrden:'rubro',ultimoCambioPrecios:null,
     document:{addEventListener(){},body:{contains:()=>true}},
     $: (s) => { if (!nodes.has(s)) nodes.set(s,makeNode()); return nodes.get(s); }, $$:()=>[],
     esc: v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),
-    listaFiltrada:()=>products, productoIncompleto:()=>false, esSuelto:()=>false, alertaVence:()=>false, bajo:()=>true,
+    listaFiltrada:()=>products, productoIncompleto:()=>false, productoArchivadoRev31:p=>!!p.archivadoAt,
+    htmlFiltroRubrosRev31:id=>`<div class="rubro-multi" id="${id}"><button class="inp rubro-multi-trigger" aria-haspopup="listbox" aria-expanded="false">Todos los rubros ▾</button><div class="rubro-multi-pop" hidden></div></div>`,
+    montarFiltroRubrosRev31:()=>{}, escribirFiltrosRev31:()=>{}, esSuelto:()=>false, alertaVence:()=>false, bajo:()=>true,
     rubros:()=>['Higiene Personal'], opcionesRubroProducto:()=>['Higiene Personal'], proveedores:()=>[],
     fmtCant:(_p,n)=>String(n), deseado:p=>p.stockDeseado, faltante:p=>p.stockDeseado-p.stock,
     $m:n=>'$'+Number(n).toLocaleString('es-AR',{minimumFractionDigits:2}), fFH:v=>v,
@@ -96,11 +98,15 @@ function page() {
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>${css}</style>
     <div class="app"><aside class="rail"><div class="brand">Prueba visual</div><nav class="nav"><button data-view="productos">Productos</button><button data-view="menu">Menú abierto</button><button data-view="vacio">Catálogo vacío</button><button id="invoice">Cargar factura</button><button data-view="caja">Caja</button><button data-view="activa">Caja abierta</button><button id="expense">Registrar egreso</button><button data-view="pedir">Para pedir</button><button data-view="movimientos">Movimientos de stock</button><button id="collapse">Contraer / expandir</button><button id="form">Nuevo producto</button><button id="check">Comprobar diseño</button></nav><output id="result" style="padding:12px;font-size:12px;overflow-wrap:anywhere"></output></aside><main class="main"></main></div>
     <button id="f33-status">Licencia activa</button>
-    <script>const views=${JSON.stringify(views)}, form=${JSON.stringify(productForm)}, invoice=${JSON.stringify(invoiceForm)}, expense=${JSON.stringify(expenseForm)};
+    <script>const views=${JSON.stringify(views)}, form=${JSON.stringify(productForm)}, invoice=${JSON.stringify(invoiceForm)}, expense=${JSON.stringify(expenseForm)}, previewProducts=${JSON.stringify(products)};
+    const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
+    const esc=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
+    ${fn('montarFiltroRubrosRev31')}
+    document.addEventListener('pointerdown',e=>$$('.rubro-multi.is-open').forEach(root=>{if(!root.contains(e.target))root._cerrarRubros(true);}));
     if(new URLSearchParams(location.search).has('fullscreen')) document.documentElement.classList.add('modo-pantalla-completa');
     const main=document.querySelector('main');
     const wireCash=()=>{main.querySelectorAll('[data-caja-tab]').forEach(tab=>tab.onclick=()=>{main.querySelectorAll('[data-caja-tab]').forEach(x=>{const on=x===tab;x.classList.toggle('active',on);x.setAttribute('aria-selected',String(on));});main.querySelectorAll('[data-caja-panel]').forEach(panel=>panel.hidden=panel.dataset.cajaPanel!==tab.dataset.cajaTab);});const toggle=main.querySelector('[data-caja-cig-toggle]'),content=main.querySelector('[data-caja-cig-content]');if(toggle&&content)toggle.onclick=()=>{content.hidden=!content.hidden;toggle.textContent=(content.hidden?'Mostrar':'Ocultar')+' caja de cigarrillos ›';};};
-    const showView=name=>{main.innerHTML=views[name];wireCash();};showView('productos');
+    const showView=name=>{main.innerHTML=views[name];wireCash();if(name==='productos')montarFiltroRubrosRev31('frRev31',previewProducts,[],rubros=>{document.querySelector('#result').textContent='Rubros elegidos: '+rubros.join(', ');});};showView('productos');
     document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
     document.querySelector('#collapse').onclick=()=>document.querySelector('.app').classList.toggle('colapsado');
     document.querySelector('#form').onclick=()=>{const ov=document.createElement('div');ov.className='ov';ov.innerHTML='<div class="mod wide"><div class="mod-h"><h3>'+form.titulo+'</h3><button id="close">Cerrar</button></div><div class="mod-b">'+form.cuerpo+'</div><div class="mod-f"><button class="btn">Guardar</button></div></div>';document.body.append(ov);ov.querySelector('#close').onclick=()=>ov.remove();};

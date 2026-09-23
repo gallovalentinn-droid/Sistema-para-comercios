@@ -1,12 +1,13 @@
 {
   "version": "6.0.0-f6-rc2",
-  "packageRevision": 30,
+  "packageRevision": 31,
   "algorithm": "sha256",
   "generatedAt": "2026-09-23",
   "files": {
     "index.html": "91cfcf41f8e044b277c9c8ba514feed1063e671b615d4667bb05de8fe73d5164",
-    "beta/index.html": "86b25762518c7fe8edad058c7f2598ce38ec3a4c762f6840c6cbc894d5d87e85",
-    "beta/sw.js": "56ffb6fbae2ea57a100ad13178660d0700a20d12afc162d59f8953a983427bec",
+    "REV31-MIGRACION.sql": "4c966f61289bc0fe1c60b3a79c92b64e8250dd705212d81aad4138db9a147563",
+    "beta/index.html": "70371ab6b1acaf517b85df4298f5d339447d12f8abb3efde83024d74cd9653e3",
+    "beta/sw.js": "739bcf88dc29b7a64480aa6e6224820a39c626a2dd17434ba76bcb5b45058dc0",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "clientes/index.html": "a1b54f5ef6c6a185d347b1f87f96c66d3310ec4198dd5654d25a1688edff5749",
     "clientes/sw.js": "4cbd1587b823cd463cd71d12eb3c1368730e0876cd1e22ef4e4bb90373325d71",

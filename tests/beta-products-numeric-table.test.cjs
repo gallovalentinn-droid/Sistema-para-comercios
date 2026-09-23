@@ -19,6 +19,9 @@ function renderProducts(products) {
   const target = { innerHTML: '' };
   const context = {
     db: { productos: products },
+    fProd: { q:'',rubros:[],actividad:'',estado:'activos',incompletos:false },
+    selectedProductosRev31: new Set(),
+    productoArchivadoRev31: product => !!product.archivadoAt,
     listaFiltrada: () => products,
     $: selector => selector === '#tabProd' ? target : null,
     $$: () => [],
