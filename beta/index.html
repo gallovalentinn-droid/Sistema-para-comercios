@@ -177,6 +177,8 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .empty b{display:block;color:var(--txt);font-size:17px;margin-bottom:7px;font-weight:700}
 .products-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 .products-actions .btn{white-space:nowrap}
+.products-result-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-left:auto}
+.products-result-actions .btn{white-space:nowrap}
 .products-more{position:relative}
 .products-more-trigger[aria-expanded="true"]{background:#F1F4F8;border-color:var(--primary);color:var(--primary-d)}
 .products-more-dots{font-size:16px;line-height:1;letter-spacing:1px;transform:translateY(-2px)}
@@ -644,7 +646,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:35,
+  packageRevision:36,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -4621,7 +4623,7 @@ function vProductos(m){
         ${incompletos?`<button type="button" class="btn ${fProd.incompletos?'':'ghost'} sm" id="filtrarIncompletos">${incompletos} con datos faltantes</button>`:''}
       </div>
     </div>`}
-    ${catalogoVacio?'':`<div class="card-h"><span id="prodCount" class="hint"></span><button type="button" class="btn text sm" id="limpiarFiltros" hidden>Limpiar filtros</button><button type="button" class="btn ghost sm" id="seleccionarFiltrados">Seleccionar resultados</button><button type="button" class="btn ghost sm" id="accionLote" hidden></button></div>`}
+    ${catalogoVacio?'':`<div class="card-h"><span id="prodCount" class="hint"></span><div class="products-result-actions"><button type="button" class="btn primary-outline sm" id="limpiarFiltros" hidden>Limpiar filtros</button><button type="button" class="btn ghost sm" id="seleccionarFiltrados">Seleccionar resultados</button><button type="button" class="btn ghost sm" id="accionLote" hidden></button></div></div>`}
     <div id="tabProd" class="table-scroll ${catalogoVacio?'products-empty-shell':''}" role="region" aria-label="Lista de productos" tabindex="0"></div>
   </div>`;
   wireProductosActions(m);
@@ -4654,7 +4656,7 @@ function tablaProductos(){
   const l=listaFiltrada();
   const c=$('#tabProd');
   const count=$('#prodCount');if(count)count.textContent=`${pluralProductos(l.length)} en el resultado`;
-  const limpiar=$('#limpiarFiltros');if(limpiar)limpiar.hidden=!(fProd.q||fProd.rubros.length||fProd.actividad||fProd.estado==='archivados'||fProd.incompletos);
+  const limpiar=$('#limpiarFiltros');if(limpiar)limpiar.hidden=!(fProd.q.trim()||fProd.rubros.length||fProd.actividad||fProd.estado==='archivados'||fProd.incompletos);
   const lote=$('#accionLote');if(lote){lote.hidden=!selectedProductosRev31.size;lote.textContent=etiquetaArchivoLoteRev34(selectedProductosRev31.size,fProd.estado!=='archivados');}
   if(!db.productos.length){
     c.innerHTML=`<div class="products-empty">
