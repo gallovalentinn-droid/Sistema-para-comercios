@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const html = fs.readFileSync(path.join(__dirname, '../beta/index.html'), 'utf8');
 
 function exportRules() {
-  const serializer = html.match(/function csvSeguro\(v\)\{[\s\S]*?\n\}/);
+  const serializer = html.match(/function csvSeguro\(v,decimalComa=false\)\{[\s\S]*?\n\}/);
   const block = html.match(/\/\* CATALOG_EXPORT_START \*\/([\s\S]*?)\/\* CATALOG_EXPORT_END \*\//);
   assert.ok(serializer && block, 'deben existir el serializador y las reglas de exportación');
   return vm.runInNewContext(`${serializer[0]};${block[1]};({filasCatalogoExportacion,csvCatalogoExportacion})`);
@@ -33,9 +33,10 @@ test('el CSV usa UTF-8, protege fórmulas y conserva números negativos como nú
   const csv = csvCatalogoExportacion([
     {nombre:'=1+1',ean:'0001',rubro:'Niños, juegos',proveedor:'"Sur"',costo:20,precio:30,stock:-2,stockMin:0,stockDeseado:1,unidad:'unidad'}
   ]);
-  assert.ok(csv.startsWith('\ufeff"Nombre",'));
+  assert.ok(csv.startsWith('\ufeff"Nombre";'));
   assert.ok(csv.includes('"\'=1+1"'));
   assert.ok(csv.includes('"Niños, juegos"'));
+  assert.ok(csv.includes('"20";"30";"-2"'));
   assert.ok(csv.includes('"""Sur"""'));
   assert.ok(csv.includes('"-2"'));
   assert.ok(!csv.includes('"\'-2"'));

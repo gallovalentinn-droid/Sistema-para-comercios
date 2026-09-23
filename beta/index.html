@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="./vendor/supabase-js-2.112.3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="./vendor/xlsx-0.18.5.full.min.js"></script>
 <style>
 :root{
   --ink:#12161D; --ink-2:#1E2530; --ink-3:#2B3341;
@@ -44,7 +44,7 @@ svg.i{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stro
 .toggleRail{margin-left:auto;background:none;border:0;color:#7C8698;cursor:pointer;padding:6px;border-radius:8px;flex:none;display:flex}
 .toggleRail:hover{background:#1D2431;color:#fff}
 .toggleRail svg{width:16px;height:16px}
-.nav{padding:12px;display:flex;flex-direction:column;gap:3px;flex:1;overflow:auto;overflow-x:hidden}
+.nav{padding:12px;display:flex;flex-direction:column;gap:3px;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain}
 .nav button{display:flex;align-items:center;gap:13px;width:100%;background:none;border:0;color:#AEB7C4;padding:13px 14px;border-radius:10px;cursor:pointer;text-align:left;font-weight:500;font-size:15px;position:relative;min-height:48px;white-space:nowrap}
 .nav .nav-label{min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.18}
 .nav button:hover{background:#1D2431;color:#fff}
@@ -631,7 +631,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:32,
+  packageRevision:33,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3433,7 +3433,7 @@ function vistaVisible(v,esD){
 }
 const vistasVisibles=()=>VISTAS.filter(v=>vistaVisible(v,esDuenio()));
 
-/* ── barra lateral colapsable, colapsada por defecto ── */
+/* ── barra lateral colapsable, expandida por defecto ── */
 let railColapsado = (()=>{ const v=localStorage.getItem('tucomercio:rail'); return v===null?false:v==='1'; })();
 function aplicarColapso(){
   $('#appWrap').classList.toggle('colapsado',railColapsado);
@@ -3840,10 +3840,11 @@ let rev31ReabrirTrasCierre=false;
 function vAbrirTurnoRev31(m){
   const miembro=typeof f5MembresiaActual==='function'?f5MembresiaActual():null;
   const nombre=String(miembro&&(miembro.nombre_mostrado||miembro.nombre||miembro.usuario)||'').trim();
-  m.innerHTML=`<div class="head"><div><h1>Vender</h1><div class="sub">Primero abrí el turno para separar correctamente las ventas.</div></div></div><div class="card" style="max-width:620px"><div class="card-b"><h2>Abrir turno</h2><p class="hint">Ingresá el fondo inicial y quién está a cargo de la caja.</p><label class="f" for="rev31Fondo">Fondo inicial</label><input class="inp num" id="rev31Fondo" type="number" min="0" step="0.01" value="${Number(db.config.fondoCaja)||0}"><label class="f" for="rev31Responsable" style="margin-top:12px">Quién abre</label><input class="inp" id="rev31Responsable" maxlength="120" value="${esc(nombre)}"><button type="button" class="btn" id="rev31Abrir" style="margin-top:18px">Abrir turno y vender</button></div></div>`;
+  m.innerHTML=`<div class="head"><div><h1>Vender</h1><div class="sub">Primero abrí el turno para separar correctamente las ventas.</div></div></div><div class="card" style="max-width:620px"><div class="card-b"><h2>Abrir turno</h2><p class="hint">Ingresá el fondo inicial y quién está a cargo de la caja.</p><label class="f" for="rev31Fondo">Fondo inicial</label><input class="inp num" id="rev31Fondo" type="text" inputmode="decimal" autocomplete="off" value="${Number(db.config.fondoCaja)||0}"><label class="f" for="rev31Responsable" style="margin-top:12px">Quién abre</label><input class="inp" id="rev31Responsable" maxlength="120" value="${esc(nombre)}"><button type="button" class="btn" id="rev31Abrir" style="margin-top:18px">Abrir turno y vender</button></div></div>`;
   $('#rev31Abrir',m).onclick=async()=>{
-    const fondo=Number($('#rev31Fondo',m).value),responsable=$('#rev31Responsable',m).value.trim();
-    if(!Number.isFinite(fondo)||fondo<0){aviso('Ingresá un fondo inicial válido','bad');return;}
+    const fondoTxt=$('#rev31Fondo',m).value,responsable=$('#rev31Responsable',m).value.trim();
+    const fondoLeido=numImportacion(fondoTxt),fondo=fondoLeido.blank?0:fondoLeido.value;
+    if(!fondoLeido.ok||!Number.isFinite(fondo)||fondo<0){aviso('Ingresá un fondo inicial válido','bad');return;}
     if(!responsable){aviso('Indicá quién abre el turno','bad');return;}
     try{
       if(typeof f5ExigirEscritura==='function')f5ExigirEscritura('abrir_turno');
@@ -5066,7 +5067,8 @@ function deshacerUltimoCambioPrecios(){
 /* ═══════════════════════════════════════════════════════
    IMPORTAR PRODUCTOS DESDE EXCEL / CSV
    ═══════════════════════════════════════════════════════ */
-const CAMPOS_IMPORT=[
+ /* CATALOG_IMPORT_RULES_START */
+ const CAMPOS_IMPORT=[
   {k:'nombre',   txt:'Nombre',            alias:['nombre','producto','descripcion','descripción','articulo','artículo','detalle']},
   {k:'ean',      txt:'Código de barras',  alias:['ean','codigo','código','codigo de barras','código de barras','barcode','cod']},
   {k:'rubro',    txt:'Rubro',             alias:['rubro','categoria','categoría','familia']},
@@ -5075,7 +5077,9 @@ const CAMPOS_IMPORT=[
   {k:'precio',   txt:'Precio de venta',   alias:['precio','venta','precio venta','precio de venta','pvp','p. venta']},
   {k:'stock',    txt:'Stock',             alias:['stock','cantidad','existencia','unidades']},
   {k:'stockMin', txt:'Stock mínimo',      alias:['minimo','mínimo','stock minimo','stock mínimo','min']},
-  {k:'stockDeseado',txt:'Stock deseado',  alias:['deseado','stock deseado','optimo','óptimo','ideal','maximo','máximo']}
+  {k:'stockDeseado',txt:'Stock deseado',  alias:['deseado','stock deseado','optimo','óptimo','ideal','maximo','máximo']},
+  {k:'unidad',txt:'Unidad',alias:['unidad','unidad de medida','medida']},
+  {k:'vence',txt:'Vencimiento',alias:['vencimiento','vence','fecha de vencimiento']}
 ];
 const MAX_IMPORT_BYTES=15*1024*1024, MAX_IMPORT_FILAS=50000;
 let impFilas=[], impMapa={}, impEncabezados=[], impResoluciones={};
@@ -5127,6 +5131,41 @@ function numImportacion(v){
 }
 function celdaTexto(f,k){const i=impMapa[k];return i>=0&&i<f.length?String(f[i]??'').trim():'';}
 function celdaNumero(f,k){const i=impMapa[k];return i>=0&&i<f.length?numImportacion(f[i]):{blank:true,ok:true,value:null};}
+ function parsearCSV(texto){
+   let s=String(texto||'').replace(/^\ufeff/,'');
+   let separadorExplicito='';
+   const prefijo=s.match(/^sep=([,;\t])\r?\n/i);
+   if(prefijo){separadorExplicito=prefijo[1];s=s.slice(prefijo[0].length);}
+   const cuenta={',':0,';':0,'\t':0};
+   let comillas=false;
+   for(let i=0;i<s.length;i++){
+     const ch=s[i];
+     if(ch==='"'){
+       if(comillas&&s[i+1]==='"')i++;
+       else comillas=!comillas;
+     }else if(!comillas){
+       if(ch==='\r'||ch==='\n')break;
+       if(Object.prototype.hasOwnProperty.call(cuenta,ch))cuenta[ch]++;
+     }
+   }
+   const separador=separadorExplicito||Object.keys(cuenta).sort((a,b)=>cuenta[b]-cuenta[a])[0]||',';
+   const filas=[];let fila=[],celda='',entreComillas=false;
+   for(let i=0;i<s.length;i++){
+     const ch=s[i];
+     if(ch==='"'){
+       if(entreComillas&&s[i+1]==='"'){celda+='"';i++;}
+       else entreComillas=!entreComillas;
+     }else if(ch===separador&&!entreComillas){fila.push(celda);celda='';}
+     else if((ch==='\r'||ch==='\n')&&!entreComillas){
+       if(ch==='\r'&&s[i+1]==='\n')i++;
+       fila.push(celda);filas.push(fila);fila=[];celda='';
+     }else celda+=ch;
+   }
+   if(entreComillas)throw new Error('El CSV tiene comillas sin cerrar. Revisá el archivo.');
+   if(celda!==''||fila.length){fila.push(celda);filas.push(fila);}
+   return filas;
+ }
+ /* CATALOG_IMPORT_RULES_END */
 
 function panelImportar(){
   impFilas=[]; impMapa={}; impEncabezados=[]; impResoluciones={};
@@ -5135,7 +5174,7 @@ function panelImportar(){
       <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Subí una planilla con tus productos. La primera fila tiene que tener los títulos de cada columna (Nombre, Precio, Stock, etc.). Después vas a poder revisar todo antes de confirmar.</p>
       <label class="btn" id="impLabel" style="cursor:pointer">Elegir archivo<input type="file" id="impFile" accept=".xlsx,.xls,.csv,.tsv" style="display:none"></label>
       <button type="button" class="btn text sm" id="impPlantilla" style="margin-left:8px">Descargar plantilla de ejemplo</button>
-      <div class="hint">Máximo 15 MB y 50.000 filas. Las celdas vacías no pisan datos existentes.</div>
+      <div class="hint">Máximo 15 MB y 50.000 filas. Las celdas vacías no pisan datos existentes. Estado y datos de archivado son informativos; para editar códigos con ceros iniciales en Excel, usá .xlsx.</div>
       <div id="impCuerpo" style="margin-top:18px"></div>`,
     pie:`<div style="margin-right:auto;color:var(--muted)" id="impResumen"></div>
          <button class="btn ghost" data-cerrar>Cancelar</button>
@@ -5148,9 +5187,9 @@ function panelImportar(){
 }
 
 function descargarPlantilla(){
-  const csv='Nombre,Codigo de barras,Rubro,Proveedor,Precio de costo,Precio de venta,Stock,Stock minimo,Stock deseado\n'
-    +'Coca-Cola 500 ml,7790895000997,Bebidas,Distribuidora Sur,900,1500,12,6,24\n'
-    +'Alfajor Jorgito,7790040991002,Golosinas,Mayorista Centro,380,700,30,10,40\n';
+  const csv='Nombre;Código de barras;Rubro;Proveedor;Precio de costo;Precio de venta;Stock;Stock mínimo;Stock deseado;Unidad;Vencimiento\r\n'
+    +'Coca-Cola 500 ml;07790895000997;Bebidas;Distribuidora Sur;900;1500;12;6;24;unidad;\r\n'
+    +'Queso fresco;07790040991002;Almacén;Mayorista Centro;3800;7000;2,5;1;4;kg;2026-10-05\r\n';
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download='plantilla-productos.csv'; a.click();
@@ -5163,11 +5202,16 @@ async function leerPlanilla(file,ov){
   label.innerHTML='Leyendo…'; label.style.pointerEvents='none';
   try{
     if(file.size>MAX_IMPORT_BYTES) throw new Error('El archivo supera 15 MB. Dividilo en más de una planilla.');
-    if(typeof XLSX==='undefined') throw new Error('No se pudo cargar el lector de planillas. Revisá tu conexión.');
-    const buf=await file.arrayBuffer();
-    const wb=XLSX.read(buf,{type:'array'});
-    const hoja=wb.Sheets[wb.SheetNames[0]];
-    const filas=XLSX.utils.sheet_to_json(hoja,{header:1,blankrows:false,defval:'',raw:true});
+    const esTexto=/\.(csv|tsv)$/i.test(file.name||'');
+    let filas;
+    if(esTexto) filas=parsearCSV(await file.text());
+    else{
+      if(typeof XLSX==='undefined') throw new Error('No se pudo cargar el lector de Excel. Revisá los archivos del sistema.');
+      const buf=await file.arrayBuffer();
+      const wb=XLSX.read(buf,{type:'array'});
+      const hoja=wb.Sheets[wb.SheetNames[0]];
+      filas=XLSX.utils.sheet_to_json(hoja,{header:1,blankrows:false,defval:'',raw:false});
+    }
     if(!filas||filas.length<2) throw new Error('La planilla no tiene datos suficientes (hace falta la fila de títulos y al menos un producto).');
     if(filas.length-1>MAX_IMPORT_FILAS) throw new Error(`La planilla tiene más de ${MAX_IMPORT_FILAS.toLocaleString('es-AR')} filas. Dividila en partes.`);
     impEncabezados=filas[0].map(h=>String(h||'').trim());
@@ -5209,8 +5253,20 @@ function pintarImportacion(ov){
 
 function filaAProducto(f,ix){
   const nombre=celdaTexto(f,'nombre');
-  const p={_fila:ix+2,nombre,ean:celdaTexto(f,'ean'),rubro:celdaTexto(f,'rubro'),proveedor:celdaTexto(f,'proveedor'),_errores:[]};
+  const unidadTexto=celdaTexto(f,'unidad').toLowerCase();
+  const unidad=unidadTexto?(/^(kg|kilo|kilos|kilogramo|kilogramos)$/.test(unidadTexto)?'kg':/^(u|un|unidad|unidades)$/.test(unidadTexto)?'unidad':''):'';
+  const venceTexto=celdaTexto(f,'vence');
+  let vence=venceTexto;
+  if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(venceTexto)){
+    const [d,m,a]=venceTexto.split('/');vence=`${a}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  const p={_fila:ix+2,nombre,ean:celdaTexto(f,'ean'),rubro:celdaTexto(f,'rubro'),proveedor:celdaTexto(f,'proveedor'),unidad,vence,_unidadBlank:!unidadTexto,_venceBlank:!venceTexto,_errores:[]};
   if(!nombre) p._errores.push('Falta el nombre');
+  if(unidadTexto&&!unidad)p._errores.push('Unidad: usá unidad o kg');
+  if(venceTexto){
+    const d=/^(\d{4})-(\d{2})-(\d{2})$/.exec(vence);
+    if(!d||Number.isNaN(Date.parse(`${vence}T12:00:00`))||new Date(`${vence}T12:00:00`).toISOString().slice(0,10)!==vence)p._errores.push('Vencimiento: usá AAAA-MM-DD o DD/MM/AAAA');
+  }
   ['costo','precio','stock','stockMin','stockDeseado'].forEach(k=>{
     const r=celdaNumero(f,k); p[k]=r.value; p['_'+k+'Blank']=r.blank;
     if(!r.ok) p._errores.push(`${CAMPOS_IMPORT.find(c=>c.k===k).txt}: número inválido`);
@@ -5293,7 +5349,7 @@ function pintarPreview(ov){
   cont.innerHTML=!rows.length?`<div class="empty"><b>No hay filas para importar</b>Revisá la planilla.</div>`:`<table class="mtable"><thead><tr><th>Fila</th><th>Producto</th><th>Código</th><th class="r">Costo</th><th class="r">Venta</th><th class="r">Stock</th><th>Qué pasa</th></tr></thead><tbody>
     ${muestra.map(p=>`<tr>
       <td data-label="Fila" class="num">${p._fila}</td>
-      <td data-label="Producto"><b>${esc(p.nombre||'—')}</b>${p._errores.length?`<br><span style="font-size:12px;color:var(--rojo)">${esc(p._errores.join(' · '))}</span>`:''}</td>
+      <td data-label="Producto"><b>${esc(p.nombre||'—')}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${p.vence?`<br><span class="mt">Vence ${esc(p.vence)}</span>`:''}${p._errores.length?`<br><span style="font-size:12px;color:var(--rojo)">${esc(p._errores.join(' · '))}</span>`:''}</td>
       <td data-label="Código" class="num" style="font-size:12.5px;color:var(--muted)">${esc(p.ean||'—')}</td>
       <td data-label="Costo" class="r num">${p._costoBlank?'—':$m(p.costo)}</td>
       <td data-label="Venta" class="r num">${p._precioBlank?'—':$m(p.precio)}</td>
@@ -5327,6 +5383,8 @@ function confirmarImportacion(ov){
           if(p.ean) ex.ean=p.ean;
           if(p.rubro) ex.rubro=p.rubro;
           if(p.proveedor) ex.proveedor=p.proveedor;
+           if(impMapa.unidad>=0&&!p._unidadBlank) ex.unidad=p.unidad;
+           if(impMapa.vence>=0&&!p._venceBlank) ex.vence=p.vence;
           if(impMapa.costo>=0&&!p._costoBlank) ex.costo=p.costo;
           if(impMapa.precio>=0&&!p._precioBlank) ex.precio=p.precio;
           if(impMapa.stockMin>=0&&!p._stockMinBlank) ex.stockMin=p.stockMin;
@@ -5340,7 +5398,7 @@ function confirmarImportacion(ov){
           const stock=p._stockBlank?0:p.stock;
           const nuevo={id:uid(),ean:p.ean,nombre:p.nombre,rubro:p.rubro,proveedor:p.proveedor,
             costo:p._costoBlank?0:p.costo,precio:p._precioBlank?0:p.precio,stock,
-            stockMin:p._stockMinBlank?3:p.stockMin,stockDeseado:p._stockDeseadoBlank?0:p.stockDeseado,unidad:'unidad'};
+            stockMin:p._stockMinBlank?3:p.stockMin,stockDeseado:p._stockDeseadoBlank?0:p.stockDeseado,unidad:p.unidad||'unidad',vence:p.vence||''};
           db.productos.push(nuevo); if(stock) movimiento(nuevo.id,'ingreso',stock,'Importación de planilla'); nuevos++;
         }
       });
@@ -8075,8 +8133,9 @@ function pintarRubros(cont,d){
   <div class="nota-dash" style="margin-top:16px"><b>${esc(items[0].nombre)}</b> es el rubro que más aporta: <b>${d.total>0?Math.round(items[0].importe/d.total*100):0}%</b> de lo facturado del período.</div>`;
 }
 
-function csvSeguro(v){
+function csvSeguro(v,decimalComa=false){
   let s=String(v??'');
+  if(decimalComa&&typeof v==='number')s=s.replace('.',',');
   // Excel interpreta = + - @ como fórmulas. Prefijar apóstrofe mantiene el texto literal.
   if(typeof v!=='number'&&/^[\s\t\r\n]*[=+\-@]/.test(s)) s="'"+s;
   return `"${s.replace(/"/g,'""')}"`;
@@ -8095,7 +8154,7 @@ function filasCatalogoExportacion(productos){
   ];
 }
 function csvCatalogoExportacion(productos){
-  return '\ufeff'+filasCatalogoExportacion(productos).map(f=>f.map(csvSeguro).join(',')).join('\r\n')+'\r\n';
+  return '\ufeff'+filasCatalogoExportacion(productos).map(f=>f.map(v=>csvSeguro(v,true)).join(';')).join('\r\n')+'\r\n';
 }
 /* CATALOG_EXPORT_END */
 function descargarCatalogoCSV(){
@@ -9495,13 +9554,17 @@ const F32B_OPERATION_SPECS=[
 function f32bEstado(){
   const p=f32EstadoPull();
   p.operationalVersion=F32B_VERSION;
-  // REV17: volver a leer una vez los cierres que pudieron omitirse al cambiar
-  // de usuario en el mismo dispositivo. El mapeo por UUID evita duplicados.
+  // REV17: releer los cierres que pudieron omitirse al cambiar de usuario.
   if(!p.cierresPorUsuarioRevisados){
     delete p.cursores.cierres_caja;
+    p.cierresPorUsuarioRevisados=true;
+  }
+  // REV33: los ajustes necesitan su propia recuperación, también en equipos
+  // que ya completaron la revisión de cierres de REV17.
+  if(!p.cierreAjustesRevisadosRev33){
     delete p.cursores.cierre_ajustes_created;
     delete p.cursores.cierre_ajustes_resueltos;
-    p.cierresPorUsuarioRevisados=true;
+    p.cierreAjustesRevisadosRev33=true;
   }
   if(!p.diferidosOperativos||typeof p.diferidosOperativos!=='object') p.diferidosOperativos={};
   if(!p.diferidosOperativos.venta_anulaciones) p.diferidosOperativos.venta_anulaciones={};
