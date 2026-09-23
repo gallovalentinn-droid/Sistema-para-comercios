@@ -76,7 +76,7 @@ svg.i{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stro
 .rubro-multi-option{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;color:#293347}
 .rubro-multi-option:hover,.rubro-multi-option:focus{background:#f0f4ff;outline:none}
 .rubro-multi-option input{accent-color:#2459ed}.rubro-multi-option span{flex:1}.rubro-multi-option small{color:#788397}
-.rubro-multi-actions{display:flex;justify-content:space-between;border-top:1px solid #edf0f6;padding:8px 4px 2px}.rubro-multi-actions button{background:none;border:0;color:#2459ed;cursor:pointer;font:inherit}
+.rubro-multi-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #edf0f6;padding:8px 4px 2px}.rubro-multi-actions button{cursor:pointer;font:inherit}.rubro-multi-actions [data-rubro-clear]{background:none;border:0;color:#2459ed;padding:8px}.rubro-multi-actions [data-rubro-apply]{background:var(--primary);border:1px solid var(--primary);border-radius:8px;color:#fff;font-weight:600;padding:8px 14px}.rubro-multi-actions [data-rubro-apply]:hover{background:var(--primary-d)}
 .app.colapsado .nav{padding:12px 10px}
 .app.colapsado .nav button{justify-content:center;padding:13px 0;gap:0}
 .app.colapsado .nav button span:not(.ic):not(.tag){display:none}
@@ -86,7 +86,7 @@ svg.i{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stro
 .app.colapsado .rail-foot .modo-caja,.app.colapsado .rail-foot>*:not(.estado){display:none}
 .app.colapsado .rail-foot .estado span:not(.dot){display:none}
 .app.colapsado .rail-foot .estado{justify-content:center;margin-top:0}
-.main{padding:28px 32px 110px;max-width:1500px;width:100%;min-width:0}
+.main{padding:28px 32px 110px;width:100%;min-width:0}
 .head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
 h1{font-size:27px;margin:0;letter-spacing:-.02em;font-weight:700}
 .sub{color:var(--muted);font-size:14.5px;margin-top:5px;line-height:1.5;max-width:52ch}
@@ -120,6 +120,16 @@ label.f{display:block;font-size:12.5px;font-weight:700;color:var(--muted);text-t
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.products-filters{width:100%}
+.products-filters #q{flex:2 1 200px;min-width:180px}
+.products-filters .rubro-multi{flex:1 1 160px;min-width:150px;max-width:none}
+.products-filters #fActividad{flex:1 1 160px;min-width:150px}
+.products-filters #fEstado{flex:1 1 100px;min-width:100px}
+.products-filters #fo{flex:1 1 150px;min-width:150px}
+.products-filters #filtrarIncompletos{margin-left:auto;white-space:nowrap}
+@media(max-width:1400px){.products-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.products-filters #filtrarIncompletos{width:100%;margin-left:0}}
+@media(max-width:1050px){.products-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.products-filters{grid-template-columns:1fr}}
 table{width:100%;border-collapse:collapse}
 .table-scroll{max-width:100%;overflow-x:auto;border-radius:0 0 var(--r) var(--r)}
 th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -194,6 +204,7 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 #tabProd td.product-margin.product-value{color:var(--verde-d);font-weight:600}
 #tabProd td.product-margin.product-empty{color:var(--muted);font-weight:400}
 #tabProd td.product-stock>.pill{min-width:36px;justify-content:center;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+#tabProd td:last-child .btn{padding-left:9px;padding-right:9px}
 .invoice-modal{max-width:640px}
 .invoice-modal .mod-b{padding:28px 30px 25px}
 .invoice-ai-card{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:32px 26px 31px;border:2px solid var(--primary);border-radius:16px;background:#F8FAFF;cursor:pointer}
@@ -537,11 +548,13 @@ body.offline .app{padding-top:34px}
 .toggle-switch{position:relative;width:44px;height:24px;border:0;border-radius:99px;background:var(--line-2);padding:0;cursor:pointer;transition:.15s}.toggle-switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,22,32,.22);transition:.15s}.toggle-switch[aria-checked="true"]{background:var(--primary)}.toggle-switch[aria-checked="true"]::after{transform:translateX(20px)}
 .permission-order{margin-bottom:16px}.settings-wide{max-width:none}.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.danger-zone{border-color:#E7B4AA;background:#FFF9F8}.config-nav button.active{background:var(--primary-l);color:var(--primary-d);border-color:#BED0FA}
 .support-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:16px}.support-diagnostic{font:12px/1.55 var(--mono);background:var(--bg)}
-@media(max-width:1440px) and (min-width:761px){
+@media(max-width:1904px) and (min-width:761px){
   #tabProd th:nth-child(3),#tabProd td:nth-child(3),#tabProd th:nth-child(4),#tabProd td:nth-child(4){display:none}
   #tabProd td[data-label="Producto"]{min-width:220px;max-width:300px}
   #tabProd td:last-child .btn{width:38px;padding:8px;font-size:0;gap:0}
   #tabProd td:last-child .btn svg{width:16px;height:16px}
+}
+@media(max-width:1440px) and (min-width:761px){
   .rep-table{min-width:0;width:calc(100% - 2px)}
   .rep-table col:nth-child(1){width:40%}
   .rep-table col:nth-child(2){width:25%}
@@ -631,7 +644,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:34,
+  packageRevision:35,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -4481,19 +4494,19 @@ function montarFiltroRubrosRev31(id,productos,seleccion,onchange){
   const root=$('#'+id),boton=$('.rubro-multi-trigger',root),pop=$('.rubro-multi-pop',root);
   const counts=new Map();(productos||[]).forEach(p=>counts.set(p.rubro||'Sin rubro',(counts.get(p.rubro||'Sin rubro')||0)+1));
   const opciones=[...counts.keys()].sort((a,b)=>a.localeCompare(b));
-  const elegido=new Set(seleccion||[]);
-  const etiqueta=()=>{boton.textContent=elegido.size?elegido.size===1?[...elegido][0]:`${elegido.size} rubros`:'Todos los rubros';boton.textContent+=' ▾';};
-  const cerrar=(foco=false)=>{pop.hidden=true;root.classList.remove('is-open');boton.setAttribute('aria-expanded','false');if(foco)boton.focus();};
+  let aplicados=new Set(seleccion||[]),borrador=new Set(aplicados);
+  const etiqueta=()=>{boton.textContent=aplicados.size?aplicados.size===1?[...aplicados][0]:`${aplicados.size} rubros`:'Todos los rubros';boton.textContent+=' ▾';};
+  const cerrar=(foco=false)=>{borrador=new Set(aplicados);pop.hidden=true;root.classList.remove('is-open');boton.setAttribute('aria-expanded','false');if(foco)boton.focus();};
   const pintar=()=>{
     const query=($('#rubroBusqueda',pop)?.value||'').trim().toLowerCase();
-    pop.innerHTML=`${opciones.length>10?`<input class="inp" id="rubroBusqueda" type="search" placeholder="Buscar rubro" value="${esc(query)}" aria-label="Buscar rubro">`:''}<div class="rubro-multi-list" role="listbox" aria-multiselectable="true">${opciones.filter(r=>r.toLowerCase().includes(query)).map(r=>`<label class="rubro-multi-option" role="option" aria-selected="${elegido.has(r)}" tabindex="0"><input type="checkbox" value="${esc(r)}" ${elegido.has(r)?'checked':''}><span>${esc(r)}</span><small>${counts.get(r)}</small></label>`).join('')||'<span class="hint">No hay rubros que coincidan</span>'}</div><div class="rubro-multi-actions"><button type="button" data-rubro-all>Seleccionar todos</button><button type="button" data-rubro-clear>Limpiar</button></div>`;
+    pop.innerHTML=`${opciones.length>10?`<input class="inp" id="rubroBusqueda" type="search" placeholder="Buscar rubro" value="${esc(query)}" aria-label="Buscar rubro">`:''}<div class="rubro-multi-list" role="listbox" aria-multiselectable="true">${opciones.filter(r=>r.toLowerCase().includes(query)).map(r=>`<label class="rubro-multi-option" role="option" aria-selected="${borrador.has(r)}" tabindex="0"><input type="checkbox" value="${esc(r)}" ${borrador.has(r)?'checked':''}><span>${esc(r)}</span><small>${counts.get(r)}</small></label>`).join('')||'<span class="hint">No hay rubros que coincidan</span>'}</div><div class="rubro-multi-actions"><button type="button" data-rubro-clear>Limpiar</button><button type="button" data-rubro-apply>Aplicar</button></div>`;
     const search=$('#rubroBusqueda',pop);if(search)search.oninput=()=>{const pos=search.selectionStart;pintar();const next=$('#rubroBusqueda',pop);next.focus();next.setSelectionRange(pos,pos);};
-    $$('input[type=checkbox]',pop).forEach(c=>c.onchange=()=>{const valor=c.value;c.checked?elegido.add(valor):elegido.delete(valor);etiqueta();onchange([...elegido]);pintar();$$('.rubro-multi-option',pop).find(x=>$('input',x).value===valor)?.focus();});
-    $$('[data-rubro-all]',pop).forEach(b=>b.onclick=()=>{opciones.forEach(r=>elegido.add(r));etiqueta();onchange([...elegido]);pintar();$('[data-rubro-all]',pop)?.focus();});
-    $$('[data-rubro-clear]',pop).forEach(b=>b.onclick=()=>{elegido.clear();etiqueta();onchange([]);pintar();$('[data-rubro-clear]',pop)?.focus();});
+    $$('input[type=checkbox]',pop).forEach(c=>c.onchange=()=>{const valor=c.value;c.checked?borrador.add(valor):borrador.delete(valor);pintar();$$('.rubro-multi-option',pop).find(x=>$('input',x).value===valor)?.focus();});
+    $$('[data-rubro-clear]',pop).forEach(b=>b.onclick=()=>{borrador.clear();pintar();$('[data-rubro-apply]',pop)?.focus();});
+    $$('[data-rubro-apply]',pop).forEach(b=>b.onclick=()=>{aplicados=new Set(borrador);etiqueta();cerrar(true);onchange([...aplicados]);});
     $$('.rubro-multi-option',pop).forEach((o,i)=>o.onkeydown=e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const all=$$('.rubro-multi-option',pop);all[(i+(e.key==='ArrowDown'?1:-1)+all.length)%all.length]?.focus();}else if(e.key===' '){e.preventDefault();const c=$('input',o),r=c.value;c.checked=!c.checked;c.dispatchEvent(new Event('change'));$$('.rubro-multi-option',pop).find(x=>$('input',x).value===r)?.focus();}});
   };
-  boton.onclick=()=>{if(!pop.hidden){cerrar();return;}pintar();pop.hidden=false;root.classList.add('is-open');boton.setAttribute('aria-expanded','true');$('.rubro-multi-option',pop)?.focus();};
+  boton.onclick=()=>{if(!pop.hidden){cerrar();return;}borrador=new Set(aplicados);pintar();pop.hidden=false;root.classList.add('is-open');boton.setAttribute('aria-expanded','true');$('.rubro-multi-option',pop)?.focus();};
   root.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();cerrar(true);}else if(e.key==='ArrowDown'&&document.activeElement===boton){e.preventDefault();if(pop.hidden)boton.click();else $('.rubro-multi-option',pop)?.focus();}};
   root._cerrarRubros=cerrar;etiqueta();
 }
@@ -4594,12 +4607,12 @@ function vProductos(m){
   ${ultimoCambioPrecios?`<div class="ux-banner" style="margin-bottom:14px"><div style="flex:1"><b>Último cambio masivo aplicado</b><br>${esc(ultimoCambioPrecios.descripcion)} · ${ultimoCambioPrecios.items.length} productos.</div><button class="btn ghost sm" id="deshacerPrecios">Deshacer</button></div>`:''}
   <div class="card ${catalogoVacio?'products-empty-card':''}">
     ${catalogoVacio?'':`<div class="card-h">
-      <div class="row" style="flex:1">
-        <input class="inp" id="q" placeholder="Buscar por nombre, código o rubro…" value="${esc(fProd.q)}" style="max-width:340px">
+      <div class="row products-filters">
+        <input class="inp" id="q" placeholder="Buscar por nombre, código o rubro…" value="${esc(fProd.q)}">
         ${htmlFiltroRubrosRev31('frRev31')}
-        <select class="inp" id="fActividad" aria-label="Actividad de venta" style="max-width:220px"><option value="">Todas las ventas</option><option value="ultimos30" ${fProd.actividad==='ultimos30'?'selected':''}>Ventas últimos 30 días</option><option value="ultimos90" ${fProd.actividad==='ultimos90'?'selected':''}>Ventas últimos 90 días</option><option value="sin90" ${fProd.actividad==='sin90'?'selected':''}>Sin ventas últimos 90 días</option><option value="nunca" ${fProd.actividad==='nunca'?'selected':''}>Nunca vendidos</option></select>
-        <select class="inp" id="fEstado" aria-label="Estado del producto" style="max-width:150px"><option value="activos" ${fProd.estado==='activos'?'selected':''}>Activos</option><option value="archivados" ${fProd.estado==='archivados'?'selected':''}>Archivados</option></select>
-        <select class="inp" id="fo" style="max-width:190px">
+        <select class="inp" id="fActividad" aria-label="Actividad de venta"><option value="">Todas las ventas</option><option value="ultimos30" ${fProd.actividad==='ultimos30'?'selected':''}>Ventas últimos 30 días</option><option value="ultimos90" ${fProd.actividad==='ultimos90'?'selected':''}>Ventas últimos 90 días</option><option value="sin90" ${fProd.actividad==='sin90'?'selected':''}>Sin ventas últimos 90 días</option><option value="nunca" ${fProd.actividad==='nunca'?'selected':''}>Nunca vendidos</option></select>
+        <select class="inp" id="fEstado" aria-label="Estado del producto"><option value="activos" ${fProd.estado==='activos'?'selected':''}>Activos</option><option value="archivados" ${fProd.estado==='archivados'?'selected':''}>Archivados</option></select>
+        <select class="inp" id="fo">
           <option value="nombre" ${fProd.orden==='nombre'?'selected':''}>Ordenar por nombre</option>
           <option value="stock" ${fProd.orden==='stock'?'selected':''}>Ordenar por stock</option>
           <option value="rubro" ${fProd.orden==='rubro'?'selected':''}>Ordenar por rubro</option>
@@ -8266,6 +8279,10 @@ function vSoporte(m){
           <textarea id="datosSop" class="inp support-diagnostic" rows="7" readonly>${esc(diagnostico)}</textarea>
         </div>
       </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h"><h2>Estado del sistema</h2></div>
+        <div class="card-b"><button type="button" class="btn ghost" id="abrirEstadoSistema">Ver sincronización y licencia</button></div>
+      </div>
       <div class="card">
         <div class="card-h"><h2>Antes de escribir</h2></div>
         <div class="card-b"><ul style="margin:0;padding-left:20px;line-height:1.9;color:var(--muted);font-size:14px">
@@ -8288,6 +8305,7 @@ function vSoporte(m){
     if(copia)copia.then(()=>aviso('Datos copiados','ok'),()=>{ $('#datosSop').select(); aviso('Seleccionado — copialo con Ctrl+C'); });
     else{$('#datosSop').select();aviso('Seleccionado — copialo con Ctrl+C');}
   };
+  $('#abrirEstadoSistema').onclick=()=>f33UIAbrirPanel();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -10753,6 +10771,7 @@ async function f33UIActualizar(){
   let counts={pendientes:0,problemas:0,licencia:0};try{counts=f33ContarOutbox(await f33LeerOutboxRuntime());}catch(_e){}
   const guard=assertWritable('ui_mutation');
   status.dataset.bad=guard.ok?'0':'1';status.dataset.warn=guard.ok&&(!ev.online||counts.problemas+counts.licencia>0)?'1':'0';
+  status.hidden=guard.ok&&ev.estado==='activa'&&!counts.pendientes&&!counts.problemas&&!counts.licencia;
   document.getElementById('f33-status-text').textContent=`${f33EstadoTexto(ev)}${counts.problemas+counts.licencia?` · ${counts.problemas+counts.licencia} excepción(es)`:''}`;
   if(guard.ok){banner.style.display='none';document.documentElement.removeAttribute('data-f33-readonly');}
   else{banner.style.display='block';banner.textContent=f5MensajeCausas(guard.causas);document.documentElement.setAttribute('data-f33-readonly','1');}

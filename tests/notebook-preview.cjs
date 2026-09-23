@@ -32,7 +32,7 @@ function page() {
   ];
   const products = Array.from({length:18}, (_, i) => ({
     nombre: sampleNames[i%sampleNames.length]+(i>=sampleNames.length?` ${i+1}`:''),
-    id: `p${i}`, ean: '7791234567890', rubro: 'Higiene Personal', proveedor: 'Proveedor de ejemplo',
+    id: `p${i}`, ean: '7791234567890', rubro: ['Gaseosas','Almacen','Higiene Personal'][i%sampleNames.length], proveedor: 'Proveedor de ejemplo',
     ...sampleNumbers[i%sampleNumbers.length], stockMin: 4, stockDeseado: 12, unidad: 'unidad', fotoPath: '', vence: ''
   }));
   let capturedModal;
@@ -42,9 +42,9 @@ function page() {
     document:{addEventListener(){},body:{contains:()=>true}},
     $: (s) => { if (!nodes.has(s)) nodes.set(s,makeNode()); return nodes.get(s); }, $$:()=>[],
     esc: v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),
-    listaFiltrada:()=>products, productoIncompleto:()=>false, productoArchivadoRev31:p=>!!p.archivadoAt,
+    listaFiltrada:()=>products, productoIncompleto:p=>Number(p.costo)<=0, productoArchivadoRev31:p=>!!p.archivadoAt,
     htmlFiltroRubrosRev31:id=>`<div class="rubro-multi" id="${id}"><button class="inp rubro-multi-trigger" aria-haspopup="listbox" aria-expanded="false">Todos los rubros ▾</button><div class="rubro-multi-pop" hidden></div></div>`,
-    montarFiltroRubrosRev31:()=>{}, escribirFiltrosRev31:()=>{}, esSuelto:()=>false, alertaVence:()=>false, bajo:()=>true,
+    montarFiltroRubrosRev31:()=>{}, escribirFiltrosRev31:()=>{}, esSuelto:p=>p.id==='p0', atadoDe:p=>p, porAtado:()=>20, alertaVence:()=>false, bajo:()=>true,
     rubros:()=>['Higiene Personal'], opcionesRubroProducto:()=>['Higiene Personal'], proveedores:()=>[],
     fmtCant:(_p,n)=>String(n), deseado:p=>p.stockDeseado, faltante:p=>p.stockDeseado-p.stock,
     $m:n=>'$'+Number(n).toLocaleString('es-AR',{minimumFractionDigits:2}), fFH:v=>v,
@@ -101,7 +101,6 @@ function page() {
   return `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prueba visual de notebooks</title>
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>${css}</style>
     <div class="app"><aside class="rail"><div class="brand">Prueba visual</div><nav class="nav"><button data-view="productos">Productos</button><button data-view="menu">Menú abierto</button><button data-view="vacio">Catálogo vacío</button><button id="invoice">Cargar factura</button><button data-view="caja">Caja</button><button data-view="activa">Caja abierta</button><button id="expense">Registrar egreso</button><button data-view="pedir">Para pedir</button><button data-view="movimientos">Movimientos de stock</button><button id="collapse">Contraer / expandir</button><button id="form">Nuevo producto</button><button id="check">Comprobar diseño</button></nav><output id="result" style="padding:12px;font-size:12px;overflow-wrap:anywhere"></output></aside><main class="main"></main></div>
-    <button id="f33-status">Licencia activa</button>
     <script>const views=${JSON.stringify(views)}, form=${JSON.stringify(productForm)}, invoice=${JSON.stringify(invoiceForm)}, expense=${JSON.stringify(expenseForm)}, previewProducts=${JSON.stringify(products)};
     const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
     const esc=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');

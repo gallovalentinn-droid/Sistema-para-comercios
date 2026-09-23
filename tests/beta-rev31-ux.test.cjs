@@ -98,6 +98,16 @@ test('el selector múltiple aparece en Productos y Para pedir con teclado y URL'
   assert.ok(/history\.replaceState/.test(html));
 });
 
+test('el selector de rubros confirma los cambios sólo al pulsar Aplicar', () => {
+  const selector=html.match(/function montarFiltroRubrosRev31\([^]*?\n}\n(?=document\.addEventListener\('pointerdown')/);
+  assert.ok(selector);
+  assert.doesNotMatch(selector[0], /Seleccionar todos|data-rubro-all/);
+  assert.match(selector[0], /data-rubro-clear>Limpiar<\/button><button type="button" data-rubro-apply>Aplicar/);
+  assert.match(selector[0], /c\.onchange=\(\)=>\{[^\n]*borrador\.[^\n]*pintar\(\)/);
+  assert.match(selector[0], /data-rubro-apply[^\n]*onchange\(\[\.\.\.aplicados\]\)/);
+  assert.match(selector[0], /const cerrar=\(foco=false\)=>\{borrador=new Set\(aplicados\)/);
+});
+
 test('la barra empieza expandida y su control queda visible al colapsar', () => {
   assert.ok(/return v===null\?false:v==='1'/.test(html));
   assert.ok(!/\.app\.colapsado \.brand-txt,\.app\.colapsado \.toggleRail\{display:none\}/.test(html));

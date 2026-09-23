@@ -91,3 +91,13 @@ test('aprovecha el alto disponible siempre y reserva la ampliación visual para 
   assert.match(html, /html\.modo-pantalla-completa #tabProd td\[data-label="Producto"\]\{min-width:300px;max-width:420px\}/,
     'la columna Producto debe ganar espacio únicamente en pantalla completa');
 });
+
+test('Productos deja visibles las acciones y distribuye los filtros según el ancho', () => {
+  const html = fs.readFileSync(artifactPath, 'utf8');
+  assert.match(html, /\.main\{padding:28px 32px 110px;width:100%;min-width:0\}/);
+  assert.match(html, /@media\(max-width:1904px\) and \(min-width:761px\)\{[\s\S]*?#tabProd td:last-child \.btn\{width:38px/);
+  assert.match(html, /\.products-filters #filtrarIncompletos\{margin-left:auto;white-space:nowrap\}/);
+  assert.match(html, /@media\(max-width:1400px\)\{\.products-filters\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(html, /status\.hidden=guard\.ok&&ev\.estado==='activa'/);
+  assert.match(html, /id="abrirEstadoSistema">Ver sincronización y licencia/);
+});
