@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./vendor/supabase-js-2.112.3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -375,9 +375,10 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
   .app,.app.colapsado{grid-template-columns:1fr}
   .rail{position:fixed;bottom:0;top:auto;height:auto;width:100%;z-index:60;flex-direction:row;box-shadow:0 -6px 18px rgba(11,15,21,.15)}
   .brand,.rail-foot{display:none}
-  .nav{flex-direction:row;padding:6px;gap:2px}
+  .nav{flex-direction:row;padding:6px;gap:2px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
   .app.colapsado .nav{padding:6px}
-  .nav button,.app.colapsado .nav button{flex-direction:column;gap:4px;font-size:11px;padding:8px 2px;justify-content:center;min-height:56px;border-radius:10px}
+  .nav button,.app.colapsado .nav button{flex:0 0 82px;width:82px;flex-direction:column;gap:4px;font-size:11px;padding:8px 2px;justify-content:center;min-height:56px;border-radius:10px}
   .nav .tag{position:absolute;margin:0;top:2px;right:14%}
   .app.colapsado .nav button span:not(.ic){display:block}
   .nav .nav-grupo{display:none}
@@ -392,6 +393,10 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
   .products-actions .products-more>.btn{width:100%}
   .products-actions .products-invoice-button,.products-actions>#bNuevo{width:100%}
   .products-more-menu{width:100%}
+  .products-actions>*{min-width:0}
+  .products-actions .btn{min-width:0;padding-left:10px;padding-right:10px;font-size:13px}
+  .mtable td:last-child{white-space:normal !important}
+  .mtable td:last-child .btn{margin:2px 0;max-width:100%}
   .products-empty{padding:36px 18px}
   .products-empty-actions{width:100%;flex-direction:column}
   .products-empty-actions .btn{width:100%}
@@ -613,7 +618,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:29,
+  packageRevision:30,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -2309,7 +2314,7 @@ function sinMetaEntidad(coleccion,o){
   // stock y saldo son derivados de movimientos/ventas/pagos: nunca deben decidir
   // qué versión de los metadatos gana en una sincronización.
   if(coleccion==='productos') delete c.stock;
-  if(coleccion==='clientes') delete c.saldo;
+  if(coleccion==='clientes'){delete c.saldo;delete c.credito;}
   return c;
 }
 const igualesEntidad=(coleccion,a,b)=>JSON.stringify(sinMetaEntidad(coleccion,a))===JSON.stringify(sinMetaEntidad(coleccion,b));
@@ -2414,7 +2419,11 @@ function recalcularDerivados(obj=db){
   });
   (obj.pagos||[]).forEach(x=>{if(x.clienteId) saldo[x.clienteId]=(saldo[x.clienteId]||0)-(Number(x.monto)||0);});
   (obj.ajustesFiado||[]).forEach(x=>{if(x.clienteId) saldo[x.clienteId]=(saldo[x.clienteId]||0)+(Number(x.monto)||0);});
-  (obj.clientes||[]).forEach(c=>c.saldo=Math.max(0,Math.round((saldo[c.id]||0)*100)/100));
+  (obj.clientes||[]).forEach(c=>{
+    const neto=Math.round((saldo[c.id]||0)*100)/100;
+    c.saldo=Math.max(0,neto);
+    c.credito=Math.max(0,-neto);
+  });
   const maxN=(obj.ventas||[]).reduce((m,v)=>Math.max(m,Number(v.nro)||0),0);
   obj.config.nroVenta=Math.max(Number(obj.config.nroVenta)||1,maxN+1);
   return ordenarCronologia(obj);
@@ -2929,7 +2938,27 @@ const nfM=new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFraction
 const nfKg=new Intl.NumberFormat('es-AR',{minimumFractionDigits:0,maximumFractionDigits:3});
 const $m=n=>'$'+nfM.format(Number(n)||0);
 const fmtCant=(p,cant)=>p&&p.unidad==='kg' ? nfKg.format(Number(cant)||0)+' kg' : String(Number(cant)||0);
-const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?0:n;};
+function numeroArgentino(v,{cantidad=false}={}){
+  if(typeof v==='number') return Number.isFinite(v)?v:0;
+  let s=String(v??'').trim().replace(/\s+/g,'').replace(/\$/g,'');
+  if(!s) return 0;
+  s=s.replace(/[^0-9,.-]/g,'');
+  if(cantidad){
+    if(s.includes(',')&&s.includes('.')){
+      if(s.lastIndexOf(',')>s.lastIndexOf('.')) s=s.replace(/\./g,'').replace(',','.');
+      else s=s.replace(/,/g,'');
+    }else s=s.replace(',','.');
+  }else if(s.includes(',')){
+    s=s.replace(/\./g,'').replace(',','.');
+  }else{
+    const puntos=(s.match(/\./g)||[]).length;
+    if(puntos>1||/^-?\d{1,3}\.\d{3}$/.test(s)) s=s.replace(/\./g,'');
+  }
+  const n=Number(s);
+  return Number.isFinite(n)?n:0;
+}
+const num=v=>numeroArgentino(v);
+const numCantidad=v=>numeroArgentino(v,{cantidad:true});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fechaLocalISO=(v=new Date())=>{const d=v instanceof Date?v:new Date(v);const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dia=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${dia}`;};
 const hoy=()=>fechaLocalISO(new Date());
@@ -3044,9 +3073,11 @@ async function verificarPin(pin,intento){
 const refVenta=v=>v&& (v.ref || `${String(v.nro||0).padStart(5,'0')}-${String(v.id||'').slice(-4).toUpperCase()}`);
 
 function aviso(txt,tipo=''){
+  const contenedor=$('#toasts');if(!contenedor)return;
+  while(contenedor.children.length>=3) contenedor.firstElementChild.remove();
   const d=document.createElement('div');
   d.className='toast '+tipo; d.textContent=txt;
-  $('#toasts').appendChild(d);
+  contenedor.appendChild(d);
   setTimeout(()=>d.remove(),2800);
 }
 const prod=id=>db.productos.find(p=>p.id===id);
@@ -3497,6 +3528,7 @@ function render(){
    4. MOSTRADOR — PUNTO DE VENTA
    ═══════════════════════════════════════════════════════ */
 let ticket=[];                 // {id, tipo:'producto'|'combo', prodId?, comboId?, nombre, precio, cant, componentes?}
+let ventaEnProceso=false;
 let pago='efectivo', clienteFiado='', recibido='';
 let pagoMixto=[];              // [{forma,monto}] cuando pago==='mixto'
 let ultimoAgregado=null;
@@ -3709,13 +3741,13 @@ function pedirPeso(p){
       const inp=$('#pesoG',ov);
       inp.focus();
       const actualizar=()=>{
-        const kg=num(inp.value)/1000;
+        const kg=numCantidad(inp.value)/1000;
         $('#pesoSub',ov).innerHTML = kg>0 ? `Se agregan <b class="num">${nfKg.format(kg)} kg</b> · subtotal <b class="num">${$m(kg*p.precio)}</b>` : '';
       };
       inp.oninput=actualizar;
       $$('[data-g]',ov).forEach(b=>b.onclick=()=>{inp.value=b.dataset.g;actualizar();inp.focus();});
       const confirmarPeso=()=>{
-        const kg=Math.round((num(inp.value)/1000)*1000)/1000;
+        const kg=Math.round((numCantidad(inp.value)/1000)*1000)/1000;
         if(kg<=0){aviso('Ingresá un peso mayor a cero','bad');return;}
         agregarAlTicket(p,kg);
         cerrarModal();
@@ -3888,7 +3920,7 @@ function pintarPOS(){
   $$('[data-quita]').forEach(b=>b.onclick=()=>{ticket=ticket.filter(i=>i.id!==b.dataset.quita);pintarPOS();aviso('Ítem sacado del ticket');});
   $$('[data-cant]').forEach(inp=>inp.onchange=()=>{
     const l=ticket.find(i=>i.id===inp.dataset.cant), p=l.tipo==='combo'?null:prod(l.prodId);
-    const n = p&&p.unidad==='kg' ? Math.max(0,redondear(num(inp.value))) : Math.max(0,Math.floor(num(inp.value)));
+    const n = p&&p.unidad==='kg' ? Math.max(0,redondear(numCantidad(inp.value))) : Math.max(0,Math.floor(num(inp.value)));
     if(!n){ticket=ticket.filter(i=>i!==l);} else l.cant=n; pintarPOS();
   });
 
@@ -3938,7 +3970,7 @@ function pintarPOS(){
 }
 function confirmarCancelacionVenta(){
   if(!ticket.length) return;
-  const ejecutar=()=>{ticket=[];recibido='';pagoMixto=[];pago='';ultimoAgregado=null;limpiarDescuento();pintarPOS();const f=$('#posFeedback');if(f)f.innerHTML='';aviso('Venta cancelada');};
+  const ejecutar=()=>{ticket=[];recibido='';clienteFiado='';pagoMixto=[];pago='';ultimoAgregado=null;limpiarDescuento();pintarPOS();const f=$('#posFeedback');if(f)f.innerHTML='';aviso('Venta cancelada');};
   if(ticket.length<3){ejecutar();return;}
   confirmar('Cancelar esta venta',`Se van a quitar <b>${ticket.length} productos o combos</b> del ticket.`,ejecutar,'Cancelar venta','rojo');
 }
@@ -4006,11 +4038,11 @@ function pintarPagoModal(ov){
   }
   const cf=$('#cliF',ov); if(cf) cf.onchange=()=>clienteFiado=cf.value;
   const nc=$('#nuevoCliRapido',ov); if(nc) nc.onclick=()=>formCliente(null,c=>{clienteFiado=c.id;pintarPagoModal(ov);});
-  const bc=$('#cobrar',ov); if(bc) bc.onclick=()=>{ if(cerrarVenta('efectivo')) cerrarModal(); };
-  const ba=$('#anotar',ov); if(ba) ba.onclick=()=>{ if(cerrarVenta('fiado')) cerrarModal(); };
-  const be=$('#cobrarElec',ov); if(be) be.onclick=()=>{ if(cerrarVenta(pago)) cerrarModal(); };
+  const bc=$('#cobrar',ov); if(bc) bc.onclick=()=>cerrarVenta('efectivo');
+  const ba=$('#anotar',ov); if(ba) ba.onclick=()=>cerrarVenta('fiado');
+  const be=$('#cobrarElec',ov); if(be) be.onclick=()=>cerrarVenta(pago);
   if(pago==='mixto') pintarMixtoFilas(t,ov);
-  const bm=$('#cobrarMixto',ov); if(bm) bm.onclick=()=>{ if(cerrarVenta('mixto')) cerrarModal(); };
+  const bm=$('#cobrarMixto',ov); if(bm) bm.onclick=()=>cerrarVenta('mixto');
   const ma=$('#mixtoAgregar',ov); if(ma) ma.onclick=()=>{ pagoMixto.push({forma:'transferencia',monto:''}); pintarPagoModal(ov); };
 }
 
@@ -4163,7 +4195,7 @@ function formDescuento(){
 }
 
 function cerrarVenta(forma){
-  if(!ticket.length) return;
+  if(ventaEnProceso||!ticket.length) return false;
   const total=totalTicket();
   let pagosFinal=null, clienteId='';
 
@@ -4184,6 +4216,7 @@ function cerrarVenta(forma){
     clienteId = forma==='fiado'? clienteFiado : '';
   }
 
+  ventaEnProceso=true;
   const sesionLocal=f3Activo()?f3AsegurarSesionLocal():null;
   const ventaId=uid(), nroVenta=Number(db.config.nroVenta)||1;
   const montoFiadoNuevo=forma==='fiado'?total:forma==='mixto'?pagosFinal.filter(f=>f.forma==='fiado').reduce((a,f)=>a+(Number(f.monto)||0),0):0;
@@ -4234,9 +4267,10 @@ function cerrarVenta(forma){
   const t=$('#tik'); if(t){ t.classList.add('tear'); }
 
   const nombreCli = clienteId ? ((cli(clienteId)||{}).nombre||'la cuenta') : '';
+  ticket=[]; recibido=''; clienteFiado=''; pago='efectivo'; pagoMixto=[]; limpiarDescuento();
+  ventaEnProceso=false;
 
   setTimeout(()=>{
-    ticket=[]; recibido=''; clienteFiado=''; pago='efectivo'; pagoMixto=[]; limpiarDescuento();
     pintarNav(); pintarPOS();
     const t2=$('#tik'); if(t2){ t2.classList.remove('tear'); t2.classList.add('roll'); setTimeout(()=>t2.classList.remove('roll'),400); }
     $('#scan')&&$('#scan').focus();
@@ -4624,8 +4658,9 @@ function formProducto(id,pre={},luego){
         const upa=su?Math.max(1,Math.floor(num($('#f_porAtado',ov).value))||20):0;
         const or=su?prod(origenId):null;
         const costo=su ? (or?Math.round((Number(or.costo)||0)/upa*10000)/10000 : 0) : num($('#f_cos',ov).value);
-        const precio=num($('#f_pre',ov).value), stockMin=num($('#f_min',ov).value), stockDeseado=num($('#f_des',ov).value);
-        const stockNuevo=p?Number(p.stock):num($('#f_stk',ov).value);
+        const leerStock=tipo==='kg'?numCantidad:num;
+        const precio=num($('#f_pre',ov).value), stockMin=leerStock($('#f_min',ov).value), stockDeseado=leerStock($('#f_des',ov).value);
+        const stockNuevo=p?Number(p.stock):(tipo==='kg'?numCantidad($('#f_stk',ov).value):num($('#f_stk',ov).value));
         if(costo<0||precio<0||stockMin<0||stockDeseado<0||stockNuevo<0){aviso('Costo, precio y stock no pueden ser negativos','bad');return;}
         const rubro=resolverRubroProducto(selRubro.value,inpRubroNuevo.value);
         if(selRubro.value==='__nuevo__'&&!rubro){aviso('Escribí el nombre del nuevo rubro','bad');inpRubroNuevo.focus();return;}
@@ -4739,6 +4774,7 @@ function panelPrecios(){
 function redondearPrecio(n,modo){
   if(!modo||modo==='0') return Math.round(n*100)/100;
   const m=Number(modo);
+  if(modo==='99'&&n<100) return Math.round(n*100)/100;
   if(modo==='99'){ const base=Math.max(0,Math.round((n-99)/100))*100; return base+99; }
   return Math.round(n/m)*m;
 }
@@ -4794,7 +4830,7 @@ function pintarPreviewPrecios(ov){
   const res=$('#px_resumen');
   if(res) res.innerHTML = v? `Van a cambiar <b>${cambian.length}</b> de ${lista.length} productos` : `${lista.length} productos alcanzados — poné un valor`;
   $$('[data-px-sel]',cont).forEach(ch=>ch.onchange=()=>{pxConf.sel[ch.dataset.pxSel]=ch.checked;pintarPreviewPrecios(ov);});
-  const valorValido=v>0&&(pxConf.tipo!=='porcentaje'||v<=100);
+  const valorValido=v>0&&(pxConf.tipo!=='porcentaje'||v<=100)&&(pxConf.tipo!=='porcentaje'||pxConf.modo!=='bajar'||v<=90);
   const btn=$('#okPx'); if(btn) btn.disabled = !valorValido || !cambian.length;
 }
 function aplicarPrecios(ov){
@@ -4807,24 +4843,45 @@ function aplicarPrecios(ov){
   confirmar('Aplicar cambio de precios',
     `${desc} en el precio ${pxConf.campo==='costo'?'de costo':'de venta'} ${alcance}.<br><br>Afecta a <b>${lista.length}</b> productos. Al terminar vas a poder deshacer este lote desde Productos.`,
     ()=>{
-      const anteriores=lista.map(p=>({id:p.id,precio:Number(p.precio)||0,costo:Number(p.costo)||0}));
+      const cambios=[];
       let n=0;
       lista.forEach(p=>{
         let cambio=false;
-        if(tocaVenta){ const np=nuevoPrecio(Number(p.precio)); if(Math.abs(np-Number(p.precio))>0.001){ p.precio=np; cambio=true; } }
-        if(tocaCosto){ const nc=nuevoPrecio(Number(p.costo)); if(Math.abs(nc-Number(p.costo))>0.001){
-          movimiento(p.id,'ajuste',0,`${desc} (cambio masivo)`,'',{costoAnterior:Number(p.costo),costoNuevo:nc});
-          p.costo=nc; cambio=true; } }
+        if(tocaVenta){
+          const anterior=Number(p.precio)||0,aplicado=nuevoPrecio(anterior);
+          if(Math.abs(aplicado-anterior)>0.001){cambios.push({id:p.id,campo:'precio',anterior,aplicado});p.precio=aplicado;cambio=true;}
+        }
+        if(tocaCosto){
+          const anterior=Number(p.costo)||0,aplicado=nuevoPrecio(anterior);
+          if(Math.abs(aplicado-anterior)>0.001){
+            cambios.push({id:p.id,campo:'costo',anterior,aplicado});
+            movimiento(p.id,'ajuste',0,`${desc} (cambio masivo)`,'',{costoAnterior:anterior,costoNuevo:aplicado});
+            p.costo=aplicado;cambio=true;
+          }
+        }
         if(cambio) n++;
       });
-      ultimoCambioPrecios={items:anteriores,descripcion:`${desc} ${alcance}`,fecha:new Date().toISOString()};
+      ultimoCambioPrecios={items:cambios,campo:pxConf.campo,descripcion:`${desc} ${alcance}`,fecha:new Date().toISOString()};
       guardar(); cerrarModal(); render();
       aviso(`Precios actualizados en ${n} productos`,'ok');
     },'Aplicar','verde');
 }
 function deshacerUltimoCambioPrecios(){
   if(!ultimoCambioPrecios)return;
-  confirmar('Deshacer cambio masivo',`Se restaurarán los precios anteriores de <b>${ultimoCambioPrecios.items.length} productos</b>.`,()=>{ultimoCambioPrecios.items.forEach(anterior=>{const p=prod(anterior.id);if(p){p.precio=anterior.precio;p.costo=anterior.costo;}});ultimoCambioPrecios=null;guardar();render();aviso('Cambio masivo deshecho','ok');},'Deshacer','rojo');
+  confirmar('Deshacer cambio masivo',`Se restaurará únicamente el campo cambiado en <b>${ultimoCambioPrecios.items.length} productos</b>. Si un valor fue editado después, se conservará.`,()=>{
+    let restaurados=0,omitidos=0;
+    ultimoCambioPrecios.items.forEach(item=>{
+      const p=prod(item.id);
+      if(!p||!item.campo||Math.abs(Number(p[item.campo])-item.aplicado)>0.001){omitidos++;return;}
+      if(Math.abs(Number(p[item.campo])-item.aplicado)<=0.001){
+        if(item.campo==='costo') movimiento(p.id,'ajuste',0,'Deshacer cambio masivo de costo','',{costoAnterior:item.aplicado,costoNuevo:item.anterior});
+        p[item.campo]=item.anterior;
+        restaurados++;
+      }
+    });
+    ultimoCambioPrecios=null;guardar();render();
+    aviso(`Cambio masivo deshecho: ${restaurados} restaurados${omitidos?` · ${omitidos} editados después, sin tocar`:''}`,'ok');
+  },'Deshacer','rojo');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -5525,7 +5582,7 @@ function formAjuste(id){
       });
       $('#a_cant',ov).focus();
       $('#okAj',ov).onclick=()=>{
-        const val=num($('#a_cant',ov).value);
+        const val=p.unidad==='kg'?numCantidad($('#a_cant',ov).value):num($('#a_cant',ov).value);
         const delta = modo==='dif'? val : val-Number(p.stock);
         if(!delta){aviso('No hay diferencia para registrar','bad');return;}
         const motivo=$('#a_mot',ov).value+($('#a_nota',ov).value.trim()?' — '+$('#a_nota',ov).value.trim():'');
@@ -5884,7 +5941,7 @@ function pintarRevision(ov2){
       <td data-label="Se carga" class="r"><b class="num">${unidades}</b> unidades<br><span style="font-size:12px;color:var(--muted)">a ${$m(costoU)} c/u${r.descuento>0?` <span class="pill ok">con dto.</span>`:''}</span></td>
     </tr>`;}).join('')}</tbody></table>`;
   $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>revisionFactura[s.dataset.revProd].prodId=s.value);
-  $$('[data-rev-cant]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revCant].cantidad=Math.max(0,num(i.value));pintarRevision(ov2);});
+  $$('[data-rev-cant]',c).forEach(i=>i.onchange=()=>{const l=revisionFactura[i.dataset.revCant],p=prod(l.prodId);l.cantidad=Math.max(0,p&&p.unidad==='kg'?numCantidad(i.value):num(i.value));pintarRevision(ov2);});
   $$('[data-rev-bulto]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revBulto].porBulto=Math.max(1,Math.floor(num(i.value))||1);pintarRevision(ov2);});
   $$('[data-rev-costo]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revCosto].costoU=Math.max(0,num(i.value));pintarRevision(ov2);});
   $$('[data-rev-dto]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revDto].descuento=Math.abs(num(i.value));pintarRevision(ov2);});
@@ -5938,7 +5995,7 @@ function pintarRemito(){
   $$('[data-ra]').forEach(b=>{const l=remito[b.dataset.ra];const p=prod(l.prodId);b.onclick=()=>{l.cant=redondear(l.cant+(p.unidad==='kg'?0.1:1));recomputeLinea(l);pintarRemito();};});
   $$('[data-rm]').forEach(b=>{const l=remito[b.dataset.rm];const p=prod(l.prodId);b.onclick=()=>{const paso=p.unidad==='kg'?0.1:1;l.cant=redondear(l.cant-paso);if(l.cant<=0.0009){remito.splice(b.dataset.rm,1);}else recomputeLinea(l);pintarRemito();};});
   $$('[data-rx]').forEach(b=>b.onclick=()=>{remito.splice(b.dataset.rx,1);pintarRemito();});
-  $$('[data-rc]').forEach(i=>{const l=remito[i.dataset.rc];const p=prod(l.prodId);i.onchange=()=>{l.cant=p.unidad==='kg'?Math.max(0.001,redondear(num(i.value))):Math.max(1,Math.floor(num(i.value)));recomputeLinea(l);pintarRemito();};});
+  $$('[data-rc]').forEach(i=>{const l=remito[i.dataset.rc];const p=prod(l.prodId);i.onchange=()=>{l.cant=p.unidad==='kg'?Math.max(0.001,redondear(numCantidad(i.value))):Math.max(1,Math.floor(num(i.value)));recomputeLinea(l);pintarRemito();};});
   $$('[data-rcostou]').forEach(i=>i.onchange=()=>{const l=remito[i.dataset.rcostou];l.costoU=i.value;l.totalL=i.value!==''?(num(i.value)*l.cant).toFixed(2):'';pintarRemito();});
   $$('[data-rdto]').forEach(i=>i.onchange=()=>{const l=remito[i.dataset.rdto];l.descuento=Math.abs(num(i.value));pintarRemito();});
   $$('[data-rprecio]').forEach(i=>i.onchange=()=>{remito[i.dataset.rprecio].precio=i.value;});
@@ -6040,7 +6097,7 @@ function pintarReponer(){
 }
 function wirePedidoLista(){
   $$('[data-ped-sel]').forEach(ch=>ch.onchange=()=>{const p=prod(ch.dataset.pedSel);if(!p)return;if(ch.checked)pedido[p.id]=pedido[p.id]>0?pedido[p.id]:faltante(p);else delete pedido[p.id];pintarReponer();});
-  $$('[data-ped-lista]').forEach(inp=>inp.onchange=()=>{const p=prod(inp.dataset.pedLista);if(!p)return;const n=p.unidad==='kg'?Math.round(num(inp.value)*1000)/1000:Math.floor(num(inp.value));if(n>0)pedido[p.id]=n;else delete pedido[p.id];pintarReponer();});
+  $$('[data-ped-lista]').forEach(inp=>inp.onchange=()=>{const p=prod(inp.dataset.pedLista);if(!p)return;const n=p.unidad==='kg'?Math.round(numCantidad(inp.value)*1000)/1000:Math.floor(num(inp.value));if(n>0)pedido[p.id]=n;else delete pedido[p.id];pintarReponer();});
 }
 function tablaRep(l){
   const otra=repOrden==='proveedor'?'Rubro':'Proveedor';
@@ -6125,7 +6182,7 @@ function pintarPedido(ov){
   $$('[data-px]',cont).forEach(b=>b.onclick=()=>{delete pedido[b.dataset.px];pintarPedido(ov);});
   $$('[data-pc]',cont).forEach(i=>i.onchange=()=>{
     const p=prod(i.dataset.pc);
-    const n=p.unidad==='kg'?red(num(i.value)):Math.floor(num(i.value));
+    const n=p.unidad==='kg'?red(numCantidad(i.value)):Math.floor(num(i.value));
     if(n<=0) delete pedido[i.dataset.pc]; else pedido[i.dataset.pc]=n;
     pintarPedido(ov);
   });
@@ -6170,7 +6227,7 @@ function vVencimientos(m){
   ${!conFecha?`<div class="card"><div class="empty"><b>Todavía no podemos avisarte de nada</b>Ninguno de tus ${db.productos.length} productos tiene una fecha cargada. Empezá por los rubros perecederos.<div style="margin-top:14px"><button class="btn" id="venceVacioCta">Cargar fechas</button></div></div></div>`:!l.length?`<div class="card"><div class="empty"><b>No hay productos próximos a vencer</b>Las fechas cargadas están fuera del plazo de aviso.</div></div>`:`
   ${vencidos.length?`<div class="card" style="margin-bottom:16px;border-color:#F0C9C0">
     <div class="card-h"><h2 style="color:var(--rojo)">Ya vencidos</h2><span class="pill bad">${vencidos.length}</span></div>
-    ${tablaVence(vencidos)}
+    ${tablaVence(vencidos,{vencidos:true})}
   </div>`:''}
   ${porVencerL.length?`<div class="card">
     <div class="card-h"><h2>Por vencer</h2><span class="pill warn">${porVencerL.length}</span></div>
@@ -6180,7 +6237,7 @@ function vVencimientos(m){
   $('#bCargarFechas').onclick=()=>ir('productos');const vacio=$('#venceVacioCta');if(vacio)vacio.onclick=()=>ir('productos');
   wireVence();
 }
-function tablaVence(l){
+function tablaVence(l,{vencidos=false}={}){
   return `<table class="mtable"><thead><tr><th>Producto</th><th>Rubro</th><th class="r">Stock</th><th>Vence</th><th class="r">Valor en riesgo</th><th></th></tr></thead><tbody>
   ${l.map(p=>`<tr>
     <td data-label="Producto">${celdaProductoConFoto(p,`<b>${esc(p.nombre)}</b>`)}</td>
@@ -6189,8 +6246,8 @@ function tablaVence(l){
     <td data-label="Vence"><span class="pill ${estaVencido(p)?'bad':'warn'}">${esc(textoVence(p))}</span> <span style="color:var(--muted);font-size:12.5px">${fFecha(p.vence+'T12:00:00')}</span></td>
     <td data-label="Valor en riesgo" class="r num" style="font-weight:600">${Number(p.costo)>0?$m(Number(p.stock)*Number(p.costo)):'—'}</td>
     <td class="r" style="white-space:nowrap">
-      <button class="btn ghost sm" data-vaj="${p.id}">Ajustar stock</button>
-      <button class="btn ghost sm" data-liquidar="${p.id}">Liquidar −40%</button>
+      <button class="btn ghost sm" data-vaj="${p.id}">${vencidos?'Dar de baja':'Ajustar stock'}</button>
+      ${vencidos?'':`<button class="btn ghost sm" data-liquidar="${p.id}">Liquidar −40%</button>`}
       <button class="btn text sm" data-ved="${p.id}">Editar fecha</button>
     </td></tr>`).join('')}</tbody></table>`;
 }
@@ -6201,7 +6258,10 @@ function wireVence(){
 }
 function liquidarVencimiento(id){
   const p=prod(id);if(!p)return;
-  confirmar('Liquidar producto',`Se creará un descuento del <b>40%</b> para <b>${esc(p.nombre)}</b>, vigente hasta hoy.`,()=>{db.promociones=db.promociones||[];const existente=db.promociones.find(pr=>pr.tipo==='producto'&&pr.objetivoId===p.id&&pr.nombre==='Liquidación por vencimiento');if(existente)Object.assign(existente,{porcentaje:40,desde:hoy(),hasta:hoy(),activa:true});else db.promociones.push({id:uid(),nombre:'Liquidación por vencimiento',tipo:'producto',objetivoId:p.id,porcentaje:40,desde:hoy(),hasta:hoy(),activa:true,creada:new Date().toISOString()});guardar();render();aviso('Descuento de liquidación creado','ok');},'Crear descuento','verde');
+  if(estaVencido(p)){aviso('Un producto vencido no se puede liquidar para vender. Ajustá su stock o dalo de baja.','bad');return;}
+  const precioLiquidacion=Math.round((Number(p.precio)||0)*0.6*100)/100;
+  const bajoCosto=Number(p.costo)>0&&precioLiquidacion<Number(p.costo);
+  confirmar('Liquidar producto',`Se creará un descuento del <b>40%</b> para <b>${esc(p.nombre)}</b>, vigente hasta hoy.<br><br>Precio resultante: <b class="num">${$m(precioLiquidacion)}</b>${bajoCosto?`<div class="ux-banner warn" style="margin-top:12px">Queda por debajo del costo de ${$m(p.costo)}. Revisá si querés continuar.</div>`:''}`,()=>{db.promociones=db.promociones||[];const existente=db.promociones.find(pr=>pr.tipo==='producto'&&pr.objetivoId===p.id&&pr.nombre==='Liquidación por vencimiento');if(existente)Object.assign(existente,{porcentaje:40,desde:hoy(),hasta:hoy(),activa:true});else db.promociones.push({id:uid(),nombre:'Liquidación por vencimiento',tipo:'producto',objetivoId:p.id,porcentaje:40,desde:hoy(),hasta:hoy(),activa:true,creada:new Date().toISOString()});guardar();render();aviso('Descuento de liquidación creado','ok');},'Crear descuento','verde');
 }
 function formDiasAviso(){
   modal({titulo:'Aviso de vencimiento',
@@ -6390,7 +6450,7 @@ function tablaClientes(q){
       <td data-label="Cliente"><b>${esc(cl.nombre)}</b></td>
       <td data-label="Teléfono" class="num" style="color:var(--muted)">${cl.tel?`<a href="https://wa.me/${esc(String(cl.tel).replace(/\D/g,''))}" target="_blank" rel="noopener" title="Abrir WhatsApp">${esc(cl.tel)} · WhatsApp</a>`:'—'}</td>
       <td data-label="Sin pagar hace" class="r num" style="color:${estado.montoVencido>0.009?'var(--rojo)':'var(--muted)'}">${dias===null?'—':dias===0?'hoy':dias+' días'}</td>
-      <td data-label="Saldo" class="r"><span class="pill ${Number(cl.saldo)>0.009?'bad':'ok'} num" style="font-size:13px">${$m(cl.saldo||0)}</span>${clienteEnMora(cl)?` <span class="pill warn" style="font-size:11px">En mora</span>`:''}</td>
+      <td data-label="Saldo" class="r"><span class="pill ${Number(cl.saldo)>0.009?'bad':'ok'} num" style="font-size:13px">${Number(cl.credito)>0.009?'Crédito '+$m(cl.credito):$m(cl.saldo||0)}</span>${clienteEnMora(cl)?` <span class="pill warn" style="font-size:11px">En mora</span>`:''}</td>
       <td class="r" style="white-space:nowrap">
         <button class="btn ghost sm" data-cta="${cl.id}">Ver cuenta</button>
         ${Number(cl.saldo)>0.009?`<button class="btn sm" data-pago="${cl.id}">Cobrar</button>`:''}
@@ -6446,7 +6506,7 @@ function verCuenta(id){
   modal({titulo:'Cuenta de '+c.nombre, ancho:true,
     cuerpo:`
       <div class="grid3" style="margin-bottom:18px">
-        <div class="kpi"><span>Saldo</span><b style="color:${Number(c.saldo)>0.009?'var(--rojo)':'var(--verde)'}">${$m(c.saldo||0)}</b></div>
+        <div class="kpi"><span>${Number(c.credito)>0.009?'Crédito a favor':'Saldo'}</span><b style="color:${Number(c.saldo)>0.009?'var(--rojo)':'var(--verde)'}">${$m(Number(c.credito)>0.009?c.credito:(c.saldo||0))}</b></div>
         <div class="kpi"><span>Compró fiado</span><b>${$m(totalFiado)}</b></div>
         <div class="kpi"><span>Pagó</span><b>${$m(totalPagos)}</b></div>
       </div>
@@ -6581,6 +6641,10 @@ function formPago(id){
 }
 
 const MOTIVOS_EGRESO=['Pago a proveedor','Retiro del dueño','Sueldo o adelanto','Servicios (luz, gas, internet)','Alquiler','Compra de insumos','Gastos varios'];
+function esEgresoOperativo(egreso){
+  const motivo=normalizarTexto((egreso&&egreso.motivo)||'');
+  return !motivo.startsWith('pago a proveedor')&&!motivo.startsWith('retiro del dueno')&&!motivo.startsWith('devolucion de venta');
+}
 function motivosEgresoTodos(){
   return [...MOTIVOS_EGRESO,...(db.config.motivosEgresoExtra||[])];
 }
@@ -6711,6 +6775,7 @@ function f6EvaluarCierreTurno(session,cierres,authority){
    8. CAJA
    ═══════════════════════════════════════════════════════ */
 let busCajaTurno='';
+let cierreResponsableFiltro='todos';
 function turnoLegacyActual(){
   const ult=db.cierres.length ? db.cierres.reduce((m,c)=>!m||String(c.hasta||'')>m?c.hasta:m,null) : null;
   const primera=db.ventas.length ? db.ventas.reduce((m,v)=>!m||String(v.fecha||'')<m?v.fecha:m,null) : null;
@@ -6733,16 +6798,23 @@ function turnoActual(sessionId){
   const desde=ses&&sesIds.effectiveId===String(sessionId)?ses.openedAtDevice:(fechas[0]||new Date().toISOString());
   return calcularTotalesTurno({desde,ventasTodas,pagos,egresos});
 }
+function efectivoCigarrillosVenta(total,cig,montoEfectivo){
+  const limite=Math.min(Math.max(0,Number(total)||0),Math.max(0,Number(cig)||0),Math.max(0,Number(montoEfectivo)||0));
+  return Math.round(limite*100)/100;
+}
 function calcularTotalesTurno({desde,ventasTodas,pagos,egresos}){
   const moduloCigarros=db.config.moduloCigarros!==false;
   const ventas=ventasTodas.filter(v=>!v.anulada); // las anuladas no suman a ningún total
 
   const porForma={efectivo:0,transferencia:0,qr:0,tarjeta:0,fiado:0};
-  let cigTotal=0, cigEfectivo=0, costo=0;
+  let cigTotal=0, cigEfectivo=0, costo=0, costosIncompletos=0;
   ventas.forEach(v=>{
-    let cig=0;
+    let cig=0, efectivoMixto=0;
     (v.items||[]).forEach(i=>{
       costo+=(i.costo||0)*i.cant;
+      if(i.tipo==='combo'){
+        if((i.componentes||[]).some(c=>Number(c.costo)<=0)) costosIncompletos++;
+      }else if(Number(i.costo)<=0) costosIncompletos++;
       const neto=netoItemVenta(i,v);
       if(i.tipo==='combo'){
         const comps=i.componentes||[];
@@ -6755,8 +6827,9 @@ function calcularTotalesTurno({desde,ventasTodas,pagos,egresos}){
       v.pagos.forEach(pg=>{
         const fk=formaKey(pg.forma);
         porForma[fk]=(porForma[fk]||0)+pg.monto;
-        if(fk==='efectivo'&&v.total>0) cigEfectivo+=pg.monto*(cig/v.total);
+        if(fk==='efectivo') efectivoMixto+=Number(pg.monto)||0;
       });
+      cigEfectivo+=efectivoCigarrillosVenta(v.total,cig,efectivoMixto);
     } else {
       const fk=formaKey(v.forma);
       porForma[fk]=(porForma[fk]||0)+v.total;
@@ -6770,12 +6843,45 @@ function calcularTotalesTurno({desde,ventasTodas,pagos,egresos}){
   const egrCigarros=moduloCigarros?egrEfectivo.filter(e=>e.caja==='cigarrillos').reduce((a,e)=>a+e.monto,0):0;
   const egrOtros=egresos.filter(e=>(e.forma||'efectivo')!=='efectivo').reduce((a,e)=>a+e.monto,0);
   if(!moduloCigarros) cigEfectivo=0;
-  const genEfectivo=moduloCigarros?porForma.efectivo-cigEfectivo:porForma.efectivo;
+  const genEfectivo=moduloCigarros?Math.round(Math.max(0,porForma.efectivo-cigEfectivo)*100)/100:porForma.efectivo;
   const total=ventas.reduce((a,v)=>a+(Number(v.total)||0),0);
-  return {desde,ventasTodas,ventas,pagos,egresos,porForma,cigTotal,cigEfectivo,genEfectivo,cobEfectivo,cobOtros,egrGeneral,egrCigarros,egrOtros,costo,total};
+  return {desde,ventasTodas,ventas,pagos,egresos,porForma,cigTotal,cigEfectivo,genEfectivo,cobEfectivo,cobOtros,egrGeneral,egrCigarros,egrOtros,costo,costosIncompletos,total};
+}
+function montoEfectivoVenta(venta){
+  if(!venta)return 0;
+  const pagos=Array.isArray(venta.pagos)?venta.pagos:[];
+  const monto=pagos.length
+    ?pagos.filter(p=>formaKey(p.forma)==='efectivo').reduce((total,p)=>total+(Number(p.monto)||0),0)
+    :(formaKey(venta.forma)==='efectivo'?Number(venta.total)||0:0);
+  return Math.round(Math.max(0,monto)*100)/100;
+}
+function ventaPerteneceTurnoAbierto(venta){
+  if(!venta)return false;
+  const sesion=f3Estado&&f3Estado.session;
+  const actual=f5SesionIds(sesion).effectiveId;
+  const ventaKey=f5SessionKey(venta);
+  if(actual||ventaKey)return !!(actual&&ventaKey&&actual===ventaKey&&sesion.estado==='abierta');
+  const turno=turnoLegacyActual();
+  return !!(turno&&turno.ventasTodas&&turno.ventasTodas.some(v=>v.id===venta.id));
+}
+function crearEgresoReintegroVenta(venta,motivo,caja='general'){
+  const monto=montoEfectivoVenta(venta);
+  if(monto<=0)return null;
+  const sesion=f3Activo()?(f3Estado&&f3Estado.session):null;
+  if(f3Activo()&&(!sesion||sesion.estado!=='abierta'))return null;
+  const egreso={
+    id:uid(),monto,forma:'efectivo',caja:caja==='cigarrillos'?'cigarrillos':'general',
+    motivo:`Devolución de venta Nº${venta.nro}`,
+    nota:motivo?`Anulación: ${motivo}`:'Anulación de una venta de un turno anterior',
+    fecha:new Date().toISOString(),ventaAnuladaId:venta.id
+  };
+  f5EstamparSesionLocal(egreso,sesion);
+  db.egresos=db.egresos||[];
+  db.egresos.push(egreso);
+  return egreso;
 }
 /* ── anular una venta: repone stock, descuenta el saldo fiado si correspondía, y la marca sin borrarla ── */
-function anularVenta(id,motivo){
+function anularVenta(id,motivo,{registrarReintegro=false,cajaReintegro='general'}={}){
   const v=db.ventas.find(x=>x.id===id);
   if(!v||v.anulada) return false;
   f3SuprimirMovimientosAuto++;
@@ -6793,20 +6899,40 @@ function anularVenta(id,motivo){
     }
   });}finally{f3SuprimirMovimientosAuto=Math.max(0,f3SuprimirMovimientosAuto-1);}
   v.anulada=true; v.anuladaFecha=new Date().toISOString(); v.anuladaMotivo=motivo||'';
-  guardar(f3OperacionAnulacionVenta(v,v.anuladaMotivo));
+  const operaciones=[f3OperacionAnulacionVenta(v,v.anuladaMotivo)];
+  if(registrarReintegro){
+    const egreso=crearEgresoReintegroVenta(v,v.anuladaMotivo,cajaReintegro);
+    if(egreso)operaciones.push(f3OperacionEgreso(egreso));
+  }
+  guardar(operaciones);
   return true;
 }
 function formAnularVenta(id){
   const v=db.ventas.find(x=>x.id===id); if(!v) return;
+  const efectivo=montoEfectivoVenta(v);
+  const sesion=f3Estado&&f3Estado.session;
+  const puedeRegistrarReintegro=!ventaPerteneceTurnoAbierto(v)&&efectivo>0&&(!f3Activo()||(sesion&&sesion.estado==='abierta'));
+  const moduloCigarros=db.config.moduloCigarros!==false;
   modal({titulo:'Anular venta Nº'+v.nro,
     cuerpo:`<p style="margin:0 0 16px;line-height:1.6">Se repone el stock de cada producto${v.clienteId?', y se descuenta lo que se le había anotado al cliente':''}. La venta queda registrada como anulada, no se borra.</p>
       <label class="f" for="an_mot">Motivo</label>
-      <input id="an_mot" class="inp" placeholder="Ej: se cargó mal, el cliente se arrepintió…">`,
+      <input id="an_mot" class="inp" placeholder="Ej: se cargó mal, el cliente se arrepintió…">
+      ${puedeRegistrarReintegro?`<div class="hint" style="margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--bg)">
+        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;color:var(--txt)">
+          <input type="checkbox" id="an_registrar_reintegro" style="width:auto;min-height:auto;margin-top:3px">
+          <span><b>Registrar la devolución de ${$m(efectivo)} en el turno actual</b><br><span style="color:var(--muted)">Deja constancia del efectivo que sale de la caja actual por esta venta anterior.</span></span>
+        </label>
+        ${moduloCigarros?`<label class="f" for="an_caja_reintegro" style="margin-top:12px">¿De qué caja sale?</label><select id="an_caja_reintegro" class="inp"><option value="general">Caja general</option><option value="cigarrillos">Caja de cigarrillos</option></select>`:'<input type="hidden" id="an_caja_reintegro" value="general">'}
+      </div>`:''}`,
     pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn rojo" id="okAn">Anular venta</button>`,
     alAbrir:ov=>{
       $('#an_mot',ov).focus();
       $('#okAn',ov).onclick=()=>{
-        if(anularVenta(id,$('#an_mot',ov).value.trim())){ cerrarModal(); render(); aviso('Venta anulada — el stock se repuso','ok'); }
+        const registrar=!!($('#an_registrar_reintegro',ov)&&$('#an_registrar_reintegro',ov).checked);
+        const caja=($('#an_caja_reintegro',ov)||{}).value||'general';
+        if(anularVenta(id,$('#an_mot',ov).value.trim(),{registrarReintegro:registrar,cajaReintegro:caja})){
+          cerrarModal();render();aviso(registrar?'Venta anulada y devolución registrada':'Venta anulada — el stock se repuso','ok');
+        }
       };
     }});
 }
@@ -6947,13 +7073,22 @@ function pintarVentasCajaActual(t){
   else ventasBox.innerHTML=tablaVentasBusqueda(filtradas,{permitirAnular:true});
   $$('[data-anular-venta]',ventasBox).forEach(b=>b.onclick=()=>formAnularVenta(b.dataset.anularVenta));
 }
+function responsableCierre(c){
+  const nombre=String(c&& (c.responsableNombre||c.actorNombre||c.empleadoNombre)||'').trim();
+  if(nombre)return nombre;
+  const id=String(c&& (c.responsableId||c._v4userId)||'');
+  return id?`Usuario ${id.slice(0,8)}`:'Este dispositivo';
+}
 function htmlCierresAnteriores(){
-  const cierres=[...(db.cierres||[])].sort((a,b)=>(Date.parse(b.hasta)||0)-(Date.parse(a.hasta)||0));
+  const todos=[...(db.cierres||[])].sort((a,b)=>(Date.parse(b.hasta)||0)-(Date.parse(a.hasta)||0));
+  const responsables=[...new Set(todos.map(responsableCierre))].sort((a,b)=>a.localeCompare(b));
+  const cierres=cierreResponsableFiltro==='todos'?todos:todos.filter(c=>responsableCierre(c)===cierreResponsableFiltro);
   return `<div class="card cash-history-card">
-    <div class="card-h"><h2>Cierres anteriores</h2></div>
-    ${cierres.length?`<div class="table-scroll" role="region" aria-label="Cierres anteriores" tabindex="0"><table class="mtable"><thead><tr><th>Fecha</th><th class="r">Ventas</th><th class="r">Vendido</th><th class="r">Gral. contado</th><th class="r">Gral. dif.</th><th class="r">Cigarrillos contado</th><th class="r">Cigarrillos dif.</th><th>Nota</th><th></th></tr></thead><tbody>
+    <div class="card-h"><h2>Cierres anteriores</h2>${responsables.length>1?`<select class="inp" id="cierreResponsable" aria-label="Filtrar cierres por persona" style="max-width:240px"><option value="todos">Todas las personas</option>${responsables.map(nombre=>`<option ${cierreResponsableFiltro===nombre?'selected':''}>${esc(nombre)}</option>`).join('')}</select>`:''}</div>
+    ${cierres.length?`<div class="table-scroll" role="region" aria-label="Cierres anteriores" tabindex="0"><table class="mtable"><thead><tr><th>Fecha</th><th>Responsable</th><th class="r">Ventas</th><th class="r">Vendido</th><th class="r">Gral. contado</th><th class="r">Gral. dif.</th><th class="r">Cigarrillos contado</th><th class="r">Cigarrillos dif.</th><th>Nota</th><th></th></tr></thead><tbody>
       ${cierres.map(c=>`<tr>
         <td data-label="Fecha" class="num">${fFH(c.hasta)}</td>
+        <td data-label="Responsable">${esc(responsableCierre(c))}</td>
         <td data-label="Ventas" class="r num">${c.cantVentas}</td>
         <td data-label="Vendido" class="r num" style="font-weight:600">${$m(c.total)}</td>
         <td data-label="Gral. contado" class="r num">${$m(c.contadoGeneral)}</td>
@@ -6967,6 +7102,7 @@ function htmlCierresAnteriores(){
   </div>`;
 }
 function enlazarCierresAnteriores(m){
+  const filtro=$('#cierreResponsable',m);if(filtro)filtro.onchange=()=>{cierreResponsableFiltro=filtro.value;render();};
   $$('[data-vt]',m).forEach(b=>b.onclick=()=>verVentasTurno(b.dataset.vt));
   $$('[data-wa]',m).forEach(b=>b.onclick=()=>{const c=db.cierres.find(x=>x.id===b.dataset.wa);if(c)modalEnviarResumen(c);});
 }
@@ -6991,7 +7127,8 @@ function vCaja(m){
   const fondoGeneralEfectivo=fondoGeneralTurno+(moduloCigarros?0:fondoCigarrosTurno);
   const espGeneral=fondoGeneralEfectivo+t.genEfectivo+t.cobEfectivo-t.egrGeneral;
   const espCigarros=moduloCigarros?fondoCigarrosTurno+t.cigEfectivo-t.egrCigarros:0;
-  const gananciaEstimada=t.total-t.costo-t.egrGeneral-t.egrCigarros-t.egrOtros;
+  const egresosOperativos=t.egresos.filter(esEgresoOperativo).reduce((a,e)=>a+(Number(e.monto)||0),0);
+  const gananciaEstimada=t.costosIncompletos?null:t.total-t.costo-egresosOperativos;
   const vistasCaja=['turno','cierre','historial'];
   const cajaVista=vistasCaja.includes(globalThis.__miCajaVista)?globalThis.__miCajaVista:'turno';
   const cajaCigarrosPlegada=db.config.cajaCigarrosPlegada===true;
@@ -7012,7 +7149,7 @@ function vCaja(m){
       <div class="kpi"><span>Vendido en cigarrillos</span><b>${$m(t.cigTotal)}</b><small>de los ${$m(t.total)} totales</small></div>
       <div class="kpi"><span>Egresos del turno</span><b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b><small>${t.egresos.length} salidas${t.egrOtros>0.009?` · ${$m(t.egrOtros)} sin efectivo`:''}</small></div>
       <div class="kpi"><span>Fiado del turno</span><b>${$m(t.porForma.fiado)}</b><small>plata todavía no cobrada</small></div>
-      <div class="kpi cash-kpi-profit"><span>Ganancia estimada</span><b>${$m(gananciaEstimada)}</b><small>sobre lo vendido en el turno</small></div>
+      <div class="kpi cash-kpi-profit"><span>Ganancia estimada</span><b>${gananciaEstimada===null?'—':$m(gananciaEstimada)}</b><small>${gananciaEstimada===null?`${t.costosIncompletos} líneas sin costo cargado`:'ventas − costo − gastos operativos'}</small></div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-h"><h2>Cobros por forma de pago</h2></div>
@@ -7084,7 +7221,7 @@ function vCaja(m){
         <div class="card-b">
           <label class="f" for="notaC">Nota del cierre</label>
           <input id="notaC" class="inp" placeholder="Opcional: turno tarde, retiro, etc.">
-          <button class="btn big" id="cerrarCaja" style="margin-top:14px">Cerrar caja y guardar</button>
+          <button class="btn big" id="cerrarCaja" style="margin-top:14px" disabled>Cerrar caja y guardar</button>
           <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.55">Al cerrar se guarda una copia de seguridad automática de toda la base.</div>
         </div>
       </div>
@@ -7122,23 +7259,30 @@ function vCaja(m){
   $$('[data-caja-tab]',m).forEach(tab=>tab.onclick=()=>aplicarVistaCaja(tab.dataset.cajaTab));
   aplicarVistaCaja(cajaVista);
 
+  const inpG=$('#contadoG'), inpC=$('#contadoC'), cerrarCaja=$('#cerrarCaja');
+  function conteosCajaCompletos(){
+    return !!(inpG&&inpG.value.trim()!==''&&(!moduloCigarros||(inpC&&inpC.value.trim()!=='')));
+  }
+  const actualizarEstadoCierre=()=>{if(cerrarCaja)cerrarCaja.disabled=!conteosCajaCompletos();};
   const actualizarDiferencia=(inp,esperado,box)=>{
     if(!inp||!box) return;
     inp.oninput=()=>{
       if(inp.value===''){
         box.className='cash-difference neutral';
         box.innerHTML='<span>Diferencia</span><b>—</b>';
+        actualizarEstadoCierre();
         return;
       }
       const d=num(inp.value)-esperado;
       const estado=d<-0.009?'negative':d>0.009?'positive':'ok';
       box.className=`cash-difference ${estado}`;
       box.innerHTML=`<span>${Math.abs(d)<0.01?'Diferencia':d<0?'Falta':'Sobra'}</span><b>${d>0.009?'+ ':d<-0.009?'– ':''}${$m(Math.abs(d))}</b>`;
+      actualizarEstadoCierre();
     };
   };
-  const inpG=$('#contadoG'), inpC=$('#contadoC');
   actualizarDiferencia(inpG,espGeneral,$('#difG'));
   actualizarDiferencia(inpC,espCigarros,$('#difC'));
+  actualizarEstadoCierre();
   const toggleCig=$('[data-caja-cig-toggle]',m);
   if(toggleCig)toggleCig.onclick=()=>{
     const contenido=$('[data-caja-cig-content]',m);if(!contenido)return;
@@ -7159,6 +7303,11 @@ function vCaja(m){
     guardar();render();aviso('Fondos actualizados','ok');
   };
   $('#cerrarCaja').onclick=()=>{
+    if(!conteosCajaCompletos()){
+      aviso('Completá el efectivo contado antes de cerrar la caja. Si no hay efectivo, escribí 0.','bad');
+      (inpG&&inpG.value.trim()===''?inpG:inpC)?.focus();
+      return;
+    }
     const closeGate=f6EvaluarCierreTurno(activeSession,db.cierres,f5EstadoBloqueo().authority);
     if(!closeGate.ok){
       aviso(closeGate.code==='F6_TURNO_YA_CERRADO'?'Este turno ya tiene un cierre guardado.':'No hay un turno abierto para cerrar.','bad');return;
@@ -7166,8 +7315,8 @@ function vCaja(m){
     const contadoGeneral=num(inpG.value), contadoCigarros=moduloCigarros&&inpC?num(inpC.value):0;
     const dG=contadoGeneral-espGeneral, dC=moduloCigarros?contadoCigarros-espCigarros:0;
     const partes=[];
-    partes.push(Math.abs(dG)<0.01?'La caja general cuadra justo.':`Caja general: diferencia de <b style="color:${dG<0?'var(--rojo)':'var(--ambar)'}">${dG>0?'+':''}${$m(Math.abs(dG))}</b>.`);
-    if(moduloCigarros) partes.push(Math.abs(dC)<0.01?'La caja de cigarrillos cuadra justo.':`Caja de cigarrillos: diferencia de <b style="color:${dC<0?'var(--rojo)':'var(--ambar)'}">${dC>0?'+':''}${$m(Math.abs(dC))}</b>.`);
+    partes.push(Math.abs(dG)<0.01?'La caja general cuadra justo.':`Caja general: <b style="color:${dG<0?'var(--rojo)':'var(--ambar)'}">${dG<0?'Falta':'Sobra'} ${$m(Math.abs(dG))}</b>.`);
+    if(moduloCigarros) partes.push(Math.abs(dC)<0.01?'La caja de cigarrillos cuadra justo.':`Caja de cigarrillos: <b style="color:${dC<0?'var(--rojo)':'var(--ambar)'}">${dC<0?'Falta':'Sobra'} ${$m(Math.abs(dC))}</b>.`);
     confirmar('Cerrar la caja',
       `Vendiste <b>${$m(t.total)}</b> en ${t.ventas.length} ventas${t.egresos.length?` y registraste <b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b> en egresos`:''}.<br><br>${partes.join('<br>')}`,
       async()=>{
@@ -7177,6 +7326,8 @@ function vCaja(m){
           esperadoCigarros:espCigarros,contadoCigarros,diferenciaCigarros:dC,
           egrGeneral:t.egrGeneral,egrCigarros:moduloCigarros?t.egrCigarros:0,
           nota:$('#notaC').value.trim(),costo:t.costo,
+          responsableId:String((f5Estado().membership||{}).user_id||(sesion&&sesion.user&&sesion.user.id)||''),
+          responsableNombre:String((f5Estado().membership||{}).nombre_mostrado||(f5Estado().membership||{}).nombre||(f5Estado().membership||{}).usuario||({duenio:'Dueño',admin:'Administrador',empleado:'Empleado'}[(f5Estado().membership||{}).rol]||'')),
           ventaIds:t.ventas.map(v=>v.id),pagoIds:t.pagos.map(p=>p.id),egresoIds:t.egresos.map(e=>e.id)};
         f5EstamparSesionLocal(nuevoCierre,f3Estado.session);
         db.cierres.push(nuevoCierre);
@@ -7435,7 +7586,7 @@ function datosPeriodo(p){
   });
 
   const total=Object.values(porForma).reduce((a,b)=>a+b,0);
-  const egrTotal=egresos.reduce((a,e)=>a+e.monto,0);
+  const egrTotal=egresos.filter(esEgresoOperativo).reduce((a,e)=>a+e.monto,0);
   const cobrado=porForma.efectivo+porForma.transferencia+porForma.tarjeta;
   const productos=Object.values(porProducto).sort((a,b)=>b.importe-a.importe);
   const rubrosOrden=Object.entries(porRubro).map(([k,v])=>({nombre:k,...v})).sort((a,b)=>b.importe-a.importe);
@@ -7928,10 +8079,10 @@ function f5CrearGuardadoDatosComercio({guardarNombreRemoto,aplicarLocal}){
 /* F5_BUSINESS_CONFIG_CORE_END */
 async function f5GuardarNombreComercioRemoto(nombre){
   if(!(sb&&sesion))return {id:null,nombre};
-  if(!enLinea)throw new Error('F5_COMERCIO_GUARDADO_SIN_CONEXION');
   const comercioId=f3Estado.comercioId;
   if(!comercioId)throw new Error('F5_COMERCIO_GUARDADO_SIN_CONTEXTO');
   if(nombre===f3Estado.comercioNombre)return {id:comercioId,nombre};
+  if(!enLinea)throw new Error('F5_COMERCIO_GUARDADO_SIN_CONEXION');
   const {data,error}=await sb.from('comercios').update({nombre}).eq('id',comercioId).select('id,nombre').maybeSingle();
   if(error)throw error;
   return data;
@@ -9098,6 +9249,8 @@ function f32bEstado(){
   // de usuario en el mismo dispositivo. El mapeo por UUID evita duplicados.
   if(!p.cierresPorUsuarioRevisados){
     delete p.cursores.cierres_caja;
+    delete p.cursores.cierre_ajustes_created;
+    delete p.cursores.cierre_ajustes_resueltos;
     p.cierresPorUsuarioRevisados=true;
   }
   if(!p.diferidosOperativos||typeof p.diferidosOperativos!=='object') p.diferidosOperativos={};
@@ -9234,7 +9387,7 @@ function f32bMapCierre(row,extra={},base=db){
     return f32ResolverIdLocal(coleccion,v4id,base);
   };
   const ids=(arr,campo,coleccion)=>(arr||[]).filter(x=>String(x.cierre_id)===String(row.id)).map(x=>resolverLink(coleccion,x[campo]));
-  return {...(actual||{}),id,_v4id:row.id,_v4deviceId:ses.device_id||'',_v4cajaSesionId:row.caja_sesion_id||'',_v4sessionSegmentId:row.session_segment_id||'',_v4receivedAt:row.closed_at_server||'',_v4remote:true,
+  return {...(actual||{}),id,_v4id:row.id,_v4deviceId:ses.device_id||'',_v4userId:ses.user_id||row.user_id||'',_v4cajaSesionId:row.caja_sesion_id||'',_v4sessionSegmentId:row.session_segment_id||'',_v4receivedAt:row.closed_at_server||'',_v4remote:true,
     desde:ses.opened_at_device||row.closed_at_device||row.closed_at_server,hasta:row.closed_at_device||row.closed_at_server,
     cantVentas:Number(row.cant_ventas)||0,total:Number(row.total_ventas)||0,porForma:row.por_forma||{},cigTotal:Number(row.cig_total)||0,
     esperadoGeneral:Number(row.esperado_general)||0,contadoGeneral:Number(row.contado_general)||0,diferenciaGeneral:Number(row.diferencia_general)||0,
@@ -10178,7 +10331,7 @@ function f33Css(){return `
 .f33-btn{border:1px solid #cad2df;border-radius:8px;background:#fff;padding:8px 10px;font:600 12px system-ui;cursor:pointer}.f33-btn.primary{background:#1f6feb;color:#fff;border-color:#1f6feb}.f33-btn.danger{color:#a22121;border-color:#e5b2b2}.f33-btn:disabled{opacity:.45;cursor:not-allowed}
 .f33-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.f33-kpi{background:#fff;border:1px solid #e1e6ee;border-radius:10px;padding:10px}.f33-kpi span{font-size:11px;color:#697386}.f33-kpi b{display:block;font-size:18px;margin-top:2px}
 .f33-op{background:#fff;border:1px solid #e1e6ee;border-radius:12px;padding:12px;margin:9px 0}.f33-op-top{display:flex;justify-content:space-between;gap:12px}.f33-op-title{font-weight:700;font-size:13px}.f33-state{font:600 11px ui-monospace,monospace;color:#596579}.f33-err{font:12px ui-monospace,monospace;color:#a22121;background:#fff4f4;padding:7px;border-radius:7px;margin-top:7px;word-break:break-word}.f33-meta{font-size:11px;color:#697386;margin-top:5px;word-break:break-all}.f33-op .f33-actions{margin-top:9px}.f33-empty{text-align:center;color:#697386;padding:28px}
-@media(max-width:520px){.f33-summary{grid-template-columns:1fr 1fr}#f33-sheet{padding:15px}}
+@media(max-width:520px){.f33-summary{grid-template-columns:1fr 1fr}#f33-sheet{padding:15px}#f33-status{bottom:74px;right:10px}}
 `;}
 function f33UIAsegurarDom(){
   if(document.getElementById('f33-status'))return;
@@ -11020,8 +11173,8 @@ setInterval(comprobarLicenciaActiva,5*60*1000);
    ═══════════════════════════════════════════════════════ */
 document.addEventListener('keydown',e=>{
   if(e.key==='F1'&&vista==='vender'){e.preventDefault();const scan=$('#scan');if(scan){scan.focus();scan.select();}}
-  if(e.key==='F2'&&vista==='vender'&&ticket.length&&!$('#ov')){e.preventDefault();pago='efectivo';abrirModalPago();}
-  if(e.key==='F4'&&vista==='vender'&&ticket.length&&!$('#ov')){e.preventDefault();pago='fiado';abrirModalPago();}
+  if(e.key==='F2'&&vista==='vender'&&!ventaEnProceso&&ticket.length&&!$('#ov')){e.preventDefault();pago='efectivo';abrirModalPago();}
+  if(e.key==='F4'&&vista==='vender'&&!ventaEnProceso&&ticket.length&&!$('#ov')){e.preventDefault();pago='fiado';abrirModalPago();}
   if(e.key==='Escape'&&vista==='vender'&&!$('#ov')){const res=$('#res');if(res&&!res.hidden){res.hidden=true;const scan=$('#scan');if(scan){scan.value='';scan.focus();}}}
 });
 
@@ -11874,6 +12027,23 @@ $('#onboardingForm').addEventListener('submit',async event=>{
     if(document.body.contains(button))button.textContent=step==='comprobacion_final'?'Comprobar y activar 7 días':(step==='empleados'||step==='clientes'?'Omitir por ahora':'Guardar y continuar');
   }
 });
+function mostrarErrorDependencia(){
+  const app=$('#appWrap'),onboarding=$('#onboardingWrap'),login=$('#loginWrap');
+  if(app) app.hidden=true;
+  if(onboarding) onboarding.hidden=true;
+  if(login) login.hidden=false;
+  const box=login&&$('.login-box',login);
+  if(box){
+    box.innerHTML=`<div style="text-align:center;padding:12px 0">
+      <div class="login-logo" aria-hidden="true" style="margin:0 auto 18px">!</div>
+      <h1 style="margin:0 0 10px">No pudimos cargar los componentes necesarios</h1>
+      <p class="hint" style="margin:0 auto 20px;max-width:430px;line-height:1.6">Comprobá la conexión y volvé a intentar. Tus datos guardados en este dispositivo no se modificaron.</p>
+      <button type="button" class="btn" id="retryDependency">Reintentar</button>
+    </div>`;
+    const retry=$('#retryDependency',box);
+    if(retry) retry.onclick=()=>location.reload();
+  }
+}
 (async function inicio(){
   if(sb){
     f5CambiarModoLogin('dueno',{invitation:false,focus:false});
@@ -11953,22 +12123,10 @@ $('#onboardingForm').addEventListener('submit',async event=>{
     }
     return;
   }
-  // sin Supabase configurado: modo local, sin login
-  $('#appWrap').hidden=false;
-  $('#btnColapsar').onclick=toggleColapso;
-  $('#brandMk').onclick=()=>{ if(railColapsado) toggleColapso(); };
-  await cargar();
-  await f3Inicializar();
-  render();
-  const u=db.config.ultBackup;
-  if(!u||(Date.now()-new Date(u).getTime())>20*3600*1000){
-    if(db.productos.length){ await backupAuto(); }
-  }
-  if(SUPABASE_URL.startsWith('PEGA_TU')||SUPABASE_ANON_KEY.startsWith('PEGA_TU')){
-    aviso('Faltan pegar las claves de Supabase en este archivo — está corriendo en modo local, sin login','bad');
-  } else if(typeof supabase==='undefined'){
-    aviso('No se pudo cargar la librería de Supabase — revisá tu conexión a internet','bad');
-  }
+  // El sistema requiere la biblioteca autenticada. Si el recurso local falta o
+  // está dañado mostramos una salida recuperable, en vez de iniciar una carga
+  // parcial que termina en una pantalla vacía.
+  mostrarErrorDependencia();
 })();
 
 /* ═══ que la página abra aunque no haya internet ═══

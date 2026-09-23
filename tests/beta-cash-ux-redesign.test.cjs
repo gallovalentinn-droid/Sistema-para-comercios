@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const htmlPath = path.resolve(__dirname, '../beta/index.html');
 const swPath = path.resolve(__dirname, '../beta/sw.js');
-const source = () => fs.readFileSync(htmlPath, 'utf8');
+const source = () => fs.readFileSync(htmlPath, 'utf8').replace(/\r\n/g, '\n');
 
 function sliceBetween(text, start, end) {
   const from = text.indexOf(start);
@@ -76,6 +76,6 @@ test('el rediseño de Caja publica una identidad de caché nueva y alineada', ()
   const identity = text.match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/);
   assert.ok(identity, 'falta la identidad del build');
   const build = vm.runInNewContext(`(${identity[1]})`);
-  assert.equal(build.packageRevision, 29);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev29/);
+  assert.equal(build.packageRevision, 30);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev30/);
 });

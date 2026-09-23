@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const artifact = path.resolve(__dirname, '../beta/index.html');
-const source = () => fs.readFileSync(artifact, 'utf8');
+const source = () => fs.readFileSync(artifact, 'utf8').replace(/\r\n/g, '\n');
 
 function block(text, start, end) {
   const from = text.indexOf(start);
@@ -36,7 +36,7 @@ test('Vender advierte faltantes antes de sumar y confirma cerca del buscador', (
 test('Vender protege la cancelación y los atajos abren el flujo visible', () => {
   const text = source();
   const pos = block(text, 'function vVender(m){', '/* ── modal de medio de pago:');
-  const shortcuts = block(text, "document.addEventListener('keydown',e=>{", '/* ==========================================================================\n   MI COMERCIO — F4.3');
+  const shortcuts = block(text, "/* ═══════════════════════════════════════════════════════\n   10. ATAJOS + ARRANQUE", '/* ==========================================================================\n   MI COMERCIO — F4.3');
   assert.match(pos, /confirmarCancelacionVenta/);
   assert.match(pos, /Atajos:/);
   assert.match(shortcuts, /e\.key==='F1'/);

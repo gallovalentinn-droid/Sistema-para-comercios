@@ -1,6 +1,6 @@
 const CACHE_PREFIX='micomercio-beta-';
-const CACHE='micomercio-beta-6.0.0-f6-rc2-rev29';
-const BASE=['./','./index.html'];
+const CACHE='micomercio-beta-6.0.0-f6-rc2-rev30';
+const BASE=['./','./index.html','./vendor/supabase-js-2.112.3.min.js'];
 
 const EXTERNOS = [
   'cdn.jsdelivr.net',

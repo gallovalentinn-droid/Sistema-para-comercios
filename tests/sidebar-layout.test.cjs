@@ -41,3 +41,12 @@ test('el pie de la barra presenta el rol dueño con su nombre legible', () => {
   assert.equal(etiquetaRolVisible('admin', false), 'Administrador');
   assert.equal(etiquetaRolVisible('empleado', false), 'Empleado');
 });
+
+test('en celular todas las secciones siguen accesibles desplazando la barra inferior', () => {
+  const source = html();
+  const mobile = source.match(/@media \(max-width:820px\)\{([\s\S]*?)\n\}/)?.[1] || '';
+
+  assert.match(mobile, /\.nav\{[^}]*overflow-x:auto/);
+  assert.match(mobile, /\.nav button,[^{]*\{[^}]*flex:0 0/);
+  assert.match(source, /#f33-status\{bottom:74px;right:10px\}/);
+});

@@ -1,0 +1,17 @@
+{
+  "version": "6.0.0-f6-rc2",
+  "packageRevision": 30,
+  "algorithm": "sha256",
+  "generatedAt": "2026-09-23",
+  "files": {
+    "index.html": "91cfcf41f8e044b277c9c8ba514feed1063e671b615d4667bb05de8fe73d5164",
+    "beta/index.html": "86b25762518c7fe8edad058c7f2598ce38ec3a4c762f6840c6cbc894d5d87e85",
+    "beta/sw.js": "56ffb6fbae2ea57a100ad13178660d0700a20d12afc162d59f8953a983427bec",
+    "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
+    "clientes/index.html": "a1b54f5ef6c6a185d347b1f87f96c66d3310ec4198dd5654d25a1688edff5749",
+    "clientes/sw.js": "4cbd1587b823cd463cd71d12eb3c1368730e0876cd1e22ef4e4bb90373325d71",
+    "tools/verificar-integridad.cjs": "ba8a547159733caea45b7535028b714c41213d1b34b740d3f6478d4688f1c006",
+    "verificar.sh": "2ba4c19af88d141f94a024288692175418384bce4b5b222d759ad76821e78820",
+    "verificar.ps1": "3db19bda129ee65abf5f534dd73f658125821c26f220e81101c0f11b6819a51c"
+  }
+}

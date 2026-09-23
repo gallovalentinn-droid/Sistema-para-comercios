@@ -18,7 +18,7 @@ function page() {
   }
   const nodes = new Map();
   const makeNode = () => ({
-    innerHTML:'', textContent:'', hidden:false, onclick:null,
+    innerHTML:'', textContent:'', value:'', hidden:false, onclick:null,
     setAttribute(){}, focus(){}, querySelector(){return null;},
     classList:{add(){},remove(){},toggle(){}}, style:{}
   });
@@ -36,23 +36,24 @@ function page() {
   let capturedModal;
   const context = {
     db: { productos: products, config: {}, cierres: [{ id:'c1', hasta:'15/09/26 12:16', cantVentas:1, total:1300, contadoGeneral:1300, diferenciaGeneral:0, contadoCigarros:0, diferenciaCigarros:0, nota:'Turno de ejemplo' }] },
-    fProd:{q:'',rubro:'',orden:'nombre'}, pedido:{}, repOrden:'rubro',
+    fProd:{q:'',rubro:'',orden:'nombre',incompletos:false}, pedido:{}, repOrden:'rubro',ultimoCambioPrecios:null,
     document:{addEventListener(){},body:{contains:()=>true}},
     $: (s) => { if (!nodes.has(s)) nodes.set(s,makeNode()); return nodes.get(s); }, $$:()=>[],
     esc: v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),
-    listaFiltrada:()=>products, esSuelto:()=>false, alertaVence:()=>false, bajo:()=>true,
+    listaFiltrada:()=>products, productoIncompleto:()=>false, esSuelto:()=>false, alertaVence:()=>false, bajo:()=>true,
     rubros:()=>['Higiene Personal'], opcionesRubroProducto:()=>['Higiene Personal'], proveedores:()=>[],
     fmtCant:(_p,n)=>String(n), deseado:p=>p.stockDeseado, faltante:p=>p.stockDeseado-p.stock,
     $m:n=>'$'+Number(n).toLocaleString('es-AR',{minimumFractionDigits:2}), fFH:v=>v,
-    nfM:{format:String}, num:n=>Number(n)||0,
-    normalizarBusqueda:v=>String(v||'').toLowerCase(), modal:options=>{capturedModal=options;}
+    nfM:{format:String}, nfKg:{format:String}, num:n=>Number(n)||0,
+    normalizarBusqueda:v=>String(v||'').toLowerCase(), normalizarTexto:v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),
+    deshacerUltimoCambioPrecios:()=>{}, modal:options=>{capturedModal=options;}
   };
   vm.createContext(context);
   const ventas=[{id:'v1',nro:123,fecha:'12:16',forma:'fiado',clienteId:'cliente1',total:1900,items:[{prodId:'p1',cant:1,nombre:products[1].nombre}]}];
   Object.assign(context,{
     f3Estado:{session:{id:'s1',estado:'abierta'}},f5SesionIds:()=>({effectiveId:'s1'}),f3Activo:()=>true,
     turnoActual:()=>({desde:'15/09/26 09:00',ventas,ventasTodas:ventas,total:1900,costo:1250,porForma:{efectivo:1200,transferencia:0,tarjeta:0,fiado:700},cigTotal:0,genEfectivo:1200,cigEfectivo:0,cobEfectivo:0,egrGeneral:100,egrCigarros:0,egrOtros:0,egresos:[{id:'e1',fecha:'12:00',motivo:'Pago a proveedor de ejemplo',forma:'efectivo',caja:'general',monto:100}]}),
-    FORMAS:{efectivo:'Efectivo',transferencia:'Transferencia',tarjeta:'Tarjeta'},busCajaTurno:'',
+    FORMAS:{efectivo:'Efectivo',transferencia:'Transferencia',tarjeta:'Tarjeta'},busCajaTurno:'',cierreResponsableFiltro:'todos',
     enlazarCierresAnteriores:()=>{},fHora:v=>v,formaKey:v=>v,detalleForma:()=> 'Fiado',
     cli:()=>({nombre:'María del Carmen Rodríguez'}),prod:()=>products[0],
     pintarVentasCajaActual:()=>{context.$('#ventasCajaTurno').innerHTML=context.tablaVentasBusqueda(ventas,{permitirAnular:true});},
@@ -72,7 +73,7 @@ function page() {
     between('const MOTIVOS_EGRESO=','\n/* F6_TURNOS_CORE_START */'),
     between('function tablaRep(l){','\n/* ── armador de pedido ── */'),
     between('function pintarMovimientosDia(){','\nfunction vMovimientos('),
-    fn('htmlCierresAnteriores'), fn('vCaja'), fn('detalleVentaTexto'), fn('tablaVentasBusqueda'), fn('f33Css'), fn('f34Css')
+    fn('responsableCierre'), fn('htmlCierresAnteriores'), fn('vCaja'), fn('detalleVentaTexto'), fn('tablaVentasBusqueda'), fn('f33Css'), fn('f34Css')
   ].join('\n'),context);
   const productMain={innerHTML:''}; context.vProductos(productMain); context.formProducto();
   const productForm=capturedModal;
@@ -118,6 +119,6 @@ function page() {
 }
 const previewPort=Number(process.env.MICOMERCIO_PREVIEW_PORT)||4175;
 http.createServer((req,res)=>{
-  try {res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(page());}
+  try {const body=page();res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(body);}
   catch(e) {res.writeHead(500);res.end(e.stack);}
 }).listen(previewPort,'127.0.0.1',()=>console.log(`Notebook fixture: http://127.0.0.1:${previewPort}`));

@@ -84,10 +84,12 @@ function load() {
     esc: (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
     $m: (value) => `$${Number(value).toFixed(2)}`,
     num: (value) => Number(value) || 0,
+    normalizarTexto: (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(),
     fFH: (value) => value,
     nfM: { format: (value) => String(value) },
     FORMAS: { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' },
     busCajaTurno: '',
+    cierreResponsableFiltro: 'todos',
     filtrarVentasPorBusqueda: (rows) => rows,
     verVentasTurno: (id) => actions.push(['ventas', id]),
     modalEnviarResumen: (cierre) => actions.push(['resumen', cierre.id]),
@@ -98,7 +100,8 @@ function load() {
     'f32BuscarLocalV4', 'f32BuscarLocalLegacy', 'f32LocalParaRemoto', 'f32ResolverIdLocal',
     'f32UpsertArray', 'f32AplicarVisible', 'f32bEstado', 'f32bCursorKey', 'f32bSetCursor',
     'f32bMapCierre', 'f32bMapOperacion', 'f32bDeviceFila', 'f32bAplicarVisible',
-    'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'vCaja',
+    'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'responsableCierre',
+    'esEgresoOperativo', 'vCaja',
   ];
   vm.runInContext([
     ...names.map((name) => functionSource(name)),
