@@ -32,6 +32,14 @@ test('las cantidades muestran singular y el pie cuenta sólo productos activos',
   assert.equal(context.contarProductosActivos([{id:'a'},{id:'b',archivadoAt:'2026-09-01T10:00:00Z'},{id:'c'}]), 2);
 });
 
+test('la acción de archivo en lote usa singular cuando hay un seleccionado', () => {
+  const context = vm.createContext({});
+  vm.runInContext(functionSource('etiquetaArchivoLoteRev34'), context);
+  assert.equal(context.etiquetaArchivoLoteRev34(1, true), 'Archivar 1 seleccionado');
+  assert.equal(context.etiquetaArchivoLoteRev34(2, true), 'Archivar 2 seleccionados');
+  assert.equal(context.etiquetaArchivoLoteRev34(1, false), 'Desarchivar 1 seleccionado');
+});
+
 test('la fecha de archivado exportada es legible y no ISO crudo', () => {
   const dates = html.match(/const fFecha=[^\n]+\nconst fHora=[^\n]+\nconst fFH=[^\n]+/);
   assert.ok(dates);

@@ -4521,6 +4521,7 @@ function archivarProductoRev31(id,archivar,guardarAhora=true){
   if(guardarAhora){guardar();aviso(`${p.nombre} ${archivar?'archivado':'desarchivado'}`,'ok');}
   return true;
 }
+function etiquetaArchivoLoteRev34(cantidad,archivar){return `${archivar?'Archivar':'Desarchivar'} ${cantidad} seleccionado${cantidad===1?'':'s'}`;}
 function procesarArchivoLoteRev34(ids,archivar){
   if(!ids.length)return;
   const aplicar=()=>{
@@ -4531,7 +4532,7 @@ function procesarArchivoLoteRev34(ids,archivar){
     if(cambiados)aviso(`${pluralProductos(cambiados)} ${archivar?'archivados':'desarchivados'}`,'ok');
   };
   if(!archivar){aplicar();return;}
-  confirmar('Archivar productos',`Vas a archivar <b>${pluralProductos(ids.length)}</b>. Se quitarán de la lista activa, los pedidos y los tickets pendientes. Podés desarchivarlos después.`,aplicar,'Archivar productos');
+  confirmar(ids.length===1?'Archivar producto':'Archivar productos',`Vas a archivar <b>${pluralProductos(ids.length)}</b>. Se quitarán de la lista activa, los pedidos y los tickets pendientes. Podés desarchivarlos después.`,aplicar,ids.length===1?'Archivar producto':'Archivar productos');
 }
 function ofrecerDesarchivarRev31(p){
   confirmar('Producto archivado',`<b>${esc(p.nombre)}</b> está archivado. ¿Querés desarchivarlo y agregarlo al ticket?`,()=>{
@@ -4641,7 +4642,7 @@ function tablaProductos(){
   const c=$('#tabProd');
   const count=$('#prodCount');if(count)count.textContent=`${pluralProductos(l.length)} en el resultado`;
   const limpiar=$('#limpiarFiltros');if(limpiar)limpiar.hidden=!(fProd.q||fProd.rubros.length||fProd.actividad||fProd.estado==='archivados'||fProd.incompletos);
-  const lote=$('#accionLote');if(lote){lote.hidden=!selectedProductosRev31.size;lote.textContent=`${fProd.estado==='archivados'?'Desarchivar':'Archivar'} ${selectedProductosRev31.size} seleccionados`;}
+  const lote=$('#accionLote');if(lote){lote.hidden=!selectedProductosRev31.size;lote.textContent=etiquetaArchivoLoteRev34(selectedProductosRev31.size,fProd.estado!=='archivados');}
   if(!db.productos.length){
     c.innerHTML=`<div class="products-empty">
       <div class="products-empty-icon" aria-hidden="true">${ic('subir')}</div>
