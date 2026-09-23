@@ -101,6 +101,7 @@ function load() {
     'f32UpsertArray', 'f32AplicarVisible', 'f32bEstado', 'f32bCursorKey', 'f32bSetCursor',
     'f32bMapCierre', 'f32bMapOperacion', 'f32bDeviceFila', 'f32bAplicarVisible',
     'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'responsableCierre',
+    'montoDiferenciaCaja', 'motivoCierrePendiente',
     'esEgresoOperativo', 'vCaja',
   ];
   vm.runInContext([
@@ -193,6 +194,21 @@ test('el arqueo reserva el rojo para una diferencia negativa real', () => {
   contado.oninput();
   assert.equal(diferencia.className, 'cash-difference ok');
   assert.doesNotMatch(diferencia.innerHTML, /Falta|Sobra/);
+});
+
+test('Caja explica el botón de cierre deshabilitado y lo habilita al contar cero', () => {
+  const { context, main, nodes } = load();
+  context.f3Estado.session = { id:'turno-duenio', estado:'abierta' };
+  context.vCaja(main);
+  const boton = nodes.get('#cerrarCaja');
+  const ayuda = nodes.get('#ayudaCerrarCaja');
+  assert.equal(boton.disabled, true);
+  assert.match(ayuda.textContent, /caja general/);
+  const contado = nodes.get('#contadoG');
+  contado.value = '0';
+  contado.oninput();
+  assert.equal(boton.disabled, false);
+  assert.equal(ayuda.hidden, true);
 });
 
 test('sin turno y sin cierres muestra el historial vacío junto a Abrir turno', () => {

@@ -14,6 +14,8 @@ function page() {
   }
   function fn(name) {
     const from = source.indexOf(`function ${name}(`);
+    const lineEnd=source.indexOf('\n',from);
+    if(source.slice(from,lineEnd).trimEnd().endsWith('}'))return source.slice(from,lineEnd);
     return source.slice(from, source.indexOf('\n}', from) + 2);
   }
   const nodes = new Map();
@@ -75,7 +77,7 @@ function page() {
     between('const MOTIVOS_EGRESO=','\n/* F6_TURNOS_CORE_START */'),
     between('function tablaRep(l){','\n/* ── armador de pedido ── */'),
     between('function pintarMovimientosDia(){','\nfunction vMovimientos('),
-    fn('responsableCierre'), fn('htmlCierresAnteriores'), fn('vCaja'), fn('detalleVentaTexto'), fn('tablaVentasBusqueda'), fn('f33Css'), fn('f34Css')
+    fn('pluralProductos'),fn('responsableCierre'),fn('montoDiferenciaCaja'),fn('motivoCierrePendiente'), fn('htmlCierresAnteriores'), fn('vCaja'), fn('detalleVentaTexto'), fn('tablaVentasBusqueda'), fn('f33Css'), fn('f34Css')
   ].join('\n'),context);
   const productMain={innerHTML:''}; context.vProductos(productMain); context.formProducto();
   const productForm=capturedModal;
@@ -89,7 +91,9 @@ function page() {
   context.db.productos=products;context.panelIngreso();const invoiceForm=capturedModal;
   const css=source.match(/<style>([\s\S]*?)<\/style>/)[1]+context.f33Css()+context.f34Css();
   const activeMain={innerHTML:''};context.vCaja(activeMain);
-  const activeHtml=activeMain.innerHTML.replace(/<div id="ventasCajaTurno"[^>]*>/,tag=>tag+nodes.get('#ventasCajaTurno').innerHTML);
+  const activeHtml=activeMain.innerHTML
+    .replace(/<div id="ventasCajaTurno"[^>]*>/,tag=>tag+nodes.get('#ventasCajaTurno').innerHTML)
+    .replace(/(<div class="hint" id="ayudaCerrarCaja"[^>]*>)(<\/div>)/,(_all,open,close)=>open+context.motivoCierrePendiente('','',true)+close);
   context.formEgreso();const expenseForm=capturedModal;
   context.pintarMovimientosDia();
   const movimientosHtml='<h1>Movimientos de stock</h1><div class="card"><div class="card-h"><h2>Detalle del día</h2><span class="pill mute">'+nodes.get('#cuentaMovimientos').textContent+'</span></div>'+nodes.get('#tablaMovimientos').innerHTML+'</div>';

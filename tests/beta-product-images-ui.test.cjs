@@ -120,7 +120,8 @@ test('Productos y Para pedir renderizan la misma foto firmada', async () => {
     const ic=()=>'';
     const formAbrirAtado=()=>{}, formProducto=()=>{}, formAjuste=()=>{}, verHistorial=()=>{};
   `;
-  const context = loadUi(source, `${common}\n${productTable}\n${replenishTable}`);
+  const plural = sliceBetween(source, 'function pluralProductos(', '\nfunction contarProductosActivos(');
+  const context = loadUi(source, `${common}\n${plural}\n${productTable}\n${replenishTable}`);
   await context.f6PrepararFotosProductos([context.producto]);
   vm.runInContext('tablaProductos();this.productos=target.innerHTML;this.reponer=tablaRep([producto]);', context);
 

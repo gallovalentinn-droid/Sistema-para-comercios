@@ -10,7 +10,9 @@ function exportRules() {
   const serializer = html.match(/function csvSeguro\(v,decimalComa=false\)\{[\s\S]*?\n\}/);
   const block = html.match(/\/\* CATALOG_EXPORT_START \*\/([\s\S]*?)\/\* CATALOG_EXPORT_END \*\//);
   assert.ok(serializer && block, 'deben existir el serializador y las reglas de exportación');
-  return vm.runInNewContext(`${serializer[0]};${block[1]};({filasCatalogoExportacion,csvCatalogoExportacion})`);
+  const dates = html.match(/const fFecha=[^\n]+\nconst fHora=[^\n]+\nconst fFH=[^\n]+/);
+  assert.ok(dates, 'debe existir el formato de fecha visible');
+  return vm.runInNewContext(`${dates[0]};${serializer[0]};${block[1]};({filasCatalogoExportacion,csvCatalogoExportacion})`);
 }
 
 test('exporta todos los productos, incluidos los archivados, sin aplicar filtros de pantalla', () => {

@@ -1,13 +1,13 @@
 {
   "version": "6.0.0-f6-rc2",
-  "packageRevision": 33,
+  "packageRevision": 34,
   "algorithm": "sha256",
   "generatedAt": "2026-09-23",
   "files": {
     "index.html": "91cfcf41f8e044b277c9c8ba514feed1063e671b615d4667bb05de8fe73d5164",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "2aad4c1f8b29b55a0a351a514f1aac91d380f2dc9c53a66f055d376b3ee5a0a3",
-    "beta/sw.js": "0754a90b37565c786736e68ab83cd51a4b86c6c517d056e1b607c2b31586a029",
+    "beta/index.html": "fa5ea6724409ba4b5fe03972e3677186bf9d21c959f5013ccd272bac062e0ede",
+    "beta/sw.js": "fb0d067a607d9e20df5cce891f950e57bab949fed1d02d60afe48d00abc15b7f",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",

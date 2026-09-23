@@ -631,7 +631,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:33,
+  packageRevision:34,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3104,6 +3104,8 @@ function aviso(txt,tipo=''){
 }
 const prod=id=>db.productos.find(p=>p.id===id);
 const cli=id=>db.clientes.find(c=>c.id===id);
+function pluralProductos(n){return `${n} producto${n===1?'':'s'}`;}
+function contarProductosActivos(productos){return productos.filter(p=>!p.archivadoAt).length;}
 const bajo=p=>Number(p.stock)<=Number(p.stockMin);
 // para Reponer: los sueltos se excluyen porque no se le compran a nadie
 const seRepone=p=>!productoArchivadoRev31(p)&&bajo(p)&&!esSuelto(p);
@@ -3504,12 +3506,13 @@ function pintarFoot(){
   else { txt='Sin guardado automático'; color='var(--ambar)'; }
   const membership=f5MembresiaActual(),rolActual=String(membership&&membership.rol||'');
   const puedeBloquear=f3RolServidorAdmin();
+  const activosPie=contarProductosActivos(db.productos);
   f.innerHTML=`
     <div class="modo-caja">
       <span class="pill ${puedeBloquear?'info':'mute'}" style="font-size:11px">${esc(etiquetaRolVisible(rolActual,interfazProtegida))}</span>
       ${puedeBloquear?`<button class="btn text sm" id="btnBloqueoVisual" style="padding:2px 6px;color:#AEB7C4;font-size:11.5px">${interfazProtegida?'Desbloquear':'Bloquear'}</button>`:''}
     </div>
-    ${db.productos.length} productos · ${db.ventas.length} ventas
+    ${pluralProductos(activosPie)} activo${activosPie===1?'':'s'} · ${db.ventas.length} ventas
     ${f3Activo()?`<div style="margin-top:4px;font-size:10.5px;color:#AEB7C4">F3 shadow · ${esc(f3Estado.cajaCodigo||'caja')}</div>`:''}
     <div class="estado"><span class="dot" style="background:${color}"></span>${txt}</div>
     ${(sb&&sesion&&pendienteSubir&&enLinea&&!sincronizando)?`<button class="btn text sm" id="btnSync" style="padding:2px 0;color:#AEB7C4;font-size:11.5px">Reintentar ahora</button>`:''}
@@ -4518,6 +4521,18 @@ function archivarProductoRev31(id,archivar,guardarAhora=true){
   if(guardarAhora){guardar();aviso(`${p.nombre} ${archivar?'archivado':'desarchivado'}`,'ok');}
   return true;
 }
+function procesarArchivoLoteRev34(ids,archivar){
+  if(!ids.length)return;
+  const aplicar=()=>{
+    const cambiados=ids.filter(id=>archivarProductoRev31(id,archivar,false)).length;
+    selectedProductosRev31.clear();
+    if(cambiados)guardar();
+    render();
+    if(cambiados)aviso(`${pluralProductos(cambiados)} ${archivar?'archivados':'desarchivados'}`,'ok');
+  };
+  if(!archivar){aplicar();return;}
+  confirmar('Archivar productos',`Vas a archivar <b>${pluralProductos(ids.length)}</b>. Se quitarán de la lista activa, los pedidos y los tickets pendientes. Podés desarchivarlos después.`,aplicar,'Archivar productos');
+}
 function ofrecerDesarchivarRev31(p){
   confirmar('Producto archivado',`<b>${esc(p.nombre)}</b> está archivado. ¿Querés desarchivarlo y agregarlo al ticket?`,()=>{
     archivarProductoRev31(p.id,false);cerrarModal();seleccionarProducto(p);
@@ -4560,7 +4575,7 @@ function vProductos(m){
   const incompletos=activos.filter(productoIncompleto).length;
   m.innerHTML=`
   <div class="head">
-    <div><h1>Productos</h1><div class="sub">${catalogoVacio?'Todavía no cargaste ningún producto':`${activos.length} activos · ${activos.filter(bajo).length} en el mínimo o por debajo`}</div></div>
+    <div><h1>Productos</h1><div class="sub">${catalogoVacio?'Todavía no cargaste ningún producto':`${activos.length} activo${activos.length===1?'':'s'} · ${activos.filter(bajo).length} en el mínimo o por debajo`}</div></div>
     ${catalogoVacio?'':`<div class="products-actions">
       <div class="products-more">
         <button class="btn ghost products-more-trigger" id="bMasProductos" aria-haspopup="menu" aria-expanded="false" aria-controls="menuProductos"><span class="products-more-dots" aria-hidden="true">•••</span> Más opciones</button>
@@ -4606,7 +4621,7 @@ function vProductos(m){
   const bi=$('#filtrarIncompletos',m);if(bi)bi.onclick=()=>{fProd.incompletos=!fProd.incompletos;selectedProductosRev31.clear();escribirFiltrosRev31();vProductos(m);};
   const limpiar=$('#limpiarFiltros',m);if(limpiar)limpiar.onclick=()=>{fProd.q='';fProd.rubros=[];fProd.actividad='';fProd.estado='activos';fProd.incompletos=false;escribirFiltrosRev31();vProductos(m);};
   const seleccionar=$('#seleccionarFiltrados',m);if(seleccionar)seleccionar.onclick=()=>{listaFiltrada().forEach(p=>selectedProductosRev31.add(p.id));tablaProductos();};
-  const lote=$('#accionLote',m);if(lote)lote.onclick=()=>{const ids=[...selectedProductosRev31];ids.forEach(id=>archivarProductoRev31(id,fProd.estado!=='archivados',false));selectedProductosRev31.clear();guardar();render();aviso(`${ids.length} productos ${fProd.estado==='archivados'?'desarchivados':'archivados'}`,'ok');};
+  const lote=$('#accionLote',m);if(lote)lote.onclick=()=>procesarArchivoLoteRev34([...selectedProductosRev31],fProd.estado!=='archivados');
   tablaProductos();
 }
 
@@ -4624,7 +4639,7 @@ function listaFiltrada(){
 function tablaProductos(){
   const l=listaFiltrada();
   const c=$('#tabProd');
-  const count=$('#prodCount');if(count)count.textContent=`${l.length} productos en el resultado`;
+  const count=$('#prodCount');if(count)count.textContent=`${pluralProductos(l.length)} en el resultado`;
   const limpiar=$('#limpiarFiltros');if(limpiar)limpiar.hidden=!(fProd.q||fProd.rubros.length||fProd.actividad||fProd.estado==='archivados'||fProd.incompletos);
   const lote=$('#accionLote');if(lote){lote.hidden=!selectedProductosRev31.size;lote.textContent=`${fProd.estado==='archivados'?'Desarchivar':'Archivar'} ${selectedProductosRev31.size} seleccionados`;}
   if(!db.productos.length){
@@ -6292,7 +6307,7 @@ function vReponer(m){
   const enPedido=lineasPedido().length;
   m.innerHTML=`
   <div class="head">
-    <div><h1>Para pedir</h1><div class="sub">${l.length? `${l.length} productos llegaron al mínimo. Armá el pedido para volver al stock deseado.` : 'Todo por encima del mínimo.'}</div></div>
+    <div><h1>Para pedir</h1><div class="sub">${l.length? `${pluralProductos(l.length)} ${l.length===1?'llegó':'llegaron'} al mínimo. Armá el pedido para volver al stock deseado.` : 'Todo por encima del mínimo.'}</div></div>
     ${l.length?`<button class="btn" id="bPedido">Armar pedido${enPedido?` (${enPedido})`:''}</button>`:''}
   </div>
   ${l.length?`<div class="card" style="margin-bottom:16px"><div class="card-b">
@@ -6323,7 +6338,7 @@ function pintarReponer(){
   const total=db.productos.filter(seRepone);
   const l=listaReponerFiltrada();
   const c=$('#repCont');
-  const count=$('#repCount');if(count)count.textContent=`${l.length} productos en el resultado`;
+  const count=$('#repCount');if(count)count.textContent=`${pluralProductos(l.length)} en el resultado`;
   const limpiar=$('#repLimpiar');if(limpiar)limpiar.hidden=!(fRep.q||fRep.rubros.length);
   if(!total.length){ c.innerHTML=`<div class="card"><div class="empty"><b>No falta nada</b>Cuando un producto toque su stock mínimo aparece acá, con cuánto pedir para volver al deseado.</div></div>`; return; }
   if(!l.length){ c.innerHTML=`<div class="card"><div class="empty"><b>No encontramos productos</b>Filtros activos: ${fRep.q?`búsqueda “${esc(fRep.q)}”`:''}${fRep.q&&fRep.rubros.length?' · ':''}${fRep.rubros.length?`${fRep.rubros.length} rubros`:''}. Tus filtros no cambian el pedido.</div></div>`; return; }
@@ -7339,6 +7354,15 @@ function responsableCierre(c){
   const id=String(c&& (c.responsableId||c._v4userId)||'');
   return id?`Usuario ${id.slice(0,8)}`:'Este dispositivo';
 }
+function montoDiferenciaCaja(valor){
+  const n=Number(valor)||0;
+  return `${n>0?'+':n<0?'−':''}${$m(Math.abs(n))}`;
+}
+function motivoCierrePendiente(general,cigarrillos,moduloCigarros){
+  if(!String(general??'').trim())return 'Escribí el efectivo contado de caja general para habilitar el cierre. Si no hay efectivo, escribí 0.';
+  if(moduloCigarros&&!String(cigarrillos??'').trim())return 'Escribí el efectivo contado de caja de cigarrillos para habilitar el cierre. Si no hay efectivo, escribí 0.';
+  return '';
+}
 function htmlCierresAnteriores(){
   const todos=[...(db.cierres||[])].sort((a,b)=>(Date.parse(b.hasta)||0)-(Date.parse(a.hasta)||0));
   const responsables=[...new Set(todos.map(responsableCierre))].sort((a,b)=>a.localeCompare(b));
@@ -7352,9 +7376,9 @@ function htmlCierresAnteriores(){
         <td data-label="Ventas" class="r num">${c.cantVentas}</td>
         <td data-label="Vendido" class="r num" style="font-weight:600">${$m(c.total)}</td>
         <td data-label="Gral. contado" class="r num">${$m(c.contadoGeneral)}</td>
-        <td data-label="Gral. dif." class="r"><span class="pill ${Math.abs(c.diferenciaGeneral)<0.01?'ok':c.diferenciaGeneral<0?'bad':'warn'} num">${c.diferenciaGeneral>0?'+':''}${nfM.format(c.diferenciaGeneral)}</span></td>
+        <td data-label="Gral. dif." class="r"><span class="pill ${Math.abs(c.diferenciaGeneral)<0.01?'ok':c.diferenciaGeneral<0?'bad':'warn'} num">${montoDiferenciaCaja(c.diferenciaGeneral)}</span></td>
         <td data-label="Cigarrillos contado" class="r num">${$m(c.contadoCigarros)}</td>
-        <td data-label="Cigarrillos dif." class="r"><span class="pill ${Math.abs(c.diferenciaCigarros)<0.01?'ok':c.diferenciaCigarros<0?'bad':'warn'} num">${c.diferenciaCigarros>0?'+':''}${nfM.format(c.diferenciaCigarros)}</span></td>
+        <td data-label="Cigarrillos dif." class="r"><span class="pill ${Math.abs(c.diferenciaCigarros)<0.01?'ok':c.diferenciaCigarros<0?'bad':'warn'} num">${montoDiferenciaCaja(c.diferenciaCigarros)}</span></td>
         <td data-label="Nota" style="color:var(--muted);font-size:13px">${esc(c.nota||'—')}</td>
         <td class="r" style="white-space:nowrap"><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></td></tr>`).join('')}
       </tbody></table></div>`
@@ -7482,7 +7506,8 @@ function vCaja(m){
         <div class="card-b">
           <label class="f" for="notaC">Nota del cierre</label>
           <input id="notaC" class="inp" placeholder="Opcional: turno tarde, retiro, etc.">
-          <button class="btn big" id="cerrarCaja" style="margin-top:14px" disabled>Cerrar caja y guardar</button>
+          <button class="btn big" id="cerrarCaja" style="margin-top:14px" aria-describedby="ayudaCerrarCaja" disabled>Cerrar caja y guardar</button>
+          <div class="hint" id="ayudaCerrarCaja" role="status" style="margin-top:8px;line-height:1.5"></div>
           <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.55">Al cerrar se guarda una copia de seguridad automática de toda la base.</div>
         </div>
       </div>
@@ -7522,13 +7547,19 @@ function vCaja(m){
 
   const inpG=$('#contadoG'), inpC=$('#contadoC'), cerrarCaja=$('#cerrarCaja');
   function conteosCajaCompletos(){
-    return !!(inpG&&inpG.value.trim()!==''&&(!moduloCigarros||(inpC&&inpC.value.trim()!=='')));
+    return !motivoCierrePendiente(inpG?.value,inpC?.value,moduloCigarros);
   }
-  const actualizarEstadoCierre=()=>{if(cerrarCaja)cerrarCaja.disabled=!conteosCajaCompletos();};
+  const actualizarEstadoCierre=()=>{
+    if(!cerrarCaja)return;
+    const motivo=motivoCierrePendiente(inpG?.value,inpC?.value,moduloCigarros);
+    cerrarCaja.disabled=!!motivo;
+    cerrarCaja.title=motivo;
+    const ayuda=$('#ayudaCerrarCaja');if(ayuda){ayuda.textContent=motivo;ayuda.hidden=!motivo;}
+  };
   const actualizarDiferencia=(inp,esperado,box)=>{
     if(!inp||!box) return;
     inp.oninput=()=>{
-      if(inp.value===''){
+      if(inp.value.trim()===''){
         box.className='cash-difference neutral';
         box.innerHTML='<span>Diferencia</span><b>—</b>';
         actualizarEstadoCierre();
@@ -8149,7 +8180,7 @@ function filasCatalogoExportacion(productos){
       String(p.nombre||''),String(p.ean||''),String(p.rubro||''),String(p.proveedor||''),
       numero(p.costo),numero(p.precio),numero(p.stock),numero(p.stockMin),numero(p.stockDeseado),
       String(p.unidad||'unidad'),String(p.vence||''),p.archivadoAt?'Archivado':'Activo',
-      String(p.archivadoAt||''),String(p.archivadoPor||'')
+      p.archivadoAt?fFH(p.archivadoAt):'',String(p.archivadoPor||'')
     ])
   ];
 }
@@ -8162,7 +8193,7 @@ function descargarCatalogoCSV(){
   const url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download=`catalogo-productos-${hoy()}.csv`;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
-  aviso(`${db.productos.length} productos exportados a CSV`,'ok');
+  aviso(`${pluralProductos(db.productos.length)} exportado${db.productos.length===1?'':'s'} a CSV`,'ok');
 }
 function descargarCatalogoExcel(){
   if(typeof XLSX==='undefined'){aviso('No se pudo cargar Excel. Usá la opción CSV.','bad');return;}
@@ -8171,19 +8202,21 @@ function descargarCatalogoExcel(){
     ws['!cols']=[{wch:36},{wch:20},{wch:20},{wch:24},{wch:18},{wch:18},{wch:12},{wch:15},{wch:16},{wch:12},{wch:16},{wch:14},{wch:23},{wch:22}];
     XLSX.utils.book_append_sheet(wb,ws,'Productos');
     XLSX.writeFile(wb,`catalogo-productos-${hoy()}.xlsx`,{compression:true});
-    aviso(`${db.productos.length} productos exportados a Excel`,'ok');
+    aviso(`${pluralProductos(db.productos.length)} exportado${db.productos.length===1?'':'s'} a Excel`,'ok');
   }catch(error){console.error(error);aviso('No se pudo generar el Excel. Probá con CSV.','bad');}
 }
-function exportarProductos(d){
+function csvProductosVendidos(d){
   const filas=[['Producto','Rubro','Cantidad','Facturado']];
   d.productos.forEach(p=>{
     const pr=p.pid?prod(p.pid):null;
-    filas.push([p.nombre,(pr&&pr.rubro)||p.rubro||'',p.cant,p.importe.toFixed(2)]);
+    filas.push([p.nombre,(pr&&pr.rubro)||p.rubro||'',Number(p.cant)||0,Number(p.importe)||0]);
   });
-  const csv=filas.map(f=>f.map(csvSeguro).join(',')).join('\n');
-  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  return '\ufeff'+filas.map(f=>f.map(v=>csvSeguro(v,true)).join(';')).join('\r\n')+'\r\n';
+}
+function exportarProductos(d){
+  const blob=new Blob([csvProductosVendidos(d)],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=`productos-vendidos-${d.ini.slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  a.download=`productos-vendidos-${d.ini.slice(0,10)}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   aviso('Detalle descargado','ok');
 }
 
