@@ -64,6 +64,7 @@ function load() {
     db: { config: { moduloCigarros: false }, cierres: [], ventas: [], pagos: [], egresos: [] },
     snapshotLocal: { cierres: [] },
     f3Estado: { comercioId: commerceId, deviceUuid: ownerDevice, session: null },
+    f32RecuperacionReplay: false,
     F32_VERSION: 'test', F32B_VERSION: 'test',
     F32_CURSOR_ZERO: { ts: '1970-01-01T00:00:00.000Z', id: '00000000-0000-0000-0000-000000000000' },
     clonarLocal: clone,
@@ -99,7 +100,7 @@ function load() {
     'f5SesionIds', 'f32Iso', 'f32Cursor', 'f32EstadoPull', 'f32IdLocalRemoto',
     'f32BuscarLocalV4', 'f32BuscarLocalLegacy', 'f32LocalParaRemoto', 'f32ResolverIdLocal',
     'f32UpsertArray', 'f32AplicarVisible', 'f32bEstado', 'f32bCursorKey', 'f32bSetCursor',
-    'f32bMapCierre', 'f32bMapOperacion', 'f32bDeviceFila', 'f32bAplicarVisible',
+    'f32bMapEgreso', 'f32bMapVenta', 'f32bMapCierre', 'f32bMapOperacion', 'f32bDeviceFila', 'f32bAplicarVisible',
     'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'responsableCierre',
     'montoDiferenciaCaja', 'motivoCierrePendiente',
     'esEgresoOperativo', 'vCaja',
@@ -138,6 +139,42 @@ test('al cambiar de empleado a dueño en el mismo dispositivo recupera el cierre
   assert.equal(context.db.cierres[0].diferenciaGeneral, -50);
   assert.equal(durable.get('cierres:cierre-empleado')._v4id, closeId);
   assert.equal(context.f3Estado.pull.cursores.cierres_caja.id, closeId);
+});
+
+test('al reconstruir una copia local vacía recupera un egreso propio ya confirmado', async () => {
+  const { context, durable } = load();
+  context.f32RecuperacionReplay = true;
+  const egresoSpec = { tabla: 'egresos', coleccion: 'egresos', ts: 'received_at_server', kind: 'egreso' };
+  const row = {
+    id: '77777777-7777-4777-8777-777777777777', legacy_id: 'egreso-propio',
+    comercio_id: commerceId, device_id: ownerDevice, caja_sesion_id: sessionId,
+    session_segment_id: sessionId, monto: 100, forma: 'efectivo', caja_fisica: 'general',
+    motivo: 'Compra', nota: '', occurred_at_device: '2026-09-24T18:00:00Z',
+    received_at_server: '2026-09-24T18:00:01Z',
+  };
+  await context.f32bProcesarFila(egresoSpec, row, {});
+  assert.equal(context.db.egresos.length, 1);
+  assert.equal(context.db.egresos[0].monto, 100);
+  assert.equal(durable.get('egresos:egreso-propio')._v4id, row.id);
+});
+
+test('al reconstruir una copia local vacía recupera una venta propia sin duplicarla', async () => {
+  const { context, durable } = load();
+  context.f32RecuperacionReplay = true;
+  const saleSpec = { tabla: 'ventas', coleccion: 'ventas', ts: 'received_at_server', kind: 'venta' };
+  const row = {
+    id: '88888888-8888-4888-8888-888888888888', legacy_id: 'venta-propia',
+    comercio_id: commerceId, device_id: ownerDevice, caja_sesion_id: sessionId,
+    session_segment_id: sessionId, ticket_seq: 8, ticket_ref: 'CAJA-8',
+    subtotal: 1500, descuento_manual: 0, promo_auto: 0, promo_pago: 0,
+    total: 1500, forma: 'efectivo', recibido: 1500, vuelto: 0, monto_fiado: 0,
+    occurred_at_device: '2026-09-24T18:00:00Z', received_at_server: '2026-09-24T18:00:01Z',
+  };
+  await context.f32bProcesarFila(saleSpec, row, { items: [], componentes: [], pagos: [] });
+  await context.f32bProcesarFila(saleSpec, row, { items: [], componentes: [], pagos: [] });
+  assert.equal(context.db.ventas.length, 1);
+  assert.equal(context.db.ventas[0].total, 1500);
+  assert.equal(durable.get('ventas:venta-propia')._v4id, row.id);
 });
 
 test('repetir el pull del cierre no lo duplica ni altera su arqueo', async () => {

@@ -649,7 +649,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:41,
+  packageRevision:42,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -10044,7 +10044,7 @@ async function f32bProcesarFila(spec,row,extra,{desdeDiferido=false}={}){
   // Un cierre del mismo dispositivo sólo es eco si ya existe para este usuario.
   // Los demás tipos conservan su deduplicación para no repetir efectos de stock/saldo.
   const cierreLocal=spec.kind==='cierre'?f32LocalParaRemoto('cierres',row,db).actual:null;
-  if(deviceIdFila&&String(deviceIdFila)===String(f3Estado.deviceUuid||'')&&(spec.kind!=='cierre'||cierreLocal)){
+  if(!f32RecuperacionReplay&&deviceIdFila&&String(deviceIdFila)===String(f3Estado.deviceUuid||'')&&(spec.kind!=='cierre'||cierreLocal)){
     if(desdeDiferido)return {aplicados:0,borrados:0,diferidos:0,propiosOmitidos:1};
     return f32bAvanzarOmitida(spec,row,'propiosOmitidos');
   }
@@ -10219,17 +10219,52 @@ async function f32bDrenarOperacionesCompleto(opts={}){
   }
   throw new Error('F32B_OPERACIONES_CATCHUP_INCOMPLETO');
 }
+let f32RevisionLocalInicialScope='';
+let f32RecuperacionReplay=false;
+async function f32RecuperarCursoresSiFaltanDatos(){
+  const pull=f32EstadoPull();
+  if(pull.recuperacionPendiente===true)return true;
+  const fuentes=[
+    {tabla:'productos',coleccion:'productos',soloActivos:true},
+    {tabla:'clientes',coleccion:'clientes',soloActivos:true},
+    {tabla:'ventas',coleccion:'ventas',soloActivos:false},
+    {tabla:'cierres_caja',coleccion:'cierres',soloActivos:false}
+  ];
+  for(const fuente of fuentes){
+    const cursor=pull.cursores&&pull.cursores[fuente.tabla]||F32_CURSOR_ZERO;
+    if(f32CompararCursor(cursor,F32_CURSOR_ZERO)<=0)continue;
+    if(Array.isArray(db[fuente.coleccion])&&db[fuente.coleccion].length)continue;
+    let consulta=sb.from(fuente.tabla).select('id',{count:'exact',head:true}).eq('comercio_id',f3Estado.comercioId);
+    if(fuente.soloActivos)consulta=consulta.is('deleted_at',null);
+    const {count,error}=await consulta;
+    if(error)throw new Error(`F32_RECUPERACION_${fuente.tabla.toUpperCase()}:${error.message||error.code||'query'}`);
+    if((Number(count)||0)>0){
+      await f32PersistirFinalizacion({mutarPull:p=>{p.cursores={};p.recuperacionPendiente=true;}});
+      return true;
+    }
+  }
+  return false;
+}
 async function f32PullV4(opts={}){
   if(!sb||!sesion||!enLinea||!f3Activo()||!f3Estado.comercioId)return {ok:false,skip:true};
-  const projection=await f5RefrescarProyeccion();
-  // Catch-up completo con barreras: primero vacía maestros, después vacía cada stream
-  // operacional respetando su orden. Evita referencias sintéticas por límites de página.
-  const maestros=await f32bDrenarMaestrosAntesOperaciones(opts);
-  const operaciones=await f32bDrenarOperacionesCompleto(opts);
-  const pull=f32bEstado();pull.lastPullAt=new Date().toISOString();pull.lastError=null;
-  await f32PersistirFinalizacion();
-  if(typeof render==='function'&&((operaciones.aplicados||0)||(operaciones.borrados||0)))render();
-  return {ok:true,maestros,operaciones,manifestId:projection.manifest.id,coverage:projection.coverage};
+  const scope=`${sesion.user.id}:${f3Estado.comercioId}`;
+  if(f32RevisionLocalInicialScope!==scope){
+    try{await f32RecuperarCursoresSiFaltanDatos();f32RevisionLocalInicialScope=scope;}
+    catch(error){console.warn('F3.2 revisión de datos locales:',error);}
+  }
+  f32RecuperacionReplay=f32EstadoPull().recuperacionPendiente===true;
+  try{
+    const projection=await f5RefrescarProyeccion();
+    // Catch-up completo con barreras: primero vacía maestros, después vacía cada stream
+    // operacional respetando su orden. Evita referencias sintéticas por límites de página.
+    const maestros=await f32bDrenarMaestrosAntesOperaciones(opts);
+    const operaciones=await f32bDrenarOperacionesCompleto(opts);
+    const pull=f32bEstado();pull.lastPullAt=new Date().toISOString();pull.lastError=null;
+    pull.recuperacionPendiente=false;
+    await f32PersistirFinalizacion();
+    if(typeof render==='function'&&((operaciones.aplicados||0)||(operaciones.borrados||0)))render();
+    return {ok:true,maestros,operaciones,manifestId:projection.manifest.id,coverage:projection.coverage};
+  }finally{f32RecuperacionReplay=false;}
 }
 
 // ---------------- Compatibilidad multica caja con el legacy F3.1 ----------------
