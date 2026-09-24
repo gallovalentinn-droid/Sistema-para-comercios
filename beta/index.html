@@ -646,7 +646,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:36,
+  packageRevision:37,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3858,16 +3858,23 @@ let rev31ReabrirTrasCierre=false;
 function vAbrirTurnoRev31(m){
   const miembro=typeof f5MembresiaActual==='function'?f5MembresiaActual():null;
   const nombre=String(miembro&&(miembro.nombre_mostrado||miembro.nombre||miembro.usuario)||'').trim();
-  m.innerHTML=`<div class="head"><div><h1>Vender</h1><div class="sub">Primero abrí el turno para separar correctamente las ventas.</div></div></div><div class="card" style="max-width:620px"><div class="card-b"><h2>Abrir turno</h2><p class="hint">Ingresá el fondo inicial y quién está a cargo de la caja.</p><label class="f" for="rev31Fondo">Fondo inicial</label><input class="inp num" id="rev31Fondo" type="text" inputmode="decimal" autocomplete="off" value="${Number(db.config.fondoCaja)||0}"><label class="f" for="rev31Responsable" style="margin-top:12px">Quién abre</label><input class="inp" id="rev31Responsable" maxlength="120" value="${esc(nombre)}"><button type="button" class="btn" id="rev31Abrir" style="margin-top:18px">Abrir turno y vender</button></div></div>`;
+  const moduloCigarros=db.config.moduloCigarros!==false;
+  m.innerHTML=`<div class="head"><div><h1>Vender</h1><div class="sub">Primero abrí el turno para separar correctamente las ventas.</div></div></div><div class="card" style="max-width:620px"><div class="card-b"><h2>Abrir turno</h2><p class="hint">Ingresá el fondo inicial y quién está a cargo de la caja.</p><label class="f" for="rev31Fondo">${moduloCigarros?'Fondo inicial de caja general':'Fondo inicial'}</label><input class="inp num" id="rev31Fondo" type="text" inputmode="decimal" autocomplete="off" value="${Number(db.config.fondoCaja)||0}">${moduloCigarros?`<label class="f" for="rev31FondoCig" style="margin-top:12px">Fondo inicial de cigarrillos</label><input class="inp num" id="rev31FondoCig" type="text" inputmode="decimal" autocomplete="off" value="${Number(db.config.fondoCajaCigarros)||0}">`:''}<label class="f" for="rev31Responsable" style="margin-top:12px">Quién abre</label><input class="inp" id="rev31Responsable" maxlength="120" value="${esc(nombre)}"><button type="button" class="btn" id="rev31Abrir" style="margin-top:18px">Abrir turno y vender</button></div></div>`;
   $('#rev31Abrir',m).onclick=async()=>{
     const fondoTxt=$('#rev31Fondo',m).value,responsable=$('#rev31Responsable',m).value.trim();
     const fondoLeido=numImportacion(fondoTxt),fondo=fondoLeido.blank?0:fondoLeido.value;
     if(!fondoLeido.ok||!Number.isFinite(fondo)||fondo<0){aviso('Ingresá un fondo inicial válido','bad');return;}
+    let fondoCigarros=null;
+    if(moduloCigarros){
+      const leido=numImportacion($('#rev31FondoCig',m).value);
+      fondoCigarros=leido.blank?0:leido.value;
+      if(!leido.ok||!Number.isFinite(fondoCigarros)||fondoCigarros<0){aviso('Ingresá un fondo inicial de cigarrillos válido','bad');return;}
+    }
     if(!responsable){aviso('Indicá quién abre el turno','bad');return;}
     try{
       if(typeof f5ExigirEscritura==='function')f5ExigirEscritura('abrir_turno');
       const s=f3AsegurarSesionLocal();if(!s)throw new Error('SIN_SESION');
-      s.fondoGeneral=fondo;s.abiertoPor=responsable;s.abiertoPorId=String(miembro&&miembro.user_id||'');s.rev31AperturaExplicita=true;
+      s.fondoGeneral=fondo;if(moduloCigarros)s.fondoCigarros=fondoCigarros;s.abiertoPor=responsable;s.abiertoPorId=String(miembro&&miembro.user_id||'');s.rev31AperturaExplicita=true;
       await f3GuardarEstadoLocal();render();aviso('Turno abierto','ok');
     }catch(error){aviso('No se pudo abrir el turno. Revisá tu acceso a Caja.','bad');}
   };
@@ -8353,7 +8360,7 @@ function f5EmpleadosListaHtml(){
   const st=f5GestionEmpleados;
   if(st.loading)return '<div class="empty" style="padding:22px"><b>Cargando personas…</b>Estamos consultando los accesos del comercio.</div>';
   if(st.error)return `<div class="empty" style="padding:22px"><b>No pudimos cargar los empleados</b>${esc(st.error)}<button class="btn ghost sm" id="f5EmpleadosReintentar" style="margin-top:12px">Reintentar</button></div>`;
-  if(!st.items.length)return '<div class="empty" style="padding:22px"><b>Todavía no hay empleados</b>Creá el primero con el formulario de arriba.</div>';
+  if(!st.items.length)return '<div class="empty" style="padding:22px"><b>Todavía no hay empleados</b>Usá «Crear empleado» para agregar el primero.</div>';
   return st.items.map(miembro=>{
     const rol=String(miembro.rol||'empleado'),empleado=rol==='empleado',activo=miembro.activo!==false;
     const permisos=f5PermisosMiembroCompletos(miembro);
@@ -8518,6 +8525,8 @@ function vConfig(m){
   <div class="card config-card settings-wide" id="cf-empleados" style="margin-bottom:16px">
     <div class="card-h"><h2>Empleados</h2><div class="row"><span class="pill mute">Código: <b class="num" id="f5CodigoComercio">—</b></span><button type="button" class="btn ghost sm" id="copiarCodigoComercio">Copiar código</button></div></div>
     <div class="card-b">
+      <button type="button" class="btn" id="f5AbrirCrearEmpleado" aria-controls="f5CrearEmpleadoPanel" aria-expanded="false">Crear empleado</button>
+      <div id="f5CrearEmpleadoPanel" hidden style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
       <p class="hint" style="margin:0 0 14px">Creá una cuenta distinta para cada persona. Para ingresar usarán el código del comercio, su usuario y su clave; nunca necesitan la cuenta del dueño.</p>
       <div class="grid2">
         <div><label class="f" for="f5EmpleadoNombre">Nombre</label><input id="f5EmpleadoNombre" class="inp" maxlength="120" placeholder="Ej: Ana"></div>
@@ -8527,7 +8536,8 @@ function vConfig(m){
       <div style="margin-top:16px"><b style="font-size:14px">Qué podrá hacer</b><div class="grid2" style="margin-top:6px;gap:8px 18px">
         ${F5_EMPLOYEE_PERMISSION_KEYS.map(key=>{const copy=F5_PERMISO_EMPLEADO_UI[key],on=key==='ventas_registrar';return `<label style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;cursor:pointer"><input type="checkbox" data-f5-new-perm="${key}" ${on?'checked':''}><span><b style="font-size:14px">${copy[0]}</b><span class="sub-config">${copy[1]}</span></span></label>`;}).join('')}
       </div></div>
-      <button class="btn" id="f5CrearEmpleado" style="margin-top:14px">Crear empleado</button>
+      <div class="row" style="margin-top:14px;justify-content:flex-end"><button type="button" class="btn ghost" id="f5CancelarCrearEmpleado">Cancelar</button><button class="btn" id="f5CrearEmpleado">Guardar empleado</button></div>
+      </div>
       <div id="f5GestionEmpleadosNota" class="hint" style="margin-top:10px"></div>
       <div id="f5EmpleadosLista" style="margin-top:14px"><div class="empty" style="padding:22px"><b>Cargando personas…</b></div></div>
     </div>
@@ -8603,6 +8613,14 @@ function vConfig(m){
     if(!f3RolServidorAdmin())return;
     if(await f6SolicitarCambioPinDispositivo()){render();aviso('PIN de este dispositivo actualizado','ok');}
   };
+  const abrirCrearEmpleado=$('#f5AbrirCrearEmpleado'),panelCrearEmpleado=$('#f5CrearEmpleadoPanel');
+  const mostrarCrearEmpleado=mostrar=>{
+    panelCrearEmpleado.hidden=!mostrar;abrirCrearEmpleado.hidden=mostrar;
+    abrirCrearEmpleado.setAttribute('aria-expanded',String(mostrar));
+    if(mostrar)$('#f5EmpleadoNombre').focus();
+  };
+  abrirCrearEmpleado.onclick=()=>mostrarCrearEmpleado(true);
+  $('#f5CancelarCrearEmpleado').onclick=()=>mostrarCrearEmpleado(false);
   const verClave=$('#f5VerClave'),campoClave=$('#f5EmpleadoClave');if(verClave&&campoClave)verClave.onclick=()=>{
     const mostrar=campoClave.type==='password';campoClave.type=mostrar?'text':'password';verClave.textContent=mostrar?'Ocultar':'Mostrar';
   };
@@ -8615,7 +8633,12 @@ function vConfig(m){
     const permisos=Object.fromEntries($$('[data-f5-new-perm]').map(x=>[x.dataset.f5NewPerm,x.checked]));
     let payload;try{payload=f5PayloadCrearEmpleado({nombre:$('#f5EmpleadoNombre').value,usuario:$('#f5EmpleadoUsuario').value,clave:$('#f5EmpleadoClave').value},permisos);}catch(e){const code=String(e.message||e);aviso(code.includes('NOMBRE')?'Ingresá el nombre del empleado':code.includes('USUARIO')?'Usá un usuario con letras, números, punto, guion o guion bajo':'La clave debe tener al menos 8 caracteres','bad');return;}
     crearEmpleado.disabled=true;
-    try{await f5MembersRequest(payload);$('#f5EmpleadoNombre').value='';$('#f5EmpleadoUsuario').value='';$('#f5EmpleadoClave').value='';aviso('Empleado creado','ok');await f5CargarGestionEmpleados(true);}catch(e){aviso('No pudimos crear el empleado. Revisá si ese usuario ya existe.','bad');}finally{crearEmpleado.disabled=false;}
+    try{
+      await f5MembersRequest(payload);
+      $('#f5EmpleadoNombre').value='';$('#f5EmpleadoUsuario').value='';$('#f5EmpleadoClave').value='';
+      $$('[data-f5-new-perm]').forEach(x=>x.checked=x.dataset.f5NewPerm==='ventas_registrar');
+      mostrarCrearEmpleado(false);aviso('Empleado creado','ok');await f5CargarGestionEmpleados(true);
+    }catch(e){aviso('No pudimos crear el empleado. Revisá si ese usuario ya existe.','bad');}finally{crearEmpleado.disabled=false;}
   };
   const copiarCodigo=$('#copiarCodigoComercio');if(copiarCodigo)copiarCodigo.onclick=()=>{
     const codigo=f5GestionEmpleados.codigo||$('#f5CodigoComercio')?.textContent||'';
@@ -12305,7 +12328,7 @@ async function f6OnboardingPendiente(){
 }
 /* F6_ONBOARDING_GATE_CORE_END */
 const F6_WIZARD_COPY=Object.freeze({
-  datos_comercio:['Datos del comercio','Nombre, zona horaria y horario de corte del día.'],
+  datos_comercio:['Datos del comercio','Nombre y zona horaria de tu comercio.'],
   caja_inicial:['Caja inicial','Creá la primera caja y definí su fondo.'],
   modulos:['Funciones del sistema','Elegí qué módulos querés usar. Podés cambiarlos más adelante.'],
   productos:['Primer producto','Cargá al menos un producto para comprobar el circuito.'],
@@ -12314,7 +12337,7 @@ const F6_WIZARD_COPY=Object.freeze({
   comprobacion_final:['Comprobación final','Vamos a verificar la caja y el producto sin crear ventas ni movimientos.']
 });
 function f6CamposPaso(step){
-  if(step==='datos_comercio')return `<div class="onboarding-grid"><div class="wide"><label class="f" for="f6Nombre">Nombre del comercio</label><input class="inp" id="f6Nombre" required maxlength="160"></div><div><label class="f" for="f6Timezone">Zona horaria</label><select class="inp" id="f6Timezone"><option value="America/Argentina/Buenos_Aires">Argentina · Buenos Aires</option></select></div><div><label class="f" for="f6Cutoff">Corte del día</label><input class="inp" id="f6Cutoff" type="time" value="00:00" required></div></div>`;
+  if(step==='datos_comercio')return `<div class="onboarding-grid"><div class="wide"><label class="f" for="f6Nombre">Nombre del comercio</label><input class="inp" id="f6Nombre" required maxlength="160"></div><div class="wide"><label class="f" for="f6Timezone">Zona horaria</label><select class="inp" id="f6Timezone"><option value="America/Argentina/Buenos_Aires">Argentina · Buenos Aires</option></select></div></div>`;
   if(step==='caja_inicial')return `<div class="onboarding-grid"><div><label class="f" for="f6CajaCodigo">Código</label><input class="inp" id="f6CajaCodigo" value="CAJA-1" pattern="[A-Za-z0-9._-]+" required></div><div><label class="f" for="f6CajaNombre">Nombre</label><input class="inp" id="f6CajaNombre" value="Caja principal" required></div><div class="wide"><label class="f" for="f6Fondo">Fondo de caja</label><input class="inp num" id="f6Fondo" type="number" min="0" step="0.01" value="0" required></div></div>`;
   if(step==='modulos')return `<div class="onboarding-checks"><label><input type="checkbox" id="f6Fiado" checked> Cuenta corriente / fiado</label><label><input type="checkbox" id="f6Vencimientos" checked> Control de vencimientos</label><label><input type="checkbox" id="f6Cigarros"> Venta de cigarrillos</label></div><label class="f" for="f6ManejaTurnos" style="margin-top:16px">¿Manejás la caja por turnos?</label><select class="inp" id="f6ManejaTurnos"><option value="no">No, vendo sin apertura obligatoria</option><option value="si">Sí, quiero abrir un turno antes de vender</option></select><label class="f" for="f6Whatsapp" style="margin-top:16px">WhatsApp del dueño (opcional)</label><input class="inp" id="f6Whatsapp" maxlength="40" inputmode="tel">`;
   if(step==='productos')return `<div class="onboarding-grid"><div class="wide"><label class="f" for="f6ProductoNombre">Producto</label><input class="inp" id="f6ProductoNombre" placeholder="Ej.: Coca Cola 500 ml" maxlength="160" required></div><div><label class="f" for="f6ProductoRubro">Rubro</label><input class="inp" id="f6ProductoRubro" maxlength="120"></div><div><label class="f" for="f6ProductoEan">Código de barras</label><input class="inp" id="f6ProductoEan" maxlength="80"></div><div><label class="f" for="f6ProductoCosto">Costo</label><input class="inp num" id="f6ProductoCosto" type="number" min="0" step="0.01" value="0"></div><div><label class="f" for="f6ProductoPrecio">Precio</label><input class="inp num" id="f6ProductoPrecio" type="number" min="0" step="0.01" required></div><div><label class="f" for="f6ProductoStock">Stock inicial</label><input class="inp num" id="f6ProductoStock" type="number" min="0" step="0.001" value="0"></div></div>`;
@@ -12323,7 +12346,7 @@ function f6CamposPaso(step){
   return `<div class="invite-note">La comprobación no abre caja, no genera una venta y no modifica tus datos. Al aprobarse se activa la licencia por siete días exactos.</div>`;
 }
 function f6PayloadPaso(step){
-  if(step==='datos_comercio')return {nombre:$('#f6Nombre').value.trim(),timezone:$('#f6Timezone').value,business_day_cutoff:$('#f6Cutoff').value};
+  if(step==='datos_comercio')return {nombre:$('#f6Nombre').value.trim(),timezone:$('#f6Timezone').value,business_day_cutoff:'00:00'};
   if(step==='caja_inicial')return {codigo:$('#f6CajaCodigo').value.trim(),nombre:$('#f6CajaNombre').value.trim(),fondo_caja:Number($('#f6Fondo').value)};
   if(step==='modulos')return {modulo_fiado:$('#f6Fiado').checked,modulo_vencimientos:$('#f6Vencimientos').checked,modulo_cigarros:$('#f6Cigarros').checked,whatsapp_dueno:$('#f6Whatsapp').value.trim()};
   if(step==='productos')return {productos:[{nombre:$('#f6ProductoNombre').value.trim(),rubro:$('#f6ProductoRubro').value.trim(),ean:$('#f6ProductoEan').value.trim(),costo:Number($('#f6ProductoCosto').value||0),precio:Number($('#f6ProductoPrecio').value),stock_base:Number($('#f6ProductoStock').value||0)}]};
