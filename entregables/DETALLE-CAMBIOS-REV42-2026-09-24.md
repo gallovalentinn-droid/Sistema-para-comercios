@@ -18,6 +18,6 @@ La corrección no borra ni modifica productos, ventas, cierres o clientes en Sup
 
 - **Código:** identidad de build y caché actualizados juntos a REV42.
 - **Local:** las pruebas reproducen el cursor avanzado con catálogo local vacío y la recuperación de una venta y un egreso propios sin duplicación. Batería completa: 156/156; integridad: 14 archivos.
-- **Entorno público:** pendiente de verificar la publicación y de observar la recuperación autenticada en el dispositivo afectado.
+- **Entorno público:** `https://micomercio.ar/beta/` y `beta/sw.js` sirven archivos idénticos a los de REV42 (SHA-256 comprobado). Falta observar la recuperación autenticada en el dispositivo afectado; esta sesión no tiene acceso a su almacenamiento local.
 
 Para aplicar REV42 en un dispositivo con la pestaña abierta hay que recargar la beta y esperar a que termine la recuperación. No borrar datos del navegador ni cerrar caja mientras la pantalla permanezca vacía.
