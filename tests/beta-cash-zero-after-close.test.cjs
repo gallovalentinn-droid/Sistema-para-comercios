@@ -86,3 +86,37 @@ test('la apertura manual posterior a un cierre ofrece cero en ambas cajas', () =
   assert.match(main.innerHTML, /id="rev31Fondo"[^>]*value="0"/);
   assert.match(main.innerHTML, /id="rev31FondoCig"[^>]*value="0"/);
 });
+
+test('un turno abierto automáticamente antes de REV40 pierde el fondo heredado del cierre', () => {
+  const cierre = { hasta: '2026-09-24T18:26:44Z', _v4deviceId: 'dispositivo', _v4cajaId: 'caja', _v4sessionSegmentId: 'turno-1', _v4fondoGeneral: 5000, _v4fondoCigarros: 0, contadoGeneral: 38000 };
+  const context = {
+    f3Estado: { cajaId: 'caja', session: {
+      id: 'turno-2', sessionSegmentId: 'turno-2', estado: 'abierta', cajaId: 'caja', deviceId: 'dispositivo',
+      openedAtDevice: '2026-09-24T18:26:54Z', fondoGeneral: 5000, fondoCigarros: 0, rev31AperturaExplicita: true,
+    } },
+    db: { config: { fondoCaja: 8250, fondoCajaCigarros: 0 }, cierres: [cierre] },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${between('function f3NormalizarFondoPoscierreAntiguo(){', 'async function f3RegistrarDispositivoRemoto(')}\nthis.normalizar=f3NormalizarFondoPoscierreAntiguo;`, context);
+  assert.equal(context.normalizar(), true);
+  assert.equal(context.f3Estado.session.fondoGeneral, 0);
+  assert.equal(context.f3Estado.session.fondoCigarros, 0);
+  assert.equal(context.db.cierres[0].contadoGeneral, 38000);
+});
+
+test('la actualización respeta un fondo manual y un turno sin cierre anterior', () => {
+  const context = {
+    f3Estado: { cajaId: 'caja', session: {
+      id: 'turno-2', sessionSegmentId: 'turno-2', estado: 'abierta', cajaId: 'caja', deviceId: 'dispositivo',
+      openedAtDevice: '2026-09-24T18:26:54Z', fondoGeneral: 12000, fondoCigarros: 500, rev31AperturaExplicita: true,
+    } },
+    db: { config: { fondoCaja: 8250, fondoCajaCigarros: 0 }, cierres: [{ hasta: '2026-09-24T18:26:44Z', _v4deviceId: 'dispositivo', _v4cajaId: 'caja', _v4sessionSegmentId: 'turno-1', _v4fondoGeneral: 5000, _v4fondoCigarros: 0 }] },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${between('function f3NormalizarFondoPoscierreAntiguo(){', 'async function f3RegistrarDispositivoRemoto(')}\nthis.normalizar=f3NormalizarFondoPoscierreAntiguo;`, context);
+  assert.equal(context.normalizar(), false);
+  assert.equal(context.f3Estado.session.fondoGeneral, 12000);
+  assert.equal(context.f3Estado.session.fondoCigarros, 500);
+  context.db.cierres = [];
+  assert.equal(context.normalizar(), false);
+});

@@ -649,7 +649,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:40,
+  packageRevision:41,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -1431,6 +1431,26 @@ function f3AsegurarSesionLocal(){
   return f3Estado.session;
 }
 
+function f3NormalizarFondoPoscierreAntiguo(){
+  const actual=f3Estado&&f3Estado.session;
+  if(!actual||actual.estado!=='abierta'||actual.rev41FondoNormalizado||actual.rev31AperturaExplicita!==true)return false;
+  const abierto=Date.parse(actual.openedAtDevice||'');
+  if(!Number.isFinite(abierto))return false;
+  const fondoGeneral=Number(actual.fondoGeneral)||0,fondoCigarros=Number(actual.fondoCigarros)||0;
+  const cajaId=String(actual.cajaId||f3Estado.cajaId||''),deviceId=String(actual.deviceId||f3Estado.deviceUuid||'');
+  const segmentoId=String(actual.sessionSegmentId||actual.id||'');
+  const cierre=(db.cierres||[]).find(c=>{
+    const cerrado=Date.parse(c.hasta||'');
+    return Number.isFinite(cerrado)&&abierto>=cerrado&&abierto-cerrado<=60000&&
+      String(c._v4cajaId||'')===cajaId&&String(c._v4deviceId||'')===deviceId&&
+      String(c._v4sessionSegmentId||'')!==segmentoId;
+  });
+  if(!cierre||cierre._v4fondoGeneral==null||cierre._v4fondoCigarros==null||
+    fondoGeneral!==(Number(cierre._v4fondoGeneral)||0)||fondoCigarros!==(Number(cierre._v4fondoCigarros)||0))return false;
+  actual.fondoGeneral=0;actual.fondoCigarros=0;actual.rev41FondoNormalizado=true;
+  return true;
+}
+
 async function f3RegistrarDispositivoRemoto(ctx=null){
   const c=ctx||{};
   const comercioId=c.comercioId||f3Estado.comercioId;
@@ -2075,6 +2095,7 @@ async function f3Inicializar(){
   }
   if(f3ShadowSolicitado()&&f3Estado.comercioId&&f3Estado.cajaId){f3Estado.modo='shadow';f3ProgramarProcesador();if(enLinea)setTimeout(()=>f3ProcesarOutbox(),250);}
   else f3Estado.modo='off';
+  if(f3Activo())f3NormalizarFondoPoscierreAntiguo();
   await f3GuardarEstadoLocal();
   return f3Activo();
 }
