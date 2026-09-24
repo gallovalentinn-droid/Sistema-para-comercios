@@ -33,11 +33,12 @@ test('el alta inicial pide nombre y zona horaria sin exponer el corte del día',
   });
 });
 
-function turnoFixture(moduloCigarros, cigarrillos = '75,50') {
+function turnoFixture(moduloCigarros, cigarrillos = '75,50', sessionBefore = null) {
   const session = { fondoCigarros: 50 };
   const messages = [];
   const fields = {
     '#rev31Abrir': { onclick: null },
+    '#rev31IrCaja': { onclick: null },
     '#rev31Fondo': { value: '120,25' },
     '#rev31FondoCig': { value: cigarrillos },
     '#rev31Responsable': { value: ' Ana ' },
@@ -45,6 +46,7 @@ function turnoFixture(moduloCigarros, cigarrillos = '75,50') {
   let saved = 0;
   const context = {
     db: { config: { fondoCaja: 100, fondoCajaCigarros: 50, moduloCigarros } },
+    f3Estado: { session: sessionBefore },
     f5MembresiaActual: () => ({ nombre_mostrado: 'Ana', user_id: 'u1' }),
     esc: value => value,
     $: selector => fields[selector],
@@ -73,12 +75,12 @@ test('la apertura separa ambos fondos cuando está activa la caja de cigarrillos
   assert.equal(ui.saved(), 1);
 });
 
-test('la apertura no muestra caja de cigarrillos si la función está apagada', async () => {
+test('la apertura sin caja separada no agrega el fondo viejo de cigarrillos', async () => {
   const ui = turnoFixture(false);
   assert.doesNotMatch(ui.main.innerHTML, /id="rev31FondoCig"/);
   await ui.fields['#rev31Abrir'].onclick();
   assert.equal(ui.session.fondoGeneral, 120.25);
-  assert.equal(ui.session.fondoCigarros, 50);
+  assert.equal(ui.session.fondoCigarros, 0);
   assert.equal(ui.saved(), 1);
 });
 
@@ -88,6 +90,13 @@ test('un fondo de cigarrillos negativo impide abrir el turno', async () => {
   assert.equal(ui.saved(), 0);
   assert.equal(ui.session.rev31AperturaExplicita, undefined);
   assert.ok(ui.messages.some(([, kind]) => kind === 'bad'));
+});
+
+test('una caja implícita abierta debe cerrarse antes de iniciar turnos explícitos', () => {
+  const ui = turnoFixture(true, '75,50', { estado: 'abierta', rev31AperturaExplicita: false });
+  assert.match(ui.main.innerHTML, /Cerrá la caja antes de abrir un turno nuevo/);
+  assert.doesNotMatch(ui.main.innerHTML, /id="rev31Abrir"/);
+  assert.equal(ui.saved(), 0);
 });
 
 test('crear empleado despliega el formulario y cancelarlo conserva la lista visible', () => {

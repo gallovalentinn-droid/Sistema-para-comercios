@@ -582,6 +582,9 @@ body.offline .app{padding-top:34px}
 </style>
 </head>
 <body>
+<div class="login-wrap" id="startupLoading" role="status" aria-live="polite">
+  <div class="login-box" style="text-align:center"><span class="mk" aria-hidden="true"></span><h1>Abriendo el comercio…</h1><p class="sub">Estamos comprobando la conexión y los datos guardados en este dispositivo.</p></div>
+</div>
 <div class="login-wrap" id="loginWrap" hidden>
   <div class="login-box">
     <span class="mk" aria-hidden="true"></span>
@@ -646,7 +649,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:37,
+  packageRevision:40,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -693,8 +696,34 @@ const LEGACY_KEY='kiosco:db', LEGACY_BKP='kiosco:backup-auto';
 // Mientras diga "PEGA_TU..." el sistema funciona en modo local, sin login.
 const SUPABASE_URL = 'https://qrvdfqpxutymmlcplsal.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_17fSkmFnuBIvCrdqImIXHg_O9u8hTMp';
+let f6ArranqueActivo=true;
+let f6ArranqueDeadline=Date.now()+8000;
+function f6IniciarArranque(){f6ArranqueActivo=true;f6ArranqueDeadline=Date.now()+8000;}
+function f6TerminarArranque(){f6ArranqueActivo=false;}
+async function f6FetchArranque(input,init={}){
+  if(!f6ArranqueActivo)return fetch(input,init);
+  const restante=f6ArranqueDeadline-Date.now();
+  if(restante<=0)throw new Error('NETWORK_TIMEOUT');
+  const controller=new AbortController();
+  const original=init.signal||(input&&input.signal);
+  const cancelar=()=>controller.abort();
+  if(original){
+    if(original.aborted)controller.abort();
+    else original.addEventListener('abort',cancelar,{once:true});
+  }
+  const timer=setTimeout(()=>controller.abort(),restante);
+  try{
+    return await fetch(input,{...init,signal:controller.signal});
+  }catch(error){
+    if(controller.signal.aborted&&!(original&&original.aborted))throw new Error('NETWORK_TIMEOUT');
+    throw error;
+  }finally{
+    clearTimeout(timer);
+    if(original)original.removeEventListener('abort',cancelar);
+  }
+}
 const sb = (typeof supabase!=='undefined' && SUPABASE_URL.startsWith('http'))
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,{global:{fetch:f6FetchArranque},db:{retry:false}}) : null;
 
 /* F5_EMPLOYEE_LOGIN_CORE_START */
 function f5ErrorLoginEmpleado(code){const error=new Error(code);error.code=code;return error;}
@@ -1132,6 +1161,8 @@ function f3EstadoInicial(){
     rol:'', permisos:{}, cajaId:'', cajaCodigo:'', cajaNombre:'',
     deviceUuid:f3DeviceUuid('anon'),
     session:null,
+    fondoCeroProximoTurno:false,
+    fondoCeroProximoTurnoCajaId:'',
     f5:{version:1,scopes:{}},
     maestrosPreparadosAt:null,
     contextoCargado:false,
@@ -1200,7 +1231,7 @@ async function f5RefrescarProyeccion(){
   const coverage=await f5ValidarCoberturaServidor(manifest,manifest.collections);
   const current=f5Estado();
   f5ReemplazarEstado({...current,projection:{manifest,coverage,local,serverTime:r.data.server_time,checkedAt:new Date().toISOString()}});
-  if(typeof f3PersistirEstado==='function')await f3PersistirEstado();
+  await f3GuardarEstadoLocal();
   return {manifest,coverage,local};
 }
 
@@ -1384,17 +1415,19 @@ function f3MigrarPlaceholderSesionLocal(){
 function f3AsegurarSesionLocal(){
   if(!f3Activo()) return null;
   if(f3Estado.session&&f3Estado.session.estado==='abierta') return f3Estado.session;
+  const fondoCero=!!f3Estado.fondoCeroProximoTurno&&(!f3Estado.fondoCeroProximoTurnoCajaId||f3Estado.fondoCeroProximoTurnoCajaId===f3Estado.cajaId);
   f3Estado.session={
     id:f3Uuid(),
     cajaId:f3Estado.cajaId,
     deviceId:f3Estado.deviceUuid,
     openedAtDevice:new Date().toISOString(),
-    fondoGeneral:Number(db.config.fondoCaja)||0,
-    fondoCigarros:Number(db.config.fondoCajaCigarros)||0,
+    fondoGeneral:fondoCero?0:Number(db.config.fondoCaja)||0,
+    fondoCigarros:fondoCero?0:db.config.moduloCigarros!==false?(Number(db.config.fondoCajaCigarros)||0):0,
     estado:'abierta', serverOpened:false
   };
   f3Estado.session.rootSessionId=f3Estado.session.id;
   f3Estado.session.sessionSegmentId=f3Estado.session.id;
+  if(fondoCero){f3Estado.fondoCeroProximoTurno=false;f3Estado.fondoCeroProximoTurnoCajaId='';}
   return f3Estado.session;
 }
 
@@ -1606,6 +1639,8 @@ function f3MarcarSesionLocalCierrePendiente(cierre,op){
   if(!actual||ids.effectiveId!==f5SessionKey(cierre)) return false;
   // Se abre un turno nuevo localmente, pero el remoto no se declara cerrado hasta el ACK.
   actual.estado='cierre_pendiente';actual.closedAtDevice=cierre.hasta;actual.closeOperationId=op&&op.operationId||'';
+  f3Estado.fondoCeroProximoTurno=true;
+  f3Estado.fondoCeroProximoTurnoCajaId=String(actual.cajaId||f3Estado.cajaId||'');
   return true;
 }
 
@@ -2368,7 +2403,7 @@ function f3MutacionesMaestro(prev,actual){
   const keys=new Set([...Object.keys(pc),...Object.keys(dc)]);
   let cfg=false;
   for(const k of keys){
-    if(k==='nroVenta')continue;
+    if(k==='nroVenta'||k==='ultBackup')continue;
     if(JSON.stringify(pc[k])!==JSON.stringify(dc[k])){cfg=true;break;}
   }
   if(cfg)out.push('config');
@@ -2489,7 +2524,7 @@ function marcarCambiosSync(){
   const pc={...(prev.config||{})}, dc={...(db.config||{})};
   const clavesConfig=new Set([...Object.keys(pc),...Object.keys(dc)]);
   clavesConfig.forEach(k=>{
-    if(k==='nroVenta') return;
+    if(k==='nroVenta'||k==='ultBackup') return;
     if(JSON.stringify(pc[k])!==JSON.stringify(dc[k])){ db._configSync[k]=ahora; cambios.configChanged=true; cambios.hayCambios=true; }
     else if(!db._configSync[k]&&prev._configSync&&prev._configSync[k]) db._configSync[k]=prev._configSync[k];
   });
@@ -2909,6 +2944,8 @@ function cerrarSesion(){
   mostrarLogin();
 }
 function mostrarLogin(msg){
+  f6TerminarArranque();
+  const startup=document.getElementById('startupLoading');if(startup)startup.hidden=true;
   $('#appWrap').hidden=true;
   const onboarding=document.getElementById('onboardingWrap');if(onboarding)onboarding.hidden=true;
   $('#loginWrap').hidden=false;
@@ -2919,15 +2956,32 @@ function mostrarLogin(msg){
   setTimeout(()=>document.getElementById(view.focusId).focus(),50);
 }
 async function mostrarApp(){
+  if(!f6ArranqueActivo)f6IniciarArranque();
+  const startup=document.getElementById('startupLoading');if(startup)startup.hidden=true;
   $('#loginWrap').hidden=true;
   const onboarding=document.getElementById('onboardingWrap');if(onboarding)onboarding.hidden=true;
   $('#appWrap').hidden=false;
   $('#btnColapsar').onclick=toggleColapso;
   $('#brandMk').onclick=()=>{ if(railColapsado) toggleColapso(); };
-  await cargar();
-  await f3Inicializar();
-  await f6AsegurarProteccionDispositivo();
-  render();
+  $('#main').innerHTML='<div class="card"><div class="card-b" role="status">Abriendo el comercio y recuperando los datos guardados…</div></div>';
+  try{
+    await cargar();
+    await f3Inicializar();
+    await f6AsegurarProteccionDispositivo();
+    render();
+  }catch(error){
+    console.error('No se pudo abrir el comercio:',error);
+    const main=$('#main');
+    const detalle=String(error&&[error.code,error.message].filter(Boolean).join(' ')||error||'');
+    const sesionInvalida=/PGRST301|JWT.*(?:expired|invalid)|invalid.*JWT|invalid token|session.*expired|Auth session missing|\b401\b/i.test(detalle);
+    const sinPermiso=/\b42501\b|permission denied|forbidden|not authorized/i.test(detalle);
+    const mensaje=sesionInvalida?'Tu sesión venció o ya no es válida. Volvé a ingresar para abrir el comercio.':sinPermiso?'Tu cuenta no tiene permiso para abrir este comercio. Volvé a ingresar; si persiste, consultá al dueño.':'Revisá la conexión y volvé a intentar. Tus datos guardados siguen en este dispositivo.';
+    main.innerHTML=`<div class="card"><div class="card-b"><h2>No pudimos abrir el comercio</h2><p>${mensaje}</p><button type="button" class="btn" id="reintentarInicio">${sesionInvalida||sinPermiso?'Volver a ingresar':'Reintentar'}</button></div></div>`;
+    $('#reintentarInicio',main).onclick=sesionInvalida||sinPermiso?()=>cerrarSesion():()=>mostrarApp();
+    return;
+  }finally{
+    f6TerminarArranque();
+  }
   const u=db.config.ultBackup;
   if(!u||(Date.now()-new Date(u).getTime())>20*3600*1000){ if(db.productos.length){ await backupAuto(); } }
   if(db.config.moduloVencimientos!==false){
@@ -3026,6 +3080,17 @@ async function verificarHashPbkdf2(pin,stored){
 function f6DevicePinKey(userId,currentDeviceId){
   return `micomercio:device-pin:${String(userId||'anon')}:${String(currentDeviceId||'WEB')}`;
 }
+function f6PinIntentosKey(userId){return `micomercio:pin-intentos:${String(userId||'anon')}:${deviceId}`;}
+function f6PinIntentos(userId){
+  try{const value=JSON.parse(localStorage.getItem(f6PinIntentosKey(userId))||'{}');return {fallos:Math.max(0,Number(value.fallos)||0),hasta:Math.max(0,Number(value.hasta)||0)};}
+  catch(_){return {fallos:0,hasta:0};}
+}
+function f6PinEsperaMs(userId){return Math.max(0,f6PinIntentos(userId).hasta-Date.now());}
+function f6RegistrarFalloPin(userId){
+  const fallos=f6PinIntentos(userId).fallos+1;
+  const demora=fallos>=5?Math.min(15*60*1000,30*1000*2**Math.min(5,fallos-5)):0;
+  try{localStorage.setItem(f6PinIntentosKey(userId),JSON.stringify({fallos,hasta:Date.now()+demora}));}catch(_){}
+}
 function f6LeerDevicePin(){
   try{return localStorage.getItem(f6DevicePinKey(sesion&&sesion.user&&sesion.user.id,deviceId))||'';}catch(_e){return '';}
 }
@@ -3047,8 +3112,12 @@ function f6CrearIntentoProteccion(userId){
 }
 async function f6VerificarPinVigente(pin,intento){
   if(!intento||!intento.vigente())return false;
+  if(f6PinEsperaMs(intento.userId)>0)return false;
   const coincide=await verificarPin(pin,intento);
-  return !!(coincide&&intento.vigente());
+  if(!intento.vigente())return false;
+  if(coincide){try{localStorage.removeItem(f6PinIntentosKey(intento.userId));}catch(_){}return true;}
+  f6RegistrarFalloPin(intento.userId);
+  return false;
 }
 async function f6CambiarPinDispositivo({password,pinNuevo,pinRepetido,intento}){
   const nuevo=String(pinNuevo||'').trim();
@@ -3061,6 +3130,7 @@ async function f6CambiarPinDispositivo({password,pinNuevo,pinRepetido,intento}){
   const nuevoHash=await hashPin(nuevo);
   if(!intento.vigente())return false;
   f6GuardarDevicePin(nuevoHash);
+  try{localStorage.removeItem(f6PinIntentosKey(intento.userId));}catch(_){}
   if(db.config.pinHash||db.config.pinDuenio){db.config.pinHash='';db.config.pinDuenio='';guardar();}
   return true;
 }
@@ -3401,7 +3471,7 @@ async function f6AsegurarProteccionDispositivo(){
             const ok=await f6VerificarPinVigente(inp.value.trim(),intento);
             if(!intento.vigente())return;
             if(ok){interfazProtegida=false;finalizar(true);cerrarModal();}
-            else{aviso('PIN incorrecto','bad');inp.value='';inp.focus();}
+            else{const espera=f6PinEsperaMs(intento.userId);aviso(espera?`Demasiados intentos. Probá de nuevo en ${Math.ceil(espera/1000)} segundos.`:'PIN incorrecto','bad');inp.value='';inp.focus();}
           };
           inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();probar();}};
           $('#okPin',contenedor).onclick=probar;
@@ -3704,6 +3774,7 @@ function comboStockDisponible(combo){
   return Math.min(...combo.items.map(it=>{const p=prod(it.prodId); return p? Math.floor(Number(p.stock)/it.cant) : 0;}));
 }
 function agregarComboAlTicket(combo,cant=1){
+  if((combo.items||[]).some(it=>!prod(it.prodId))){aviso('Este combo tiene un producto eliminado. Revisalo antes de vender.','bad');return;}
   const id='combo:'+combo.id;
   const l=ticket.find(i=>i.id===id);
   if(l) l.cant+=cant;
@@ -3856,10 +3927,19 @@ const totalTicket=()=>Math.max(0,Math.round((subtotalTicket()-descuentoPromoAuto
 
 let rev31ReabrirTrasCierre=false;
 function vAbrirTurnoRev31(m){
+  const sesionAnterior=f3Estado&&f3Estado.session;
+  if(sesionAnterior&&sesionAnterior.estado==='abierta'&&!sesionAnterior.rev31AperturaExplicita){
+    m.innerHTML='<div class="head"><div><h1>Vender</h1><div class="sub">Hay una caja abierta con movimientos anteriores.</div></div></div><div class="card"><div class="card-b"><h2>Cerrá la caja antes de abrir un turno nuevo</h2><p>Así las ventas anteriores conservan su fondo y el turno nuevo comienza con sus propios importes.</p><button type="button" class="btn" id="rev31IrCaja">Ir a Caja</button></div></div>';
+    $('#rev31IrCaja',m).onclick=()=>{globalThis.__miCajaVista='cierre';ir('caja');};
+    return;
+  }
   const miembro=typeof f5MembresiaActual==='function'?f5MembresiaActual():null;
   const nombre=String(miembro&&(miembro.nombre_mostrado||miembro.nombre||miembro.usuario)||'').trim();
   const moduloCigarros=db.config.moduloCigarros!==false;
-  m.innerHTML=`<div class="head"><div><h1>Vender</h1><div class="sub">Primero abrí el turno para separar correctamente las ventas.</div></div></div><div class="card" style="max-width:620px"><div class="card-b"><h2>Abrir turno</h2><p class="hint">Ingresá el fondo inicial y quién está a cargo de la caja.</p><label class="f" for="rev31Fondo">${moduloCigarros?'Fondo inicial de caja general':'Fondo inicial'}</label><input class="inp num" id="rev31Fondo" type="text" inputmode="decimal" autocomplete="off" value="${Number(db.config.fondoCaja)||0}">${moduloCigarros?`<label class="f" for="rev31FondoCig" style="margin-top:12px">Fondo inicial de cigarrillos</label><input class="inp num" id="rev31FondoCig" type="text" inputmode="decimal" autocomplete="off" value="${Number(db.config.fondoCajaCigarros)||0}">`:''}<label class="f" for="rev31Responsable" style="margin-top:12px">Quién abre</label><input class="inp" id="rev31Responsable" maxlength="120" value="${esc(nombre)}"><button type="button" class="btn" id="rev31Abrir" style="margin-top:18px">Abrir turno y vender</button></div></div>`;
+  const fondoCero=!!f3Estado.fondoCeroProximoTurno&&(!f3Estado.fondoCeroProximoTurnoCajaId||f3Estado.fondoCeroProximoTurnoCajaId===f3Estado.cajaId);
+  const fondoInicial=fondoCero?0:Number(db.config.fondoCaja)||0;
+  const fondoInicialCig=fondoCero?0:Number(db.config.fondoCajaCigarros)||0;
+  m.innerHTML=`<div class="head"><div><h1>Vender</h1><div class="sub">Primero abrí el turno para separar correctamente las ventas.</div></div></div><div class="card" style="max-width:620px"><div class="card-b"><h2>Abrir turno</h2><p class="hint">Ingresá el fondo inicial y quién está a cargo de la caja.</p><label class="f" for="rev31Fondo">${moduloCigarros?'Fondo inicial de caja general':'Fondo inicial'}</label><input class="inp num" id="rev31Fondo" type="text" inputmode="decimal" autocomplete="off" value="${fondoInicial}">${moduloCigarros?`<label class="f" for="rev31FondoCig" style="margin-top:12px">Fondo inicial de cigarrillos</label><input class="inp num" id="rev31FondoCig" type="text" inputmode="decimal" autocomplete="off" value="${fondoInicialCig}">`:''}<label class="f" for="rev31Responsable" style="margin-top:12px">Quién abre</label><input class="inp" id="rev31Responsable" maxlength="120" value="${esc(nombre)}"><button type="button" class="btn" id="rev31Abrir" style="margin-top:18px">Abrir turno y vender</button></div></div>`;
   $('#rev31Abrir',m).onclick=async()=>{
     const fondoTxt=$('#rev31Fondo',m).value,responsable=$('#rev31Responsable',m).value.trim();
     const fondoLeido=numImportacion(fondoTxt),fondo=fondoLeido.blank?0:fondoLeido.value;
@@ -3873,8 +3953,10 @@ function vAbrirTurnoRev31(m){
     if(!responsable){aviso('Indicá quién abre el turno','bad');return;}
     try{
       if(typeof f5ExigirEscritura==='function')f5ExigirEscritura('abrir_turno');
+      const anterior=f3Estado&&f3Estado.session;
+      if(anterior&&anterior.estado==='abierta'&&!anterior.rev31AperturaExplicita){aviso('Cerrá la caja abierta antes de comenzar un turno nuevo.','bad');return;}
       const s=f3AsegurarSesionLocal();if(!s)throw new Error('SIN_SESION');
-      s.fondoGeneral=fondo;if(moduloCigarros)s.fondoCigarros=fondoCigarros;s.abiertoPor=responsable;s.abiertoPorId=String(miembro&&miembro.user_id||'');s.rev31AperturaExplicita=true;
+      s.fondoGeneral=fondo;s.fondoCigarros=moduloCigarros?fondoCigarros:0;s.abiertoPor=responsable;s.abiertoPorId=String(miembro&&miembro.user_id||'');s.rev31AperturaExplicita=true;
       await f3GuardarEstadoLocal();render();aviso('Turno abierto','ok');
     }catch(error){aviso('No se pudo abrir el turno. Revisá tu acceso a Caja.','bad');}
   };
@@ -4205,7 +4287,7 @@ function asignarNetosVenta(v){
   let asignado=0;
   bases.forEach((x,ix)=>{
     let n;
-    if(ix===bases.length-1) n=Math.max(0,(Number(v.total)||0)-asignado);
+    if(ix===bases.length-1) n=Math.max(0,Math.round(((Number(v.total)||0)-asignado)*100)/100);
     else {
       const peso=puedeReconstruir?(sumaBase?x.base/sumaBase:0):((bases.reduce((a,z)=>a+z.bruto,0))?x.bruto/bases.reduce((a,z)=>a+z.bruto,0):0);
       n=Math.max(0,Math.round((Number(v.total)||0)*peso*100)/100);
@@ -4709,6 +4791,12 @@ function tablaProductos(){
   $$('[data-archivar]',c).forEach(b=>b.onclick=()=>{archivarProductoRev31(b.dataset.archivar,!productoArchivadoRev31(prod(b.dataset.archivar)));selectedProductosRev31.delete(b.dataset.archivar);render();});
 }
 
+function evaluarPrecioProducto(raw,confirmado=false){
+  const leido=numImportacion(String(raw||'').trim());
+  if(leido.blank||!leido.ok||!Number.isFinite(leido.value)||leido.value<0)return {ok:false,requiereConfirmacion:false,precio:null};
+  if(leido.value===0&&!confirmado)return {ok:false,requiereConfirmacion:true,precio:0};
+  return {ok:true,requiereConfirmacion:false,precio:leido.value};
+}
 function formProducto(id,pre={},luego){
   const p=id?prod(id):null;
   const v=p||{ean:pre.ean||'',nombre:'',rubro:'',proveedor:'',costo:'',precio:'',stock:0,stockMin:3,stockDeseado:'',unidad:'unidad',origenId:'',porAtado:20,vence:''};
@@ -4848,11 +4936,13 @@ function formProducto(id,pre={},luego){
       $('#f_origen',ov).onchange=mg;
       $('#f_porAtado',ov).oninput=mg;
       etiquetas();
-      $('#f_cos',ov).oninput=mg; $('#f_pre',ov).oninput=mg;
+      $('#f_cos',ov).oninput=mg; $('#f_pre',ov).oninput=()=>{ov.dataset.precioCeroRevisado='';mg();};
       $('#f_' + (v.ean?'nom':'ean'),ov).focus();
       const bb=$('#borrar',ov);
       if(bb) bb.onclick=()=>{
         const hijos=sueltosDe(p.id);
+         const combosAfectados=(db.combos||[]).filter(c=>(c.items||[]).some(it=>it.prodId===p.id));
+         if(combosAfectados.length){aviso(`Este producto integra ${combosAfectados.length} combo${combosAfectados.length===1?'':'s'}. Editá esos combos o archivá el producto antes de eliminarlo.`, 'bad');return;}
         cerrarModal();confirmar('Eliminar producto',
         `Vas a borrar <b>${esc(p.nombre)}</b>. El historial de movimientos queda, pero el producto sale del listado y del buscador.`
         +(hijos.length?`<br><br><b style="color:var(--ambar)">Ojo:</b> ${hijos.map(h=>esc(h.nombre)).join(', ')} ${hijos.length===1?'sale':'salen'} de este atado y ${hijos.length===1?'va a quedar':'van a quedar'} sin origen.`:''),
@@ -4877,7 +4967,13 @@ function formProducto(id,pre={},luego){
         const or=su?prod(origenId):null;
         const costo=su ? (or?Math.round((Number(or.costo)||0)/upa*10000)/10000 : 0) : num($('#f_cos',ov).value);
         const leerStock=tipo==='kg'?numCantidad:num;
-        const precio=num($('#f_pre',ov).value), stockMin=leerStock($('#f_min',ov).value), stockDeseado=leerStock($('#f_des',ov).value);
+        const precioEstado=evaluarPrecioProducto($('#f_pre',ov).value,ov.dataset.precioCeroRevisado==='1');
+        if(!precioEstado.ok){
+          if(precioEstado.requiereConfirmacion){ov.dataset.precioCeroRevisado='1';aviso('El precio es $0. Revisalo o tocá Guardar otra vez para confirmarlo.','bad');}
+          else aviso('Ingresá un precio de venta válido. Si el producto es gratuito, escribí 0 y confirmalo.','bad');
+          $('#f_pre',ov).focus();return;
+        }
+        const precio=precioEstado.precio, stockMin=leerStock($('#f_min',ov).value), stockDeseado=leerStock($('#f_des',ov).value);
         const stockNuevo=p?Number(p.stock):(tipo==='kg'?numCantidad($('#f_stk',ov).value):num($('#f_stk',ov).value));
         if(costo<0||precio<0||stockMin<0||stockDeseado<0||stockNuevo<0){aviso('Costo, precio y stock no pueden ser negativos','bad');return;}
         const rubro=resolverRubroProducto(selRubro.value,inpRubroNuevo.value);
@@ -5367,6 +5463,9 @@ function analizarImportacion(){
     if(p._existente&&p.ean){
       const dup=db.productos.find(x=>String(x.ean||'').trim()===p.ean&&x.id!==p._existente.id);
       if(dup) p._errores.push(`Código ya usado por “${dup.nombre}”`);
+    }
+    if(!p._existente&&p._precioBlank){
+      p._errores.push('Precio: completalo o escribí 0 si es gratuito');
     }
   });
   return rows;
@@ -7492,7 +7591,7 @@ function vCaja(m){
       <div class="card">
         <div class="card-b">
           <table class="cash-calculation">
-            <tr><td style="padding-left:0">Fondo inicial${!moduloCigarros&&Number(db.config.fondoCajaCigarros||0)?' (incluye fondo de cigarrillos)':''}</td><td class="r num">${$m(fondoGeneralEfectivo)}</td></tr>
+            <tr><td style="padding-left:0">Fondo inicial${!moduloCigarros&&fondoCigarrosTurno?' (incluye fondo de cigarrillos)':''}</td><td class="r num">${$m(fondoGeneralEfectivo)}</td></tr>
             <tr><td style="padding-left:0">Ventas en efectivo</td><td class="r num">+ ${$m(t.genEfectivo)}</td></tr>
             <tr><td style="padding-left:0">Cobros de fiado en efectivo</td><td class="r num">+ ${$m(t.cobEfectivo)}</td></tr>
             ${t.egrGeneral>0?`<tr><td style="padding-left:0">Egresos</td><td class="r num">– ${$m(t.egrGeneral)}</td></tr>`:''}
@@ -7535,13 +7634,14 @@ function vCaja(m){
         </div>
       </div>
       <div class="card cash-action-card">
-        <div class="card-h"><h2>Fondos iniciales</h2></div>
+        <div class="card-h"><h2>Fondos predeterminados de apertura</h2></div>
         <div class="card-b">
+          <div class="hint" style="margin-bottom:12px">Estos importes no cambian el turno abierto. Después de cada cierre, el turno siguiente empieza en $0; si dejás efectivo como fondo, ingresalo al abrirlo manualmente.</div>
           <label class="f" for="fondo">Caja general</label>
           <div class="row"><input class="inp num" id="fondo" value="${db.config.fondoCaja||0}" style="flex:1"></div>
           ${moduloCigarros?`<label class="f" for="fondoCig" style="margin-top:12px">Caja de cigarrillos</label>
-          <div class="row"><input class="inp num" id="fondoCig" value="${db.config.fondoCajaCigarros||0}" style="flex:1"></div>`:`<div class="hint" style="margin-top:12px">El fondo guardado de cigarrillos (${ $m(db.config.fondoCajaCigarros||0) }) se suma automáticamente a la caja general mientras la caja separada esté desactivada.</div>`}
-          <button class="btn ghost" id="okFondo" style="margin-top:12px;width:100%">Guardar fondos</button>
+          <div class="row"><input class="inp num" id="fondoCig" value="${db.config.fondoCajaCigarros||0}" style="flex:1"></div>`:`<div class="hint" style="margin-top:12px">El fondo anterior de cigarrillos se conserva como sugerencia si volvés a activar la caja separada. No se agrega a un turno nuevo mientras está desactivada.</div>`}
+          <button class="btn ghost" id="okFondo" style="margin-top:12px;width:100%">Guardar sugerencias</button>
         </div>
       </div>
       </div>
@@ -7615,7 +7715,7 @@ function vCaja(m){
   $('#okFondo').onclick=()=>{
     db.config.fondoCaja=num($('#fondo').value);
     const fondoCig=$('#fondoCig'); if(fondoCig) db.config.fondoCajaCigarros=num(fondoCig.value);
-    guardar();render();aviso('Fondos actualizados','ok');
+    guardar();render();aviso('Fondos predeterminados actualizados','ok');
   };
   $('#cerrarCaja').onclick=()=>{
     if(!conteosCajaCompletos()){
@@ -7762,18 +7862,27 @@ function vMovimientos(m){
 /* ═══════════════════════════════════════════════════════
    9. RESPALDO
    ═══════════════════════════════════════════════════════ */
+function backupCloudScope(){
+  if(!(sb&&sesion&&enLinea))return null;
+  if(f3Estado&&f3Estado.comercioId){
+    if(!f3RolServidorAdmin())return null;
+    return {tabla:'backups_comercio_v4',id:f3Estado.comercioId};
+  }
+  return {tabla:'backups_kiosco',id:sesion.user.id};
+}
 async function backupAuto(){
   const fecha=new Date().toISOString();
   const copia={fecha,db:deepCopy(db)};
   let ok=false;
-  if(sb&&sesion&&enLinea){
+  const cloud=backupCloudScope();
+  if(cloud){
     try{
-      const {error}=await sb.from('backups_kiosco').insert({comercio_id:sesion.user.id,fecha,db:copia.db});
+      const {error}=await sb.from(cloud.tabla).insert({comercio_id:cloud.id,fecha,db:copia.db});
       if(error) throw error;
       ok=true;
       // Retención: dejamos las 20 copias más recientes del comercio.
-      const {data:viejos}=await sb.from('backups_kiosco').select('id').eq('comercio_id',sesion.user.id).order('fecha',{ascending:false}).range(20,99);
-      if(viejos&&viejos.length) await sb.from('backups_kiosco').delete().in('id',viejos.map(x=>x.id));
+      const {data:viejos}=await sb.from(cloud.tabla).select('id').eq('comercio_id',cloud.id).order('fecha',{ascending:false}).range(20,99);
+      if(viejos&&viejos.length) await sb.from(cloud.tabla).delete().eq('comercio_id',cloud.id).in('id',viejos.map(x=>x.id));
     }catch(e){ console.error('Backup nube:',e); }
   }
   // F1: la copia local de emergencia también vive en IndexedDB y no consume la cuota de localStorage.
@@ -7783,9 +7892,10 @@ async function backupAuto(){
   return ok;
 }
 async function obtenerBackupAuto(){
-  if(sb&&sesion&&enLinea){
+  const cloud=backupCloudScope();
+  if(cloud){
     try{
-      const {data,error}=await sb.from('backups_kiosco').select('fecha,db').eq('comercio_id',sesion.user.id).order('fecha',{ascending:false}).limit(1).maybeSingle();
+      const {data,error}=await sb.from(cloud.tabla).select('fecha,db').eq('comercio_id',cloud.id).order('fecha',{ascending:false}).limit(1).maybeSingle();
       if(error) throw error;
       if(data&&data.db) return {fecha:data.fecha,db:data.db};
     }catch(e){ console.error('No se pudo leer backup nube:',e); }
@@ -7809,6 +7919,7 @@ function descargarBackup(){
 function restaurar(obj,origen){
   const d=obj.db||obj;
   if(!d||!Array.isArray(d.productos)){aviso('Ese archivo no es una copia válida','bad');return;}
+  if(sb&&sesion){aviso('La restauración local no está disponible con sincronización activa. Descargá la copia y solicitá una recuperación del comercio al soporte.','bad');return;}
   modal({titulo:'Restaurar copia',cuerpo:`
     <div class="ux-banner bad"><div><b>Esta acción reemplaza todos los datos actuales.</b><br>La copia ${esc(origen)} contiene ${d.productos.length} productos, ${(d.ventas||[]).length} ventas y ${(d.clientes||[]).length} clientes.</div></div>
     <label class="f" for="confirmarRestauracion" style="margin-top:16px">Confirmá escribiendo RESTAURAR</label>
@@ -8232,7 +8343,7 @@ function csvProductosVendidos(d){
   const filas=[['Producto','Rubro','Cantidad','Facturado']];
   d.productos.forEach(p=>{
     const pr=p.pid?prod(p.pid):null;
-    filas.push([p.nombre,(pr&&pr.rubro)||p.rubro||'',Number(p.cant)||0,Number(p.importe)||0]);
+    filas.push([p.nombre,(pr&&pr.rubro)||p.rubro||'',Math.round((Number(p.cant)||0)*1000)/1000,Math.round((Number(p.importe)||0)*100)/100]);
   });
   return '\ufeff'+filas.map(f=>f.map(v=>csvSeguro(v,true)).join(';')).join('\r\n')+'\r\n';
 }
@@ -8462,6 +8573,7 @@ const f5GuardarDatosComercio=f5CrearGuardadoDatosComercio({
 function vConfig(m){
   const perm=db.config.permisosEmpleado||{};
   const u=db.config.ultBackup;
+  const restauracionBloqueada=typeof sb!=='undefined'&&!!sb&&typeof sesion!=='undefined'&&!!sesion;
   const seccionesConfigurables=SECCIONES_PERMISO.filter(id=>moduloActivo(id));
   const seccionesOcultas=seccionesConfigurables.filter(id=>perm[id]===false).length;
   m.innerHTML=`
@@ -8511,7 +8623,7 @@ function vConfig(m){
         <button class="toggle-switch" role="switch" aria-label="Activar Vencimientos" aria-checked="${db.config.moduloVencimientos!==false}" data-mod="moduloVencimientos"></button>
       </div>
       <div class="fila-config">
-        <div><b>Caja separada de cigarrillos</b><span class="sub-config">Si está activa, el efectivo de cigarrillos tiene arqueo propio. Si la apagás, ventas, egresos y fondo de cigarrillos se integran a la caja general sin alterar los cierres anteriores.</span></div>
+        <div><b>Caja separada de cigarrillos</b><span class="sub-config">Si está activa, el efectivo de cigarrillos tiene arqueo propio. Al apagarla, los nuevos turnos piden un único fondo total, sin sumar la sugerencia anterior de cigarrillos.</span></div>
         <button class="toggle-switch" role="switch" aria-label="Activar caja separada de cigarrillos" aria-checked="${db.config.moduloCigarros!==false}" data-mod="moduloCigarros"></button>
       </div>
       <div class="fila-config">
@@ -8566,10 +8678,11 @@ function vConfig(m){
       <div class="row" style="margin-bottom:16px">
         <button class="btn" id="bDesc">Descargar copia</button>
         <button class="btn ghost sm" id="bAhora">Guardar copia ahora</button>
-        <button class="btn ghost sm" id="bRest">Restaurar la automática</button>
+        <button class="btn ghost sm" id="bRest" ${restauracionBloqueada?'disabled':''}>Restaurar la automática</button>
       </div>
       <label class="f" for="bFile">Restaurar desde un archivo</label>
-      <input type="file" id="bFile" class="inp" accept=".json,application/json">
+      <input type="file" id="bFile" class="inp" accept=".json,application/json" ${restauracionBloqueada?'disabled':''}>
+      ${restauracionBloqueada?'<div class="hint" style="margin-top:8px">Con sincronización activa, la recuperación del comercio se realiza desde el servidor. Podés descargar una copia para resguardo.</div>':''}
     </div>
   </div>
 
@@ -8649,6 +8762,12 @@ function vConfig(m){
   };
   $$('[data-mod]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.mod, on=k==='manejaTurnos'?db.config[k]===true:db.config[k]!==false;
+    if(k==='manejaTurnos'&&!on&&typeof f3Estado!=='undefined'&&f3Estado.session&&f3Estado.session.estado==='abierta'){
+      aviso('Cerrá la caja abierta antes de activar turnos. Así cada turno empieza con su propio fondo.','bad');return;
+    }
+    if(k==='moduloCigarros'&&typeof f3Estado!=='undefined'&&f3Estado.session&&f3Estado.session.estado==='abierta'){
+      aviso('Cerrá la caja abierta antes de cambiar la caja separada de cigarrillos. Así el arqueo conserva la distribución de efectivo del turno.','bad');return;
+    }
     db.config[k]=!on;
     guardar(); render();
     const etiqueta={moduloFiado:'Fiado',moduloVencimientos:'Vencimientos',moduloCigarros:'Caja separada de cigarrillos',manejaTurnos:'Caja por turnos'}[k]||'Función';
@@ -11751,7 +11870,26 @@ document.addEventListener('keydown',e=>{
 
     async function startup(baseLoad,{v4OnlyBaseLoad=null}={}){
       if(typeof baseLoad!=='function') throw new Error('F43_BASE_LOAD_REQUIRED');
-      const server=await serverState();
+      let server;
+      try{
+        if(!need('isOnline')()) throw new Error('F43_OFFLINE');
+        server=await serverState();
+      }catch(error){
+        if(need('isOnline')()&&!/Failed to fetch|fetch failed|NetworkError|NETWORK_TIMEOUT|AbortError|ERR_NETWORK|ERR_INTERNET_DISCONNECTED|Service Unavailable|Bad Gateway|Gateway Timeout|\b50[234]\b|timed? out|F43_OFFLINE/i.test(errText(error))) throw error;
+        st.lastError=errText(error);
+        if(st.phase==='v4_only'){
+          if(typeof v4OnlyBaseLoad!=='function') throw new Error('F43_V4_LOCAL_LOAD_REQUIRED');
+          await need('activateAdapter')();
+          await v4OnlyBaseLoad();
+        }else if(st.phase==='rollback'){
+          await need('restoreAdapter')();
+          await baseLoad();
+        }else{
+          await baseLoad();
+        }
+        await persist();
+        return state();
+      }
       if(server.estado==='v4_only'||server.v4_only===true) return enterV4Only({baseLoad:typeof v4OnlyBaseLoad==='function'?v4OnlyBaseLoad:baseLoad});
       if(server.estado==='rollback') return enterRollback({baseLoad});
       await baseLoad();
@@ -12358,6 +12496,8 @@ function f6PasoKey(comercioId,step){
   let key=sessionStorage.getItem(name);if(!key){key=crypto.randomUUID();sessionStorage.setItem(name,key);}return {name,key};
 }
 function f6MostrarOnboarding(state){
+  f6TerminarArranque();
+  const startup=document.getElementById('startupLoading');if(startup)startup.hidden=true;
   f6WizardState=state;
   $('#loginWrap').hidden=true;$('#appWrap').hidden=true;$('#onboardingWrap').hidden=false;
   const view=f6VistaOnboarding(state);const copy=F6_WIZARD_COPY[view.pasoActual]||['Configuración inicial','Tus avances se guardan paso a paso.'];
@@ -12432,6 +12572,8 @@ $('#onboardingForm').addEventListener('submit',async event=>{
   }
 });
 function mostrarErrorDependencia(){
+  f6TerminarArranque();
+  const startup=document.getElementById('startupLoading');if(startup)startup.hidden=true;
   const app=$('#appWrap'),onboarding=$('#onboardingWrap'),login=$('#loginWrap');
   if(app) app.hidden=true;
   if(onboarding) onboarding.hidden=true;
@@ -12455,6 +12597,7 @@ function mostrarErrorDependencia(){
     $('#loginModeEmpleado').addEventListener('click',()=>f5CambiarModoLogin('empleado'));
     $('#formLogin').addEventListener('submit',async e=>{
       e.preventDefault();
+      f6IniciarArranque();
       const btn=$('#btnLogin'); btn.disabled=true; btn.textContent='Entrando…';
       let r;
       try{
@@ -12494,8 +12637,17 @@ function mostrarErrorDependencia(){
         mostrarLogin({texto:text,tipo:'warn'});$('#inviteNote').hidden=false;btn.hidden=false;
       }finally{btn.disabled=false;btn.textContent='Crear mi acceso';}
     });
-    const invitation=await f6PrepararInvitacion();
-    const {data:{session}}=await sb.auth.getSession();
+    let invitation,session;
+    try{
+      invitation=await f6PrepararInvitacion();
+      const result=await sb.auth.getSession();
+      if(result.error)throw result.error;
+      session=result.data&&result.data.session;
+    }catch(error){
+      console.error('No se pudo recuperar el acceso:',error);
+      mostrarLogin({texto:'No pudimos recuperar tu sesión. Volvé a ingresar para continuar.',tipo:'warn'});
+      return;
+    }
     if(f6InvitationToken&&(!invitation||!invitation.ok)){
       mostrarLogin({texto:'El enlace no está disponible. Pedile a soporte una nueva invitación.',tipo:'warn'});
       return;

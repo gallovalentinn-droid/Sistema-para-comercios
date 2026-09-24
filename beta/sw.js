@@ -1,5 +1,5 @@
 const CACHE_PREFIX='micomercio-beta-';
-const CACHE='micomercio-beta-6.0.0-f6-rc2-rev37';
+const CACHE='micomercio-beta-6.0.0-f6-rc2-rev40';
 const BASE=['./','./index.html','./vendor/supabase-js-2.112.3.min.js','./vendor/xlsx-0.18.5.full.min.js'];
 
 const EXTERNOS = [
@@ -41,7 +41,7 @@ self.addEventListener('fetch', e => {
       caches.match(req).then(hit =>
         hit || fetch(req).then(res => {
           const copia = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copia)).catch(()=>{});
+          if(res.ok) caches.open(CACHE).then(c => c.put(req, copia)).catch(()=>{});
           return res;
         }).catch(() => hit)
       )
@@ -53,7 +53,7 @@ self.addEventListener('fetch', e => {
     fetch(req)
       .then(res => {
         const copia = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copia)).catch(()=>{});
+        if(res.ok) caches.open(CACHE).then(c => c.put(req, copia)).catch(()=>{});
         return res;
       })
       .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
