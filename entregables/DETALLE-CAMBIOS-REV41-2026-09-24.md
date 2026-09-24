@@ -14,4 +14,6 @@ Al iniciar REV41, el cliente reconoce una reapertura automática anterior sólo 
 
 **Localmente:** 151/151 pruebas aprobadas; las pruebas nuevas cubren la reapertura antigua, un cambio posterior de Configuración y la conservación de fondos manuales. El manifiesto de integridad verificó 14 archivos.
 
-**En el entorno público:** pendiente de comprobar la publicación y de repetir el cierre autenticado en el dispositivo del comercio. Para cargar la lógica nueva, es necesario actualizar la pestaña de la beta. El cliente no puede cambiar el JavaScript de una pestaña que permanece abierta sin recargar.
+**En el entorno público:** `https://micomercio.ar/beta/` y su service worker responden con REV41. Descargados desde la URL pública, ambos archivos tienen exactamente el mismo SHA-256 que los archivos locales probados. No se pudo repetir un cierre autenticado en el dispositivo del comercio ni observar su estado local desde esta sesión.
+
+**Acción en el comercio:** recargar la pestaña de la beta en el dispositivo que tiene el turno abierto. La corrección del fondo de ese turno se aplica al iniciar REV41; revisar en Caja que el fondo figure en $0 antes del próximo cierre. Las ventas del turno continúan en su lugar.
