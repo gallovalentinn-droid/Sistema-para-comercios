@@ -103,3 +103,17 @@ test('un rechazo de sesión ofrece volver a ingresar y no culpa a la conexión',
   elements['#reintentarInicio'].onclick();
   assert.equal(returnedToLogin, true);
 });
+
+test('una falla de reconstrucción local no se presenta como error de conexión', async () => {
+  const elements = Object.fromEntries(['#loginWrap', '#onboardingWrap', '#appWrap', '#btnColapsar', '#brandMk', '#main', '#reintentarInicio'].map(k => [k, {}]));
+  const ctx = run(`${block('async function mostrarApp(){', '/* ═══════════════════════════════════════════════════════\n   2. UTILIDADES')}\nthis.abrir=mostrarApp;`, {
+    $: selector => elements[selector], document: { getElementById: () => ({}) },
+    cargar: async () => { throw new Error('F32B_MAESTROS_CATCHUP_INCOMPLETO'); },
+    f3Inicializar: async () => {}, f6AsegurarProteccionDispositivo: async () => {}, render: () => {},
+    f6ArranqueActivo: true, f6IniciarArranque: () => {}, f6TerminarArranque: () => {},
+    console: { error: () => {} }, toggleColapso: () => {}, railColapsado: false,
+  });
+  await ctx.abrir();
+  assert.doesNotMatch(elements['#main'].innerHTML, /Revisá la conexión/);
+  assert.match(elements['#main'].innerHTML, /F32B_MAESTROS_CATCHUP_INCOMPLETO/);
+});

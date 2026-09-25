@@ -649,7 +649,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:43,
+  packageRevision:44,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3002,8 +3002,10 @@ async function mostrarApp(){
     const detalle=String(error&&[error.code,error.message].filter(Boolean).join(' ')||error||'');
     const sesionInvalida=/PGRST301|JWT.*(?:expired|invalid)|invalid.*JWT|invalid token|session.*expired|Auth session missing|\b401\b/i.test(detalle);
     const sinPermiso=/\b42501\b|permission denied|forbidden|not authorized/i.test(detalle);
-    const mensaje=sesionInvalida?'Tu sesión venció o ya no es válida. Volvé a ingresar para abrir el comercio.':sinPermiso?'Tu cuenta no tiene permiso para abrir este comercio. Volvé a ingresar; si persiste, consultá al dueño.':'Revisá la conexión y volvé a intentar. Tus datos guardados siguen en este dispositivo.';
-    main.innerHTML=`<div class="card"><div class="card-b"><h2>No pudimos abrir el comercio</h2><p>${mensaje}</p><button type="button" class="btn" id="reintentarInicio">${sesionInvalida||sinPermiso?'Volver a ingresar':'Reintentar'}</button></div></div>`;
+    const sinConexion=/NETWORK_TIMEOUT|AbortError|Failed to fetch|fetch failed|NetworkError|ERR_NETWORK|ERR_INTERNET_DISCONNECTED|timed? out/i.test(detalle);
+    const referencia=detalle.match(/\b(?:F\d[A-Z0-9_]+|NETWORK_TIMEOUT|[A-Za-z]+Error)\b/)?.[0]||'ERROR_APERTURA';
+    const mensaje=sesionInvalida?'Tu sesión venció o ya no es válida. Volvé a ingresar para abrir el comercio.':sinPermiso?'Tu cuenta no tiene permiso para abrir este comercio. Volvé a ingresar; si persiste, consultá al dueño.':sinConexion?'Revisá la conexión y volvé a intentar. Tus datos guardados siguen en este dispositivo.':'No pudimos terminar de sincronizar los datos. Tus datos guardados siguen en este dispositivo; evitá cerrar caja hasta que la carga termine.';
+    main.innerHTML=`<div class="card"><div class="card-b"><h2>No pudimos abrir el comercio</h2><p>${mensaje}</p>${sesionInvalida||sinPermiso?'':`<p class="hint">Referencia: ${referencia}</p>`}<button type="button" class="btn" id="reintentarInicio">${sesionInvalida||sinPermiso?'Volver a ingresar':'Reintentar'}</button></div></div>`;
     $('#reintentarInicio',main).onclick=sesionInvalida||sinPermiso?()=>cerrarSesion():()=>mostrarApp();
     return;
   }finally{
@@ -10261,35 +10263,44 @@ let f32RecuperacionReplay=false;
 async function f32RecuperarCursoresSiFaltanDatos(){
   const pull=f32EstadoPull();
   if(pull.recuperacionPendiente===true)return true;
-  // Una edición local todavía sin confirmar puede hacer que el servidor tenga
-  // más filas que este dispositivo. Esperar el ACK antes de reconstruir evita
-  // que el pull vuelva a insertar un producto eliminado acá.
-  const outbox=await f3LeerOutbox();
-  if(outbox.some(o=>o&&o.comercioId===f3Estado.comercioId&&Number(o.schemaVersion)>=4&&o.estado!=='confirmado_v4'))return null;
   const fuentes=[
     {tabla:'productos',coleccion:'productos',soloActivos:true},
     {tabla:'clientes',coleccion:'clientes',soloActivos:true},
     {tabla:'ventas',coleccion:'ventas',soloActivos:false},
     {tabla:'cierres_caja',coleccion:'cierres',soloActivos:false}
   ];
+  const faltantes=[];
   for(const fuente of fuentes){
     const locales=Array.isArray(db[fuente.coleccion])?db[fuente.coleccion].length:0;
     let consulta=sb.from(fuente.tabla).select('id',{count:'exact',head:true}).eq('comercio_id',f3Estado.comercioId);
     if(fuente.soloActivos)consulta=consulta.is('deleted_at',null);
     const {count,error}=await consulta;
     if(error)throw new Error(`F32_RECUPERACION_${fuente.tabla.toUpperCase()}:${error.message||error.code||'query'}`);
-    if((Number(count)||0)>locales){
-      await f32PersistirFinalizacion({mutarPull:p=>{p.cursores={};p.recuperacionPendiente=true;}});
-      return true;
-    }
+    if((Number(count)||0)>locales)faltantes.push(fuente.tabla);
   }
-  return false;
+  if(!faltantes.length)return false;
+  // Si faltan ventas, rehacer los streams operativos en orden para que stock,
+  // pagos y cierres vuelvan a referenciar las ventas reconstruidas. El replay
+  // aplica los mismos ID y recalcula derivados sin duplicar importes o stock.
+  if(faltantes.includes('ventas')){
+    for(const spec of F32B_OPERATION_SPECS)faltantes.push(spec.cursorKey||spec.tabla);
+  }else if(faltantes.includes('cierres_caja')){
+    faltantes.push('cierre_ajustes_created','cierre_ajustes_resueltos');
+  }
+  // Maestros completos mantienen sus cursores; un outbox pendiente no impide
+  // recuperar ventas, y las colisiones de maestros ya se difieren por fila.
+  await f32PersistirFinalizacion({mutarPull:p=>{
+    p.cursores={...(p.cursores||{})};
+    faltantes.forEach(tabla=>{delete p.cursores[tabla];});
+    p.recuperacionPendiente=true;
+  }});
+  return true;
 }
 async function f32PullV4(opts={}){
   if(!sb||!sesion||!enLinea||!f3Activo()||!f3Estado.comercioId)return {ok:false,skip:true};
   const scope=`${sesion.user.id}:${f3Estado.comercioId}`;
   if(f32RevisionLocalInicialScope!==scope){
-    try{const revisado=await f32RecuperarCursoresSiFaltanDatos();if(revisado!==null)f32RevisionLocalInicialScope=scope;}
+    try{await f32RecuperarCursoresSiFaltanDatos();f32RevisionLocalInicialScope=scope;}
     catch(error){console.warn('F3.2 revisión de datos locales:',error);}
   }
   f32RecuperacionReplay=f32EstadoPull().recuperacionPendiente===true;
