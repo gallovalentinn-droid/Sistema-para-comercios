@@ -1,5 +1,5 @@
 const CACHE_PREFIX='micomercio-beta-';
-const CACHE='micomercio-beta-6.0.0-f6-rc2-rev42';
+const CACHE='micomercio-beta-6.0.0-f6-rc2-rev43';
 const BASE=['./','./index.html','./vendor/supabase-js-2.112.3.min.js','./vendor/xlsx-0.18.5.full.min.js'];
 
 const EXTERNOS = [
