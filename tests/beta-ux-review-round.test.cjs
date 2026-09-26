@@ -95,13 +95,14 @@ test('Combos muestra precios y stock y exige confirmar un precio inconveniente',
   assert.match(combos, /combo-result/);
 });
 
-test('Descuentos no pide nombre y permite buscar producto o elegir 2x1 y 3x2', () => {
+test('Descuentos no pide nombre y permite buscar producto y personalizar unidades', () => {
   const text = source();
   const discounts = block(text, 'const TIPOS_PROMO=', '\nfunction pintarCombos(){');
   assert.doesNotMatch(discounts, /pr_nombre/);
   assert.match(discounts, /pr_obj_buscar/);
-  assert.match(discounts, /data-modalidad="2x1"/);
-  assert.match(discounts, /data-modalidad="3x2"/);
+  assert.match(discounts, /pr_lleva/);
+  assert.match(discounts, /pr_paga/);
+  assert.doesNotMatch(discounts, /data-modalidad="2x1"|data-modalidad="3x2"/);
   assert.match(discounts, /pr_impacto/);
   assert.match(discounts, /Qué va a pasar/);
   assert.match(discounts, /Descuento/);

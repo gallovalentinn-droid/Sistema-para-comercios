@@ -57,7 +57,7 @@ function load() {
     cigTotal: 0, genEfectivo: 0, cigEfectivo: 0, cobEfectivo: 0, egrGeneral: 0, egrCigarros: 0, egrOtros: 0,
   };
   function node(key, dataset = {}) {
-    if (!nodes.has(key)) nodes.set(key, { dataset, value: '', innerHTML: '' });
+    if (!nodes.has(key)) nodes.set(key, { dataset, value: '', innerHTML: '', focus: () => {} });
     return nodes.get(key);
   }
   const context = {
@@ -246,6 +246,32 @@ test('Caja explica el botón de cierre deshabilitado y lo habilita al contar cer
   contado.oninput();
   assert.equal(boton.disabled, false);
   assert.equal(ayuda.hidden, true);
+});
+
+test('el cierre guiado no revela el cálculo hasta que se cuenta y permite volver', () => {
+  const { context, main, nodes } = load();
+  context.f3Estado.session = { id:'turno-duenio', estado:'abierta' };
+  const paneles = ['contar','revisar','finalizar'].map(cajaPaso => ({dataset:{cajaPaso},hidden:false}));
+  const indicadores = ['contar','revisar','finalizar'].map(cajaIndicador => ({dataset:{cajaIndicador},classList:{toggle:()=>{}}}));
+  const original = context.$$;
+  context.$$ = (selector, root) => selector==='[data-caja-paso]' ? paneles : selector==='[data-caja-indicador]' ? indicadores : original(selector, root);
+  context.vCaja(main);
+  assert.deepEqual(paneles.map(p => p.hidden), [false,true,true]);
+  nodes.get('#pasoCajaSiguiente').onclick();
+  assert.deepEqual(paneles.map(p => p.hidden), [false,true,true]);
+  assert.match(nodes.get('#ayudaConteoCaja').textContent, /caja general/);
+  nodes.get('#contadoG').value = '-5';
+  nodes.get('#pasoCajaSiguiente').onclick();
+  assert.deepEqual(paneles.map(p => p.hidden), [false,true,true]);
+  assert.match(nodes.get('#ayudaConteoCaja').textContent, /igual o mayor a 0/);
+  nodes.get('#contadoG').value = '0';
+  nodes.get('#contadoG').oninput();
+  nodes.get('#pasoCajaSiguiente').onclick();
+  assert.deepEqual(paneles.map(p => p.hidden), [true,false,true]);
+  nodes.get('#pasoCajaFinalizar').onclick();
+  assert.deepEqual(paneles.map(p => p.hidden), [true,true,false]);
+  nodes.get('#pasoCajaAnterior').onclick();
+  assert.deepEqual(paneles.map(p => p.hidden), [true,false,true]);
 });
 
 test('sin turno y sin cierres muestra el historial vacío junto a Abrir turno', () => {

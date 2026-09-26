@@ -248,7 +248,7 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .cash-tab.active{color:var(--primary)}
 .cash-tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:var(--primary)}
 .purchase-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;margin-left:7px;padding:0 6px;border-radius:99px;background:var(--rojo);color:#fff;font-size:12px;font-weight:700;vertical-align:middle}
-.cash-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.cash-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:16px}
 .cash-kpis .kpi{min-width:0}
 .cash-kpis .kpi b{font-family:var(--sans);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;font-size:23px;white-space:nowrap}
 .cash-kpi-profit{background:#F4FAF7;border-color:#CBE7DA}
@@ -278,6 +278,34 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .cash-action-card{margin-top:16px}
 .cash-close-layout>div:last-child>.cash-action-card:first-child{margin-top:41px}
 .cash-history-card{margin-top:0 !important}
+.cash-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:22px 24px;margin-bottom:18px;border:1px solid #CBE7DA;border-radius:var(--r);background:#F4FAF7}
+.cash-hero strong{display:block;font-size:19px;color:var(--verde-d)}
+.cash-hero p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
+.cash-quick-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.cash-quick-actions button{min-height:76px;text-align:left;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper);color:var(--txt);cursor:pointer;font:inherit;font-weight:700}
+.cash-quick-actions button:hover{border-color:var(--primary);color:var(--primary)}
+.cash-quick-actions small{display:block;margin-top:4px;color:var(--muted);font-size:12px;font-weight:400}
+.cash-step-intro{max-width:760px;margin-bottom:18px}
+.cash-step-intro h2{margin:0 0 6px;font-size:21px}
+.cash-step-intro p{margin:0;color:var(--muted);line-height:1.5}
+.cash-step-progress{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.cash-step-progress span{padding:8px 12px;border-radius:99px;background:var(--paper);border:1px solid var(--line);color:var(--muted);font-size:13px;font-weight:600}
+.cash-step-progress span.active{background:var(--primary-l);border-color:var(--primary);color:var(--primary)}
+.cash-step-panel{max-width:780px}
+.cash-step-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.cash-step-actions .btn{min-width:150px}
+.cash-review-advice{margin-top:14px;padding:13px 16px;border-radius:12px;background:var(--ambar-l);color:var(--txt);font-size:13px;line-height:1.5}
+.cash-detail{margin-bottom:16px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper)}
+.cash-detail summary{cursor:pointer;padding:16px 18px;font-weight:700}
+.cash-detail>div{padding:0 18px 18px}
+.cash-history-list{padding:4px 16px 16px}
+.cash-history-item{padding:15px 2px;border-bottom:1px solid var(--line)}
+.cash-history-item:last-child{border-bottom:0}
+.cash-history-main{display:flex;justify-content:space-between;gap:16px;align-items:center}
+.cash-history-main b{font-size:15px}
+.cash-history-main .pill{display:inline-block;margin-top:5px}
+.cash-history-item details summary{width:max-content;cursor:pointer;color:var(--primary);font-size:13px;font-weight:600;margin-top:8px}
+.cash-history-detail{display:grid;gap:8px;margin-top:10px;color:var(--muted);font-size:13px}
 .expense-modal{max-width:560px}
 .expense-modal .mod-b{padding:20px 28px 25px}
 .expense-modal .seg{margin-bottom:20px}
@@ -301,6 +329,9 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
   .cash-kpis .kpi:last-child{grid-column:1/-1}
   .cash-payment-grid{grid-template-columns:1fr}
   .cash-count-box{padding:16px}
+  .cash-quick-actions{grid-template-columns:1fr}
+  .cash-hero .btn{width:100%}
+  .cash-history-main{align-items:flex-start}
   table.mtable thead{display:none}
   table.mtable, table.mtable tbody, table.mtable tr{display:block;width:100%}
   table.mtable tr{background:var(--paper);border:1px solid var(--line);border-radius:11px;margin-bottom:10px;padding:4px 14px}
@@ -666,7 +697,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:50,
+  packageRevision:51,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -1737,7 +1768,7 @@ function f3PayloadProducto(p){
 }
 function f3PayloadCliente(c){return {id:f3AsegurarV4Id(c),comercio_id:f3Estado.comercioId,legacy_id:c.id,nombre:c.nombre||'Cliente',telefono:c.tel||c.telefono||'',alta_at_device:c.alta||null,updated_at_device:c._syncAt||new Date().toISOString(),deleted_at:null};}
 function f3PayloadCombo(c){return {row:{id:f3AsegurarV4Id(c),comercio_id:f3Estado.comercioId,legacy_id:c.id,nombre:c.nombre||'Combo',precio:Number(c.precio)||0,activo:c.activo!==false,updated_at_device:c._syncAt||new Date().toISOString(),deleted_at:null},items:(c.items||[]).map(i=>{const p=prod(i.prodId);return p?{combo_id:f3AsegurarV4Id(c),comercio_id:f3Estado.comercioId,producto_id:f3AsegurarV4Id(p),cantidad:Number(i.cant)||1}:null;}).filter(Boolean)};}
-function f3PayloadPromocion(p){const pr=p.tipo==='producto'?prod(p.objetivoId):null;return {id:f3AsegurarV4Id(p),comercio_id:f3Estado.comercioId,legacy_id:p.id,tipo:p.tipo,producto_id:pr?f3AsegurarV4Id(pr):null,objetivo_texto:p.tipo==='producto'?(p.modalidad==='2x1'||p.modalidad==='3x2'?p.modalidad:''):String(p.objetivoId||''),porcentaje:p.modalidad==='2x1'||p.modalidad==='3x2'?0:Number(p.porcentaje)||0,desde:p.desde||null,hasta:p.hasta||null,activa:p.activa!==false,updated_at_device:p._syncAt||new Date().toISOString(),deleted_at:null};}
+function f3PayloadPromocion(p){const pr=p.tipo==='producto'?prod(p.objetivoId):null,regla=p.tipo==='producto'?reglaPromoCantidad(p.modalidad):null;return {id:f3AsegurarV4Id(p),comercio_id:f3Estado.comercioId,legacy_id:p.id,tipo:p.tipo,producto_id:pr?f3AsegurarV4Id(pr):null,objetivo_texto:p.tipo==='producto'?(regla?regla.texto:''):String(p.objetivoId||''),porcentaje:regla?0:Number(p.porcentaje)||0,desde:p.desde||null,hasta:p.hasta||null,activa:p.activa!==false,updated_at_device:p._syncAt||new Date().toISOString(),deleted_at:null};}
 /* F5_CONFIG_CONTRACT_START */
 // Fuente unica del contrato de configuracion. f3PayloadConfig (subida),
 // f32MapConfig (bajada) y F5_CONFIG_CANONICAL_KEYS se derivan de aca.
@@ -2086,9 +2117,9 @@ async function f3PrepararMaestrosShadow(){
   }
 
   const promos=(db.promociones||[]).map(p=>{
-    const pr=p.tipo==='producto'?prod(p.objetivoId):null;
+    const pr=p.tipo==='producto'?prod(p.objetivoId):null,regla=p.tipo==='producto'?reglaPromoCantidad(p.modalidad):null;
     return {id:p._v4id,comercio_id:cid,legacy_id:p.id,tipo:p.tipo,producto_id:pr?f3AsegurarV4Id(pr):null,
-      objetivo_texto:p.tipo==='producto'?(p.modalidad==='2x1'||p.modalidad==='3x2'?p.modalidad:''):String(p.objetivoId||''),porcentaje:p.modalidad==='2x1'||p.modalidad==='3x2'?0:Number(p.porcentaje)||0,desde:p.desde||null,hasta:p.hasta||null,activa:p.activa!==false,updated_at_device:p._syncAt||null};
+      objetivo_texto:p.tipo==='producto'?(regla?regla.texto:''):String(p.objetivoId||''),porcentaje:regla?0:Number(p.porcentaje)||0,desde:p.desde||null,hasta:p.hasta||null,activa:p.activa!==false,updated_at_device:p._syncAt||null};
   });
   if(puedePromos&&promos.length){const {error}=await sb.from('promociones').upsert(promos,{onConflict:'comercio_id,legacy_id'});if(error)throw error;}
 
@@ -3976,11 +4007,17 @@ function vigentePromo(pr){
   if(pr.hasta&&h>pr.hasta) return false;
   return true;
 }
+function reglaPromoCantidad(modalidad){
+  const match=/^(\d{1,2})x(\d{1,2})$/.exec(String(modalidad||''));
+  if(!match)return null;
+  const lleva=Number(match[1]),paga=Number(match[2]);
+  return lleva>=2&&lleva<=99&&paga>=1&&paga<lleva?{lleva,paga,gratis:lleva-paga,texto:`${lleva}x${paga}`}:null;
+}
 // Se aplica un solo descuento de producto/rubro: siempre el porcentaje más alto.
 function promoParaProducto(p){
   if(!p) return 0;
   const activas=(db.promociones||[]).filter(vigentePromo);
-  const porProd=activas.filter(pr=>pr.tipo==='producto'&&pr.objetivoId===p.id);
+  const porProd=activas.filter(pr=>pr.tipo==='producto'&&pr.objetivoId===p.id&&!reglaPromoCantidad(pr.modalidad));
   const porCat=activas.filter(pr=>pr.tipo==='categoria'&&pr.objetivoId&&pr.objetivoId===p.rubro);
   return Math.max(0,...porProd.map(pr=>num(pr.porcentaje)),...porCat.map(pr=>num(pr.porcentaje)));
 }
@@ -3996,12 +4033,11 @@ function promoParaItem(i){
   if(p.unidad!=='kg'&&Number.isInteger(Number(i.cant))){
     for(const pr of (db.promociones||[])){
       if(pr.tipo!=='producto'||pr.objetivoId!==p.id||!vigentePromo(pr)) continue;
-      const regla=pr.modalidad;
-      const grupo=regla==='2x1'?2:regla==='3x2'?3:0;
-      if(!grupo) continue;
-      const gratis=Math.floor(Number(i.cant)/grupo);
+      const regla=reglaPromoCantidad(pr.modalidad);
+      if(!regla) continue;
+      const gratis=Math.floor(Number(i.cant)/regla.lleva)*regla.gratis;
       const monto=Math.min(bruto,Math.round(gratis*Number(i.precio)*100)/100);
-      if(monto>mejor.monto) mejor={itemId:i.id,pct:0,modalidad:regla,gratis,monto};
+      if(monto>mejor.monto) mejor={itemId:i.id,pct:0,modalidad:regla.texto,gratis,monto};
     }
   }
   return mejor.monto>0?mejor:null;
@@ -5674,7 +5710,7 @@ function vCombos(m){
    automáticamente en el cobro cuando están activos y vigentes.
    ═══════════════════════════════════════════════════════ */
 const TIPOS_PROMO={producto:'% por producto',categoria:'% por categoría',pago:'% por medio de pago'};
-function etiquetaPromo(pr){return pr.modalidad==='2x1'||pr.modalidad==='3x2'?pr.modalidad:(TIPOS_PROMO[pr.tipo]||pr.tipo);}
+function etiquetaPromo(pr){const regla=reglaPromoCantidad(pr.modalidad);return regla?`Llevá ${regla.lleva}, pagá ${regla.paga}`:(TIPOS_PROMO[pr.tipo]||pr.tipo);}
 function estadoPromo(pr){
   if(pr.activa===false) return {txt:'Pausada',clase:'mute'};
   const h=hoy();
@@ -5697,13 +5733,13 @@ function vigenciaPromo(pr){
 function vPromociones(m){
   m.innerHTML=`
   <div class="head">
-    <div><h1>Descuentos y promociones</h1><div class="sub">Descuentos por porcentaje y promociones 2x1 o 3x2, con fecha de inicio y fin.</div></div>
+    <div><h1>Descuentos y promociones</h1><div class="sub">Elegí un porcentaje o cuántas unidades se llevan y cuántas se pagan.</div></div>
     <div class="row"><button class="btn" id="bNuevaPromo">Nueva promoción</button></div>
   </div>
   <div class="card" style="margin-bottom:16px;background:var(--primary-l);border-color:var(--primary-l)">
     <div class="card-b" style="display:flex;gap:12px;align-items:flex-start">
       <span class="ic" style="color:var(--primary-d)">${ic('info')}</span>
-      <div style="font-size:14px;line-height:1.55;color:var(--ink-2)">Las promociones <b>activas y vigentes se aplican automáticamente</b> al cobrar. Para cada producto se usa el mayor beneficio entre descuento porcentual, 2x1 y 3x2; después puede sumarse el descuento del medio de pago. Las promociones no se aplican a combos.</div>
+      <div style="font-size:14px;line-height:1.55;color:var(--ink-2)">Las promociones <b>activas y vigentes se aplican automáticamente</b> al cobrar. Por ejemplo, «llevá 2, pagá 1» es un 2x1. Si coinciden varias promociones sobre un producto, se aplica la que más ahorra. No se aplican a combos.</div>
     </div>
   </div>
   <div id="listaPromos"></div>`;
@@ -5718,7 +5754,7 @@ function pintarPromociones(){
     ${l.map(pr=>{ const e=estadoPromo(pr); return `<tr>
       <td data-label="Promoción"><b>${esc(etiquetaPromo(pr))}</b></td>
       <td data-label="Aplica a"><b>${esc(objetivoPromo(pr))}</b></td>
-      <td data-label="Beneficio" class="r num" style="font-weight:600">${pr.modalidad?'1 unidad gratis por grupo':num(pr.porcentaje)+'%'}</td>
+      <td data-label="Beneficio" class="r num" style="font-weight:600">${reglaPromoCantidad(pr.modalidad)?`${reglaPromoCantidad(pr.modalidad).gratis} gratis por grupo`:num(pr.porcentaje)+'%'}</td>
       <td data-label="Vigencia" style="color:var(--muted);font-size:13.5px">${esc(vigenciaPromo(pr))}</td>
       <td data-label="Estado"><span class="pill ${e.clase}">${e.txt}</span></td>
       <td class="r" style="white-space:nowrap">
@@ -5742,13 +5778,20 @@ function pintarPromociones(){
 function formPromocion(id){
   const pr=id?(db.promociones||[]).find(x=>x.id===id):null;
   const v=pr?{...pr}:{tipo:'producto',objetivoId:'',porcentaje:'',modalidad:'',desde:'',hasta:'',activa:true};
+  const reglaInicial=reglaPromoCantidad(v.modalidad);
   modal({titulo:pr?'Editar promoción':'Nueva promoción',
     cuerpo:`
       <label class="f">¿Qué promoción querés crear?</label>
       <div class="seg" id="pr_modalidades" style="margin-bottom:16px">
-        <button type="button" data-modalidad="" class="${!v.modalidad?'on':''}">Descuento %</button>
-        <button type="button" data-modalidad="2x1" class="${v.modalidad==='2x1'?'on':''}">2x1</button>
-        <button type="button" data-modalidad="3x2" class="${v.modalidad==='3x2'?'on':''}">3x2</button>
+        <button type="button" data-modalidad="" class="${!reglaInicial?'on':''}">Descuento %</button>
+        <button type="button" data-modalidad="cantidad" class="${reglaInicial?'on':''}">Llevá y pagá</button>
+      </div>
+      <div id="pr_cantidad_wrap" ${reglaInicial?'':'hidden'}>
+        <div class="grid2">
+          <div><label class="f" for="pr_lleva">Unidades que lleva</label><input id="pr_lleva" class="inp num" type="number" min="2" max="99" step="1" value="${reglaInicial?reglaInicial.lleva:2}"></div>
+          <div><label class="f" for="pr_paga">Unidades que paga</label><input id="pr_paga" class="inp num" type="number" min="1" max="98" step="1" value="${reglaInicial?reglaInicial.paga:1}"></div>
+        </div>
+        <div class="hint" style="margin-top:7px">Ejemplo: lleva 2 y paga 1 es 2x1. Las unidades son siempre del mismo producto.</div>
       </div>
       <label class="f">¿A qué aplica?</label>
       <div class="seg" id="pr_tipos" style="margin-bottom:16px">
@@ -5771,7 +5814,7 @@ function formPromocion(id){
     pie:`${pr?`<button class="btn ghost" id="borrarPromo" style="margin-right:auto;color:var(--rojo)">Eliminar</button>`:''}
         <button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okPromo" disabled>Guardar promoción</button>`,
     alAbrir:ov=>{
-      let tipo=v.tipo,modalidad=v.modalidad||'';
+      let tipo=v.tipo,modoCantidad=Boolean(reglaInicial);
       const objetivoSeleccionado=()=>$('#pr_obj',ov)?$('#pr_obj',ov).value:'';
       const actualizarImpacto=()=>{
         const obj=objetivoSeleccionado(),pct=num($('#pr_pct',ov).value);let alcanzados=[];
@@ -5779,19 +5822,20 @@ function formPromocion(id){
         if(tipo==='categoria')alcanzados=db.productos.filter(p=>p.rubro===obj);
         if(tipo==='pago')alcanzados=db.productos.slice();
         const ejemplos=alcanzados.slice(0,3),sinCosto=alcanzados.filter(p=>Number(p.costo)<=0).length;
-        const grupo=modalidad==='2x1'?2:modalidad==='3x2'?3:0;
-        $('#pr_impacto',ov).innerHTML=`<b>Qué va a pasar</b><div style="margin-top:7px"><b>${alcanzados.length}</b> producto${alcanzados.length===1?'':'s'} alcanzado${alcanzados.length===1?'':'s'}${grupo?` · cada ${grupo} unidades del mismo producto, 1 gratis`:pct?` · ${pct}% de descuento`:''}</div>${ejemplos.length&&(grupo||pct)?`<div style="margin-top:8px;font-size:13px">${ejemplos.map(p=>`${esc(p.nombre)}: <span class="num">${grupo?`${grupo} por ${$m(Number(p.precio)*(grupo-1))}`:`${$m(p.precio)} → ${$m(Number(p.precio)*(1-pct/100))}`}</span>`).join('<br>')}</div>`:''}${sinCosto?`<div class="hint" style="color:var(--ambar);margin-top:8px">${sinCosto} sin costo: no podemos validar su margen final.</div>`:''}`;
+        const regla=modoCantidad?reglaPromoCantidad(`${$('#pr_lleva',ov).value}x${$('#pr_paga',ov).value}`):null;
+        $('#pr_impacto',ov).innerHTML=`<b>Qué va a pasar</b><div style="margin-top:7px"><b>${alcanzados.length}</b> producto${alcanzados.length===1?'':'s'} alcanzado${alcanzados.length===1?'':'s'}${regla?` · ${regla.texto} del mismo producto`:pct&&!modoCantidad?` · ${pct}% de descuento`:''}</div>${modoCantidad&&!regla?'<div class="hint" style="color:var(--rojo)">Indicá cuántas unidades lleva y cuántas paga. Debe pagar al menos una y menos de las que lleva.</div>':''}${ejemplos.length&&(regla||pct&&!modoCantidad)?`<div style="margin-top:8px;font-size:13px">${ejemplos.map(p=>`${esc(p.nombre)}: <span class="num">${regla?`${regla.lleva} por ${$m(Number(p.precio)*regla.paga)}`:`${$m(p.precio)} → ${$m(Number(p.precio)*(1-pct/100))}`}</span>`).join('<br>')}</div>`:''}${sinCosto?`<div class="hint" style="color:var(--ambar);margin-top:8px">${sinCosto} sin costo: no podemos validar su margen final.</div>`:''}`;
         const desde=$('#pr_desde',ov).value,hasta=$('#pr_hasta',ov).value;
-        $('#okPromo',ov).disabled=!obj||(grupo&&prod(obj)?.unidad==='kg')||(!grupo&&(pct<=0||pct>100))||(desde&&hasta&&hasta<desde);
+        $('#okPromo',ov).disabled=!obj||(modoCantidad&&(!regla||tipo!=='producto'||prod(obj)?.unidad==='kg'))||(!modoCantidad&&(pct<=0||pct>100))||(desde&&hasta&&hasta<desde);
       };
       const pintarModalidad=()=>{
-        $('#pr_pct_wrap',ov).hidden=Boolean(modalidad);
-        $('#pr_tipos',ov).hidden=Boolean(modalidad);
+        $('#pr_pct_wrap',ov).hidden=modoCantidad;
+        $('#pr_cantidad_wrap',ov).hidden=!modoCantidad;
+        $('#pr_tipos',ov).hidden=modoCantidad;
         const ayuda=$('#pr_cantidad_ayuda',ov);
-        ayuda.hidden=!modalidad;
-        ayuda.textContent=modalidad?`${modalidad}: por cada ${modalidad==='2x1'?2:3} unidades del mismo producto, se cobra una menos. No se aplica a productos por kilo ni a combos.`:'';
-        $$('[data-tipo]',ov).forEach(b=>{b.disabled=Boolean(modalidad)&&b.dataset.tipo!=='producto';b.classList.toggle('on',b.dataset.tipo===tipo);});
-        $$('[data-modalidad]',ov).forEach(b=>b.classList.toggle('on',b.dataset.modalidad===modalidad));
+        ayuda.hidden=!modoCantidad;
+        ayuda.textContent=modoCantidad?'La promoción se aplica a grupos completos del mismo producto. No se aplica a productos por kilo ni a combos.':'';
+        $$('[data-tipo]',ov).forEach(b=>{b.disabled=modoCantidad&&b.dataset.tipo!=='producto';b.classList.toggle('on',b.dataset.tipo===tipo);});
+        $$('[data-modalidad]',ov).forEach(b=>b.classList.toggle('on',Boolean(b.dataset.modalidad)===modoCantidad));
         actualizarImpacto();
       };
       const pintarObjetivo=()=>{
@@ -5818,7 +5862,7 @@ function formPromocion(id){
         if(buscar){
           const actualizarOpciones=()=>{
             const actual=v.objetivoId,q=normalizarBusqueda(buscar.value);
-            const opciones=db.productos.filter(p=>!productoArchivadoRev31(p)&&(!modalidad||p.unidad!=='kg')&&(!q||normalizarBusqueda(`${p.nombre} ${p.ean||''} ${p.rubro||''}`).includes(q)))
+            const opciones=db.productos.filter(p=>!productoArchivadoRev31(p)&&(!modoCantidad||p.unidad!=='kg')&&(!q||normalizarBusqueda(`${p.nombre} ${p.ean||''} ${p.rubro||''}`).includes(q)))
               .sort((a,b)=>a.nombre.localeCompare(b.nombre));
             const visibles=opciones.slice(0,60),elegido=actual?prod(actual):null;
             if(elegido&&!visibles.some(p=>p.id===actual))visibles.unshift(elegido);
@@ -5831,11 +5875,11 @@ function formPromocion(id){
         }
         actualizarImpacto();
       };
-      $$('[data-tipo]',ov).forEach(b=>b.onclick=()=>{ if(modalidad&&b.dataset.tipo!=='producto')return; tipo=b.dataset.tipo;v.objetivoId='';pintarObjetivo();pintarModalidad(); });
-      $$('[data-modalidad]',ov).forEach(b=>b.onclick=()=>{ modalidad=b.dataset.modalidad;if(modalidad&&(tipo!=='producto'||prod(v.objetivoId)?.unidad==='kg')){tipo='producto';v.objetivoId='';pintarObjetivo();}else if(tipo==='producto')pintarObjetivo();pintarModalidad(); });
+      $$('[data-tipo]',ov).forEach(b=>b.onclick=()=>{ if(modoCantidad&&b.dataset.tipo!=='producto')return; tipo=b.dataset.tipo;v.objetivoId='';pintarObjetivo();pintarModalidad(); });
+      $$('[data-modalidad]',ov).forEach(b=>b.onclick=()=>{ modoCantidad=Boolean(b.dataset.modalidad);if(modoCantidad&&(tipo!=='producto'||prod(v.objetivoId)?.unidad==='kg')){tipo='producto';v.objetivoId='';}pintarObjetivo();pintarModalidad(); });
       pintarObjetivo();
       pintarModalidad();
-      $('#pr_pct',ov).oninput=actualizarImpacto;$('#pr_desde',ov).onchange=actualizarImpacto;$('#pr_hasta',ov).onchange=actualizarImpacto;
+      $('#pr_pct',ov).oninput=actualizarImpacto;$('#pr_lleva',ov).oninput=actualizarImpacto;$('#pr_paga',ov).oninput=actualizarImpacto;$('#pr_desde',ov).onchange=actualizarImpacto;$('#pr_hasta',ov).onchange=actualizarImpacto;
       const bb=$('#borrarPromo',ov);
       if(bb) bb.onclick=()=>{ cerrarModal(); confirmar('Eliminar descuento','Esto no se puede deshacer.',
         ()=>{ db.promociones=db.promociones.filter(x=>x.id!==pr.id); guardar(); pintarPromociones(); aviso('Descuento eliminado'); },'Eliminar'); };
@@ -5843,12 +5887,15 @@ function formPromocion(id){
         const obj=$('#pr_obj',ov)?$('#pr_obj',ov).value:'';
         const pct=num($('#pr_pct',ov).value);
         if(!obj){ aviso('Elegí a qué aplica la promoción','bad'); return; }
-        if(!modalidad&&(!pct||pct<=0||pct>100)){ aviso('Poné un porcentaje entre 1 y 100','bad'); return; }
-        if(modalidad&&(tipo!=='producto'||prod(obj)?.unidad==='kg')){ aviso('Elegí un producto vendido por unidad','bad'); return; }
+        const regla=modoCantidad?reglaPromoCantidad(`${$('#pr_lleva',ov).value}x${$('#pr_paga',ov).value}`):null;
+        if(!modoCantidad&&(!pct||pct<=0||pct>100)){ aviso('Poné un porcentaje entre 1 y 100','bad'); return; }
+        if(modoCantidad&&!regla){ aviso('Indicá cuántas unidades lleva y cuántas paga','bad'); return; }
+        if(modoCantidad&&(tipo!=='producto'||prod(obj)?.unidad==='kg')){ aviso('Elegí un producto vendido por unidad','bad'); return; }
         const desde=$('#pr_desde',ov).value, hasta=$('#pr_hasta',ov).value;
         if(desde&&hasta&&hasta<desde){ aviso('La fecha de hasta no puede ser anterior a la de desde','bad'); return; }
         const objetivo=tipo==='producto'?(prod(obj)||{}).nombre:tipo==='pago'?(FORMAS[obj]||obj):obj;
-        const datos={nombre:`${modalidad||pct+'%'} en ${objetivo}`,tipo,objetivoId:obj,modalidad,porcentaje:modalidad?0:pct,desde,hasta,activa:v.activa!==false};
+        const modalidad=regla?regla.texto:'';
+        const datos={nombre:`${modalidad||pct+'%'} en ${objetivo}`,tipo,objetivoId:obj,modalidad,porcentaje:modoCantidad?0:pct,desde,hasta,activa:v.activa!==false};
         if(pr) Object.assign(pr,datos);
         else db.promociones.push({id:uid(),creada:new Date().toISOString(),...datos});
         guardar(); cerrarModal(); pintarPromociones(); pintarNav();
@@ -7214,10 +7261,11 @@ function esEgresoOperativo(egreso){
 function motivosEgresoTodos(){
   return [...MOTIVOS_EGRESO,...(db.config.motivosEgresoExtra||[])];
 }
-function formEgreso(){
+function formEgreso(motivoInicial=''){
   const moduloCigarros=db.config.moduloCigarros!==false;
   let cajaEgreso='general', formaEg='efectivo';
-  modal({titulo:'Registrar egreso',
+  const tituloEgreso=motivoInicial==='Retiro del dueño'?'Sacar plata de la caja':motivoInicial==='Gastos varios'?'Registrar gasto':'Registrar egreso';
+  modal({titulo:tituloEgreso,
     cuerpo:`
       <div class="seg" aria-label="Forma de pago">
         <button type="button" data-fe="efectivo" class="on">Efectivo</button>
@@ -7246,7 +7294,7 @@ function formEgreso(){
       </div>
       <label class="f expense-secondary" for="eg_nota">Detalle</label>
       <input id="eg_nota" class="inp" placeholder="Opcional: a quién, por qué concepto…">`,
-    pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okEg">Registrar egreso</button>`,
+    pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okEg">${tituloEgreso}</button>`,
     alAbrir:ov=>{
       const modalEgreso=$('.mod',ov);if(modalEgreso)modalEgreso.classList.add('expense-modal');
       const cajaWrap=$('#eg_cajaWrap',ov);
@@ -7257,6 +7305,7 @@ function formEgreso(){
         const wrap=$('#eg_cajaWrap',ov); if(wrap) wrap.hidden=formaEg!=='efectivo'||!moduloCigarros;   // sin módulo cigarrillos todo el efectivo pertenece a caja general
       });
       const sel=$('#eg_mot',ov);
+      if(motivoInicial&&motivosEgresoTodos().includes(motivoInicial))sel.value=motivoInicial;
       sel.onchange=()=>{
         const otro=sel.value==='__otro__';
         $('#eg_otroWrap',ov).hidden=!otro;
@@ -7660,19 +7709,11 @@ function htmlCierresAnteriores(){
   const cierres=cierreResponsableFiltro==='todos'?todos:todos.filter(c=>responsableCierre(c)===cierreResponsableFiltro);
   return `<div class="card cash-history-card">
     <div class="card-h"><h2>Cierres anteriores</h2>${responsables.length>1?`<select class="inp" id="cierreResponsable" aria-label="Filtrar cierres por persona" style="max-width:240px"><option value="todos">Todas las personas</option>${responsables.map(nombre=>`<option ${cierreResponsableFiltro===nombre?'selected':''}>${esc(nombre)}</option>`).join('')}</select>`:''}</div>
-    ${cierres.length?`<div class="table-scroll" role="region" aria-label="Cierres anteriores" tabindex="0"><table class="mtable"><thead><tr><th>Fecha</th><th>Responsable</th><th class="r">Ventas</th><th class="r">Vendido</th><th class="r">Gral. contado</th><th class="r">Gral. dif.</th><th class="r">Cigarrillos contado</th><th class="r">Cigarrillos dif.</th><th>Nota</th><th></th></tr></thead><tbody>
-      ${cierres.map(c=>`<tr>
-        <td data-label="Fecha" class="num">${fFH(c.hasta)}</td>
-        <td data-label="Responsable">${esc(responsableCierre(c))}</td>
-        <td data-label="Ventas" class="r num">${c.cantVentas}</td>
-        <td data-label="Vendido" class="r num" style="font-weight:600">${$m(c.total)}</td>
-        <td data-label="Gral. contado" class="r num">${$m(c.contadoGeneral)}</td>
-        <td data-label="Gral. dif." class="r"><span class="pill ${Math.abs(c.diferenciaGeneral)<0.01?'ok':c.diferenciaGeneral<0?'bad':'warn'} num">${montoDiferenciaCaja(c.diferenciaGeneral)}</span></td>
-        <td data-label="Cigarrillos contado" class="r num">${$m(c.contadoCigarros)}</td>
-        <td data-label="Cigarrillos dif." class="r"><span class="pill ${Math.abs(c.diferenciaCigarros)<0.01?'ok':c.diferenciaCigarros<0?'bad':'warn'} num">${montoDiferenciaCaja(c.diferenciaCigarros)}</span></td>
-        <td data-label="Nota" style="color:var(--muted);font-size:13px">${esc(c.nota||'—')}</td>
-        <td class="r" style="white-space:nowrap"><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></td></tr>`).join('')}
-      </tbody></table></div>`
+    ${cierres.length?`<div class="cash-history-list" role="list" aria-label="Cierres anteriores">
+      ${cierres.map(c=>{const diferencia=(Number(c.diferenciaGeneral)||0)+(Number(c.diferenciaCigarros)||0),cuadra=Math.abs(Number(c.diferenciaGeneral)||0)<0.01&&Math.abs(Number(c.diferenciaCigarros)||0)<0.01;return `<div class="cash-history-item" role="listitem">
+        <div class="cash-history-main"><div><b>${fFH(c.hasta)}</b><div class="hint">${esc(responsableCierre(c))} · ${c.cantVentas||0} ventas</div></div><div class="r"><b class="num">${$m(c.total)}</b><div><span class="pill ${cuadra?'ok':diferencia<0?'bad':'warn'} num">${cuadra?'Caja exacta':Math.abs(diferencia)<0.01?'Revisar diferencias':`Diferencia neta ${montoDiferenciaCaja(diferencia)}`}</span></div></div></div>
+        <details><summary>Ver arqueo y acciones</summary><div class="cash-history-detail"><div>General: contado <b>${$m(c.contadoGeneral)}</b> · diferencia <b>${montoDiferenciaCaja(c.diferenciaGeneral)}</b></div><div>Cigarrillos: contado <b>${$m(c.contadoCigarros)}</b> · diferencia <b>${montoDiferenciaCaja(c.diferenciaCigarros)}</b></div>${c.nota?`<div>Nota: ${esc(c.nota)}</div>`:''}<div><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></div></div></details>
+      </div>`;}).join('')}</div>`
     :`<div class="empty"><b>Sin cierres todavía</b>Los cierres de este comercio quedan registrados acá, incluidos los realizados por empleados cuando se sincronizan.</div>`}
   </div>`;
 }
@@ -7711,7 +7752,6 @@ function vCaja(m){
   m.innerHTML=`
   <div class="head">
     <div><h1>Caja</h1><div class="sub">Turno abierto desde ${fFH(t.desde)}</div></div>
-    <div class="row"><button class="btn" id="bEgreso">Registrar egreso</button></div>
   </div>
   <div class="cash-tabs" role="tablist" aria-label="Secciones de Caja">
     <button type="button" class="cash-tab ${cajaVista==='turno'?'active':''}" data-caja-tab="turno" role="tab" aria-selected="${cajaVista==='turno'}">Turno actual</button>
@@ -7720,19 +7760,31 @@ function vCaja(m){
   </div>
 
   <section data-caja-panel="turno" ${cajaVista==='turno'?'':'hidden'}>
+    <div class="cash-hero"><div><strong>Caja abierta</strong><p>Desde ${fFH(t.desde)} · ${t.ventas.length} venta${t.ventas.length===1?'':'s'} registrada${t.ventas.length===1?'':'s'}. Al terminar el turno, te guiamos para contar el efectivo.</p></div><button class="btn" type="button" id="irCierreCaja">Cerrar caja</button></div>
     <div class="cash-kpis">
-      <div class="kpi"><span>Vendido en el turno</span><b>${$m(t.total)}</b><small>${t.ventas.length} ventas${t.ventas.length?` · ticket ${$m(t.total/t.ventas.length)}`:''}</small></div>
+      <div class="kpi"><span>Vendido en el turno</span><b>${$m(t.total)}</b><small>${t.ventas.length} venta${t.ventas.length===1?'':'s'}${t.ventas.length?` · ticket ${$m(t.total/t.ventas.length)}`:''}</small></div>
+      <div class="kpi"><span>Efectivo recibido</span><b>${$m(t.genEfectivo+t.cigEfectivo+t.cobEfectivo)}</b><small>ventas y cobros de fiado</small></div>
+      <div class="kpi"><span>Fiado del turno</span><b>${$m(t.porForma.fiado)}</b><small>plata todavía no cobrada</small></div>
+    </div>
+    <details class="cash-detail"><summary>Ver más datos del turno</summary><div class="cash-kpis">
       <div class="kpi"><span>Vendido en cigarrillos</span><b>${$m(t.cigTotal)}</b><small>de los ${$m(t.total)} totales</small></div>
       <div class="kpi"><span>Egresos del turno</span><b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b><small>${t.egresos.length} salidas${t.egrOtros>0.009?` · ${$m(t.egrOtros)} sin efectivo`:''}</small></div>
-      <div class="kpi"><span>Fiado del turno</span><b>${$m(t.porForma.fiado)}</b><small>plata todavía no cobrada</small></div>
       <div class="kpi cash-kpi-profit"><span>Ganancia estimada</span><b>${gananciaEstimada===null?'—':$m(gananciaEstimada)}</b><small>${gananciaEstimada===null?`${t.costosIncompletos} líneas sin costo cargado`:'ventas − costo − gastos operativos'}</small></div>
+    </div></details>
+    <div class="cash-quick-actions">
+      <button type="button" id="bGastoCaja">Registrar gasto<small>Compra, servicio u otra salida de dinero.</small></button>
+      <button type="button" id="bRetiroCaja">Sacar plata<small>Retiro del dueño, separado de los gastos.</small></button>
+      <button type="button" id="bHistorialCaja">Ver cierres<small>Revisá cierres anteriores y diferencias.</small></button>
     </div>
+    <details class="cash-detail"><summary>Ver cobros por forma de pago</summary><div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-h"><h2>Cobros por forma de pago</h2></div>
       <div class="card-b cash-payment-grid">
         ${['efectivo','transferencia','tarjeta'].map(f=>`<div class="kpi"><span>${FORMAS[f]}</span><b>${$m(t.porForma[f])}</b></div>`).join('')}
       </div>
     </div>
+    </div></details>
+    <details class="cash-detail"><summary>Ver ventas y egresos del turno</summary><div>
     <div class="card">
       <div class="card-h"><h2>Ventas del turno</h2></div>
       ${t.ventasTodas.length?`<div class="card-b"><label class="f" for="qCajaTurno">Buscar en las ventas del turno</label><input class="inp" id="qCajaTurno" value="${esc(busCajaTurno)}" placeholder="Nombre del producto…" autocomplete="off"></div>`:''}
@@ -7748,10 +7800,19 @@ function vCaja(m){
           <td class="r"><button class="x" data-del-eg="${e.id}" aria-label="Eliminar egreso">${ic('cerrar')}</button></td></tr>`).join('')}
       </tbody></table></div>`:''}
     </div>
+    </div></details>
   </section>
 
   <section data-caja-panel="cierre" ${cajaVista==='cierre'?'':'hidden'}>
-    <div class="cash-close-layout">
+    <div class="cash-step-progress" aria-label="Pasos del cierre"><span data-caja-indicador="contar">1 · Contar</span><span data-caja-indicador="revisar">2 · Revisar</span><span data-caja-indicador="finalizar">3 · Finalizar</span></div>
+    <div data-caja-paso="contar" class="cash-step-panel">
+      <div class="cash-step-intro"><h2>Contá el efectivo</h2><p>Contá la plata que hay físicamente, sin mirar el cálculo del sistema. Si no hay efectivo, escribí 0.</p></div>
+      <div class="card"><div class="card-b"><div class="cash-count-box"><label class="f" for="contadoG">Efectivo contado en caja general</label><input id="contadoG" class="inp num cash-count-input" inputmode="decimal" placeholder="0,00"><div class="cash-count-help">Incluí el cambio que quedó en el cajón.</div></div>
+      ${moduloCigarros?`<div class="cash-count-box"><label class="f" for="contadoC">Efectivo contado en caja de cigarrillos</label><input id="contadoC" class="inp num cash-count-input" inputmode="decimal" placeholder="0,00"><div class="cash-count-help">Contá solo el efectivo reservado para cigarrillos.</div></div>`:''}
+      <div class="cash-step-actions"><button type="button" class="btn" id="pasoCajaSiguiente">Revisar resultado</button></div><div class="hint" id="ayudaConteoCaja" role="status" style="margin-top:8px"></div></div></div>
+    </div>
+    <div data-caja-paso="revisar" class="cash-step-panel" hidden>
+      <div class="cash-step-intro"><h2>Revisá el resultado</h2><p>Comparamos lo que contaste con las ventas, cobros y egresos registrados. Si hay una diferencia, podés volver a corregir el conteo.</p></div>
       <div>
         <div class="cash-section-heading">
           <h2>Caja general</h2>
@@ -7766,11 +7827,7 @@ function vCaja(m){
             ${t.egrGeneral>0?`<tr><td style="padding-left:0">Egresos</td><td class="r num">– ${$m(t.egrGeneral)}</td></tr>`:''}
             <tr><td style="padding-left:0">Debería haber</td><td class="r num" style="font-size:17px">${$m(espGeneral)}</td></tr>
           </table>
-          <div class="cash-count-box">
-            <label class="f" for="contadoG">Efectivo contado</label>
-            <input id="contadoG" class="inp num cash-count-input" inputmode="decimal" placeholder="0,00">
-            <div class="cash-count-help">Contá la plata física del mostrador y escribila acá.</div>
-          </div>
+          <div class="hint">Contaste <b id="resumenContadoG">—</b> en caja general.</div>
           <div id="difG" class="cash-difference neutral"><span>Diferencia</span><b>—</b></div>
         </div>
       </div>
@@ -7783,15 +7840,16 @@ function vCaja(m){
             ${t.egrCigarros>0?`<tr><td style="padding-left:0">Egresos</td><td class="r num">– ${$m(t.egrCigarros)}</td></tr>`:''}
             <tr><td style="padding-left:0">Debería haber</td><td class="r num" style="font-size:17px">${$m(espCigarros)}</td></tr>
           </table>
-          <div class="cash-count-box">
-            <label class="f" for="contadoC">Efectivo contado</label>
-            <input id="contadoC" class="inp num cash-count-input" inputmode="decimal" placeholder="0,00">
-            <div class="cash-count-help">Contá el efectivo reservado para cigarrillos y escribilo acá.</div>
-          </div>
+          <div class="hint">Contaste <b id="resumenContadoC">—</b> en caja de cigarrillos.</div>
           <div id="difC" class="cash-difference neutral"><span>Diferencia</span><b>—</b></div>
         </div>
       </div>`:''}
       </div>
+      <div id="orientacionDiferenciaCaja" class="cash-review-advice" hidden></div>
+      <div class="cash-step-actions"><button type="button" class="btn ghost" data-caja-volver="contar">Corregir conteo</button><button type="button" class="btn" id="pasoCajaFinalizar">Continuar</button></div>
+    </div>
+    <div data-caja-paso="finalizar" class="cash-step-panel" hidden>
+      <div class="cash-step-intro"><h2>Decidí qué efectivo queda</h2><p>${db.config.manejaTurnos?'El próximo turno empieza en $0. Podrás indicar un fondo cuando lo abras.':'La próxima caja empieza en $0. Si dejás efectivo para dar cambio, anotá el importe que quedará físicamente.'}</p></div>
       <div>
       <div class="card cash-action-card">
         <div class="card-b">
@@ -7804,12 +7862,12 @@ function vCaja(m){
             <input id="fondoSiguienteG" class="inp num" inputmode="decimal" value="0" autocomplete="off">
             ${moduloCigarros?`<label class="f" for="fondoSiguienteC" style="margin-top:10px">Caja de cigarrillos</label><input id="fondoSiguienteC" class="inp num" inputmode="decimal" value="0" autocomplete="off">`:''}
           </div>`:''}
-          <button class="btn big" id="cerrarCaja" style="margin-top:14px" aria-describedby="ayudaCerrarCaja" disabled>Cerrar caja y guardar</button>
+          <div class="cash-step-actions"><button type="button" class="btn ghost" id="pasoCajaAnterior">Volver a revisar</button><button class="btn big" id="cerrarCaja" aria-describedby="ayudaCerrarCaja" disabled>Cerrar caja y guardar</button></div>
           <div class="hint" id="ayudaCerrarCaja" role="status" style="margin-top:8px;line-height:1.5"></div>
           <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.55">Al cerrar se guarda una copia de seguridad automática de toda la base.</div>
         </div>
       </div>
-      <div class="card cash-action-card">
+      <details class="cash-detail" style="margin-top:16px"><summary>Configurar sugerencias de fondos de apertura</summary><div class="card cash-action-card">
         <div class="card-h"><h2>Fondos predeterminados de apertura</h2></div>
         <div class="card-b">
           <div class="hint" style="margin-bottom:12px">Estos importes no cambian el turno abierto. Después de cada cierre, el turno siguiente empieza en $0${db.config.manejaTurnos?'; podés indicar otro fondo al abrirlo':'; podés indicar el efectivo que dejás en el cierre'}.</div>
@@ -7819,7 +7877,7 @@ function vCaja(m){
           <div class="row"><input class="inp num" id="fondoCig" value="${db.config.fondoCajaCigarros||0}" style="flex:1"></div>`:`<div class="hint" style="margin-top:12px">El fondo anterior de cigarrillos se conserva como sugerencia si volvés a activar la caja separada. No se agrega a un turno nuevo mientras está desactivada.</div>`}
           <button class="btn ghost" id="okFondo" style="margin-top:12px;width:100%">Guardar sugerencias</button>
         </div>
-      </div>
+      </div></details>
       </div>
     </div>
   </section>
@@ -7843,14 +7901,32 @@ function vCaja(m){
   };
   $$('[data-caja-tab]',m).forEach(tab=>tab.onclick=()=>aplicarVistaCaja(tab.dataset.cajaTab));
   aplicarVistaCaja(cajaVista);
+  const mostrarPasoCaja=paso=>{
+    $$('[data-caja-paso]',m).forEach(panel=>panel.hidden=panel.dataset.cajaPaso!==paso);
+    $$('[data-caja-indicador]',m).forEach(indicador=>indicador.classList.toggle('active',indicador.dataset.cajaIndicador===paso));
+  };
+  mostrarPasoCaja('contar');
+  $('#irCierreCaja').onclick=()=>{aplicarVistaCaja('cierre');mostrarPasoCaja('contar');$('#contadoG').focus();};
+  $('#bGastoCaja').onclick=()=>formEgreso('Gastos varios');
+  $('#bRetiroCaja').onclick=()=>formEgreso('Retiro del dueño');
+  $('#bHistorialCaja').onclick=()=>aplicarVistaCaja('historial');
 
   const inpG=$('#contadoG'), inpC=$('#contadoC'), cerrarCaja=$('#cerrarCaja');
+  const motivoConteoCaja=()=>{
+    const faltante=motivoCierrePendiente(inpG?.value,inpC?.value,moduloCigarros);
+    if(faltante)return faltante;
+    for(const [campo,nombre] of [[inpG,'caja general'],...(moduloCigarros?[[inpC,'caja de cigarrillos']]:[])]){
+      const dato=typeof numImportacion==='function'?numImportacion(campo.value):{ok:Number.isFinite(Number(campo.value)),value:Number(campo.value)};
+      if(!dato.ok||!Number.isFinite(dato.value)||dato.value<0)return `Ingresá un importe válido, igual o mayor a 0, en ${nombre}.`;
+    }
+    return '';
+  };
   function conteosCajaCompletos(){
-    return !motivoCierrePendiente(inpG?.value,inpC?.value,moduloCigarros);
+    return !motivoConteoCaja();
   }
   const actualizarEstadoCierre=()=>{
     if(!cerrarCaja)return;
-    const motivo=motivoCierrePendiente(inpG?.value,inpC?.value,moduloCigarros);
+    const motivo=motivoConteoCaja();
     cerrarCaja.disabled=!!motivo;
     cerrarCaja.title=motivo;
     const ayuda=$('#ayudaCerrarCaja');if(ayuda){ayuda.textContent=motivo;ayuda.hidden=!motivo;}
@@ -7874,6 +7950,21 @@ function vCaja(m){
   actualizarDiferencia(inpG,espGeneral,$('#difG'));
   actualizarDiferencia(inpC,espCigarros,$('#difC'));
   actualizarEstadoCierre();
+  $('#pasoCajaSiguiente').onclick=()=>{
+    const motivo=motivoConteoCaja();
+    if(motivo){$('#ayudaConteoCaja').textContent=motivo;(inpG&&inpG.value.trim()===''?inpG:inpC)?.focus();return;}
+    $('#ayudaConteoCaja').textContent='';
+    $('#resumenContadoG').textContent=$m(num(inpG.value));
+    if(moduloCigarros)$('#resumenContadoC').textContent=$m(num(inpC.value));
+    const diferenciaG=num(inpG.value)-espGeneral,diferenciaC=moduloCigarros?num(inpC.value)-espCigarros:0;
+    const consejo=$('#orientacionDiferenciaCaja');
+    consejo.hidden=Math.abs(diferenciaG)<0.01&&Math.abs(diferenciaC)<0.01;
+    consejo.textContent=consejo.hidden?'':'Hay una diferencia. Revisá el conteo y los movimientos del turno. Si la diferencia sigue, podés explicarla en la nota antes de guardar el cierre.';
+    mostrarPasoCaja('revisar');
+  };
+  $('#pasoCajaFinalizar').onclick=()=>mostrarPasoCaja('finalizar');
+  $('#pasoCajaAnterior').onclick=()=>mostrarPasoCaja('revisar');
+  $$('[data-caja-volver]',m).forEach(b=>b.onclick=()=>mostrarPasoCaja('contar'));
   const toggleCig=$('[data-caja-cig-toggle]',m);
   if(toggleCig)toggleCig.onclick=()=>{
     const contenido=$('[data-caja-cig-content]',m);if(!contenido)return;
@@ -7882,7 +7973,6 @@ function vCaja(m){
     toggleCig.textContent=`${contenido.hidden?'Mostrar':'Ocultar'} caja de cigarrillos ›`;
     guardar();
   };
-  $('#bEgreso').onclick=()=>formEgreso();
   $$('[data-del-eg]').forEach(b=>b.onclick=()=>{
     const e=(db.egresos||[]).find(x=>x.id===b.dataset.delEg); if(!e) return;
     confirmar('Eliminar egreso',`Vas a borrar el egreso de <b>${$m(e.monto)}</b> (${esc(e.motivo)}). El arqueo se recalcula.`,
@@ -9507,7 +9597,7 @@ function f32MapPromocion(row,base=db){
   const objetivoId=row.tipo==='producto'?f32ResolverIdLocal('productos',row.producto_id,base):String(row.objetivo_texto||'');
   return {
     ...(actual||{}),id,_v4id:row.id,tipo:row.tipo,objetivoId,porcentaje:Number(row.porcentaje)||0,
-    modalidad:row.tipo==='producto'&&['2x1','3x2'].includes(row.objetivo_texto)?row.objetivo_texto:'',
+    modalidad:row.tipo==='producto'?(reglaPromoCantidad(row.objetivo_texto)?.texto||''):'',
     desde:row.desde||'',hasta:row.hasta||'',activa:row.activa!==false,
     creada:actual&&actual.creada||row.created_at_server||sync,_syncAt:sync
   };
@@ -11226,7 +11316,7 @@ function f34FindDelete(v3,coleccion,v4id){return ((v3&&v3.payload&&v3.payload.de
 function f34ProductLocal(p){return {legacy_id:f34Str(p.id),ean:f34Str(p.ean),nombre:f34Str(p.nombre),rubro:f34Str(p.rubro),proveedor:f34Str(p.proveedor),costo:f34Round(p.costo,4),precio:f34Round(p.precio,2),stock_min:f34Round(p.stockMin,3),stock_deseado:f34Round(p.stockDeseado,3),unidad:p.origenId?'suelto':(p.unidad==='kg'?'kg':'unidad'),origen_legacy_id:f34Null(p.origenId),por_atado:Math.max(0,Math.trunc(f34Num(p.porAtado))),vence:f34Day(p.vence),foto_path:f34Null(p.fotoPath),archivado_at:f34Date(p.archivadoAt),archivado_por:f34Null(p.archivadoPor),archivo_historial:f34Stable(p.archivoHistorial||[])};}
 function f34ClientLocal(c){return {legacy_id:f34Str(c.id),nombre:f34Str(c.nombre),telefono:f34Str(c.tel||c.telefono),alta_at:f34Date(c.alta)};}
 function f34ComboLocal(c){return {legacy_id:f34Str(c.id),nombre:f34Str(c.nombre),precio:f34Round(c.precio,2),activo:c.activo!==false,items:f34Sort((c.items||[]).map(i=>({producto_legacy_id:f34Str(i.prodId),cantidad:f34Round(i.cant||1,3)})),x=>`${x.producto_legacy_id}:${x.cantidad}`)};}
-function f34PromoLocal(p){return {legacy_id:f34Str(p.id),tipo:f34Str(p.tipo),producto_legacy_id:p.tipo==='producto'?f34Null(p.objetivoId):null,objetivo_texto:p.tipo==='producto'?(p.modalidad==='2x1'||p.modalidad==='3x2'?p.modalidad:''):f34Str(p.objetivoId),porcentaje:p.modalidad==='2x1'||p.modalidad==='3x2'?0:f34Round(p.porcentaje,3),desde:f34Day(p.desde),hasta:f34Day(p.hasta),activa:p.activa!==false};}
+function f34PromoLocal(p){const regla=p.tipo==='producto'?reglaPromoCantidad(p.modalidad):null;return {legacy_id:f34Str(p.id),tipo:f34Str(p.tipo),producto_legacy_id:p.tipo==='producto'?f34Null(p.objetivoId):null,objetivo_texto:p.tipo==='producto'?(regla?regla.texto:''):f34Str(p.objetivoId),porcentaje:regla?0:f34Round(p.porcentaje,3),desde:f34Day(p.desde),hasta:f34Day(p.hasta),activa:p.activa!==false};}
 function f34ConfigLocal(c){return {fondo_caja:f34Round(c.fondoCaja,2),fondo_caja_cigarros:f34Round(c.fondoCajaCigarros,2),whatsapp_dueno:f34Str(c.whatsappDueno),dias_aviso_vence:Math.trunc(f34Num(c.diasAvisoVence,7)),dias_plazo_fiado:Math.trunc(f34Num(c.diasPlazoFiado,30)),recargo_fiado_pct:f34Round(c.recargoFiadoPct??10,3),modulo_fiado:c.moduloFiado!==false,modulo_vencimientos:c.moduloVencimientos!==false,modulo_cigarros:c.moduloCigarros!==false,maneja_turnos:c.manejaTurnos===true,aviso_turno_horas:Math.trunc(f34Num(c.avisoTurnoHoras,8)),motivos_egreso_extra:[...(c.motivosEgresoExtra||[])]};}
 function f34SaleItemLocal(i){const base={legacy_line_id:f34Str(i.lineId||''),tipo:i.tipo==='combo'?'combo':'producto',nombre:f34Str(i.nombre),cantidad:f34Round(i.cant,3),precio_unitario:f34Round(i.precio,2),costo_unitario:f34Round(i.costo,4),bruto:f34Round(i.bruto,2),neto:f34Round(i.neto,2)};if(base.tipo==='producto')return {...base,producto_legacy_id:f34Str(i.prodId),combo_legacy_id:null,rubro:f34Str(i.rubro),promo_pct:i.promoPct==null?null:f34Round(i.promoPct,3),componentes:[]};return {...base,producto_legacy_id:null,combo_legacy_id:f34Str(i.comboId),rubro:'',promo_pct:i.promoPct==null?null:f34Round(i.promoPct,3),componentes:f34Sort((i.componentes||[]).map(c=>({producto_legacy_id:f34Str(c.prodId),nombre:f34Str(c.nombre),cantidad_por_combo:f34Round(c.cant,3),costo_unitario_snapshot:f34Round(c.costo,4)})),x=>`${x.producto_legacy_id}:${x.cantidad_por_combo}`)};}
 function f34SaleLocal(v){let pagos=v.pagos;if(!Array.isArray(pagos)||!pagos.length)pagos=[{forma:v.forma,monto:v.total}];return {legacy_id:f34Str(v.id),ticket_seq:Math.trunc(f34Num(v.nro)),cliente_legacy_id:f34Null(v.clienteId),occurred_at:f34Date(v.fecha),subtotal:f34Round(v.subtotal,2),descuento_manual:f34Round(v.descuento,2),descuento_detalle:f34Stable(v.descuentoDetalle||null),promo_auto:f34Round(v.promoAuto,2),promo_auto_detalle:f34Stable(v.promoAutoDetalle||[]),promo_pago:f34Round(v.promoPago,2),promo_pago_detalle:f34Stable(v.promoPagoDetalle||null),total:f34Round(v.total,2),forma:f34Forma(v.forma),recibido:f34Round(v.recibido,2),vuelto:f34Round(v.vuelto,2),monto_fiado:f34Round(v.montoFiado,2),plazo_fiado_dias:v.plazoFiadoDias==null?null:Math.trunc(f34Num(v.plazoFiadoDias)),vence_fiado:f34Day(v.venceFiado),items:f34Sort((v.items||[]).map(f34SaleItemLocal),x=>x.legacy_line_id||`${x.tipo}:${x.producto_legacy_id||x.combo_legacy_id}`),pagos:f34Sort(pagos.map(p=>({forma:f34Forma(p.forma),monto:f34Round(p.monto,2)})),x=>`${x.forma}:${x.monto}`)};}
@@ -11336,7 +11426,7 @@ async function f34ActualMaster(spec){const row=await f34One(spec.table,spec.id);
   if(spec.table==='productos'){return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),ean:f34Str(row.ean),nombre:f34Str(row.nombre),rubro:f34Str(row.rubro),proveedor:f34Str(row.proveedor),costo:f34Round(row.costo,4),precio:f34Round(row.precio,2),stock_min:f34Round(row.stock_min,3),stock_deseado:f34Round(row.stock_deseado,3),unidad:f34Str(row.unidad),origen_legacy_id:await f34LegacyOne('productos',row.origen_id),por_atado:Math.max(0,Math.trunc(f34Num(row.por_atado))),vence:f34Day(row.vence),foto_path:f34Null(row.foto_path),archivado_at:f34Date(row.archivado_at),archivado_por:f34Null(row.archivado_por),archivo_historial:f34Stable(row.archivo_historial||[])};}
   if(spec.table==='clientes')return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),nombre:f34Str(row.nombre),telefono:f34Str(row.telefono),alta_at:f34Date(row.alta_at_device)};
   if(spec.table==='combos'){const items=await f34Many('combo_items','combo_id',[row.id]);const pm=await f34LegacyMap('productos',items.map(x=>x.producto_id));return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),nombre:f34Str(row.nombre),precio:f34Round(row.precio,2),activo:row.activo!==false,items:f34Sort(items.map(i=>({producto_legacy_id:pm.get(String(i.producto_id))||`v4:${i.producto_id}`,cantidad:f34Round(i.cantidad,3)})),x=>`${x.producto_legacy_id}:${x.cantidad}`)};}
-  if(spec.table==='promociones')return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),tipo:f34Str(row.tipo),producto_legacy_id:row.tipo==='producto'?await f34LegacyOne('productos',row.producto_id):null,objetivo_texto:row.tipo==='producto'&&['2x1','3x2'].includes(row.objetivo_texto)?row.objetivo_texto:row.tipo==='producto'?'':f34Str(row.objetivo_texto),porcentaje:f34Round(row.porcentaje,3),desde:f34Day(row.desde),hasta:f34Day(row.hasta),activa:row.activa!==false};
+  if(spec.table==='promociones')return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),tipo:f34Str(row.tipo),producto_legacy_id:row.tipo==='producto'?await f34LegacyOne('productos',row.producto_id):null,objetivo_texto:row.tipo==='producto'?(reglaPromoCantidad(row.objetivo_texto)?.texto||''):f34Str(row.objetivo_texto),porcentaje:f34Round(row.porcentaje,3),desde:f34Day(row.desde),hasta:f34Day(row.hasta),activa:row.activa!==false};
   return null;
 }
 async function f34ActualConfig(){const r=await sb.from('comercio_configuracion').select('*').eq('comercio_id',f3Estado.comercioId).limit(1);f34QueryError(r,'F34_FETCH_CONFIG');const row=(r.data||[])[0];if(!row)return null;return {fondo_caja:f34Round(row.fondo_caja,2),fondo_caja_cigarros:f34Round(row.fondo_caja_cigarros,2),whatsapp_dueno:f34Str(row.whatsapp_dueno),dias_aviso_vence:Math.trunc(f34Num(row.dias_aviso_vence,7)),dias_plazo_fiado:Math.trunc(f34Num(row.dias_plazo_fiado,30)),recargo_fiado_pct:f34Round(row.recargo_fiado_pct??10,3),modulo_fiado:row.modulo_fiado!==false,modulo_vencimientos:row.modulo_vencimientos!==false,modulo_cigarros:row.modulo_cigarros!==false,maneja_turnos:row.maneja_turnos===true,aviso_turno_horas:Math.trunc(f34Num(row.aviso_turno_horas,8)),motivos_egreso_extra:[...(row.motivos_egreso_extra||[])]};}

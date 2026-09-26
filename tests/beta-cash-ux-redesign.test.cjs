@@ -44,7 +44,8 @@ test('Caja separa turno, cierre e historial y reúne sus cinco indicadores', () 
     assert.match(caja, new RegExp(label));
   }
   assert.doesNotMatch(caja, /Egresos del turno<\/span><b style="color:var\(--rojo\)"/);
-  assert.match(caja, /class="btn" id="bEgreso">Registrar egreso/);
+  assert.match(caja, /id="bGastoCaja">Registrar gasto/);
+  assert.match(caja, /id="bRetiroCaja">Sacar plata/);
 });
 
 test('el cierre destaca el único dato manual y permite plegar cigarrillos', () => {
@@ -60,13 +61,27 @@ test('el cierre destaca el único dato manual y permite plegar cigarrillos', () 
   assert.match(caja, /d<-0\.009\?'negative':d>0\.009\?'positive':'ok'/);
 });
 
+test('Caja guía el cierre en contar, revisar y decidir el fondo siguiente', () => {
+  const caja = sliceBetween(source(), 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
+  assert.match(caja, /id="irCierreCaja"[^>]*>Cerrar caja/);
+  assert.match(caja, /data-caja-paso="contar"/);
+  assert.match(caja, /data-caja-paso="revisar"/);
+  assert.match(caja, /data-caja-paso="finalizar"/);
+  assert.match(caja, /id="pasoCajaSiguiente"/);
+  assert.match(caja, /id="pasoCajaAnterior"/);
+  assert.match(caja, /id="fondoSiguienteG"[^>]*value="0"/);
+  assert.match(caja, /const mostrarPasoCaja=/);
+  assert.match(caja, /if\(!conteosCajaCompletos\(\)\)/);
+});
+
 test('Registrar egreso es una acción operativa azul y usa el modal rediseñado', () => {
   const text = source();
-  const form = sliceBetween(text, 'function formEgreso(){', '\n/* F6_TURNOS_CORE_START */');
+  const form = sliceBetween(text, "function formEgreso(motivoInicial=''){", '\n/* F6_TURNOS_CORE_START */');
 
-  assert.match(form, /class="btn" id="okEg">Registrar egreso/);
+  assert.match(form, /class="btn" id="okEg">\$\{tituloEgreso\}/);
   assert.doesNotMatch(form, /class="btn rojo" id="okEg"/);
   assert.match(form, /classList\.add\('expense-modal'\)/);
+  assert.match(form, /motivoInicial==='Retiro del dueño'/);
   assert.match(text, /\.expense-modal/);
 });
 
@@ -76,6 +91,6 @@ test('el rediseño de Caja publica una identidad de caché nueva y alineada', ()
   const identity = text.match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/);
   assert.ok(identity, 'falta la identidad del build');
   const build = vm.runInNewContext(`(${identity[1]})`);
-  assert.equal(build.packageRevision, 50);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev50/);
+  assert.equal(build.packageRevision, 51);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev51/);
 });

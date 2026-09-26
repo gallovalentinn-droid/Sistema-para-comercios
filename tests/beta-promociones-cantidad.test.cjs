@@ -10,6 +10,7 @@ const between = (start, end) => {
   assert.ok(a >= 0 && b > a, `No se encontró bloque ${start}`);
   return source.slice(a, b);
 };
+const reglaCode = between('function reglaPromoCantidad(modalidad){', '\n// Se aplica un solo descuento');
 
 function calcular(promociones, cant, producto) {
   const ctx = {
@@ -32,6 +33,15 @@ test('2x1 y 3x2 bonifican una unidad por grupo completo del mismo producto', () 
   assert.equal(calcular([pr('2x1')], 2).detalle[0].modalidad, '2x1');
 });
 
+test('una promoción personalizada permite llevar cuatro y pagar dos sin bonificar grupos incompletos', () => {
+  const pr={tipo:'producto',objetivoId:'p1',modalidad:'4x2',porcentaje:0,activa:true};
+  assert.equal(calcular([pr],3).descuento,0);
+  assert.equal(calcular([pr],4).descuento,200);
+  assert.equal(calcular([pr],9).descuento,400);
+  assert.equal(calcular([{...pr,modalidad:'4x4'}],4).descuento,0);
+  assert.equal(calcular([{...pr,modalidad:'1x0'}],4).descuento,0);
+});
+
 test('no apila promociones: elige mayor beneficio y respeta vigencia, producto y unidad', () => {
   const cantidad={tipo:'producto',objetivoId:'p1',modalidad:'2x1',porcentaje:0,activa:true};
   const porcentaje={tipo:'producto',objetivoId:'p1',porcentaje:60,activa:true};
@@ -51,16 +61,29 @@ test('el neto de la venta usa el importe real de una promoción por cantidad', (
 
 test('la sincronización guarda y recupera la modalidad en objetivo_texto', () => {
   const payloadCode=source.match(/function f3PayloadPromocion\(p\)\{[^\n]+\}/)[0];
-  const payload=vm.runInNewContext(`${payloadCode}\nf3PayloadPromocion({id:'r1',tipo:'producto',objetivoId:'p1',modalidad:'3x2',porcentaje:0})`,{
+  const payload=vm.runInNewContext(`${reglaCode}\n${payloadCode}\nf3PayloadPromocion({id:'r1',tipo:'producto',objetivoId:'p1',modalidad:'3x2',porcentaje:0})`,{
     prod:()=>({id:'p1'}),f3AsegurarV4Id:x=>x.id,f3Estado:{comercioId:'c1'}
   });
   assert.equal(payload.objetivo_texto,'3x2');
   assert.equal(payload.producto_id,'p1');
   assert.equal(payload.porcentaje,0);
   const mapCode=between('function f32MapPromocion(row,base=db){','\n// Fila V4 completa');
-  const mapped=vm.runInNewContext(`${mapCode}\nf32MapPromocion({id:'r1',tipo:'producto',producto_id:'p1',objetivo_texto:'3x2',porcentaje:0})`,{
+  const mapped=vm.runInNewContext(`${reglaCode}\n${mapCode}\nf32MapPromocion({id:'r1',tipo:'producto',producto_id:'p1',objetivo_texto:'3x2',porcentaje:0})`,{
     db:{},f32LocalParaRemoto:()=>({actual:null,id:'r1'}),f32ResolverIdLocal:()=> 'p1'
   });
   assert.equal(mapped.modalidad,'3x2');
   assert.equal(mapped.objetivoId,'p1');
+});
+
+test('la sincronización conserva una promoción por cantidad personalizada', () => {
+  const payloadCode=source.match(/function f3PayloadPromocion\(p\)\{[^\n]+\}/)[0];
+  const payload=vm.runInNewContext(`${reglaCode}\n${payloadCode}\nf3PayloadPromocion({id:'r1',tipo:'producto',objetivoId:'p1',modalidad:'4x2',porcentaje:0})`,{
+    prod:()=>({id:'p1'}),f3AsegurarV4Id:x=>x.id,f3Estado:{comercioId:'c1'}
+  });
+  assert.equal(payload.objetivo_texto,'4x2');
+  const mapCode=between('function f32MapPromocion(row,base=db){','\n// Fila V4 completa');
+  const mapped=vm.runInNewContext(`${reglaCode}\n${mapCode}\nf32MapPromocion({id:'r1',tipo:'producto',producto_id:'p1',objetivo_texto:'4x2',porcentaje:0})`,{
+    db:{},f32LocalParaRemoto:()=>({actual:null,id:'r1'}),f32ResolverIdLocal:()=> 'p1'
+  });
+  assert.equal(mapped.modalidad,'4x2');
 });
