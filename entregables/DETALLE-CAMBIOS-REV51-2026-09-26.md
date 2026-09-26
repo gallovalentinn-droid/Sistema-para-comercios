@@ -1,6 +1,6 @@
 # Mi Comercio — cambios REV51 (26/09/2026)
 
-Versión publicada en [micomercio.ar/beta](https://micomercio.ar/beta/). Código de la aplicación: `179dcff`.
+Versión publicada en [micomercio.ar/beta](https://micomercio.ar/beta/).
 
 ## Caja
 
@@ -10,6 +10,7 @@ Versión publicada en [micomercio.ar/beta](https://micomercio.ar/beta/). Código
 4. Se rechazan conteos vacíos, inválidos o negativos. Si hay diferencia, se orienta a revisar el conteo y los movimientos y se ofrece una nota para explicarla.
 5. El historial muestra un resumen por cierre y permite desplegar el arqueo, las ventas y el envío por WhatsApp.
 6. Se conserva la regla previa: la próxima caja comienza en $0. En comercios sin turnos se puede declarar expresamente el efectivo que queda al cerrar, con 0 como valor inicial. Los cierres y saldos existentes no se modificaron.
+7. Después de cerrar, la siguiente caja vuelve a abrir en «Turno actual», incluso si se abre un turno nuevo enseguida.
 
 ## Descuentos y promociones
 
@@ -20,5 +21,5 @@ Versión publicada en [micomercio.ar/beta](https://micomercio.ar/beta/). Código
 ## Verificación
 
 - **Código:** revisados el cálculo del ticket, el formulario, las rutas de sincronización, el arqueo y la identidad de REV51.
-- **Local:** 194 pruebas aprobadas; sintaxis del script principal correcta; integridad de 14 archivos correcta; `git diff --check` sin observaciones. La vista de Caja se inspeccionó en la prueba visual local.
+- **Local:** 195 pruebas aprobadas; sintaxis del script principal correcta; integridad de 14 archivos correcta; `git diff --check` sin observaciones. La vista de Caja se inspeccionó en la prueba visual local.
 - **Beta pública:** `index.html` y `sw.js` servidos por `https://micomercio.ar/beta/` coinciden byte a byte con los archivos REV51. La pantalla pública sin sesión muestra el ingreso. No se realizó un cierre, una venta ni la creación de una promoción en una cuenta real; el recorrido autenticado queda sin verificación pública.

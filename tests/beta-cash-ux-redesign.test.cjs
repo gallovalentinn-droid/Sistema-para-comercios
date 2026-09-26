@@ -72,6 +72,7 @@ test('Caja guía el cierre en contar, revisar y decidir el fondo siguiente', () 
   assert.match(caja, /id="fondoSiguienteG"[^>]*value="0"/);
   assert.match(caja, /const mostrarPasoCaja=/);
   assert.match(caja, /if\(!conteosCajaCompletos\(\)\)/);
+  assert.match(caja, /globalThis\.__miCajaVista='turno';\s*render\(\); aviso\(reabrir/);
 });
 
 test('Registrar egreso es una acción operativa azul y usa el modal rediseñado', () => {

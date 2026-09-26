@@ -281,6 +281,14 @@ test('sin turno y sin cierres muestra el historial vacío junto a Abrir turno', 
   assert.match(main.innerHTML, /Sin cierres todavía/);
 });
 
+test('al terminar un turno, la próxima caja vuelve a la vista de turno actual', () => {
+  const { context, main } = load();
+  context.__miCajaVista='cierre';
+  context.vCaja(main);
+  assert.equal(context.__miCajaVista,'turno');
+  assert.match(main.innerHTML, /No hay un turno abierto/);
+});
+
 test('la actualización recupera cierres omitidos previamente y conserva los demás cursores', () => {
   const { context } = load();
   const oldCursor = { ts: '2026-09-15T18:00:01.000Z', id: closeId };

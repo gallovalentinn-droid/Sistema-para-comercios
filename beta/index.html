@@ -7727,6 +7727,7 @@ function vCaja(m){
   const sessionId=f5SesionIds(activeSession).effectiveId;
   const t=f3Activo()?turnoActual(sessionId):turnoLegacyActual();
   if(!t){
+    globalThis.__miCajaVista='turno';
     m.innerHTML=`<div class="head"><div><h1>Caja</h1><div class="sub">No hay un turno abierto en este dispositivo.</div></div></div>
       <div class="card"><div class="card-b"><div class="empty"><b>No hay un turno abierto</b>Abrí uno para separar correctamente sus ventas, cobros y egresos.<br><button class="btn" id="abrirTurnoCaja" style="margin-top:16px">Abrir turno</button></div></div></div>
       ${htmlCierresAnteriores()}`;
@@ -8034,6 +8035,7 @@ function vCaja(m){
         guardar(opCierre);await f3GuardarEstadoLocal();await backupAuto();
         const reabrir=rev31ReabrirTrasCierre;rev31ReabrirTrasCierre=false;
         if(reabrir){const nuevo=f3AsegurarSesionLocal();nuevo.abiertoPor=nuevoCierre.responsableNombre;nuevo.abiertoPorId=nuevoCierre.responsableId;nuevo.rev31AperturaExplicita=true;await f3GuardarEstadoLocal();vista='vender';}
+        globalThis.__miCajaVista='turno';
         render(); aviso(reabrir?'Caja cerrada y turno nuevo abierto':'Caja cerrada y respaldo guardado','ok');
         modalEnviarResumen(nuevoCierre);
       },'Cerrar caja','verde');
