@@ -28,7 +28,7 @@ test('cerrar un turno deja en cero los fondos del siguiente y conserva el cierre
     between('function f5SesionIds(session){', 'function f5CamposSesionLocal(session){'),
     between('function f5SessionKey(row){', 'function f5FiltrarPorSesion(rows,sessionId){'),
     between('function f3AsegurarSesionLocal(){', 'async function f3RegistrarDispositivoRemoto('),
-    between('function f3MarcarSesionLocalCierrePendiente(cierre,op){', 'function f3OperacionBloqueada(tipo,detalle){'),
+    between('function f3MarcarSesionLocalCierrePendiente(cierre,op,fondoSiguiente=null){', 'function f3OperacionBloqueada(tipo,detalle){'),
     'this.abrir=f3AsegurarSesionLocal;this.marcar=f3MarcarSesionLocalCierrePendiente;',
   ].join('\n'), context);
 
@@ -88,7 +88,7 @@ test('la apertura manual posterior a un cierre ofrece cero en ambas cajas', () =
 });
 
 test('un turno abierto automáticamente antes de REV40 pierde el fondo heredado del cierre', () => {
-  const cierre = { hasta: '2026-09-24T18:26:44Z', _v4deviceId: 'dispositivo', _v4cajaId: 'caja', _v4sessionSegmentId: 'turno-1', _v4fondoGeneral: 5000, _v4fondoCigarros: 0, contadoGeneral: 38000 };
+  const cierre = { hasta: '2026-09-24T18:26:44Z', _v4receivedAt: '2026-09-24T18:26:45Z', _v4deviceId: 'dispositivo', _v4cajaId: 'caja', _v4sessionSegmentId: 'turno-1', _v4fondoGeneral: 5000, _v4fondoCigarros: 0, contadoGeneral: 38000 };
   const context = {
     f3Estado: { cajaId: 'caja', session: {
       id: 'turno-2', sessionSegmentId: 'turno-2', estado: 'abierta', cajaId: 'caja', deviceId: 'dispositivo',
@@ -119,4 +119,58 @@ test('la actualización respeta un fondo manual y un turno sin cierre anterior',
   assert.equal(context.f3Estado.session.fondoCigarros, 500);
   context.db.cierres = [];
   assert.equal(context.normalizar(), false);
+});
+
+test('un fondo manual igual al anterior se conserva después de REV40', () => {
+  const context = {
+    f3Estado: { cajaId: 'caja', session: {
+      id: 'turno-nuevo', sessionSegmentId: 'turno-nuevo', estado: 'abierta', cajaId: 'caja', deviceId: 'dispositivo',
+      openedAtDevice: '2026-09-25T12:00:10Z', fondoGeneral: 5000, fondoCigarros: 0, rev31AperturaExplicita: true,
+    } },
+    db: { cierres: [{ hasta: '2026-09-25T12:00:00Z', _v4deviceId: 'dispositivo', _v4cajaId: 'caja', _v4sessionSegmentId: 'turno-anterior', _v4fondoGeneral: 5000, _v4fondoCigarros: 0 }] },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${between('function f3NormalizarFondoPoscierreAntiguo(){', 'async function f3RegistrarDispositivoRemoto(')}\nthis.normalizar=f3NormalizarFondoPoscierreAntiguo;`, context);
+  assert.equal(context.normalizar(), false);
+  assert.equal(context.f3Estado.session.fondoGeneral, 5000);
+});
+
+test('un reloj atrasado no permite normalizar un fondo reciente confirmado por el servidor', () => {
+  const context = {
+    f3Estado: { cajaId: 'caja', session: {
+      id: 'turno-nuevo', sessionSegmentId: 'turno-nuevo', estado: 'abierta', cajaId: 'caja', deviceId: 'dispositivo',
+      openedAtDevice: '2026-09-24T18:26:54Z', fondoGeneral: 5000, fondoCigarros: 0, rev31AperturaExplicita: true,
+    } },
+    db: { cierres: [{ hasta: '2026-09-24T18:26:44Z', _v4receivedAt: '2026-09-25T12:00:00Z', _v4deviceId: 'dispositivo', _v4cajaId: 'caja', _v4sessionSegmentId: 'turno-anterior', _v4fondoGeneral: 5000, _v4fondoCigarros: 0 }] },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${between('function f3NormalizarFondoPoscierreAntiguo(){', 'async function f3RegistrarDispositivoRemoto(')}\nthis.normalizar=f3NormalizarFondoPoscierreAntiguo;`, context);
+  assert.equal(context.normalizar(), false);
+  assert.equal(context.f3Estado.session.fondoGeneral, 5000);
+  delete context.db.cierres[0]._v4receivedAt;
+  assert.equal(context.normalizar(), false);
+  assert.equal(context.f3Estado.session.fondoGeneral, 5000);
+});
+
+test('el cierre puede reservar un fondo explícito para la siguiente caja sin turnos', () => {
+  const context = {
+    f3Activo: () => true, f3Uuid: () => 'turno-2',
+    f3Estado: { cajaId: 'caja', deviceUuid: 'dispositivo', session: { id: 'turno-1', rootSessionId: 'turno-1', sessionSegmentId: 'turno-1', estado: 'abierta', cajaId: 'caja' } },
+    db: { config: { fondoCaja: 9000, fondoCajaCigarros: 2000, moduloCigarros: true } },
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    between('function f5SesionIds(session){', 'function f5CamposSesionLocal(session){'),
+    between('function f5SessionKey(row){', 'function f5FiltrarPorSesion(rows,sessionId){'),
+    between('function f3AsegurarSesionLocal(){', 'async function f3RegistrarDispositivoRemoto('),
+    between('function f3MarcarSesionLocalCierrePendiente(cierre,op,fondoSiguiente=null){', 'function f3OperacionBloqueada(tipo,detalle){'),
+    'this.abrir=f3AsegurarSesionLocal;this.marcar=f3MarcarSesionLocalCierrePendiente;',
+  ].join('\n'), context);
+  assert.equal(context.marcar({ _v4sessionSegmentId: 'turno-1', hasta: '2026-09-25T12:00:00Z' }, { operationId: 'op-1' }, { general: 5000, cigarros: 1000 }), true);
+  context.f3Estado.session = null;
+  const nuevo = context.abrir();
+  assert.equal(nuevo.fondoGeneral, 5000);
+  assert.equal(nuevo.fondoCigarros, 1000);
+  assert.equal(context.f3Estado.fondoProximoTurnoGeneral, null);
+  assert.equal(context.f3Estado.fondoProximoTurnoCigarros, null);
 });

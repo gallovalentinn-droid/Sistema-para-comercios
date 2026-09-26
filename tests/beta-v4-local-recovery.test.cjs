@@ -15,7 +15,7 @@ function functionSource(name) {
   return source.slice(start, end + 2);
 }
 
-function load({ localProducts = [], localSales = [], remoteProducts = 660, remoteSales = 63, cursorAdvanced = true, outbox = [] } = {}) {
+function load({ localProducts = [], localSales = [], remoteProducts = 660, remoteSales = 63, cursorAdvanced = true, outbox = [], manifest = null } = {}) {
   const cursor = { ts: '2026-09-24T20:30:00Z', id: '11111111-1111-4111-8111-111111111111' };
   const state = {
     cursores: cursorAdvanced ? { productos: { ...cursor }, ventas: { ...cursor }, movimientos_stock: { ...cursor } } : {},
@@ -30,12 +30,15 @@ function load({ localProducts = [], localSales = [], remoteProducts = 660, remot
     f32EstadoPull: () => state,
     f3LeerOutbox: async () => outbox,
     f32CompararCursor: (a, b) => a.ts === b.ts ? 0 : a.ts > b.ts ? 1 : -1,
+    f5ManifestActual: () => manifest,
+    f5ProjectionAllows: (value, table) => !!value.collections[table],
+    f5ProjectionScope: (value, table) => value.collections[table].scope,
     f32PersistirFinalizacion: async ({ mutarPull }) => { mutarPull(state); context.persisted = true; },
     sb: {
       from(table) {
         return {
           select() { return this; },
-          eq() { return this; },
+          eq(column, value) { (context.filters ||= []).push([table, column, value]); return this; },
           is() { return this; },
           then(resolve, reject) { return Promise.resolve({ count: { productos: remoteProducts, ventas: remoteSales, clientes: 0, cierres_caja: 0 }[table] || 0, error: null }).then(resolve, reject); },
         };
@@ -98,4 +101,55 @@ test('recuperar ventas no obliga a volver a descargar todos los productos', asyn
   assert.equal(await context.recuperar(), true);
   assert.equal(context.f3Estado.pull.cursores.ventas, undefined);
   assert.ok(context.f3Estado.pull.cursores.productos);
+});
+
+test('el recuento respeta la proyección por dispositivo y omite colecciones no autorizadas', async () => {
+  const context = load({
+    localSales: Array(63).fill({ id: 'venta' }), remoteSales: 63,
+    manifest: { collections: { productos: { scope: 'commerce' }, ventas: { scope: 'device' } } },
+  });
+  context.f3Estado.deviceUuid = 'dispositivo-1';
+  assert.equal(await context.recuperar(), true); // productos vacíos sí requieren recuperación
+  assert.ok(context.filters.some(([table, column, value]) => table === 'ventas' && column === 'device_id' && value === 'dispositivo-1'));
+  assert.equal(context.filters.some(([table]) => table === 'clientes' || table === 'cierres_caja'), false);
+});
+
+test('el pull compara cantidades después del catch-up normal', async () => {
+  const calls = [];
+  const state = { recuperacionPendiente: false, lastPullAt: null };
+  const context = {
+    sb: {}, sesion: { user: { id: 'u' } }, enLinea: true,
+    f3Estado: { comercioId: 'c' }, f3Activo: () => true,
+    f32EstadoPull: () => state, f32bEstado: () => state,
+    f5RefrescarProyeccion: async () => ({ manifest: { id: 'm' }, coverage: {} }),
+    f32bDrenarMaestrosAntesOperaciones: async () => { calls.push('maestros'); return {}; },
+    f32bDrenarOperacionesCompleto: async () => { calls.push('operaciones'); return { aplicados: 0, borrados: 0 }; },
+    f32RecuperarCursoresSiFaltanDatos: async () => { calls.push('revisar'); return false; },
+    f32PersistirFinalizacion: async () => {}, render: () => {},
+    console,
+  };
+  vm.createContext(context);
+  vm.runInContext(`let f32RevisionLocalInicialScope='';let f32RecuperacionReplay=false;\n${functionSource('f32PullV4')}\nthis.pull=f32PullV4;`, context);
+  await context.pull();
+  assert.deepEqual(calls, ['maestros', 'operaciones', 'revisar']);
+});
+
+test('si quedan registros locales faltantes tras el catch-up, repite el pull una vez', async () => {
+  const calls = [];
+  const state = { recuperacionPendiente: false };
+  const context = {
+    sb: {}, sesion: { user: { id: 'u' } }, enLinea: true,
+    f3Estado: { comercioId: 'c' }, f3Activo: () => true,
+    f32EstadoPull: () => state, f32bEstado: () => state,
+    f5RefrescarProyeccion: async () => ({ manifest: { id: 'm' }, coverage: {} }),
+    f32bDrenarMaestrosAntesOperaciones: async () => { calls.push('maestros'); return {}; },
+    f32bDrenarOperacionesCompleto: async () => { calls.push('operaciones'); return { aplicados: 0, borrados: 0 }; },
+    f32RecuperarCursoresSiFaltanDatos: async () => { calls.push('revisar'); state.recuperacionPendiente = true; return true; },
+    f32PersistirFinalizacion: async () => {}, render: () => {}, console,
+  };
+  vm.createContext(context);
+  vm.runInContext(`let f32RevisionLocalInicialScope='';let f32RecuperacionReplay=false;\n${functionSource('f32PullV4')}\nthis.pull=f32PullV4;`, context);
+  await context.pull();
+  assert.deepEqual(calls, ['maestros', 'operaciones', 'revisar', 'maestros', 'operaciones']);
+  assert.equal(state.recuperacionPendiente, false);
 });

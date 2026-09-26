@@ -37,7 +37,7 @@ test('editar en Productos conserva la altura; cambiar de sección sí vuelve al 
     vistasVisibles: () => [{ id: 'productos' }, { id: 'vender' }],
     pintarNav: () => {}, pintarFoot: () => {}, $: () => ({}), f6ProgramarFotosProductos: () => {},
   };
-  for (const name of ['vVender', 'vResumen', 'vProductos', 'vCombos', 'vPromociones', 'vReponer', 'vVencimientos', 'vFiado', 'vCaja', 'vMovimientos', 'vConfig', 'vSoporte']) ctx[name] = () => {};
+  for (const name of ['vVender', 'vResumen', 'vProductos', 'vCompras', 'vCombos', 'vPromociones', 'vVencimientos', 'vFiado', 'vCaja', 'vMovimientos', 'vConfig', 'vSoporte']) ctx[name] = () => {};
   context(`${sourceOf('render')}\nthis.mostrar=render;`, ctx);
   ctx.mostrar();
   window.scrollY = 730;

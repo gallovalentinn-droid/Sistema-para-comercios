@@ -49,7 +49,7 @@ test('un comercio sin productos recibe el estado inicial con tres caminos de car
 
 test('Cargar factura abre primero la foto y mantiene disponible la carga manual', () => {
   const source = html();
-  const invoice = sliceBetween(source, 'function panelIngreso(reset=true){', '\nfunction addRemito(');
+  const invoice = sliceBetween(source, "function panelIngreso(reset=true,modo='ia'){", '\nfunction addRemito(');
 
   assert.match(invoice, /class="invoice-ai-card"/);
   assert.match(invoice, /Sacale una foto a la factura/);
@@ -67,6 +67,6 @@ test('el rediseño publica una identidad de caché nueva y alineada', () => {
   const identity = source.match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/);
   assert.ok(identity, 'falta la identidad del build');
   const build = vm.runInNewContext(`(${identity[1]})`);
-  assert.equal(build.packageRevision, 44);
-  assert.match(serviceWorker, /micomercio-beta-6\.0\.0-f6-rc2-rev44/);
+  assert.equal(build.packageRevision, 47);
+  assert.match(serviceWorker, /micomercio-beta-6\.0\.0-f6-rc2-rev47/);
 });
