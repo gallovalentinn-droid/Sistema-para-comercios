@@ -24,7 +24,7 @@ function functionSource(source, name) {
   return source.slice(start, end + 2);
 }
 
-test('el catálogo cargado prioriza factura y agrupa las acciones secundarias', () => {
+test('el catálogo cargado deja la factura en Compras y agrupa las acciones secundarias', () => {
   const source = html();
   const products = sliceBetween(source, 'function vProductos(m){', '\nfunction listaFiltrada(){');
 
@@ -37,10 +37,8 @@ test('el catálogo cargado prioriza factura y agrupa las acciones secundarias', 
   assert.doesNotMatch(source, /Usá la opción CSV|Probá con CSV/);
   assert.equal((products.match(/role="menuitem"/g)||[]).length, 3);
   assert.match(products, /id="bNuevo"[\s\S]*Nuevo producto/);
-  assert.match(products, /id="bIngreso"[\s\S]*Cargar factura/);
-  assert.match(products, /class="ai-badge"[^>]*>IA</);
+  assert.doesNotMatch(products, /id="bIngreso"|Cargar factura/);
   assert.ok(products.indexOf('id="bMasProductos"') < products.indexOf('id="bNuevo"'));
-  assert.ok(products.indexOf('id="bNuevo"') < products.indexOf('id="bIngreso"'));
   assert.match(source, /function cerrarMenuProductos\(/);
   assert.match(source, /e\.key==='Escape'/);
 });
@@ -105,7 +103,7 @@ test('una baja porcentual mayor al límite no permite aplicar el lote', () => {
   assert.deepEqual(notices, ['Ingresá un ajuste válido antes de aplicar']);
 });
 
-test('un comercio sin productos recibe el estado inicial con tres caminos de carga', () => {
+test('un comercio sin productos recibe importación y carga manual', () => {
   const source = html();
   const products = sliceBetween(source, 'function vProductos(m){', '\nfunction formProducto(');
 
@@ -114,7 +112,7 @@ test('un comercio sin productos recibe el estado inicial con tres caminos de car
   assert.match(products, /Empecemos cargando tu catálogo/);
   assert.match(products, /Esta pantalla solo se ve así hasta que tengas tu primer producto cargado/);
   assert.match(products, /id="bImportarVacio"/);
-  assert.match(products, /id="bIngresoVacio"/);
+  assert.doesNotMatch(products, /id="bIngresoVacio"/);
   assert.match(products, /id="bNuevoVacio"/);
   assert.match(source, /function wireProductosVacio\(/);
 });
@@ -139,6 +137,6 @@ test('el rediseño publica una identidad de caché nueva y alineada', () => {
   const identity = source.match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/);
   assert.ok(identity, 'falta la identidad del build');
   const build = vm.runInNewContext(`(${identity[1]})`);
-  assert.equal(build.packageRevision, 49);
-  assert.match(serviceWorker, /micomercio-beta-6\.0\.0-f6-rc2-rev49/);
+  assert.equal(build.packageRevision, 50);
+  assert.match(serviceWorker, /micomercio-beta-6\.0\.0-f6-rc2-rev50/);
 });

@@ -117,24 +117,6 @@ test('un empleado que sólo puede cargar productos no ve la lista de pedidos', (
   assert.match(content.innerHTML, /Cargar a mano/);
 });
 
-test('el acceso desde Productos lleva a la pestaña Facturas sólo con permiso', () => {
-  const html = source();
-  const calls = [];
-  const context = {
-    comprasTab:'pedir', comprasPermisosActuales:()=>({pedir:true,factura:false}),
-    aviso:message=>calls.push(message), ir:view=>calls.push(view),
-  };
-  vm.createContext(context);
-  vm.runInContext(functionSource(html, 'abrirComprasFactura'), context);
-  context.abrirComprasFactura();
-  assert.equal(context.comprasTab, 'pedir');
-  assert.deepEqual(calls, ['No tenés permiso para cargar facturas']);
-  context.comprasPermisosActuales=()=>({pedir:true,factura:true});
-  context.abrirComprasFactura();
-  assert.equal(context.comprasTab, 'factura');
-  assert.deepEqual(calls, ['No tenés permiso para cargar facturas','compras']);
-});
-
 test('la carga manual abre los campos directamente y la lectura IA abre la foto', () => {
   const html = source();
   let captured;

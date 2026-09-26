@@ -666,7 +666,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:49,
+  packageRevision:50,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -1737,7 +1737,7 @@ function f3PayloadProducto(p){
 }
 function f3PayloadCliente(c){return {id:f3AsegurarV4Id(c),comercio_id:f3Estado.comercioId,legacy_id:c.id,nombre:c.nombre||'Cliente',telefono:c.tel||c.telefono||'',alta_at_device:c.alta||null,updated_at_device:c._syncAt||new Date().toISOString(),deleted_at:null};}
 function f3PayloadCombo(c){return {row:{id:f3AsegurarV4Id(c),comercio_id:f3Estado.comercioId,legacy_id:c.id,nombre:c.nombre||'Combo',precio:Number(c.precio)||0,activo:c.activo!==false,updated_at_device:c._syncAt||new Date().toISOString(),deleted_at:null},items:(c.items||[]).map(i=>{const p=prod(i.prodId);return p?{combo_id:f3AsegurarV4Id(c),comercio_id:f3Estado.comercioId,producto_id:f3AsegurarV4Id(p),cantidad:Number(i.cant)||1}:null;}).filter(Boolean)};}
-function f3PayloadPromocion(p){const pr=p.tipo==='producto'?prod(p.objetivoId):null;return {id:f3AsegurarV4Id(p),comercio_id:f3Estado.comercioId,legacy_id:p.id,tipo:p.tipo,producto_id:pr?f3AsegurarV4Id(pr):null,objetivo_texto:p.tipo==='producto'?'':String(p.objetivoId||''),porcentaje:Number(p.porcentaje)||0,desde:p.desde||null,hasta:p.hasta||null,activa:p.activa!==false,updated_at_device:p._syncAt||new Date().toISOString(),deleted_at:null};}
+function f3PayloadPromocion(p){const pr=p.tipo==='producto'?prod(p.objetivoId):null;return {id:f3AsegurarV4Id(p),comercio_id:f3Estado.comercioId,legacy_id:p.id,tipo:p.tipo,producto_id:pr?f3AsegurarV4Id(pr):null,objetivo_texto:p.tipo==='producto'?(p.modalidad==='2x1'||p.modalidad==='3x2'?p.modalidad:''):String(p.objetivoId||''),porcentaje:p.modalidad==='2x1'||p.modalidad==='3x2'?0:Number(p.porcentaje)||0,desde:p.desde||null,hasta:p.hasta||null,activa:p.activa!==false,updated_at_device:p._syncAt||new Date().toISOString(),deleted_at:null};}
 /* F5_CONFIG_CONTRACT_START */
 // Fuente unica del contrato de configuracion. f3PayloadConfig (subida),
 // f32MapConfig (bajada) y F5_CONFIG_CANONICAL_KEYS se derivan de aca.
@@ -2088,7 +2088,7 @@ async function f3PrepararMaestrosShadow(){
   const promos=(db.promociones||[]).map(p=>{
     const pr=p.tipo==='producto'?prod(p.objetivoId):null;
     return {id:p._v4id,comercio_id:cid,legacy_id:p.id,tipo:p.tipo,producto_id:pr?f3AsegurarV4Id(pr):null,
-      objetivo_texto:p.tipo==='producto'?'':String(p.objetivoId||''),porcentaje:Number(p.porcentaje)||0,desde:p.desde||null,hasta:p.hasta||null,activa:p.activa!==false,updated_at_device:p._syncAt||null};
+      objetivo_texto:p.tipo==='producto'?(p.modalidad==='2x1'||p.modalidad==='3x2'?p.modalidad:''):String(p.objetivoId||''),porcentaje:p.modalidad==='2x1'||p.modalidad==='3x2'?0:Number(p.porcentaje)||0,desde:p.desde||null,hasta:p.hasta||null,activa:p.activa!==false,updated_at_device:p._syncAt||null};
   });
   if(puedePromos&&promos.length){const {error}=await sb.from('promociones').upsert(promos,{onConflict:'comercio_id,legacy_id'});if(error)throw error;}
 
@@ -3707,11 +3707,6 @@ function ir(v){
   if(v!=='caja')rev31ReabrirTrasCierre=false;
   vista=v; render();
 }
-function abrirComprasFactura(){
-  if(!comprasPermisosActuales().factura){aviso('No tenés permiso para cargar facturas','bad');return;}
-  comprasTab='factura';
-  ir('compras');
-}
 function render(){
   if(!vistasVisibles().some(v=>v.id===vista)) vista='vender';
   const mismaVista=vista==='productos'&&ultimaVistaRenderizada===vista;
@@ -3989,12 +3984,31 @@ function promoParaProducto(p){
   const porCat=activas.filter(pr=>pr.tipo==='categoria'&&pr.objetivoId&&pr.objetivoId===p.rubro);
   return Math.max(0,...porProd.map(pr=>num(pr.porcentaje)),...porCat.map(pr=>num(pr.porcentaje)));
 }
-// detalle por línea de ticket (para mostrar el tag "Promo -X%"); no toca combos
+// Entre descuentos porcentuales y promociones por cantidad se aplica el mayor beneficio.
+// Las unidades de una promoción por cantidad siempre pertenecen al mismo producto.
+function promoParaItem(i){
+  const p=i&&i.tipo!=='combo'?prod(i.prodId):null;
+  if(!p) return null;
+  const bruto=Math.max(0,Number(i.precio)||0)*Math.max(0,Number(i.cant)||0);
+  const pct=promoParaProducto(p);
+  const montoPct=Math.round(bruto*pct)/100;
+  let mejor={itemId:i.id,pct,monto:montoPct};
+  if(p.unidad!=='kg'&&Number.isInteger(Number(i.cant))){
+    for(const pr of (db.promociones||[])){
+      if(pr.tipo!=='producto'||pr.objetivoId!==p.id||!vigentePromo(pr)) continue;
+      const regla=pr.modalidad;
+      const grupo=regla==='2x1'?2:regla==='3x2'?3:0;
+      if(!grupo) continue;
+      const gratis=Math.floor(Number(i.cant)/grupo);
+      const monto=Math.min(bruto,Math.round(gratis*Number(i.precio)*100)/100);
+      if(monto>mejor.monto) mejor={itemId:i.id,pct:0,modalidad:regla,gratis,monto};
+    }
+  }
+  return mejor.monto>0?mejor:null;
+}
+// Detalle por línea de ticket; las promociones no se aplican a combos.
 function detallePromoAuto(){
-  return ticket.filter(i=>i.tipo!=='combo').map(i=>{
-    const p=prod(i.prodId); const pct=promoParaProducto(p);
-    return pct>0 ? {itemId:i.id,pct,monto:Math.round(i.precio*i.cant*pct/100*100)/100} : null;
-  }).filter(Boolean);
+  return ticket.map(promoParaItem).filter(Boolean);
 }
 function descuentoPromoAuto(){
   return detallePromoAuto().reduce((a,d)=>a+d.monto,0);
@@ -4164,13 +4178,14 @@ function pintarPOS(){
             <td class="r"><button class="x" data-quita="${i.id}" title="Sacar del ticket" aria-label="Sacar del ticket">${ic('cerrar')}</button></td></tr>`;
         }
         const p=prod(i.prodId);
-        const pct=promoParaProducto(p);
+        const promo=promoParaItem(i),pct=promo&&promo.pct||0;
         const precioProm=pct>0?Math.round(i.precio*(1-pct/100)*10000)/10000:i.precio;
+        const totalProm=Math.max(0,i.precio*i.cant-(promo?promo.monto:0));
         return `<tr>
-        <td data-label="Producto"><b>${esc(i.nombre)}</b>${pct>0?` <span class="pill ok">Promo −${pct}%</span>`:''}${p&&i.cant>p.stock?`<br><span class="pill bad">stock ${fmtCant(p,p?p.stock:0)}</span>`:''}</td>
+        <td data-label="Producto"><b>${esc(i.nombre)}</b>${promo?` <span class="pill ok">${promo.modalidad||`Promo −${pct}%`}</span>`:''}${p&&i.cant>p.stock?`<br><span class="pill bad">stock ${fmtCant(p,p?p.stock:0)}</span>`:''}</td>
         <td data-label="Cantidad" class="r"><div class="qty"><button data-menos="${i.id}" aria-label="Restar">–</button><input class="num" data-cant="${i.id}" value="${i.cant}"><button data-mas="${i.id}" aria-label="Sumar">+</button></div>${p&&p.unidad==='kg'?'<div style="font-size:11px;color:var(--muted);margin-top:3px">kg</div>':''}</td>
         <td data-label="Precio" class="r num">${pct>0?`<span style="text-decoration:line-through;color:var(--muted);font-size:12px;display:block">${$m(i.precio)}</span>${$m(precioProm)}`:$m(i.precio)}${p&&p.unidad==='kg'?'/kg':''}</td>
-        <td data-label="Subtotal" class="r num" style="font-weight:600">${$m(precioProm*i.cant)}</td>
+        <td data-label="Subtotal" class="r num" style="font-weight:600">${$m(totalProm)}</td>
         <td class="r"><button class="x" data-quita="${i.id}" title="Sacar del ticket" aria-label="Sacar del ticket">${ic('cerrar')}</button></td></tr>`;}).join('')}
       </tbody></table>`;
 
@@ -4362,11 +4377,9 @@ function asignarNetosVenta(v){
     const bruto=(Number(i.precio)||0)*(Number(i.cant)||0);
     let dtoAuto=0;
     if(i.tipo!=='combo'){
-      if(i.promoPct!=null) dtoAuto=Math.round(bruto*Math.max(0,Number(i.promoPct)||0)/100*100)/100;
-      else if(i.lineId){
-        const d=(v.promoAutoDetalle||[]).find(x=>x.itemId===i.lineId);
-        dtoAuto=d?Math.min(bruto,Number(d.monto)||0):0;
-      }
+      const d=i.lineId?(v.promoAutoDetalle||[]).find(x=>x.itemId===i.lineId):null;
+      if(d) dtoAuto=Math.min(bruto,Math.max(0,Number(d.monto)||0));
+      else if(i.promoPct!=null) dtoAuto=Math.round(bruto*Math.max(0,Number(i.promoPct)||0)/100*100)/100;
     }
     return {i,bruto,base:Math.max(0,bruto-dtoAuto)};
   });
@@ -4582,8 +4595,9 @@ function imprimirTicket(v){
       const dp=i.lineId?(v.promoAutoDetalle||[]).find(d=>d.itemId===i.lineId):null;
       const pct=dp?dp.pct:(Number(i.promoPct)||0);
       const pu=pct>0?Math.round(i.precio*(1-pct/100)*10000)/10000:i.precio;
-      return `<tr><td colspan="2">${esc(i.nombre)}${pct>0?' (promo -'+pct+'%)':''}</td></tr>
-      <tr><td>${kg?nfKg.format(i.cant)+' kg x '+nfM.format(pu)+'/kg':i.cant+' x '+nfM.format(pu)}</td><td class="r">${nfM.format(i.cant*pu)}</td></tr>`;}).join('')}</table>
+      const totalLinea=dp&&dp.modalidad?Math.max(0,i.cant*i.precio-(Number(dp.monto)||0)):i.cant*pu;
+      return `<tr><td colspan="2">${esc(i.nombre)}${dp&&dp.modalidad?' ('+esc(dp.modalidad)+')':pct>0?' (promo -'+pct+'%)':''}</td></tr>
+      <tr><td>${kg?nfKg.format(i.cant)+' kg x '+nfM.format(pu)+'/kg':i.cant+' x '+nfM.format(pu)}${dp&&dp.modalidad?' · '+dp.gratis+' gratis':''}</td><td class="r">${nfM.format(totalLinea)}</td></tr>`;}).join('')}</table>
     <hr>
     <table>${(v.descuento>0||v.promoAuto>0||v.promoPago>0)?`<tr><td>Subtotal</td><td class="r">$${nfM.format(v.subtotal||0)}</td></tr>
       ${v.promoAuto>0?`<tr><td>Promociones</td><td class="r">-$${nfM.format(v.promoAuto)}</td></tr>`:''}
@@ -4743,18 +4757,16 @@ function wireProductosActions(root){
       if(abrir){const primero=menu.querySelector('button');primero&&primero.focus();}
     };
   }
-  const nuevo=$('#bNuevo',root),ingreso=$('#bIngreso',root),importar=$('#bImportar',root),precios=$('#bPrecios',root);
+  const nuevo=$('#bNuevo',root),importar=$('#bImportar',root),precios=$('#bPrecios',root);
   const exportarExcel=$('#bExportarExcel',root);
   if(nuevo)nuevo.onclick=()=>formProducto();
-  if(ingreso)ingreso.onclick=abrirComprasFactura;
   if(importar)importar.onclick=()=>{cerrarMenuProductos();panelImportar();};
   if(precios)precios.onclick=()=>{cerrarMenuProductos();panelPrecios();};
   if(exportarExcel)exportarExcel.onclick=()=>{cerrarMenuProductos();descargarCatalogoExcel();};
 }
 function wireProductosVacio(root){
-  const importar=$('#bImportarVacio',root),ingreso=$('#bIngresoVacio',root),nuevo=$('#bNuevoVacio',root);
+  const importar=$('#bImportarVacio',root),nuevo=$('#bNuevoVacio',root);
   if(importar)importar.onclick=()=>panelImportar();
-  if(ingreso)ingreso.onclick=abrirComprasFactura;
   if(nuevo)nuevo.onclick=()=>formProducto();
 }
 document.addEventListener('click',e=>{
@@ -4781,7 +4793,6 @@ function vProductos(m){
         </div>
       </div>
       <button class="btn primary-outline" id="bNuevo">${ic('mas')} Nuevo producto</button>
-      <button class="btn products-invoice-button" id="bIngreso">${ic('camara')} Cargar factura<span class="ai-badge" aria-label="Función con inteligencia artificial">IA</span></button>
     </div>`}
   </div>
   ${ultimoCambioPrecios?`<div class="ux-banner" style="margin-bottom:14px"><div style="flex:1"><b>Último cambio masivo aplicado</b><br>${esc(ultimoCambioPrecios.descripcion)} · ${ultimoCambioPrecios.items.length} productos.</div><button class="btn ghost sm" id="deshacerPrecios">Deshacer</button></div>`:''}
@@ -4844,7 +4855,6 @@ function tablaProductos(){
       <p>Elegí cómo preferís arrancar. Esta pantalla solo se ve así hasta que tengas tu primer producto cargado.</p>
       <div class="products-empty-actions">
         <button class="btn" id="bImportarVacio">${ic('subir')} Importar Excel/CSV</button>
-        <button class="btn primary-outline products-invoice-button" id="bIngresoVacio">${ic('camara')} Cargar factura<span class="ai-badge" aria-label="Función con inteligencia artificial">IA</span></button>
       </div>
       <button class="products-empty-manual" id="bNuevoVacio">o cargar un producto a mano</button>
     </div>`;
@@ -5664,6 +5674,7 @@ function vCombos(m){
    automáticamente en el cobro cuando están activos y vigentes.
    ═══════════════════════════════════════════════════════ */
 const TIPOS_PROMO={producto:'% por producto',categoria:'% por categoría',pago:'% por medio de pago'};
+function etiquetaPromo(pr){return pr.modalidad==='2x1'||pr.modalidad==='3x2'?pr.modalidad:(TIPOS_PROMO[pr.tipo]||pr.tipo);}
 function estadoPromo(pr){
   if(pr.activa===false) return {txt:'Pausada',clase:'mute'};
   const h=hoy();
@@ -5686,13 +5697,13 @@ function vigenciaPromo(pr){
 function vPromociones(m){
   m.innerHTML=`
   <div class="head">
-    <div><h1>Descuentos</h1><div class="sub">Descuentos por producto, por categoría o por medio de pago, con fecha de inicio y fin.</div></div>
-    <div class="row"><button class="btn" id="bNuevaPromo">Nuevo descuento</button></div>
+    <div><h1>Descuentos y promociones</h1><div class="sub">Descuentos por porcentaje y promociones 2x1 o 3x2, con fecha de inicio y fin.</div></div>
+    <div class="row"><button class="btn" id="bNuevaPromo">Nueva promoción</button></div>
   </div>
   <div class="card" style="margin-bottom:16px;background:var(--primary-l);border-color:var(--primary-l)">
     <div class="card-b" style="display:flex;gap:12px;align-items:flex-start">
       <span class="ic" style="color:var(--primary-d)">${ic('info')}</span>
-      <div style="font-size:14px;line-height:1.55;color:var(--ink-2)">Los descuentos <b>activos y vigentes se aplican automáticamente</b> al cobrar. Para un producto se usa el porcentaje más alto entre producto y rubro; después puede sumarse el descuento del medio de pago. Los descuentos no se aplican a combos.</div>
+      <div style="font-size:14px;line-height:1.55;color:var(--ink-2)">Las promociones <b>activas y vigentes se aplican automáticamente</b> al cobrar. Para cada producto se usa el mayor beneficio entre descuento porcentual, 2x1 y 3x2; después puede sumarse el descuento del medio de pago. Las promociones no se aplican a combos.</div>
     </div>
   </div>
   <div id="listaPromos"></div>`;
@@ -5702,13 +5713,12 @@ function vPromociones(m){
 function pintarPromociones(){
   const c=$('#listaPromos'); if(!c) return;
   const l=(db.promociones||[]).slice().sort((a,b)=>(b.creada||'').localeCompare(a.creada||''));
-  if(!l.length){ c.innerHTML=`<div class="card"><div class="empty"><b>Todavía no cargaste ningún descuento</b>Un descuento baja el precio de productos que ya vendés. Un combo crea una opción nueva con precio propio.<div style="margin-top:14px"><button class="btn" id="promoVaciaCta">Crear descuento</button></div></div></div>`;$('#promoVaciaCta').onclick=()=>formPromocion();return; }
-  c.innerHTML=`<div class="card"><table class="mtable"><thead><tr><th>Nombre</th><th>Tipo</th><th>Aplica a</th><th class="r">Descuento</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead><tbody>
+  if(!l.length){ c.innerHTML=`<div class="card"><div class="empty"><b>Todavía no cargaste ninguna promoción</b>Un descuento baja el precio de productos que ya vendés. Un combo crea una opción nueva con precio propio.<div style="margin-top:14px"><button class="btn" id="promoVaciaCta">Crear promoción</button></div></div></div>`;$('#promoVaciaCta').onclick=()=>formPromocion();return; }
+  c.innerHTML=`<div class="card"><table class="mtable"><thead><tr><th>Promoción</th><th>Aplica a</th><th class="r">Beneficio</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead><tbody>
     ${l.map(pr=>{ const e=estadoPromo(pr); return `<tr>
-      <td data-label="Nombre"><b>${esc(pr.nombre||('Descuento en '+objetivoPromo(pr)))}</b></td>
-      <td data-label="Tipo">${esc(TIPOS_PROMO[pr.tipo]||pr.tipo)}</td>
+      <td data-label="Promoción"><b>${esc(etiquetaPromo(pr))}</b></td>
       <td data-label="Aplica a"><b>${esc(objetivoPromo(pr))}</b></td>
-      <td data-label="Descuento" class="r num" style="font-weight:600">${num(pr.porcentaje)}%</td>
+      <td data-label="Beneficio" class="r num" style="font-weight:600">${pr.modalidad?'1 unidad gratis por grupo':num(pr.porcentaje)+'%'}</td>
       <td data-label="Vigencia" style="color:var(--muted);font-size:13.5px">${esc(vigenciaPromo(pr))}</td>
       <td data-label="Estado"><span class="pill ${e.clase}">${e.txt}</span></td>
       <td class="r" style="white-space:nowrap">
@@ -5725,39 +5735,43 @@ function pintarPromociones(){
   });
   $$('[data-xp]',c).forEach(b=>b.onclick=()=>{
     const pr=(db.promociones||[]).find(x=>x.id===b.dataset.xp); if(!pr) return;
-    confirmar('Eliminar descuento',`Vas a borrar "${esc(TIPOS_PROMO[pr.tipo]||pr.tipo)} — ${esc(objetivoPromo(pr))}". Esto no se puede deshacer.`,
+    confirmar('Eliminar promoción',`Vas a borrar "${esc(etiquetaPromo(pr))} — ${esc(objetivoPromo(pr))}". Esto no se puede deshacer.`,
       ()=>{ db.promociones=db.promociones.filter(x=>x.id!==pr.id); guardar(); pintarPromociones(); aviso('Descuento eliminado'); },'Eliminar');
   });
 }
 function formPromocion(id){
   const pr=id?(db.promociones||[]).find(x=>x.id===id):null;
-  const v=pr||{nombre:'',tipo:'producto',objetivoId:'',porcentaje:'',desde:'',hasta:'',activa:true};
-  modal({titulo:pr?'Editar descuento':'Nuevo descuento',
+  const v=pr?{...pr}:{tipo:'producto',objetivoId:'',porcentaje:'',modalidad:'',desde:'',hasta:'',activa:true};
+  modal({titulo:pr?'Editar promoción':'Nueva promoción',
     cuerpo:`
-      <label class="f" for="pr_nombre">Nombre</label>
-      <input id="pr_nombre" class="inp" value="${esc(v.nombre||'')}" placeholder="Se sugiere automáticamente">
+      <label class="f">¿Qué promoción querés crear?</label>
+      <div class="seg" id="pr_modalidades" style="margin-bottom:16px">
+        <button type="button" data-modalidad="" class="${!v.modalidad?'on':''}">Descuento %</button>
+        <button type="button" data-modalidad="2x1" class="${v.modalidad==='2x1'?'on':''}">2x1</button>
+        <button type="button" data-modalidad="3x2" class="${v.modalidad==='3x2'?'on':''}">3x2</button>
+      </div>
       <label class="f">¿A qué aplica?</label>
-      <div class="seg" style="margin-bottom:16px">
+      <div class="seg" id="pr_tipos" style="margin-bottom:16px">
         <button type="button" data-tipo="producto" class="${v.tipo==='producto'?'on':''}">Producto</button>
         <button type="button" data-tipo="categoria" class="${v.tipo==='categoria'?'on':''}">Categoría</button>
         <button type="button" data-tipo="pago" class="${v.tipo==='pago'?'on':''}">Medio de pago</button>
       </div>
       <div id="objetivoWrap"></div>
-      <label class="f" for="pr_pct" style="margin-top:14px">Porcentaje de descuento</label>
-      <input id="pr_pct" class="inp num" inputmode="decimal" placeholder="Ej: 10" value="${esc(v.porcentaje)}">
+      <div id="pr_pct_wrap"><label class="f" for="pr_pct" style="margin-top:14px">Porcentaje de descuento</label>
+        <input id="pr_pct" class="inp num" inputmode="decimal" placeholder="Ej: 10" value="${esc(v.porcentaje)}"></div>
+      <div id="pr_cantidad_ayuda" class="hint" style="margin-top:10px" hidden></div>
       <div class="grid2" style="margin-top:14px">
         <div><label class="f" for="pr_desde">Desde (opcional)</label>
           <input type="date" id="pr_desde" class="inp" value="${esc(v.desde)}"></div>
         <div><label class="f" for="pr_hasta">Hasta (opcional)</label>
           <input type="date" id="pr_hasta" class="inp" value="${esc(v.hasta)}"></div>
       </div>
-      <div class="hint" style="margin-top:10px">Dejá las fechas vacías si el descuento no tiene vencimiento.</div>
-      <div id="pr_impacto" class="combo-result" style="margin-top:16px"><b>Qué va a pasar</b><div class="hint">Elegí el alcance y el porcentaje para ver el impacto.</div></div>`,
+      <div class="hint" style="margin-top:10px">Dejá las fechas vacías si la promoción no tiene vencimiento.</div>
+      <div id="pr_impacto" class="combo-result" style="margin-top:16px"><b>Qué va a pasar</b><div class="hint">Elegí el producto para ver el beneficio.</div></div>`,
     pie:`${pr?`<button class="btn ghost" id="borrarPromo" style="margin-right:auto;color:var(--rojo)">Eliminar</button>`:''}
-        <button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okPromo" disabled>Guardar descuento</button>`,
+        <button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okPromo" disabled>Guardar promoción</button>`,
     alAbrir:ov=>{
-      let tipo=v.tipo;
-      let nombreTocado=Boolean(v.nombre);
+      let tipo=v.tipo,modalidad=v.modalidad||'';
       const objetivoSeleccionado=()=>$('#pr_obj',ov)?$('#pr_obj',ov).value:'';
       const actualizarImpacto=()=>{
         const obj=objetivoSeleccionado(),pct=num($('#pr_pct',ov).value);let alcanzados=[];
@@ -5765,19 +5779,29 @@ function formPromocion(id){
         if(tipo==='categoria')alcanzados=db.productos.filter(p=>p.rubro===obj);
         if(tipo==='pago')alcanzados=db.productos.slice();
         const ejemplos=alcanzados.slice(0,3),sinCosto=alcanzados.filter(p=>Number(p.costo)<=0).length;
-        $('#pr_impacto',ov).innerHTML=`<b>Qué va a pasar</b><div style="margin-top:7px"><b>${alcanzados.length}</b> productos alcanzados${pct?` · ${pct}% de descuento`:''}</div>${ejemplos.length&&pct?`<div style="margin-top:8px;font-size:13px">${ejemplos.map(p=>`${esc(p.nombre)}: <span class="num">${$m(p.precio)} → ${$m(Number(p.precio)*(1-pct/100))}</span>`).join('<br>')}</div>`:''}${sinCosto?`<div class="hint" style="color:var(--ambar);margin-top:8px">${sinCosto} sin costo: no podemos validar su margen final.</div>`:''}`;
-        if(!nombreTocado&&obj&&pct){const objetivo=tipo==='producto'?(prod(obj)||{}).nombre:tipo==='pago'?(FORMAS[obj]||obj):obj;$('#pr_nombre',ov).value=`${pct}% en ${objetivo}`;}
-        const desde=$('#pr_desde',ov).value,hasta=$('#pr_hasta',ov).value;$('#okPromo',ov).disabled=!obj||pct<=0||pct>100||(desde&&hasta&&hasta<desde);
+        const grupo=modalidad==='2x1'?2:modalidad==='3x2'?3:0;
+        $('#pr_impacto',ov).innerHTML=`<b>Qué va a pasar</b><div style="margin-top:7px"><b>${alcanzados.length}</b> producto${alcanzados.length===1?'':'s'} alcanzado${alcanzados.length===1?'':'s'}${grupo?` · cada ${grupo} unidades del mismo producto, 1 gratis`:pct?` · ${pct}% de descuento`:''}</div>${ejemplos.length&&(grupo||pct)?`<div style="margin-top:8px;font-size:13px">${ejemplos.map(p=>`${esc(p.nombre)}: <span class="num">${grupo?`${grupo} por ${$m(Number(p.precio)*(grupo-1))}`:`${$m(p.precio)} → ${$m(Number(p.precio)*(1-pct/100))}`}</span>`).join('<br>')}</div>`:''}${sinCosto?`<div class="hint" style="color:var(--ambar);margin-top:8px">${sinCosto} sin costo: no podemos validar su margen final.</div>`:''}`;
+        const desde=$('#pr_desde',ov).value,hasta=$('#pr_hasta',ov).value;
+        $('#okPromo',ov).disabled=!obj||(grupo&&prod(obj)?.unidad==='kg')||(!grupo&&(pct<=0||pct>100))||(desde&&hasta&&hasta<desde);
+      };
+      const pintarModalidad=()=>{
+        $('#pr_pct_wrap',ov).hidden=Boolean(modalidad);
+        $('#pr_tipos',ov).hidden=Boolean(modalidad);
+        const ayuda=$('#pr_cantidad_ayuda',ov);
+        ayuda.hidden=!modalidad;
+        ayuda.textContent=modalidad?`${modalidad}: por cada ${modalidad==='2x1'?2:3} unidades del mismo producto, se cobra una menos. No se aplica a productos por kilo ni a combos.`:'';
+        $$('[data-tipo]',ov).forEach(b=>{b.disabled=Boolean(modalidad)&&b.dataset.tipo!=='producto';b.classList.toggle('on',b.dataset.tipo===tipo);});
+        $$('[data-modalidad]',ov).forEach(b=>b.classList.toggle('on',b.dataset.modalidad===modalidad));
+        actualizarImpacto();
       };
       const pintarObjetivo=()=>{
         const wrap=$('#objetivoWrap',ov);
         if(tipo==='producto'){
           wrap.innerHTML=`<label class="f" for="pr_obj_buscar">Buscar producto</label>
-            <input id="pr_obj_buscar" class="inp" placeholder="Escribí nombre, código o rubro…" autocomplete="off">
+            <input id="pr_obj_buscar" class="inp" type="search" placeholder="Escribí nombre, código o rubro…" autocomplete="off">
             <label class="f" for="pr_obj" style="margin-top:8px">Producto elegido</label>
-            <select id="pr_obj" class="inp"><option value="">Elegí un producto…</option>
-              ${db.productos.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(p=>`<option value="${p.id}" ${v.objetivoId===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}
-            </select>`;
+            <select id="pr_obj" class="inp"></select>
+            <div class="hint" id="pr_buscar_hint" style="margin-top:6px"></div>`;
         } else if(tipo==='categoria'){
           wrap.innerHTML=`<label class="f" for="pr_obj">Categoría / rubro</label>
             <select id="pr_obj" class="inp"><option value="">Elegí un rubro…</option>
@@ -5789,17 +5813,28 @@ function formPromocion(id){
               ${['efectivo','transferencia','tarjeta'].map(f=>`<option value="${f}" ${formaKey(v.objetivoId)===f?'selected':''}>${FORMAS[f]}</option>`).join('')}
             </select>`;
         }
-        const obj=$('#pr_obj',ov);if(obj)obj.onchange=actualizarImpacto;
-        const buscar=$('#pr_obj_buscar',ov);if(buscar)buscar.oninput=()=>{
-          const actual=obj.value,q=normalizarBusqueda(buscar.value);
-          const opciones=db.productos.filter(p=>!q||normalizarBusqueda(`${p.nombre} ${p.ean||''} ${p.rubro||''}`).includes(q)).sort((a,b)=>a.nombre.localeCompare(b.nombre));
-          obj.innerHTML=`<option value="">${opciones.length?'Elegí un producto…':'Sin coincidencias'}</option>${opciones.map(p=>`<option value="${p.id}" ${actual===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}`;
-        };
+        const obj=$('#pr_obj',ov);if(obj)obj.onchange=()=>{v.objetivoId=obj.value;actualizarImpacto();};
+        const buscar=$('#pr_obj_buscar',ov);
+        if(buscar){
+          const actualizarOpciones=()=>{
+            const actual=v.objetivoId,q=normalizarBusqueda(buscar.value);
+            const opciones=db.productos.filter(p=>!productoArchivadoRev31(p)&&(!modalidad||p.unidad!=='kg')&&(!q||normalizarBusqueda(`${p.nombre} ${p.ean||''} ${p.rubro||''}`).includes(q)))
+              .sort((a,b)=>a.nombre.localeCompare(b.nombre));
+            const visibles=opciones.slice(0,60),elegido=actual?prod(actual):null;
+            if(elegido&&!visibles.some(p=>p.id===actual))visibles.unshift(elegido);
+            obj.innerHTML=`<option value="">${opciones.length?'Elegí un producto…':'Sin coincidencias'}</option>${visibles.map(p=>`<option value="${esc(p.id)}" ${actual===p.id?'selected':''}>${esc(p.nombre)}${p.ean?' · '+esc(p.ean):''}</option>`).join('')}`;
+            $('#pr_buscar_hint',ov).textContent=opciones.length>60?`${opciones.length} coincidencias. Escribí más para encontrar el producto.`:`${opciones.length} coincidencia${opciones.length===1?'':'s'}`;
+            actualizarImpacto();
+          };
+          buscar.oninput=actualizarOpciones;
+          actualizarOpciones();
+        }
         actualizarImpacto();
       };
-      $$('[data-tipo]',ov).forEach(b=>b.onclick=()=>{ tipo=b.dataset.tipo; $$('[data-tipo]',ov).forEach(x=>x.classList.toggle('on',x===b)); v.objetivoId=''; pintarObjetivo(); });
+      $$('[data-tipo]',ov).forEach(b=>b.onclick=()=>{ if(modalidad&&b.dataset.tipo!=='producto')return; tipo=b.dataset.tipo;v.objetivoId='';pintarObjetivo();pintarModalidad(); });
+      $$('[data-modalidad]',ov).forEach(b=>b.onclick=()=>{ modalidad=b.dataset.modalidad;if(modalidad&&(tipo!=='producto'||prod(v.objetivoId)?.unidad==='kg')){tipo='producto';v.objetivoId='';pintarObjetivo();}else if(tipo==='producto')pintarObjetivo();pintarModalidad(); });
       pintarObjetivo();
-      $('#pr_nombre',ov).oninput=()=>{nombreTocado=true;};
+      pintarModalidad();
       $('#pr_pct',ov).oninput=actualizarImpacto;$('#pr_desde',ov).onchange=actualizarImpacto;$('#pr_hasta',ov).onchange=actualizarImpacto;
       const bb=$('#borrarPromo',ov);
       if(bb) bb.onclick=()=>{ cerrarModal(); confirmar('Eliminar descuento','Esto no se puede deshacer.',
@@ -5807,16 +5842,17 @@ function formPromocion(id){
       $('#okPromo',ov).onclick=()=>{
         const obj=$('#pr_obj',ov)?$('#pr_obj',ov).value:'';
         const pct=num($('#pr_pct',ov).value);
-        if(!obj){ aviso('Elegí a qué aplica el descuento','bad'); return; }
-        if(!pct||pct<=0||pct>100){ aviso('Poné un porcentaje entre 1 y 100','bad'); return; }
+        if(!obj){ aviso('Elegí a qué aplica la promoción','bad'); return; }
+        if(!modalidad&&(!pct||pct<=0||pct>100)){ aviso('Poné un porcentaje entre 1 y 100','bad'); return; }
+        if(modalidad&&(tipo!=='producto'||prod(obj)?.unidad==='kg')){ aviso('Elegí un producto vendido por unidad','bad'); return; }
         const desde=$('#pr_desde',ov).value, hasta=$('#pr_hasta',ov).value;
         if(desde&&hasta&&hasta<desde){ aviso('La fecha de hasta no puede ser anterior a la de desde','bad'); return; }
-        const nombre=$('#pr_nombre',ov).value.trim()||`${pct}% en ${tipo==='producto'?(prod(obj)||{}).nombre:tipo==='pago'?(FORMAS[obj]||obj):obj}`;
-        const datos={nombre,tipo,objetivoId:obj,porcentaje:pct,desde,hasta,activa:v.activa!==false};
+        const objetivo=tipo==='producto'?(prod(obj)||{}).nombre:tipo==='pago'?(FORMAS[obj]||obj):obj;
+        const datos={nombre:`${modalidad||pct+'%'} en ${objetivo}`,tipo,objetivoId:obj,modalidad,porcentaje:modalidad?0:pct,desde,hasta,activa:v.activa!==false};
         if(pr) Object.assign(pr,datos);
         else db.promociones.push({id:uid(),creada:new Date().toISOString(),...datos});
         guardar(); cerrarModal(); pintarPromociones(); pintarNav();
-        aviso(pr?'Descuento actualizado':'Descuento creado','ok');
+        aviso(pr?'Promoción actualizada':'Promoción creada','ok');
       };
     }});
 }
@@ -9471,6 +9507,7 @@ function f32MapPromocion(row,base=db){
   const objetivoId=row.tipo==='producto'?f32ResolverIdLocal('productos',row.producto_id,base):String(row.objetivo_texto||'');
   return {
     ...(actual||{}),id,_v4id:row.id,tipo:row.tipo,objetivoId,porcentaje:Number(row.porcentaje)||0,
+    modalidad:row.tipo==='producto'&&['2x1','3x2'].includes(row.objetivo_texto)?row.objetivo_texto:'',
     desde:row.desde||'',hasta:row.hasta||'',activa:row.activa!==false,
     creada:actual&&actual.creada||row.created_at_server||sync,_syncAt:sync
   };
@@ -11189,7 +11226,7 @@ function f34FindDelete(v3,coleccion,v4id){return ((v3&&v3.payload&&v3.payload.de
 function f34ProductLocal(p){return {legacy_id:f34Str(p.id),ean:f34Str(p.ean),nombre:f34Str(p.nombre),rubro:f34Str(p.rubro),proveedor:f34Str(p.proveedor),costo:f34Round(p.costo,4),precio:f34Round(p.precio,2),stock_min:f34Round(p.stockMin,3),stock_deseado:f34Round(p.stockDeseado,3),unidad:p.origenId?'suelto':(p.unidad==='kg'?'kg':'unidad'),origen_legacy_id:f34Null(p.origenId),por_atado:Math.max(0,Math.trunc(f34Num(p.porAtado))),vence:f34Day(p.vence),foto_path:f34Null(p.fotoPath),archivado_at:f34Date(p.archivadoAt),archivado_por:f34Null(p.archivadoPor),archivo_historial:f34Stable(p.archivoHistorial||[])};}
 function f34ClientLocal(c){return {legacy_id:f34Str(c.id),nombre:f34Str(c.nombre),telefono:f34Str(c.tel||c.telefono),alta_at:f34Date(c.alta)};}
 function f34ComboLocal(c){return {legacy_id:f34Str(c.id),nombre:f34Str(c.nombre),precio:f34Round(c.precio,2),activo:c.activo!==false,items:f34Sort((c.items||[]).map(i=>({producto_legacy_id:f34Str(i.prodId),cantidad:f34Round(i.cant||1,3)})),x=>`${x.producto_legacy_id}:${x.cantidad}`)};}
-function f34PromoLocal(p){return {legacy_id:f34Str(p.id),tipo:f34Str(p.tipo),producto_legacy_id:p.tipo==='producto'?f34Null(p.objetivoId):null,objetivo_texto:p.tipo==='producto'?'':f34Str(p.objetivoId),porcentaje:f34Round(p.porcentaje,3),desde:f34Day(p.desde),hasta:f34Day(p.hasta),activa:p.activa!==false};}
+function f34PromoLocal(p){return {legacy_id:f34Str(p.id),tipo:f34Str(p.tipo),producto_legacy_id:p.tipo==='producto'?f34Null(p.objetivoId):null,objetivo_texto:p.tipo==='producto'?(p.modalidad==='2x1'||p.modalidad==='3x2'?p.modalidad:''):f34Str(p.objetivoId),porcentaje:p.modalidad==='2x1'||p.modalidad==='3x2'?0:f34Round(p.porcentaje,3),desde:f34Day(p.desde),hasta:f34Day(p.hasta),activa:p.activa!==false};}
 function f34ConfigLocal(c){return {fondo_caja:f34Round(c.fondoCaja,2),fondo_caja_cigarros:f34Round(c.fondoCajaCigarros,2),whatsapp_dueno:f34Str(c.whatsappDueno),dias_aviso_vence:Math.trunc(f34Num(c.diasAvisoVence,7)),dias_plazo_fiado:Math.trunc(f34Num(c.diasPlazoFiado,30)),recargo_fiado_pct:f34Round(c.recargoFiadoPct??10,3),modulo_fiado:c.moduloFiado!==false,modulo_vencimientos:c.moduloVencimientos!==false,modulo_cigarros:c.moduloCigarros!==false,maneja_turnos:c.manejaTurnos===true,aviso_turno_horas:Math.trunc(f34Num(c.avisoTurnoHoras,8)),motivos_egreso_extra:[...(c.motivosEgresoExtra||[])]};}
 function f34SaleItemLocal(i){const base={legacy_line_id:f34Str(i.lineId||''),tipo:i.tipo==='combo'?'combo':'producto',nombre:f34Str(i.nombre),cantidad:f34Round(i.cant,3),precio_unitario:f34Round(i.precio,2),costo_unitario:f34Round(i.costo,4),bruto:f34Round(i.bruto,2),neto:f34Round(i.neto,2)};if(base.tipo==='producto')return {...base,producto_legacy_id:f34Str(i.prodId),combo_legacy_id:null,rubro:f34Str(i.rubro),promo_pct:i.promoPct==null?null:f34Round(i.promoPct,3),componentes:[]};return {...base,producto_legacy_id:null,combo_legacy_id:f34Str(i.comboId),rubro:'',promo_pct:i.promoPct==null?null:f34Round(i.promoPct,3),componentes:f34Sort((i.componentes||[]).map(c=>({producto_legacy_id:f34Str(c.prodId),nombre:f34Str(c.nombre),cantidad_por_combo:f34Round(c.cant,3),costo_unitario_snapshot:f34Round(c.costo,4)})),x=>`${x.producto_legacy_id}:${x.cantidad_por_combo}`)};}
 function f34SaleLocal(v){let pagos=v.pagos;if(!Array.isArray(pagos)||!pagos.length)pagos=[{forma:v.forma,monto:v.total}];return {legacy_id:f34Str(v.id),ticket_seq:Math.trunc(f34Num(v.nro)),cliente_legacy_id:f34Null(v.clienteId),occurred_at:f34Date(v.fecha),subtotal:f34Round(v.subtotal,2),descuento_manual:f34Round(v.descuento,2),descuento_detalle:f34Stable(v.descuentoDetalle||null),promo_auto:f34Round(v.promoAuto,2),promo_auto_detalle:f34Stable(v.promoAutoDetalle||[]),promo_pago:f34Round(v.promoPago,2),promo_pago_detalle:f34Stable(v.promoPagoDetalle||null),total:f34Round(v.total,2),forma:f34Forma(v.forma),recibido:f34Round(v.recibido,2),vuelto:f34Round(v.vuelto,2),monto_fiado:f34Round(v.montoFiado,2),plazo_fiado_dias:v.plazoFiadoDias==null?null:Math.trunc(f34Num(v.plazoFiadoDias)),vence_fiado:f34Day(v.venceFiado),items:f34Sort((v.items||[]).map(f34SaleItemLocal),x=>x.legacy_line_id||`${x.tipo}:${x.producto_legacy_id||x.combo_legacy_id}`),pagos:f34Sort(pagos.map(p=>({forma:f34Forma(p.forma),monto:f34Round(p.monto,2)})),x=>`${x.forma}:${x.monto}`)};}
@@ -11299,7 +11336,7 @@ async function f34ActualMaster(spec){const row=await f34One(spec.table,spec.id);
   if(spec.table==='productos'){return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),ean:f34Str(row.ean),nombre:f34Str(row.nombre),rubro:f34Str(row.rubro),proveedor:f34Str(row.proveedor),costo:f34Round(row.costo,4),precio:f34Round(row.precio,2),stock_min:f34Round(row.stock_min,3),stock_deseado:f34Round(row.stock_deseado,3),unidad:f34Str(row.unidad),origen_legacy_id:await f34LegacyOne('productos',row.origen_id),por_atado:Math.max(0,Math.trunc(f34Num(row.por_atado))),vence:f34Day(row.vence),foto_path:f34Null(row.foto_path),archivado_at:f34Date(row.archivado_at),archivado_por:f34Null(row.archivado_por),archivo_historial:f34Stable(row.archivo_historial||[])};}
   if(spec.table==='clientes')return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),nombre:f34Str(row.nombre),telefono:f34Str(row.telefono),alta_at:f34Date(row.alta_at_device)};
   if(spec.table==='combos'){const items=await f34Many('combo_items','combo_id',[row.id]);const pm=await f34LegacyMap('productos',items.map(x=>x.producto_id));return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),nombre:f34Str(row.nombre),precio:f34Round(row.precio,2),activo:row.activo!==false,items:f34Sort(items.map(i=>({producto_legacy_id:pm.get(String(i.producto_id))||`v4:${i.producto_id}`,cantidad:f34Round(i.cantidad,3)})),x=>`${x.producto_legacy_id}:${x.cantidad}`)};}
-  if(spec.table==='promociones')return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),tipo:f34Str(row.tipo),producto_legacy_id:row.tipo==='producto'?await f34LegacyOne('productos',row.producto_id):null,objetivo_texto:row.tipo==='producto'?'':f34Str(row.objetivo_texto),porcentaje:f34Round(row.porcentaje,3),desde:f34Day(row.desde),hasta:f34Day(row.hasta),activa:row.activa!==false};
+  if(spec.table==='promociones')return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),tipo:f34Str(row.tipo),producto_legacy_id:row.tipo==='producto'?await f34LegacyOne('productos',row.producto_id):null,objetivo_texto:row.tipo==='producto'&&['2x1','3x2'].includes(row.objetivo_texto)?row.objetivo_texto:row.tipo==='producto'?'':f34Str(row.objetivo_texto),porcentaje:f34Round(row.porcentaje,3),desde:f34Day(row.desde),hasta:f34Day(row.hasta),activa:row.activa!==false};
   return null;
 }
 async function f34ActualConfig(){const r=await sb.from('comercio_configuracion').select('*').eq('comercio_id',f3Estado.comercioId).limit(1);f34QueryError(r,'F34_FETCH_CONFIG');const row=(r.data||[])[0];if(!row)return null;return {fondo_caja:f34Round(row.fondo_caja,2),fondo_caja_cigarros:f34Round(row.fondo_caja_cigarros,2),whatsapp_dueno:f34Str(row.whatsapp_dueno),dias_aviso_vence:Math.trunc(f34Num(row.dias_aviso_vence,7)),dias_plazo_fiado:Math.trunc(f34Num(row.dias_plazo_fiado,30)),recargo_fiado_pct:f34Round(row.recargo_fiado_pct??10,3),modulo_fiado:row.modulo_fiado!==false,modulo_vencimientos:row.modulo_vencimientos!==false,modulo_cigarros:row.modulo_cigarros!==false,maneja_turnos:row.maneja_turnos===true,aviso_turno_horas:Math.trunc(f34Num(row.aviso_turno_horas,8)),motivos_egreso_extra:[...(row.motivos_egreso_extra||[])]};}
