@@ -182,10 +182,21 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .products-more{position:relative}
 .products-more-trigger[aria-expanded="true"]{background:#F1F4F8;border-color:var(--primary);color:var(--primary-d)}
 .products-more-dots{font-size:16px;line-height:1;letter-spacing:1px;transform:translateY(-2px)}
-.products-more-menu{position:absolute;top:calc(100% + 7px);left:0;z-index:20;width:265px;padding:8px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 34px rgba(15,22,32,.16)}
-.products-menu-item{width:100%;min-height:44px;padding:9px 10px;border:0;border-radius:8px;background:transparent;display:flex;align-items:center;gap:11px;text-align:left;cursor:pointer;font-weight:600;font-size:14px}
-.products-menu-item:hover,.products-menu-item:focus-visible{background:#F1F4F8}
-.products-menu-item small{display:block;margin-top:1px;color:var(--muted);font-size:11.5px;font-weight:400}
+.products-more-menu{position:absolute;top:calc(100% + 7px);left:0;z-index:20;width:265px;padding:6px;background:#121923;border:1px solid #2B3645;border-radius:11px;box-shadow:0 16px 34px rgba(15,22,32,.22)}
+.products-menu-item{width:100%;min-height:42px;padding:9px 11px;border:0;border-radius:6px;background:transparent;color:#E9EFF8;display:flex;align-items:center;gap:11px;text-align:left;cursor:pointer;font-weight:600;font-size:13px}
+.products-menu-item+.products-menu-item{border-top:1px solid #273240}
+.products-menu-item svg{flex:none;color:#9FB1C8}
+.products-menu-item:hover,.products-menu-item:focus-visible{background:#203149;color:#fff;outline:none}
+.price-change-intro{margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.5}
+.price-step{padding:16px 18px;margin-bottom:14px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.price-step h3{display:flex;align-items:center;gap:9px;margin:0 0 14px;font-size:15px}
+.price-step-number{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--primary-l);color:var(--primary-d);font-size:12px}
+.price-step .grid2{gap:14px}
+.price-step .seg{margin-bottom:0}
+.price-field-help{margin:7px 0 0;color:var(--muted);font-size:12px;line-height:1.4}
+.price-preview-summary{padding:11px 13px;margin-bottom:12px;border-radius:9px;background:var(--primary-l);color:var(--primary-d);font-size:13px;font-weight:600}
+.price-preview-warning{padding:9px 12px;margin-bottom:12px;border-radius:9px;background:var(--ambar-l);color:var(--ambar);font-size:13px}
+.price-preview-table{overflow-x:auto}
 .btn.primary-outline{background:var(--paper);color:var(--primary);border-color:var(--primary)}
 .btn.primary-outline:hover{background:var(--primary-l);border-color:var(--primary-d);color:var(--primary-d)}
 .products-invoice-button{position:relative;box-shadow:0 10px 22px rgba(24,87,214,.22)}
@@ -655,7 +666,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:48,
+  packageRevision:49,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3072,6 +3083,7 @@ const ICONS={
   historial:'<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/>',
   archivo:'<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M10 13h4"/>',
   mas:'<path d="M12 5v14M5 12h14"/>',
+  porcentaje:'<circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M20 4 4 20"/>',
   combo:'<rect x="3.5" y="8" width="17" height="12" rx="1.5"/><path d="M3.5 12h17"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/>',
   promo:'<path d="M3 12.5V5a2 2 0 0 1 2-2h7.5l8.5 8.5a2 2 0 0 1 0 2.8l-6.7 6.7a2 2 0 0 1-2.8 0L3 12.5Z"/><circle cx="8" cy="8" r="1.4"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5h.01"/>',
@@ -4732,13 +4744,12 @@ function wireProductosActions(root){
     };
   }
   const nuevo=$('#bNuevo',root),ingreso=$('#bIngreso',root),importar=$('#bImportar',root),precios=$('#bPrecios',root);
-  const exportarExcel=$('#bExportarExcel',root),exportarCSV=$('#bExportarCSV',root);
+  const exportarExcel=$('#bExportarExcel',root);
   if(nuevo)nuevo.onclick=()=>formProducto();
   if(ingreso)ingreso.onclick=abrirComprasFactura;
   if(importar)importar.onclick=()=>{cerrarMenuProductos();panelImportar();};
   if(precios)precios.onclick=()=>{cerrarMenuProductos();panelPrecios();};
   if(exportarExcel)exportarExcel.onclick=()=>{cerrarMenuProductos();descargarCatalogoExcel();};
-  if(exportarCSV)exportarCSV.onclick=()=>{cerrarMenuProductos();descargarCatalogoCSV();};
 }
 function wireProductosVacio(root){
   const importar=$('#bImportarVacio',root),ingreso=$('#bIngresoVacio',root),nuevo=$('#bNuevoVacio',root);
@@ -4764,10 +4775,9 @@ function vProductos(m){
       <div class="products-more">
         <button class="btn ghost products-more-trigger" id="bMasProductos" aria-haspopup="menu" aria-expanded="false" aria-controls="menuProductos"><span class="products-more-dots" aria-hidden="true">•••</span> Más opciones</button>
         <div class="products-more-menu" id="menuProductos" role="menu" hidden>
-          <button class="products-menu-item" id="bPrecios" role="menuitem">${ic('mas')}<span>Cambiar precios</span></button>
-          <button class="products-menu-item" id="bImportar" role="menuitem">${ic('subir')}<span>Importar Excel/CSV<small>Para catálogos grandes</small></span></button>
-          <button class="products-menu-item" id="bExportarExcel" role="menuitem">${ic('descargar')}<span>Exportar catálogo a Excel<small>Conserva los códigos de barras</small></span></button>
-          <button class="products-menu-item" id="bExportarCSV" role="menuitem">${ic('descargar')}<span>Exportar catálogo a CSV<small>Para otras planillas y sistemas</small></span></button>
+          <button class="products-menu-item" id="bImportar" role="menuitem">${ic('subir')}<span>Importar Excel/CSV</span></button>
+          <button class="products-menu-item" id="bExportarExcel" role="menuitem">${ic('descargar')}<span>Exportar catálogo a Excel</span></button>
+          <button class="products-menu-item" id="bPrecios" role="menuitem">${ic('porcentaje')}<span>Cambio masivo de precios</span></button>
         </div>
       </div>
       <button class="btn primary-outline" id="bNuevo">${ic('mas')} Nuevo producto</button>
@@ -5115,57 +5125,48 @@ function formProducto(id,pre={},luego){
 /* ═══════════════════════════════════════════════════════
    CAMBIO MASIVO DE PRECIOS
    ═══════════════════════════════════════════════════════ */
-let pxConf={campo:'precio',tipo:'porcentaje',modo:'aumentar',valor:'',alcance:'',rubro:'',proveedor:'',redondeo:'0',sel:{}};
+let pxConf={tipo:'porcentaje',modo:'aumentar',valor:'',alcance:'',rubro:'',proveedor:'',redondeo:'0',sel:{}};
 let ultimoCambioPrecios=null;
 
 function panelPrecios(){
-  pxConf={campo:'precio',tipo:'porcentaje',modo:'aumentar',valor:'',alcance:'',rubro:'',proveedor:'',redondeo:'0',sel:{}};
-  modal({titulo:'Cambiar precios en conjunto', ancho:true,
+  pxConf={tipo:'porcentaje',modo:'aumentar',valor:'',alcance:'',rubro:'',proveedor:'',redondeo:'0',sel:{}};
+  modal({titulo:'Cambio masivo de precios', ancho:true,
     cuerpo:`
-      <div class="grid2" style="margin-bottom:14px">
-        <div>
-          <label class="f">¿Qué precio querés tocar?</label>
-          <div class="seg" style="margin-bottom:0">
-            <button type="button" data-pxc="precio" class="on">De venta</button>
-            <button type="button" data-pxc="costo">De costo</button>
-          </div>
+      <p class="price-change-intro">Modificá precios de venta en varios productos. Los costos se actualizan al cargar facturas.</p>
+      <section class="price-step"><h3><span class="price-step-number">1</span> Elegí los productos</h3>
+        <div class="grid2">
+          <div><label class="f" for="px_alcance">¿A cuáles se aplica?</label>
+            <select id="px_alcance" class="inp"><option value="">Elegí un alcance…</option><option value="catalogo">Todos los productos</option><option value="rubro">Un rubro</option><option value="proveedor">Un proveedor</option></select></div>
+          <div id="px_objetivo_wrap" hidden><label class="f" for="px_objetivo" id="px_objetivo_lbl">Elegí un rubro</label>
+            <select id="px_objetivo" class="inp" disabled><option value="">Primero elegí el alcance</option></select></div>
         </div>
-        <div>
-          <label class="f">¿Sube o baja?</label>
-          <div class="seg" style="margin-bottom:0">
+      </section>
+      <section class="price-step"><h3><span class="price-step-number">2</span> Definí el cambio</h3>
+        <div class="grid2" style="margin-bottom:14px">
+          <div><label class="f">¿Qué querés hacer?</label><div class="seg">
             <button type="button" data-pxm="aumentar" class="on">Aumentar</button>
             <button type="button" data-pxm="disminuir">Disminuir</button>
-          </div>
-        </div>
-      </div>
-      <div class="grid2" style="margin-bottom:14px">
-        <div>
-          <label class="f">¿Cómo?</label>
-          <div class="seg" style="margin-bottom:0">
+          </div></div>
+          <div><label class="f">¿Cómo?</label><div class="seg">
             <button type="button" data-pxt="porcentaje" class="on">Por porcentaje</button>
             <button type="button" data-pxt="monto">Por monto fijo</button>
-          </div>
+          </div></div>
         </div>
-        <div>
-          <label class="f" for="px_valor" id="px_lbl">Porcentaje a aplicar</label>
-          <input id="px_valor" class="inp num" inputmode="decimal" placeholder="Ej: 12">
+        <div class="grid2">
+          <div><label class="f" for="px_valor" id="px_lbl">Porcentaje a aplicar</label>
+            <input id="px_valor" class="inp num" inputmode="decimal" placeholder="Ej: 12">
+            <p class="price-field-help" id="px_ayuda">Se calcula sobre el precio de venta actual.</p></div>
+          <div><label class="f" for="px_red">Redondeo (opcional)</label>
+            <select id="px_red" class="inp">
+              <option value="0">Sin redondeo</option>
+              <option value="10">A múltiplos de $10</option>
+              <option value="50">A múltiplos de $50</option>
+              <option value="100">A múltiplos de $100</option>
+              <option value="99">Terminado en $99</option>
+            </select></div>
         </div>
-      </div>
-      <div class="grid3" style="margin-bottom:14px">
-        <div><label class="f" for="px_alcance">Alcance</label>
-          <select id="px_alcance" class="inp"><option value="">Elegí qué querés cambiar…</option><option value="catalogo">Todo el catálogo</option><option value="rubro">Un rubro</option><option value="proveedor">Un proveedor</option></select></div>
-        <div><label class="f" for="px_objetivo">Rubro o proveedor</label>
-          <select id="px_objetivo" class="inp" disabled><option value="">Primero elegí el alcance</option></select></div>
-        <div><label class="f" for="px_red">Redondear a</label>
-          <select id="px_red" class="inp">
-            <option value="0">No redondear</option>
-            <option value="10">Múltiplos de $10</option>
-            <option value="50">Múltiplos de $50</option>
-            <option value="100">Múltiplos de $100</option>
-            <option value="99">Terminado en $99</option>
-          </select></div>
-      </div>
-      <div id="px_preview"></div>`,
+      </section>
+      <section class="price-step"><h3><span class="price-step-number">3</span> Revisá el resultado</h3><div id="px_preview"></div></section>`,
     pie:`<div style="margin-right:auto;color:var(--muted)" id="px_resumen"></div>
          <button class="btn ghost" data-cerrar>Cancelar</button>
          <button class="btn" id="okPx" disabled>Aplicar cambios</button>`,
@@ -5178,14 +5179,15 @@ function panelPrecios(){
       const etiquetas=()=>{
         $('#px_lbl',ov).textContent = pxConf.tipo==='porcentaje'?'Porcentaje a aplicar':'Monto a sumar o restar';
         $('#px_valor',ov).placeholder = pxConf.tipo==='porcentaje'?'Ej: 12':'Ej: 500';
+        $('#px_ayuda',ov).textContent = pxConf.tipo==='porcentaje'?'Se calcula sobre el precio de venta actual.':'Se suma o resta este monto a cada precio de venta.';
       };
-      seg('data-pxc','campo'); seg('data-pxm','modo'); seg('data-pxt','tipo');
+      seg('data-pxm','modo'); seg('data-pxt','tipo');
       etiquetas();
       $('#px_valor',ov).oninput=()=>{pxConf.valor=$('#px_valor',ov).value;pintarPreviewPrecios(ov);};
-      $('#px_alcance',ov).onchange=e=>{pxConf.alcance=e.target.value;pxConf.rubro='';pxConf.proveedor='';pxConf.sel={};const s=$('#px_objetivo',ov);if(pxConf.alcance==='rubro'){s.disabled=false;s.innerHTML='<option value="">Elegí un rubro…</option>'+rubros().map(r=>`<option>${esc(r)}</option>`).join('');}else if(pxConf.alcance==='proveedor'){s.disabled=false;s.innerHTML='<option value="">Elegí un proveedor…</option>'+proveedores().map(r=>`<option>${esc(r)}</option>`).join('');}else{s.disabled=true;s.innerHTML='<option value="">No hace falta elegir otro dato</option>';}pintarPreviewPrecios(ov);};
+      $('#px_alcance',ov).onchange=e=>{pxConf.alcance=e.target.value;pxConf.rubro='';pxConf.proveedor='';pxConf.sel={};const s=$('#px_objetivo',ov),wrap=$('#px_objetivo_wrap',ov);wrap.hidden=!['rubro','proveedor'].includes(pxConf.alcance);if(pxConf.alcance==='rubro'){s.disabled=false;$('#px_objetivo_lbl',ov).textContent='Elegí un rubro';s.innerHTML='<option value="">Elegí un rubro…</option>'+rubros().map(r=>`<option>${esc(r)}</option>`).join('');}else if(pxConf.alcance==='proveedor'){s.disabled=false;$('#px_objetivo_lbl',ov).textContent='Elegí un proveedor';s.innerHTML='<option value="">Elegí un proveedor…</option>'+proveedores().map(r=>`<option>${esc(r)}</option>`).join('');}else{s.disabled=true;s.innerHTML='<option value="">Primero elegí el alcance</option>';}pintarPreviewPrecios(ov);};
       $('#px_objetivo',ov).onchange=e=>{if(pxConf.alcance==='rubro')pxConf.rubro=e.target.value;if(pxConf.alcance==='proveedor')pxConf.proveedor=e.target.value;pxConf.sel={};pintarPreviewPrecios(ov);};
       $('#px_red',ov).onchange=e=>{pxConf.redondeo=e.target.value;pintarPreviewPrecios(ov);};
-      $('#px_valor',ov).focus();
+      $('#px_alcance',ov).focus();
       pintarPreviewPrecios(ov);
       $('#okPx',ov).onclick=()=>aplicarPrecios(ov);
     }});
@@ -5215,75 +5217,59 @@ function nuevoPrecio(actual){
   n=Math.max(0,n);
   return redondearPrecio(n,pxConf.redondeo);
 }
+function valorCambioPreciosValido(){
+  const v=num(pxConf.valor);
+  return Number.isFinite(v)&&v>0&&(pxConf.tipo!=='porcentaje'||v<=100)&&(pxConf.tipo!=='porcentaje'||pxConf.modo!=='disminuir'||v<=90);
+}
 function pintarPreviewPrecios(ov){
   const cont=$('#px_preview',ov);
   const lista=productosAfectados();
   const v=num(pxConf.valor);
-  const tocaVenta=pxConf.campo==='precio';
-  const tocaCosto=pxConf.campo==='costo';
-  const filas=lista.map(p=>({
-    p,
-    precioNuevo: tocaVenta?nuevoPrecio(Number(p.precio)):Number(p.precio),
-    costoNuevo:  tocaCosto?nuevoPrecio(Number(p.costo)):Number(p.costo)
-  }));
-  const cambian=filas.filter(f=>pxConf.sel[f.p.id]!==false&&(Math.abs(f.precioNuevo-Number(f.p.precio))>0.001||Math.abs(f.costoNuevo-Number(f.p.costo))>0.001));
+  const valorValido=valorCambioPreciosValido();
+  const filas=lista.map(p=>({p,precioNuevo:nuevoPrecio(Number(p.precio)||0)}));
+  const cambian=filas.filter(f=>pxConf.sel[f.p.id]!==false&&Math.abs(f.precioNuevo-(Number(f.p.precio)||0))>0.001);
   const muestra=filas.slice(0,10);
-  const promedioAntes=lista.length?lista.reduce((a,p)=>a+Number(tocaVenta?p.precio:p.costo||0),0)/lista.length:0;
-  const promedioDespues=cambian.length?cambian.reduce((a,f)=>a+Number(tocaVenta?f.precioNuevo:f.costoNuevo||0),0)/cambian.length:promedioAntes;
-  const mayor=cambian.slice().sort((a,b)=>Math.abs((tocaVenta?b.precioNuevo-b.p.precio:b.costoNuevo-b.p.costo))-Math.abs((tocaVenta?a.precioNuevo-a.p.precio:a.costoNuevo-a.p.costo)))[0];
+  const bajoCosto=cambian.filter(f=>Number(f.p.costo)>0&&f.precioNuevo<Number(f.p.costo)).length;
+  const mensajeValor=v>0&&!valorValido?(pxConf.modo==='disminuir'?'La baja porcentual máxima es 90%.':'El aumento porcentual máximo es 100%.'):'Ingresá un valor para ver los precios nuevos antes de aplicar.';
   cont.innerHTML = !lista.length
-    ? `<div class="empty" style="padding:26px"><b>${pxConf.alcance?'Ningún producto coincide':'Elegí el alcance del cambio'}</b>${pxConf.alcance?'Probá otro rubro o proveedor.':'El catálogo completo también es posible, pero tenés que seleccionarlo de forma explícita.'}</div>`
-    : `<div class="grid3" style="margin-bottom:12px"><div class="kpi"><span>Productos incluidos</span><b>${cambian.length}</b><small>podés excluir filas</small></div><div class="kpi"><span>Precio promedio</span><b class="num">${v?$m(promedioAntes)+' → '+$m(promedioDespues):'—'}</b></div><div class="kpi"><span>Mayor cambio</span><b style="font-size:15px">${mayor?esc(mayor.p.nombre):'—'}</b><small>${mayor?$m(Math.abs((tocaVenta?mayor.precioNuevo-mayor.p.precio:mayor.costoNuevo-mayor.p.costo))):'Ingresá un valor'}</small></div></div>
-      <table class="mtable"><thead><tr><th style="width:42px">Incluir</th><th>Producto</th>${tocaCosto?'<th class="r">Costo actual</th><th class="r">Costo nuevo</th>':''}${tocaVenta?'<th class="r">Venta actual</th><th class="r">Venta nueva</th>':''}<th class="r">Margen</th></tr></thead><tbody>
+    ? `<div class="empty" style="padding:20px"><b>${pxConf.alcance?'Ningún producto coincide':'Primero elegí los productos'}</b>${pxConf.alcance?'Elegí otro rubro o proveedor.':'También podés seleccionar todo el catálogo.'}</div>`
+    : `<div class="price-preview-summary">${valorValido?`Cambiarán ${cambian.length} de ${lista.length} precios de venta. ${lista.length>10?'Se muestran los primeros 10; podés excluir los que ves acá.':'Podés desmarcar productos para excluirlos.'}`:mensajeValor}</div>
+      ${bajoCosto&&valorValido?`<div class="price-preview-warning">${bajoCosto} producto${bajoCosto===1?' quedaría':'s quedarían'} por debajo de su costo. Revisá la vista previa.</div>`:''}
+      <div class="price-preview-table"><table class="mtable"><thead><tr><th style="width:42px">Incluir</th><th>Producto</th><th class="r">Precio actual</th><th class="r">Precio nuevo</th><th class="r">Margen previsto</th></tr></thead><tbody>
       ${muestra.map(f=>{
-        const mg=f.costoNuevo>0?((f.precioNuevo-f.costoNuevo)/f.costoNuevo*100):null;
+        const mg=Number(f.p.costo)>0?((f.precioNuevo-Number(f.p.costo))/Number(f.p.costo)*100):null;
         return `<tr>
         <td><input type="checkbox" data-px-sel="${f.p.id}" ${pxConf.sel[f.p.id]===false?'':'checked'} aria-label="Incluir ${esc(f.p.nombre)}"></td>
         <td data-label="Producto">${celdaProductoConFoto(f.p,`<b>${esc(f.p.nombre)}</b>`)}</td>
-        ${tocaCosto?`<td data-label="Costo actual" class="r num" style="color:var(--muted)">${Number(f.p.costo)>0?$m(f.p.costo):'—'}</td>
-        <td data-label="Costo nuevo" class="r num" style="font-weight:600">${v?$m(f.costoNuevo):'—'}</td>`:''}
-        ${tocaVenta?`<td data-label="Venta actual" class="r num" style="color:var(--muted)">${$m(f.p.precio)}</td>
-        <td data-label="Venta nueva" class="r num" style="font-weight:600;color:${f.precioNuevo<Number(f.p.precio)?'var(--rojo)':'inherit'}">${v?$m(f.precioNuevo):'—'}</td>`:''}
-        <td data-label="Margen" class="r num" style="color:var(--muted)">${v&&mg!==null?mg.toFixed(0)+'%':'—'}</td>
-      </tr>`;}).join('')}</tbody></table>
+        <td data-label="Precio actual" class="r num" style="color:var(--muted)">${$m(f.p.precio)}</td>
+        <td data-label="Precio nuevo" class="r num" style="font-weight:600;color:${f.precioNuevo<Number(f.p.precio)?'var(--rojo)':'inherit'}">${valorValido?$m(f.precioNuevo):'—'}</td>
+        <td data-label="Margen previsto" class="r num" style="color:var(--muted)">${valorValido&&mg!==null?mg.toFixed(0)+'%':'—'}</td>
+      </tr>`;}).join('')}</tbody></table></div>
       ${lista.length>10?`<div style="padding:12px 4px;color:var(--muted);font-size:13px">…y ${lista.length-10} productos más con el mismo criterio.</div>`:''}`;
   const res=$('#px_resumen');
-  if(res) res.innerHTML = v? `Van a cambiar <b>${cambian.length}</b> de ${lista.length} productos` : `${lista.length} productos alcanzados — poné un valor`;
+  if(res) res.innerHTML = !valorValido&&v>0? mensajeValor : valorValido? `Van a cambiar <b>${cambian.length}</b> precios` : `${lista.length} productos alcanzados — poné un valor`;
   $$('[data-px-sel]',cont).forEach(ch=>ch.onchange=()=>{pxConf.sel[ch.dataset.pxSel]=ch.checked;pintarPreviewPrecios(ov);});
-  const valorValido=v>0&&(pxConf.tipo!=='porcentaje'||v<=100)&&(pxConf.tipo!=='porcentaje'||pxConf.modo!=='bajar'||v<=90);
   const btn=$('#okPx'); if(btn) btn.disabled = !valorValido || !cambian.length;
 }
 function aplicarPrecios(ov){
-  const lista=productosSeleccionados();
-  const tocaVenta=pxConf.campo==='precio';
-  const tocaCosto=pxConf.campo==='costo';
+  if(!valorCambioPreciosValido()){aviso('Ingresá un ajuste válido antes de aplicar','bad');return;}
+  const lista=productosSeleccionados().filter(p=>Math.abs(nuevoPrecio(Number(p.precio)||0)-(Number(p.precio)||0))>0.001);
+  if(!lista.length){aviso('No hay precios para cambiar','bad');return;}
   const v=num(pxConf.valor);
   const desc=`${pxConf.modo==='aumentar'?'Aumento':'Baja'} de ${pxConf.tipo==='porcentaje'?v+'%':$m(v)}`;
   const alcance=pxConf.rubro?`del rubro ${esc(pxConf.rubro)}`:pxConf.proveedor?`del proveedor ${esc(pxConf.proveedor)}`:'de todos los productos';
   confirmar('Aplicar cambio de precios',
-    `${desc} en el precio ${pxConf.campo==='costo'?'de costo':'de venta'} ${alcance}.<br><br>Afecta a <b>${lista.length}</b> productos. Al terminar vas a poder deshacer este lote desde Productos.`,
+    `${desc} en el precio de venta ${alcance}.<br><br>Afecta a <b>${lista.length}</b> productos. Al terminar vas a poder deshacer este lote desde Productos.`,
     ()=>{
       const cambios=[];
-      let n=0;
       lista.forEach(p=>{
-        let cambio=false;
-        if(tocaVenta){
-          const anterior=Number(p.precio)||0,aplicado=nuevoPrecio(anterior);
-          if(Math.abs(aplicado-anterior)>0.001){cambios.push({id:p.id,campo:'precio',anterior,aplicado});p.precio=aplicado;cambio=true;}
-        }
-        if(tocaCosto){
-          const anterior=Number(p.costo)||0,aplicado=nuevoPrecio(anterior);
-          if(Math.abs(aplicado-anterior)>0.001){
-            cambios.push({id:p.id,campo:'costo',anterior,aplicado});
-            movimiento(p.id,'ajuste',0,`${desc} (cambio masivo)`,'',{costoAnterior:anterior,costoNuevo:aplicado});
-            p.costo=aplicado;cambio=true;
-          }
-        }
-        if(cambio) n++;
+        const anterior=Number(p.precio)||0,aplicado=nuevoPrecio(anterior);
+        cambios.push({id:p.id,campo:'precio',anterior,aplicado});
+        p.precio=aplicado;
       });
-      ultimoCambioPrecios={items:cambios,campo:pxConf.campo,descripcion:`${desc} ${alcance}`,fecha:new Date().toISOString()};
+      ultimoCambioPrecios={items:cambios,campo:'precio',descripcion:`${desc} ${alcance}`,fecha:new Date().toISOString()};
       guardar(); cerrarModal(); render();
-      aviso(`Precios actualizados en ${n} productos`,'ok');
+      aviso(`Precios actualizados en ${cambios.length} productos`,'ok');
     },'Aplicar','verde');
 }
 function deshacerUltimoCambioPrecios(){
@@ -8490,22 +8476,15 @@ function csvCatalogoExportacion(productos){
   return '\ufeff'+filasCatalogoExportacion(productos).map(f=>f.map(v=>csvSeguro(v,true)).join(';')).join('\r\n')+'\r\n';
 }
 /* CATALOG_EXPORT_END */
-function descargarCatalogoCSV(){
-  const blob=new Blob([csvCatalogoExportacion(db.productos)],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=`catalogo-productos-${hoy()}.csv`;a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-  aviso(`${pluralProductos(db.productos.length)} exportado${db.productos.length===1?'':'s'} a CSV`,'ok');
-}
 function descargarCatalogoExcel(){
-  if(typeof XLSX==='undefined'){aviso('No se pudo cargar Excel. Usá la opción CSV.','bad');return;}
+  if(typeof XLSX==='undefined'){aviso('No se pudo cargar el componente de Excel. Recargá la página e intentá de nuevo.','bad');return;}
   try{
     const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(filasCatalogoExportacion(db.productos));
     ws['!cols']=[{wch:36},{wch:20},{wch:20},{wch:24},{wch:18},{wch:18},{wch:12},{wch:15},{wch:16},{wch:12},{wch:16},{wch:14},{wch:23},{wch:22}];
     XLSX.utils.book_append_sheet(wb,ws,'Productos');
     XLSX.writeFile(wb,`catalogo-productos-${hoy()}.xlsx`,{compression:true});
     aviso(`${pluralProductos(db.productos.length)} exportado${db.productos.length===1?'':'s'} a Excel`,'ok');
-  }catch(error){console.error(error);aviso('No se pudo generar el Excel. Probá con CSV.','bad');}
+  }catch(error){console.error(error);aviso('No se pudo generar el archivo Excel. Volvé a intentarlo.','bad');}
 }
 function csvProductosVendidos(d){
   const filas=[['Producto','Rubro','Cantidad','Facturado']];

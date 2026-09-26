@@ -14,14 +14,15 @@ function block(text, start, end) {
   return text.slice(from, to);
 }
 
-test('cambio masivo exige alcance deliberado, excluye Los dos y permite deshacer', () => {
+test('cambio masivo exige alcance deliberado, muestra vista previa y permite deshacer', () => {
   const text = source();
   const prices = text;
   assert.doesNotMatch(prices, /data-pxc="ambos"/);
   assert.match(prices, /px_alcance/);
   assert.match(prices, /ultimoCambioPrecios/);
   assert.match(prices, /deshacerUltimoCambioPrecios/);
-  assert.match(prices, /precio promedio/i);
+  assert.match(prices, /precio actual/i);
+  assert.match(prices, /precio nuevo/i);
 });
 
 test('Vender advierte faltantes antes de sumar y confirma cerca del buscador', () => {

@@ -69,13 +69,12 @@ test('el efectivo de pagos divididos se imputa primero a cigarrillos y se redond
   assert.match(text, /cigEfectivo\+=efectivoCigarrillosVenta\(v\.total,cig,efectivoMixto\)/);
 });
 
-test('deshacer un cambio masivo sólo revierte el campo que no fue editado después', () => {
+test('el cambio masivo sólo aplica ventas y deshacer respeta ediciones posteriores', () => {
   const prices = block(source(), 'function aplicarPrecios(ov){', '\n/* ═══════════════════════════════════════════════════════\n   IMPORTAR PRODUCTOS');
-  assert.match(prices, /campo:pxConf\.campo/);
+  assert.match(prices, /campo:'precio'/);
   assert.match(prices, /cambios\.push\(\{id:p\.id,campo:'precio',anterior,aplicado\}\)/);
-  assert.match(prices, /cambios\.push\(\{id:p\.id,campo:'costo',anterior,aplicado\}\)/);
+  assert.doesNotMatch(prices, /cambios\.push\(\{id:p\.id,campo:'costo'/);
   assert.match(prices, /Math\.abs\(Number\(p\[item\.campo\]\)-item\.aplicado\)<=0\.001/);
-  assert.match(prices, /costoAnterior:item\.aplicado,costoNuevo:item\.anterior/);
   assert.match(prices, /omitidos/);
 });
 
@@ -84,7 +83,7 @@ test('las mejoras operativas evitan liquidar vencidos y reducen ruido visual', (
   assert.match(text, /tablaVence\(vencidos,\{vencidos:true\}\)/);
   assert.match(text, /vencidos\?'Dar de baja'/);
   assert.match(text, /if\(modo==='99'&&n<100\)/);
-  assert.match(text, /pxConf\.modo!=='bajar'\|\|v<=90/);
+  assert.match(text, /pxConf\.modo!=='disminuir'\|\|v<=90/);
   assert.match(text, /while\(contenedor\.children\.length>=3\)/);
   assert.match(text, /delete p\.cursores\.cierre_ajustes_created/);
   assert.match(text, /delete p\.cursores\.cierre_ajustes_resueltos/);
@@ -133,7 +132,7 @@ test('el paquete incluye verificación de integridad y la ruta anterior ya no ca
   assert.ok(fs.existsSync(path.resolve(__dirname, '../verificar.ps1')));
   assert.ok(fs.existsSync(path.resolve(__dirname, '../tools/verificar-integridad.cjs')));
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  assert.equal(manifest.packageRevision, 48);
+  assert.equal(manifest.packageRevision, 49);
   assert.equal(manifest.algorithm, 'sha256');
   assert.ok(manifest.files['beta/index.html']);
   assert.ok(manifest.files['beta/vendor/supabase-js-2.112.3.min.js']);
@@ -142,9 +141,9 @@ test('el paquete incluye verificación de integridad y la ruta anterior ya no ca
   assert.doesNotMatch(legacy, /SUPABASE_(?:URL|ANON_KEY)/);
 });
 
-test('la identidad de la corrección queda alineada en REV48', () => {
+test('la identidad de la corrección queda alineada en REV49', () => {
   const text = source();
   const sw = fs.readFileSync(swPath, 'utf8');
-  assert.match(text, /packageRevision:48/);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev48/);
+  assert.match(text, /packageRevision:49/);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev49/);
 });
