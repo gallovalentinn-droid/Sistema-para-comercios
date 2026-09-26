@@ -236,6 +236,7 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .cash-tab:hover{color:var(--txt)}
 .cash-tab.active{color:var(--primary)}
 .cash-tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:var(--primary)}
+.purchase-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;margin-left:7px;padding:0 6px;border-radius:99px;background:var(--rojo);color:#fff;font-size:12px;font-weight:700;vertical-align:middle}
 .cash-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:16px}
 .cash-kpis .kpi{min-width:0}
 .cash-kpis .kpi b{font-family:var(--sans);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;font-size:23px;white-space:nowrap}
@@ -654,7 +655,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:47,
+  packageRevision:48,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -3546,8 +3547,8 @@ async function f6AsegurarProteccionDispositivo(){
 
 const VISTAS=[
   {id:'vender',   ic:'vender',   txt:'Vender'},
-  {id:'productos',ic:'productos',txt:'Productos', grupo:'Catálogo'},
   {id:'compras',  ic:'reponer',  txt:'Compras', grupo:'Catálogo'},
+  {id:'productos',ic:'productos',txt:'Productos', grupo:'Catálogo'},
   {id:'vencimientos',ic:'reloj', txt:'Vencimientos', grupo:'Catálogo'},
   {id:'combos',   ic:'combo',    txt:'Combos', grupo:'Promociones'},
   {id:'promociones', ic:'promo', txt:'Descuentos', grupo:'Promociones'},
@@ -3605,13 +3606,11 @@ function toggleColapso(){
 }
 
 function pintarNav(){
-  const faltan=db.productos.filter(seRepone).length;
   const deben=db.clientes.filter(c=>Number(c.saldo)>0.009).length;
   const venciendo=productosVencimiento().length;
   const visibles=vistasVisibles();
   const boton=v=>{
     let tag='';
-    if(v.id==='compras'&&faltan&&comprasPermisosActuales().pedir) tag=`<span class="tag">${faltan}</span>`;
     if(v.id==='fiado'&&deben) tag=`<span class="tag">${deben}</span>`;
     if(v.id==='vencimientos'&&venciendo) tag=`<span class="tag">${venciendo}</span>`;
     return `<button data-v="${v.id}" class="${vista===v.id?'on':''}${v.secundaria?' sec':''}" title="${railColapsado?esc(v.txt):''}"><span class="ic">${ic(v.ic)}</span><span class="nav-label">${v.txt}</span>${tag}</button>`;
@@ -6546,13 +6545,14 @@ function actualizarContadorPedido(){
   const b=$('#bPedido');if(!b)return;const cant=lineasPedido().length;b.textContent=`Armar pedido${cant?` (${cant})`:''}`;
 }
 
-let comprasTab='pedir';
+let comprasTab='factura';
 function vCompras(m){
   const acceso=comprasPermisosActuales();
   if(!acceso[comprasTab])comprasTab=acceso.pedir?'pedir':'factura';
+  const faltan=comprasTab==='pedir'?db.productos.filter(seRepone).length:0;
   m.innerHTML=`<div class="cash-tabs" role="tablist" aria-label="Secciones de Compras">
-    ${acceso.pedir?`<button type="button" class="cash-tab ${comprasTab==='pedir'?'active':''}" id="comprasTabPedir" role="tab" aria-controls="comprasContenido" aria-selected="${comprasTab==='pedir'}">Para pedir</button>`:''}
     ${acceso.factura?`<button type="button" class="cash-tab ${comprasTab==='factura'?'active':''}" id="comprasTabFactura" role="tab" aria-controls="comprasContenido" aria-selected="${comprasTab==='factura'}">Cargar factura</button>`:''}
+    ${acceso.pedir?`<button type="button" class="cash-tab ${comprasTab==='pedir'?'active':''}" id="comprasTabPedir" role="tab" aria-controls="comprasContenido" aria-selected="${comprasTab==='pedir'}">Para pedir${faltan?` <span class="purchase-tab-count" aria-label="${faltan} productos para pedir">${faltan}</span>`:''}</button>`:''}
   </div><div id="comprasContenido" role="tabpanel"></div>`;
   const pedir=$('#comprasTabPedir',m),factura=$('#comprasTabFactura',m);
   if(pedir)pedir.onclick=()=>{comprasTab='pedir';vCompras(m);};

@@ -81,7 +81,7 @@ test('la beta conserva todas las secciones funcionales del sistema completo', ()
   assert.ok(match, 'no se encontró la navegación completa');
   const views = JSON.parse(JSON.stringify(vm.runInNewContext(match[1]))).map((view) => view.id);
   assert.deepEqual(views, [
-    'vender', 'productos', 'compras', 'vencimientos', 'combos', 'promociones',
+    'vender', 'compras', 'productos', 'vencimientos', 'combos', 'promociones',
     'fiado', 'caja', 'movimientos', 'resumen', 'config', 'soporte',
   ]);
 });

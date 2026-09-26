@@ -21,6 +21,26 @@ test('Compras ocupa el lugar de Para pedir en la barra lateral', () => {
   assert.equal(views.filter(view => view.id === 'compras').length, 1);
   assert.equal(views.some(view => view.id === 'reponer'), false);
   assert.equal(views.find(view => view.id === 'compras').txt, 'Compras');
+  assert.ok(views.findIndex(view => view.id === 'compras') < views.findIndex(view => view.id === 'productos'));
+});
+
+test('el contador de productos para pedir no aparece en la barra lateral', () => {
+  const html = source();
+  const nav = {innerHTML:''};
+  const context = {
+    db:{productos:[{id:'bajo'}],clientes:[],config:{nombre:'Comercio'}},
+    seRepone:()=>true, productosVencimiento:()=>[],
+    vistasVisibles:()=>[{id:'compras',txt:'Compras',ic:'reponer'}],
+    comprasPermisosActuales:()=>({pedir:true,factura:true}),
+    vista:'compras', railColapsado:false,
+    $:selector=>selector==='#nav'?nav:{textContent:''},
+    $$:()=>[], aplicarColapso:()=>{}, ir:()=>{}, ic:()=>'', esc:value=>value,
+  };
+  vm.createContext(context);
+  vm.runInContext(functionSource(html, 'pintarNav'), context);
+  context.pintarNav();
+  assert.match(nav.innerHTML, /data-v="compras"/);
+  assert.doesNotMatch(nav.innerHTML, /class="tag"/);
 });
 
 test('los permisos de Compras separan pedidos de carga de facturas', () => {
@@ -45,7 +65,7 @@ test('Compras muestra dos pestañas y abre cada método de carga desde Facturas'
   const content = {innerHTML:''};
   const buttons = {};
   const context = {
-    comprasTab:'pedir',
+    db:{productos:[{id:'bajo'}]}, seRepone:()=>true,
     comprasPermisosActuales:()=>({pedir:true,factura:true}),
     vReponer:()=>calls.push('pedir'),
     panelIngreso:(reset,mode)=>calls.push(mode),
@@ -53,14 +73,23 @@ test('Compras muestra dos pestañas y abre cada método de carga desde Facturas'
     $:selector=>selector==='#comprasContenido'?content:(buttons[selector] ||= {}),
   };
   vm.createContext(context);
-  vm.runInContext(functionSource(html, 'vCompras'), context);
+  vm.runInContext(`${html.match(/let comprasTab='[^']+';/)[0]}\n${functionSource(html, 'vCompras')}`, context);
   const main = {innerHTML:''};
   context.vCompras(main);
   assert.match(main.innerHTML, /role="tablist"[^>]*Compras/);
   assert.match(main.innerHTML, /Para pedir/);
   assert.match(main.innerHTML, /Cargar factura/);
+  assert.ok(main.innerHTML.indexOf('id="comprasTabFactura"') < main.innerHTML.indexOf('id="comprasTabPedir"'));
+  assert.match(main.innerHTML, /id="comprasTabFactura"[^>]*aria-selected="true"/);
+  assert.doesNotMatch(main.innerHTML, /class="purchase-tab-count"/);
+  assert.match(content.innerHTML, /Leer factura con IA/);
+  assert.deepEqual(calls, []);
+  buttons['#comprasTabPedir'].onclick();
   assert.deepEqual(calls, ['pedir']);
+  assert.match(main.innerHTML, /id="comprasTabPedir"[^>]*aria-selected="true"[^>]*>[^<]*<span class="purchase-tab-count"/);
+  assert.match(main.innerHTML, /class="purchase-tab-count"[^>]*>1<\/span>/);
   buttons['#comprasTabFactura'].onclick();
+  assert.doesNotMatch(main.innerHTML, /class="purchase-tab-count"/);
   assert.match(content.innerHTML, /Leer factura con IA/);
   assert.match(content.innerHTML, /Cargar a mano/);
   buttons['#comprasIA'].onclick();
