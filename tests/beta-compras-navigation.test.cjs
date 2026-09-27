@@ -151,6 +151,8 @@ test('revisar una factura con un producto nuevo no cambia el catálogo hasta con
     cerrarModal:()=>{}, panelIngreso:()=>{}, aviso:()=>{},
   };
   vm.createContext(context);
+  // REV54: la revisión guarda una copia del paso anterior para poder volver.
+  vm.runInContext(html.slice(html.indexOf('let facturaIA=null;'), html.indexOf('function abrirRevisionFactura(')), context);
   vm.runInContext(functionSource(html, 'abrirRevisionFactura'), context);
   context.abrirRevisionFactura({items:[{producto:'Nuevo artículo',cantidad:2,precioUnit:500}], proveedor:'Proveedor'});
   vm.runInContext(`revisionFactura[0].prodId='__nuevo__'`, context);

@@ -30,17 +30,18 @@ test('todas las tablas alinean y estabilizan las cifras numéricas', () => {
   assert.deepEqual(missingAlignment.map((match) => match[0]), []);
 });
 
-test('Caja separa turno, cierre e historial y reúne sus cinco indicadores', () => {
+test('Caja separa turno, historial y el cierre en una ventana guiada', () => {
   const text = source();
   const caja = sliceBetween(text, 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
 
   assert.match(caja, /data-caja-tab="turno"[^>]*>Turno actual/);
-  assert.match(caja, /data-caja-tab="cierre"[^>]*>Cierre de caja/);
+  assert.doesNotMatch(caja, /data-caja-tab="cierre"/);
+  assert.match(caja, /class="cash-close-modal" role="dialog"/);
   assert.match(caja, /data-caja-tab="historial"[^>]*>Historial/);
   assert.match(caja, /data-caja-panel="turno"/);
   assert.match(caja, /data-caja-panel="cierre"/);
   assert.match(caja, /data-caja-panel="historial"/);
-  for (const label of ['Vendido en el turno', 'Vendido en cigarrillos', 'Egresos del turno', 'Fiado del turno', 'Ganancia estimada']) {
+  for (const label of ['Vendido en el turno', 'Vendido en cigarrillos', 'Egresos del turno', 'Anotado en fiado', 'Ganancia estimada']) {
     assert.match(caja, new RegExp(label));
   }
   assert.doesNotMatch(caja, /Egresos del turno<\/span><b style="color:var\(--rojo\)"/);
@@ -61,7 +62,7 @@ test('el cierre destaca el único dato manual y permite plegar cigarrillos', () 
   assert.match(caja, /d<-0\.009\?'negative':d>0\.009\?'positive':'ok'/);
 });
 
-test('Caja guía el cierre en contar, revisar y decidir el fondo siguiente', () => {
+test('Caja guía el cierre en contar, revisar y decidir cuánto queda', () => {
   const caja = sliceBetween(source(), 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
   assert.match(caja, /id="irCierreCaja"[^>]*>Cerrar caja/);
   assert.match(caja, /data-caja-paso="contar"/);
@@ -69,7 +70,9 @@ test('Caja guía el cierre en contar, revisar y decidir el fondo siguiente', () 
   assert.match(caja, /data-caja-paso="finalizar"/);
   assert.match(caja, /id="pasoCajaSiguiente"/);
   assert.match(caja, /id="pasoCajaAnterior"/);
-  assert.match(caja, /id="fondoSiguienteG"[^>]*value="0"/);
+  assert.match(caja, /data-destino-caja="retirar_todo"/);
+  assert.match(caja, /data-destino-caja="dejar"/);
+  assert.match(caja, /id="quedaCajaGeneral"/);
   assert.match(caja, /const mostrarPasoCaja=/);
   assert.match(caja, /if\(!conteosCajaCompletos\(\)\)/);
   assert.match(caja, /globalThis\.__miCajaVista='turno';\s*render\(\); aviso\(reabrir/);
@@ -92,6 +95,6 @@ test('el rediseño de Caja publica una identidad de caché nueva y alineada', ()
   const identity = text.match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/);
   assert.ok(identity, 'falta la identidad del build');
   const build = vm.runInNewContext(`(${identity[1]})`);
-  assert.equal(build.packageRevision, 51);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev51/);
+  assert.equal(build.packageRevision, 55);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev55/);
 });

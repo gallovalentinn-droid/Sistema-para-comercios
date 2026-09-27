@@ -57,7 +57,8 @@ function load() {
     cigTotal: 0, genEfectivo: 0, cigEfectivo: 0, cobEfectivo: 0, egrGeneral: 0, egrCigarros: 0, egrOtros: 0,
   };
   function node(key, dataset = {}) {
-    if (!nodes.has(key)) nodes.set(key, { dataset, value: '', innerHTML: '', focus: () => {} });
+    if (!nodes.has(key)) nodes.set(key, { dataset, value: '', innerHTML: '', focus: () => {},
+      classList:{add:()=>{},remove:()=>{},toggle:()=>{}},setAttribute:()=>{} });
     return nodes.get(key);
   }
   const context = {
@@ -69,6 +70,7 @@ function load() {
     F32_CURSOR_ZERO: { ts: '1970-01-01T00:00:00.000Z', id: '00000000-0000-0000-0000-000000000000' },
     clonarLocal: clone,
     f3Activo: () => true,
+    esDuenio: () => true,
     recalcularDerivados: () => {},
     f32PersistirDatoEntrante: async ({ puts }) => {
       for (const { coleccion, valor } of puts) durable.set(`${coleccion}:${valor.id}`, clone(valor));
@@ -77,10 +79,10 @@ function load() {
     turnoActual: (id) => id ? clone(emptyTurn) : null,
     $: (selector) => main.innerHTML.includes(`id="${selector.slice(1)}"`) ? node(selector) : null,
     $$: (selector) => {
-      const match = /^\[data-(vt|wa)\]$/.exec(selector);
+      const match = /^\[data-(vt|wa|destino-caja)\]$/.exec(selector);
       if (!match) return [];
       return [...main.innerHTML.matchAll(new RegExp(`data-${match[1]}="([^"]+)"`, 'g'))]
-        .map((item) => node(`${selector}:${item[1]}`, { [match[1]]: item[1] }));
+        .map((item) => node(`${selector}:${item[1]}`, { [match[1].replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]: item[1] }));
     },
     esc: (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
     $m: (value) => `$${Number(value).toFixed(2)}`,
@@ -102,7 +104,7 @@ function load() {
     'f32UpsertArray', 'f32AplicarVisible', 'f32bEstado', 'f32bCursorKey', 'f32bSetCursor',
     'f32bMapEgreso', 'f32bMapVenta', 'f32bMapCierre', 'f32bMapOperacion', 'f32bDeviceFila', 'f32bAplicarVisible',
     'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'responsableCierre',
-    'montoDiferenciaCaja', 'motivoCierrePendiente',
+    'montoDiferenciaCaja', 'motivoCierrePendiente', 'motivoDiferenciaCaja', 'estadoDiferenciaCaja', 'f52CalcularDestinoCierre',
     'esEgresoOperativo', 'vCaja',
   ];
   vm.runInContext([
@@ -127,6 +129,25 @@ test('el dueño ve el cierre de otro dispositivo sin tener un turno abierto', as
   nodes.get('[data-vt]:cierre-empleado').onclick();
   nodes.get('[data-wa]:cierre-empleado').onclick();
   assert.deepEqual(actions, [['ventas', 'cierre-empleado'], ['resumen', 'cierre-empleado']]);
+});
+
+test('un cierre de otro dispositivo conserva responsable, retiro, saldo y diferencia de apertura', async () => {
+  const {context,main}=load();
+  const {row,extra}=serverClosure();
+  extra.sesiones[0].caja_id='caja-compartida';
+  extra.traspasos=[{id:closeId,cerrado_por:row.cerrado_por,retiro_general:1000,retiro_cigarros:0,queda_general:450,queda_cigarros:0}];
+  extra.miembros=[{user_id:row.cerrado_por,nombre_mostrado:'Ana'}];
+  extra.segmentos=[{segment_id:sessionId,apertura_diferencia_general:-100,apertura_diferencia_cigarros:0,apertura_motivo:'Faltante contado'}];
+  await context.f32bProcesarFila(spec,row,extra);
+  const cierre=context.db.cierres[0];
+  assert.equal(cierre.responsableNombre,'Ana');
+  assert.equal(cierre._v4cajaId,'caja-compartida');
+  assert.equal(cierre.retiroGeneral,1000);
+  assert.equal(cierre.quedaGeneral,450);
+  assert.equal(cierre.aperturaDiferenciaGeneral,-100);
+  context.vCaja(main);
+  assert.match(main.innerHTML,/Ana/);
+  assert.match(main.innerHTML,/Faltó \$100/);
 });
 
 test('al cambiar de empleado a dueño en el mismo dispositivo recupera el cierre que falta', async () => {
@@ -233,7 +254,7 @@ test('el arqueo reserva el rojo para una diferencia negativa real', () => {
   assert.doesNotMatch(diferencia.innerHTML, /Falta|Sobra/);
 });
 
-test('Caja explica el botón de cierre deshabilitado y lo habilita al contar cero', () => {
+test('Caja exige contar y elegir el destino antes de habilitar el cierre', () => {
   const { context, main, nodes } = load();
   context.f3Estado.session = { id:'turno-duenio', estado:'abierta' };
   context.vCaja(main);
@@ -244,6 +265,8 @@ test('Caja explica el botón de cierre deshabilitado y lo habilita al contar cer
   const contado = nodes.get('#contadoG');
   contado.value = '0';
   contado.oninput();
+  assert.equal(boton.disabled, true);
+  nodes.get('[data-destino-caja]:retirar_todo').onclick();
   assert.equal(boton.disabled, false);
   assert.equal(ayuda.hidden, true);
 });

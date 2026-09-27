@@ -67,24 +67,18 @@ test('cerrar una caja no borra el fondo de apertura de otra caja', () => {
   assert.equal(context.f3Estado.fondoCeroProximoTurno, false);
 });
 
-test('la apertura manual posterior a un cierre ofrece cero en ambas cajas', () => {
-  const nodes = {
-    '#rev31Abrir': { onclick: null }, '#rev31Fondo': { value: '0' },
-    '#rev31FondoCig': { value: '0' }, '#rev31Responsable': { value: 'Ana' },
-  };
-  const context = {
-    db: { config: { fondoCaja: 5000, fondoCajaCigarros: 95000, moduloCigarros: true } },
-    f3Estado: { session: null, fondoCeroProximoTurno: true },
-    f5MembresiaActual: () => ({ nombre_mostrado: 'Ana', user_id: 'u1' }),
-    esc: value => value,
-    $: selector => nodes[selector],
-  };
+test('la apertura confirma cero sólo si el último cierre dejó cero explícitamente', () => {
+  const context = {};
   vm.createContext(context);
-  vm.runInContext(`${between('let rev31ReabrirTrasCierre=false;', 'function mostrarAvisoTurnoRev31')}\nthis.abrir=vAbrirTurnoRev31;`, context);
-  const main = { innerHTML: '' };
-  context.abrir(main);
-  assert.match(main.innerHTML, /id="rev31Fondo"[^>]*value="0"/);
-  assert.match(main.innerHTML, /id="rev31FondoCig"[^>]*value="0"/);
+  vm.runInContext(`${between('function f52ResumenTraspaso(', 'async function f52ConsultarTraspasoCaja(')}\nthis.resumen=f52ResumenTraspaso;`, context);
+  const nuevo=context.resumen({id:'nuevo',traspasoConfirmado:true,quedaGeneral:0,quedaCigarros:0});
+  assert.equal(nuevo.tipo,'confirmado');
+  assert.equal(nuevo.quedaGeneral,0);
+  assert.equal(nuevo.quedaCigarros,0);
+  const anterior=context.resumen({id:'viejo',contadoGeneral:38000});
+  assert.equal(anterior.tipo,'anterior');
+  assert.equal(anterior.quedaGeneral,null);
+  assert.match(html,/¿Está esa plata en la caja\?/);
 });
 
 test('un turno abierto automáticamente antes de REV40 pierde el fondo heredado del cierre', () => {

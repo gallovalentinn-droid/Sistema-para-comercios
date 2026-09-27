@@ -33,23 +33,27 @@ test('el alta inicial pide nombre y zona horaria sin exponer el corte del día',
   });
 });
 
-function turnoFixture(moduloCigarros, cigarrillos = '75,50', sessionBefore = null) {
+function turnoFixture(moduloCigarros, cigarrillos = '75,50', sessionBefore = null, traspaso = null) {
   const session = { fondoCigarros: 50 };
   const messages = [];
   const fields = {
-    '#rev31Abrir': { onclick: null },
+    '#rev31Abrir': { onclick: null, disabled:true },
     '#rev31IrCaja': { onclick: null },
-    '#rev31Fondo': { value: '120,25' },
-    '#rev31FondoCig': { value: cigarrillos },
+    '#rev31Fondo': { value: '120,25', focus(){} },
+    '#rev31FondoCig': { value: cigarrillos, focus(){} },
     '#rev31Responsable': { value: ' Ana ' },
   };
+  for (const id of ['rev31Estado','rev31Pregunta','rev31Esperado','rev31Conteo','rev31MotivoBox','rev31Motivo','rev31Coincide','rev31NoCoincide','rev31Reintentar'])
+    fields[`#${id}`] = { value:'', hidden:false, textContent:'', classList:{add(){},remove(){}}, focus(){}, onclick:null };
   let saved = 0;
   const context = {
     db: { config: { fondoCaja: 100, fondoCajaCigarros: 50, moduloCigarros } },
     f3Estado: { session: sessionBefore },
     f5MembresiaActual: () => ({ nombre_mostrado: 'Ana', user_id: 'u1' }),
     esc: value => value,
+    $m: value => `$${Number(value).toFixed(2)}`,
     $: selector => fields[selector],
+    f52ConsultarTraspasoCaja: async () => traspaso || ({ tipo:'sin_cierre',sinConexion:false,cierreId:null }),
     numImportacion: value => ({ ok: /^\d+(?:[,.]\d+)?$/.test(value), blank: value === '', value: Number(value.replace(',', '.')) }),
     f5ExigirEscritura: () => {},
     f3AsegurarSesionLocal: () => session,
@@ -58,16 +62,17 @@ function turnoFixture(moduloCigarros, cigarrillos = '75,50', sessionBefore = nul
     aviso: (message, kind) => messages.push([message, kind]),
   };
   vm.createContext(context);
-  vm.runInContext(`${between('let rev31ReabrirTrasCierre=false;', 'function mostrarAvisoTurnoRev31')}\nthis.open=vAbrirTurnoRev31;`, context);
+  vm.runInContext(`${between('function f52ImportesApertura(', 'async function f52ConsultarTraspasoCaja(')}\n${between('let rev31ReabrirTrasCierre=false;', 'function mostrarAvisoTurnoRev31')}\nthis.open=vAbrirTurnoRev31;`, context);
   const main = { innerHTML: '' };
   context.open(main);
-  return { main, fields, session, messages, saved: () => saved };
+  return { main, fields, session, messages, saved: () => saved, ready: () => new Promise(resolve=>setImmediate(resolve)) };
 }
 
 test('la apertura separa ambos fondos cuando está activa la caja de cigarrillos', async () => {
   const ui = turnoFixture(true);
+  await ui.ready();
   assert.match(ui.main.innerHTML, /id="rev31FondoCig"/);
-  assert.match(ui.main.innerHTML, /Fondo inicial de cigarrillos/);
+  assert.match(ui.main.innerHTML, /Plata en caja de cigarrillos/);
   await ui.fields['#rev31Abrir'].onclick();
   assert.equal(ui.session.fondoGeneral, 120.25);
   assert.equal(ui.session.fondoCigarros, 75.5);
@@ -77,6 +82,7 @@ test('la apertura separa ambos fondos cuando está activa la caja de cigarrillos
 
 test('la apertura sin caja separada no agrega el fondo viejo de cigarrillos', async () => {
   const ui = turnoFixture(false);
+  await ui.ready();
   assert.doesNotMatch(ui.main.innerHTML, /id="rev31FondoCig"/);
   await ui.fields['#rev31Abrir'].onclick();
   assert.equal(ui.session.fondoGeneral, 120.25);
@@ -86,10 +92,41 @@ test('la apertura sin caja separada no agrega el fondo viejo de cigarrillos', as
 
 test('un fondo de cigarrillos negativo impide abrir el turno', async () => {
   const ui = turnoFixture(true, '-1');
+  await ui.ready();
   await ui.fields['#rev31Abrir'].onclick();
   assert.equal(ui.saved(), 0);
   assert.equal(ui.session.rev31AperturaExplicita, undefined);
   assert.ok(ui.messages.some(([, kind]) => kind === 'bad'));
+});
+
+test('el turno siguiente confirma la plata del último cierre sin sumar saldos anteriores', async () => {
+  const ui=turnoFixture(true,'0',null,{tipo:'confirmado',sinConexion:false,cierreId:'cierre-1',quedaGeneral:3000,quedaCigarros:500});
+  await ui.ready();
+  assert.equal(ui.fields['#rev31Abrir'].disabled,true);
+  ui.fields['#rev31Coincide'].onclick();
+  await ui.fields['#rev31Abrir'].onclick();
+  assert.equal(ui.saved(),1,JSON.stringify(ui.messages));
+  assert.equal(ui.session.fondoGeneral,3000);
+  assert.equal(ui.session.fondoCigarros,500);
+  assert.equal(ui.session.aperturaCierreId,'cierre-1');
+  assert.equal(ui.session.aperturaDiferenciaGeneral,0);
+});
+
+test('si falta plata entre turnos exige explicarla y registra la diferencia', async () => {
+  const ui=turnoFixture(false,'0',null,{tipo:'confirmado',sinConexion:false,cierreId:'cierre-2',quedaGeneral:3000,quedaCigarros:500});
+  await ui.ready();
+  ui.fields['#rev31NoCoincide'].onclick();
+  ui.fields['#rev31Fondo'].value='3200';
+  await ui.fields['#rev31Abrir'].onclick();
+  assert.equal(ui.saved(),0);
+  ui.fields['#rev31Motivo'].value='Se agregó plata antes de abrir';
+  await ui.fields['#rev31Abrir'].onclick();
+  assert.equal(ui.saved(),1,JSON.stringify(ui.messages));
+  assert.equal(ui.session.fondoGeneral,3200);
+  assert.equal(ui.session.fondoCigarros,0);
+  assert.equal(ui.session.aperturaEsperadoGeneral,3500);
+  assert.equal(ui.session.aperturaDiferenciaGeneral,-300);
+  assert.equal(ui.session.aperturaMotivo,'Se agregó plata antes de abrir');
 });
 
 test('una caja implícita abierta debe cerrarse antes de iniciar turnos explícitos', () => {
