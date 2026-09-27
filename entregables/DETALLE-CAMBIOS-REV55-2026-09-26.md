@@ -15,7 +15,9 @@
 - **Código:** el ZIP REV54 se comprobó sin rutas peligrosas, duplicados ni errores de integridad. Los archivos de la nueva entrega mantienen el manifiesto de 17 archivos sin secretos privados detectados.
 - **Local:** 221 de 221 pruebas; navegador Chromium en 1366, 390 y 320 px. El caso de 320 px falló antes de la corrección (`scrollWidth 307`, `clientWidth 288`) y pasó después (`288/288`). A 1366 y 390 px, la revisión y la carga de factura no desbordan y no registraron errores de página.
 - **Base pública:** las migraciones figuran aplicadas. La consulta de último traspaso existe, la nueva restricción de promociones está activa y el acceso anónimo a las funciones nuevas está revocado. Ninguno de los 10 cierres históricos recibió un saldo de traspaso inventado.
-- **Web pública:** pendiente de comprobar tras la publicación de los archivos.
+- **Web pública:** GitHub Pages completó la publicación de `f91b7dc`. La lectura sin caché de `https://micomercio.ar/beta/` devolvió HTTP 200 con `packageRevision:55`; el SHA-256 del HTML coincide con el archivo local y el service worker anuncia `rev55`. En un navegador nuevo, el formulario de factura con datos sintéticos no desbordó a 320 px (`288/288` en el cuerpo, `248/248` en la búsqueda y `102/102` en cantidad), sin errores de página. No se efectuó una venta, una apertura ni un cierre autenticado en el comercio real durante esta verificación.
+
+El asesor de seguridad de Supabase marca las tres funciones públicas de caja nuevas o reemplazadas como `SECURITY DEFINER` ejecutables por usuarios autenticados. Las operaciones de apertura y cierre delegan la autorización en funciones privadas existentes; la consulta del último traspaso comprueba pertenencia al comercio y caja. El rol anónimo no puede ejecutarlas. Conviene una revisión de seguridad independiente antes de comercializar.
 
 ## Conciliación pendiente
 
