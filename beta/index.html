@@ -248,13 +248,6 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .cash-tab.active{color:var(--primary)}
 .cash-tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:var(--primary)}
 .purchase-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;margin-left:7px;padding:0 6px;border-radius:99px;background:var(--rojo);color:#fff;font-size:12px;font-weight:700;vertical-align:middle}
-.cash-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:16px}
-.cash-kpis .kpi{min-width:0}
-.cash-kpis .kpi b{font-family:var(--sans);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;font-size:23px;white-space:nowrap}
-.cash-kpi-profit{background:#F4FAF7;border-color:#CBE7DA}
-.cash-kpi-profit span,.cash-kpi-profit b,.cash-kpi-profit small{color:var(--verde-d)}
-.cash-payment-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.cash-payment-grid .kpi b{font-family:var(--sans);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;font-size:19px}
 .cash-close-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,420px);gap:22px;align-items:start}
 .cash-section-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 10px;padding:0 2px}
 .cash-section-heading h2{margin:0;color:#98A1AE;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em}
@@ -314,13 +307,18 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .cash-payment-item small{display:block;margin-left:15px;line-height:1.4}
 .cash-payment-note{margin:14px 0 0;color:var(--muted);font-size:12px;line-height:1.45}
 .cash-movements-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
-.cash-movements-head a{font-weight:600;font-size:13px}
+.cash-movements-head button{border:0;background:transparent;color:var(--primary);font:inherit;font-weight:600;font-size:13px;cursor:pointer;text-decoration:underline;padding:4px}
+.cash-movements-head button:hover{color:var(--primary-d)}
 .cash-movement-row{display:grid;grid-template-columns:68px 150px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:13px}
 .cash-movement-row time,.cash-movement-row .detail{color:var(--muted)}
 .cash-movement-row .detail{min-width:0;overflow-wrap:anywhere}
 .cash-movement-row .amount{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cash-movement-row .amount.out{color:var(--rojo)}
 .cash-movement-empty{padding:16px 0;color:var(--muted);font-size:13px}
+.cash-extra-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 16px}
+.cash-extra-metrics div{padding:12px 14px;border:1px solid var(--line);border-radius:10px;min-width:0}
+.cash-extra-metrics span{display:block;color:var(--muted);font-size:12px}
+.cash-extra-metrics b{display:block;margin-top:3px;font-size:17px;font-variant-numeric:tabular-nums}
 .cash-step-intro{max-width:760px;margin-bottom:18px}
 .cash-step-intro h2{margin:0 0 6px;font-size:21px}
 .cash-step-intro p{margin:0;color:var(--muted);line-height:1.5}
@@ -363,22 +361,15 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .expense-modal #eg_monto{min-height:54px;border-color:var(--primary);font-family:var(--sans);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
 .expense-modal .expense-secondary{margin-top:14px}
 
-@media (max-width:1280px){
-  .cash-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
-}
 @media (max-width:1150px){
   .cash-close-layout{grid-template-columns:1fr}
   .cash-close-layout>div:last-child>.cash-action-card:first-child{margin-top:16px}
-  .cash-payment-grid{grid-template-columns:1fr 1fr 1fr}
 }
 
 /* tablas -> tarjetas en pantallas chicas, para que sean legibles en el celular */
 @media (max-width:760px){
   .cash-tabs{gap:18px;overflow-x:auto;margin-bottom:18px}
   .cash-tab{white-space:nowrap}
-  .cash-kpis{grid-template-columns:1fr 1fr;gap:10px}
-  .cash-kpis .kpi:last-child{grid-column:1/-1}
-  .cash-payment-grid{grid-template-columns:1fr}
   .cash-count-box{padding:16px}
   .cash-destination-options{grid-template-columns:1fr}
   .cash-hero .btn{width:100%}
@@ -388,6 +379,7 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
   .cash-boxes{grid-template-columns:1fr}
   .cash-box-card{padding:18px}
   .cash-payment-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 8px}
+  .cash-extra-metrics{grid-template-columns:1fr}
   .cash-movement-row{grid-template-columns:48px minmax(0,1fr) auto;gap:8px;font-size:12px}
   .cash-movement-row time{white-space:nowrap}
   .cash-movement-row .detail{grid-column:2/-1;grid-row:2;margin-top:-5px}
@@ -799,7 +791,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:59,
+  packageRevision:60,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -8205,21 +8197,16 @@ function vCaja(m){
       <div class="cash-payment-bar" aria-hidden="true">${pagosVista.map(([nombre,monto,color])=>`<span title="${nombre}" style="width:${resumen.pagos.total>0?Math.max(0,monto/resumen.pagos.total*100):0}%;background:${color}"></span>`).join('')}</div>
       <div class="cash-payment-list">${pagosVista.map(([nombre,monto,color,detalle])=>`<div class="cash-payment-item"><span class="dot" style="background:${color}"></span>${nombre}<b>${$m(monto)}</b><small>${detalle}</small></div>`).join('')}</div>
       <p class="cash-payment-note">Los cobros de fiado en efectivo suman ${$m(t.cobEfectivo)} a la caja física; no se agregan otra vez a lo vendido.${Math.abs(resumen.pagos.diferencia)>0.009?` Revisá los pagos de las ventas: hay una diferencia de ${$m(resumen.pagos.diferencia)} entre venta y medios de pago.`:''}</p>
-    </div>
-    <div class="card cash-movements-card"><div class="card-b"><div class="cash-movements-head"><h2>Últimos movimientos</h2><a href="#detalleMovimientosCaja" id="verTodosMovCaja">Ver todos (${movimientos.length})</a></div>
-      ${movimientos.length?movimientos.slice(0,5).map(htmlMovimiento).join(''):'<div class="cash-movement-empty">Todavía no hay ventas, cobros ni salidas en este turno.</div>'}</div></div>
-    <details class="cash-detail" id="detalleMovimientosCaja"><summary>Todos los movimientos y datos del turno</summary><div>
-    <div class="card" style="margin-bottom:16px"><div class="card-h"><h2>Todos los movimientos</h2></div><div class="card-b">${movimientos.length?movimientos.map(htmlMovimiento).join(''):'<div class="cash-movement-empty">Sin movimientos todavía.</div>'}</div></div>
-    <div class="cash-kpis">
-      <div class="kpi"><span>Vendido en cigarrillos</span><b>${$m(t.cigTotal)}</b><small>de los ${$m(t.total)} totales</small></div>
-      <div class="kpi"><span>Egresos del turno</span><b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b><small>${t.egresos.length} salidas${t.egrOtros>0.009?` · ${$m(t.egrOtros)} sin efectivo`:''}</small></div>
-      <div class="kpi cash-kpi-profit"><span>Ganancia estimada</span><b>${gananciaEstimada===null?'—':$m(gananciaEstimada)}</b><small>${gananciaEstimada===null?`${t.costosIncompletos} líneas sin costo cargado`:'ventas − costo − gastos operativos'}</small></div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-h"><h2>Cobros por forma de pago</h2></div>
-      <div class="card-b cash-payment-grid">
-        ${['efectivo','transferencia','tarjeta'].map(f=>`<div class="kpi"><span>${FORMAS[f]}</span><b>${$m(t.porForma[f])}</b></div>`).join('')}
-      </div>
+    </div></div>
+    <div class="card cash-movements-card"><div class="card-b"><div class="cash-movements-head"><h2>${movimientos.length>5?'Últimos movimientos':'Movimientos del turno'}</h2>${movimientos.length>5?`<button type="button" id="verTodosMovCaja" aria-expanded="false" aria-controls="movimientosCajaExtra">Ver todos (${movimientos.length})</button>`:''}</div>
+      ${movimientos.length?movimientos.slice(0,5).map(htmlMovimiento).join(''):'<div class="cash-movement-empty">Todavía no hay ventas, cobros ni salidas en este turno.</div>'}
+      ${movimientos.length>5?`<div id="movimientosCajaExtra" hidden>${movimientos.slice(5).map(htmlMovimiento).join('')}</div>`:''}</div></div>
+    <details class="cash-detail" id="operacionesCaja"><summary>Más datos y correcciones</summary><div>
+    <p class="hint">Consultá los totales extra o buscá una venta para ver sus productos o anularla.</p>
+    <div class="cash-extra-metrics">
+      <div><span>Vendido en cigarrillos</span><b>${$m(t.cigTotal)}</b></div>
+      <div><span>Egresos del turno</span><b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b></div>
+      <div><span>Ganancia estimada</span><b>${gananciaEstimada===null?'—':$m(gananciaEstimada)}</b><small class="hint">${gananciaEstimada===null?`${t.costosIncompletos} líneas sin costo cargado`:''}</small></div>
     </div>
     <div class="card">
       <div class="card-h"><h2>Ventas del turno</h2></div>
@@ -8303,7 +8290,7 @@ function vCaja(m){
             <input id="quedaCajaGeneral" class="inp num" inputmode="decimal" autocomplete="off">
             ${moduloCigarros?`<label class="f" for="quedaCajaCigarros" style="margin-top:10px">Queda en caja de cigarrillos</label><input id="quedaCajaCigarros" class="inp num" inputmode="decimal" autocomplete="off">`:''}
           </div>
-          ${separaCigarrillosAlCierre?`<div class="cash-cigarette-separation"><h3>Separación de cigarrillos</h3><p>Contaste toda la plata en una sola caja. Ahora registrá el efectivo que sacás de ese retiro para guardar aparte por cigarrillos.</p><label class="f" for="apartadoCigarrillos">¿Cuánto efectivo apartás para cigarrillos?</label><input id="apartadoCigarrillos" class="inp num" inputmode="decimal" autocomplete="off" placeholder="Escribí el monto real, incluso 0" aria-required="true"><div class="hint">Ventas de cigarrillos cobradas en efectivo en este turno: ${$m(t.cigEfectivo)}. Usalo como referencia; anotá lo que realmente separás. Si no separás nada, escribí 0. No se resta dos veces.</div></div>`:''}
+          ${separaCigarrillosAlCierre?`<div class="cash-cigarette-separation"><h3>Separación de cigarrillos</h3><p>Contaste toda la plata en una sola caja. Ahora registrá el efectivo que sacás de ese retiro para guardar aparte por cigarrillos.</p><label class="f" for="apartadoCigarrillos">¿Cuánto efectivo apartás para cigarrillos?</label><input id="apartadoCigarrillos" class="inp num" inputmode="decimal" autocomplete="off" placeholder="Escribí el monto real, incluso 0" aria-required="true"><div class="hint">Ventas de cigarrillos cobradas en efectivo en este turno: ${$m(t.cigEfectivo)}.</div></div>`:''}
           <div id="resumenDestinoCaja" class="cash-destination-summary" role="status">Elegí qué hacés con la plata contada.</div>
           <label class="f" for="responsableCierreCaja" style="margin-top:14px">Quién cierra la caja</label>
           <input id="responsableCierreCaja" class="inp" maxlength="120" value="${esc(activeSession?.abiertoPor||'')}" autocomplete="name">
@@ -8347,7 +8334,13 @@ function vCaja(m){
   $('#irCierreCaja').onclick=()=>{aplicarVistaCaja('cierre');mostrarPasoCaja('contar');$('#contadoG').focus();};
   $('#bGastoCaja').onclick=()=>formEgreso('Gastos varios');
   $('#bRetiroCaja').onclick=()=>formEgreso('Retiro del dueño');
-  $('#verTodosMovCaja').onclick=e=>{e.preventDefault();const detalle=$('#detalleMovimientosCaja',m);detalle.open=true;detalle.scrollIntoView({behavior:'smooth',block:'start'});};
+  const verTodosMovCaja=$('#verTodosMovCaja',m);
+  if(verTodosMovCaja)verTodosMovCaja.onclick=()=>{
+    const extra=$('#movimientosCajaExtra',m),expandido=verTodosMovCaja.getAttribute('aria-expanded')==='true';
+    extra.hidden=expandido;
+    verTodosMovCaja.setAttribute('aria-expanded',String(!expandido));
+    verTodosMovCaja.textContent=expandido?`Ver todos (${movimientos.length})`:'Ver últimos 5';
+  };
 
   const inpG=$('#contadoG'), inpC=$('#contadoC'), cerrarCaja=$('#cerrarCaja');
   const quedaG=$('#quedaCajaGeneral'),quedaC=$('#quedaCajaCigarros');

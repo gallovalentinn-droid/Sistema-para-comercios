@@ -28,12 +28,15 @@ test('el motivo se pide al revisar y se valida antes de cerrar', () => {
   assert.match(caja, /nota:explicacionCaja\.value\.trim\(\)/);
 });
 
-test('el cierre no muestra sugerencias de fondos y el detalle del turno está unificado', () => {
+test('el cierre no muestra sugerencias de fondos y las correcciones quedan separadas de la lista de movimientos', () => {
   const caja = section(source(), 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
   assert.doesNotMatch(caja, /Configurar sugerencias de fondos de apertura/);
   assert.doesNotMatch(caja, /id="okFondo"/);
-  assert.equal((caja.match(/<summary>Todos los movimientos y datos del turno<\/summary>/g) || []).length, 1);
+  assert.equal((caja.match(/<summary>Más datos y correcciones<\/summary>/g) || []).length, 1);
   assert.match(caja, /movimientos\.slice\(0,5\)\.map\(htmlMovimiento\)/);
+  assert.match(caja, /movimientos\.slice\(5\)\.map\(htmlMovimiento\)/);
+  assert.doesNotMatch(caja, /movimientos\.map\(htmlMovimiento\)/);
+  assert.doesNotMatch(caja, /Cobros por forma de pago/);
   assert.doesNotMatch(caja, /<summary>Ver más datos del turno|<summary>Ver cobros por forma de pago|<summary>Ver ventas y egresos del turno/);
   assert.match(caja, /id="contadoG"[^>]*inputmode="decimal"[^>]*>/);
   assert.doesNotMatch(caja, /id="contadoG"[^>]*placeholder="0,00"/);
