@@ -72,4 +72,4 @@ Después de que el mostrador perdió la sesión el 27/09, cada venta quedó trab
 - **Arnés de navegador:** ahora sirve la beta del repositorio por defecto. La ejecución visual requiere Playwright y Chromium; el resto de la suite no depende de ellos.
 - **Base pública, solo lectura:** `operaciones_procesadas` tiene clave primaria por comercio e identificador de operación; las RPC de venta y cierre usan `private.reservar_operacion`. No se creó una venta ni se reintentó una operación real.
 - **Límite de la prueba:** el arnés no confirma operaciones en Supabase. El envío final con una sesión renovada deberá observarse en un dispositivo del comercio.
-- **Beta pública:** verificar después de publicar que `beta/index.html` y `beta/sw.js` coincidan con REV58.
+- **Beta pública:** `beta/index.html` y `beta/sw.js` en `https://micomercio.ar/beta/` coinciden byte por byte (SHA-256) con los archivos de REV58 publicados en `main`. La lectura pública fue sin caché. No se hizo un reintento autenticado con ventas reales del comercio; esa confirmación sigue pendiente en el dispositivo con una sesión renovada.
