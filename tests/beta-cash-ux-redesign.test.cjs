@@ -45,8 +45,10 @@ test('Caja separa turno, historial y el cierre en una ventana guiada', () => {
     assert.match(caja, new RegExp(label));
   }
   assert.doesNotMatch(caja, /Egresos del turno<\/span><b style="color:var\(--rojo\)"/);
-  assert.match(caja, /id="bGastoCaja">Registrar gasto/);
-  assert.match(caja, /id="bRetiroCaja">Sacar plata/);
+  assert.match(caja, /id="bGastoCaja">\$\{ic\('mas'\)\} Registrar gasto/);
+  assert.match(caja, /id="bRetiroCaja">\$\{ic\('subir'\)\} Sacar plata/);
+  assert.doesNotMatch(caja, /id="bHistorialCaja"/);
+  assert.match(caja, /movimientos\.slice\(0,5\)\.map\(htmlMovimiento\)/);
 });
 
 test('el cierre destaca el único dato manual y permite plegar cigarrillos', () => {
@@ -95,6 +97,6 @@ test('el rediseño de Caja publica una identidad de caché nueva y alineada', ()
   const identity = text.match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/);
   assert.ok(identity, 'falta la identidad del build');
   const build = vm.runInNewContext(`(${identity[1]})`);
-  assert.equal(build.packageRevision, 58);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev58/);
+  assert.equal(build.packageRevision, 59);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev59/);
 });

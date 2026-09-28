@@ -32,7 +32,8 @@ test('el cierre no muestra sugerencias de fondos y el detalle del turno está un
   const caja = section(source(), 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
   assert.doesNotMatch(caja, /Configurar sugerencias de fondos de apertura/);
   assert.doesNotMatch(caja, /id="okFondo"/);
-  assert.equal((caja.match(/<summary>Ver detalle del turno<\/summary>/g) || []).length, 1);
+  assert.equal((caja.match(/<summary>Todos los movimientos y datos del turno<\/summary>/g) || []).length, 1);
+  assert.match(caja, /movimientos\.slice\(0,5\)\.map\(htmlMovimiento\)/);
   assert.doesNotMatch(caja, /<summary>Ver más datos del turno|<summary>Ver cobros por forma de pago|<summary>Ver ventas y egresos del turno/);
   assert.match(caja, /id="contadoG"[^>]*inputmode="decimal"[^>]*>/);
   assert.doesNotMatch(caja, /id="contadoG"[^>]*placeholder="0,00"/);
@@ -48,12 +49,11 @@ test('los fondos sugeridos se configuran fuera del cierre y rechazan importes in
   assert.match(config, /if\(!lecturaGeneral\.ok/);
 });
 
-test('la caja muestra plata esperada solo al dueño y advierte cálculos negativos', () => {
+test('la caja muestra la cuenta del efectivo sin ocultar un cálculo negativo', () => {
   const caja = section(source(), 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
-  assert.match(caja, /esDuenio\(\)\?`<div class="cash-expected"/);
-  assert.match(caja, /Math\.max\(0,espGeneral\)/);
-  assert.match(caja, /espGeneral<0\?`<div class="cash-review-advice"/);
-  assert.match(caja, /Si sacás plata, registrala/);
+  assert.match(caja, /tarjetaCaja\(moduloCigarros\?'Caja general':'Caja única',resumen\.general,espGeneral/);
+  assert.match(caja, /class="cash-box-amount \$\{esperado<0\?'negative'/);
+  assert.doesNotMatch(caja, /Math\.max\(0,espGeneral\)/);
 });
 
 test('el historial informa faltas y sobrantes por caja sin compensarlos', () => {

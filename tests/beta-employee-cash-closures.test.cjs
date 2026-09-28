@@ -89,6 +89,8 @@ function load() {
     num: (value) => Number(value) || 0,
     normalizarTexto: (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(),
     fFH: (value) => value,
+    fFecha: (value) => value,
+    ic: () => '',
     nfM: { format: (value) => String(value) },
     FORMAS: { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' },
     busCajaTurno: '',
@@ -106,7 +108,7 @@ function load() {
     'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'responsableCierre',
     'montoDiferenciaCaja', 'motivoCierrePendiente', 'motivoDiferenciaCaja', 'estadoDiferenciaCaja', 'f52CalcularDestinoCierre',
     'f56ValidarApartadoCigarrillos', 'f57DesgloseRetiroCigarrillos', 'f56CajaSeparadaEnSesion', 'f57ModoCaja', 'f56EsperadoCajaUnica',
-    'esEgresoOperativo', 'vCaja',
+    'esEgresoOperativo', 'f59DesgloseCajaActual', 'f59MovimientosCajaActual', 'f59TiempoAbiertoCaja', 'vCaja',
   ];
   vm.runInContext([
     ...names.map((name) => functionSource(name)),
@@ -282,7 +284,8 @@ test('una caja con separación de cigarrillos cuenta el efectivo una vez y exige
   context.db.config.separaCigarrillosAlCierre = true;
   context.f3Estado.session = { id:'turno-duenio', estado:'abierta', fondoGeneral:8030, fondoCigarros:0 };
   context.vCaja(main);
-  assert.match(main.innerHTML, /Una caja · cigarrillos se separan al cerrar/);
+  assert.match(main.innerHTML, /Todo el efectivo se cuenta junto\. El monto de cigarrillos se aparta al cerrar\./);
+  assert.match(main.innerHTML, /<tr><td style="padding-left:0">Ventas en efectivo<\/td><td class="r num">\+ \$673970\.00<\/td><\/tr>/);
   assert.match(main.innerHTML, /Separación de cigarrillos/);
   assert.doesNotMatch(main.innerHTML, /id="contadoC"/);
   nodes.get('#contadoG').value = '682000';
