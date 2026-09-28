@@ -27,7 +27,7 @@ El cierre del 27/09/2026 a las 06:21 muestra $159.530 de sobrante en general y $
 - **Código:** la migración no actualiza cierres previos; el cierre nuevo exige consistencia entre conteo, retiro y apartado.
 - **Local:** 226 pruebas de `tests/*.test.cjs` pasaron. `verificar.ps1` validó 18 archivos y no detectó secretos privados.
 - **Base pública:** migración REV56 aplicada; se verificaron ambas columnas, ambas restricciones y la función privada. El cierre histórico consultado conserva $159.530 y $127.600 en sus campos originales.
-- **Beta pública:** pendiente de comprobar tras la publicación de REV56. No se realizó un cierre real de prueba sobre el comercio del usuario.
+- **Beta pública:** `index.html` y `sw.js` responden HTTP 200 con REV56; sus hashes SHA-256 coinciden con los archivos probados localmente. La configuración de Kiosco de Ponce se consultó después del cambio y figura con dos cajas físicas desactivadas. No se realizó un cierre real de prueba sobre el comercio del usuario.
 
 ## Uso en Kiosco de Ponce
 
