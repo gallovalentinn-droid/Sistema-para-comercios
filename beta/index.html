@@ -747,7 +747,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:55,
+  packageRevision:56,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'10-canonical+6-legacy-only',
@@ -884,7 +884,7 @@ const VACIA=()=>({
   _tombstones:{}, _configSyncAt:'', _configSync:{},
   config:{nombre:'Mi Comercio', nroVenta:1, fondoCaja:0, fondoCajaCigarros:0, ultBackup:null, whatsappDueno:'', pinHash:'', pinDuenio:'', motivosEgresoExtra:[], diasAvisoVence:7,
     diasPlazoFiado:30, recargoFiadoPct:10, manejaTurnos:false, avisoTurnoHoras:8,
-    moduloFiado:true, moduloVencimientos:true, moduloCigarros:true, permisosEmpleado:{}}
+    moduloFiado:true, moduloVencimientos:true, moduloCigarros:false, permisosEmpleado:{}}
 });
 const F423_VERSION='4.2.3-rc1'; // caja de cigarrillos opcional + importación fail-closed >10
 const SYNC_COLECCIONES=['productos','clientes','ventas','movs','pagos','cierres','combos','egresos','ajustesFiado','promociones'];
@@ -1528,7 +1528,11 @@ function f3MigrarPlaceholderSesionLocal(){
 
 function f3AsegurarSesionLocal(){
   if(!f3Activo()) return null;
-  if(f3Estado.session&&f3Estado.session.estado==='abierta') return f3Estado.session;
+  if(f3Estado.session&&f3Estado.session.estado==='abierta'){
+    if(typeof f3Estado.session.cajaSeparadaCigarros!=='boolean')
+      f3Estado.session.cajaSeparadaCigarros=db.config.moduloCigarros!==false;
+    return f3Estado.session;
+  }
   const fondoCero=!!f3Estado.fondoCeroProximoTurno&&(!f3Estado.fondoCeroProximoTurnoCajaId||f3Estado.fondoCeroProximoTurnoCajaId===f3Estado.cajaId);
   f3Estado.session={
     id:f3Uuid(),
@@ -1537,6 +1541,7 @@ function f3AsegurarSesionLocal(){
     openedAtDevice:new Date().toISOString(),
     fondoGeneral:fondoCero?(Number(f3Estado.fondoProximoTurnoGeneral)||0):(Number(db.config.fondoCaja)||0),
     fondoCigarros:fondoCero&&db.config.moduloCigarros!==false?(Number(f3Estado.fondoProximoTurnoCigarros)||0):!fondoCero&&db.config.moduloCigarros!==false?(Number(db.config.fondoCajaCigarros)||0):0,
+    cajaSeparadaCigarros:db.config.moduloCigarros!==false,
     estado:'abierta', serverOpened:false
   };
   f3Estado.session.rootSessionId=f3Estado.session.id;
@@ -1772,6 +1777,7 @@ function f3OperacionCierre(cierre){
     esperado_general:Number(cierre.esperadoGeneral)||0,contado_general:Number(cierre.contadoGeneral)||0,diferencia_general:Number(cierre.diferenciaGeneral)||0,
     esperado_cigarros:Number(cierre.esperadoCigarros)||0,contado_cigarros:Number(cierre.contadoCigarros)||0,diferencia_cigarros:Number(cierre.diferenciaCigarros)||0,
     egresos_general:Number(cierre.egrGeneral)||0,egresos_cigarros:Number(cierre.egrCigarros)||0,costo_ventas:Number(cierre.costo)||0,nota:cierre.nota||'',
+    modelo_caja:cierre.cajaUnica===true?'unica':'separada',apartado_cigarrillos:Number(cierre.apartadoCigarrillos)||0,
     responsable_nombre:String(cierre.responsableNombre||'').trim().slice(0,120),
     ...(cierre.traspasoConfirmado?{
       retiro_general:Number(cierre.retiroGeneral)||0,retiro_cigarros:Number(cierre.retiroCigarros)||0,
@@ -7441,7 +7447,7 @@ function motivosEgresoTodos(){
   return [...MOTIVOS_EGRESO,...(db.config.motivosEgresoExtra||[])];
 }
 function formEgreso(motivoInicial=''){
-  const moduloCigarros=db.config.moduloCigarros!==false;
+  const moduloCigarros=f56CajaSeparadaEnSesion(f3Estado&&f3Estado.session,db.config);
   let cajaEgreso='general', formaEg='efectivo';
   const tituloEgreso=motivoInicial==='Retiro del dueño'?'Sacar plata de la caja':motivoInicial==='Gastos varios'?'Registrar gasto':'Registrar egreso';
   modal({titulo:tituloEgreso,
@@ -7590,14 +7596,14 @@ function turnoActual(sessionId){
   const egresos=f5FiltrarPorSesion(db.egresos||[],sessionId);
   const fechas=[...ventasTodas,...pagos,...egresos].map(x=>x&&x.fecha).filter(Boolean).sort();
   const desde=ses&&sesIds.effectiveId===String(sessionId)?ses.openedAtDevice:(fechas[0]||new Date().toISOString());
-  return calcularTotalesTurno({desde,ventasTodas,pagos,egresos});
+  return calcularTotalesTurno({desde,ventasTodas,pagos,egresos,moduloCigarros:f56CajaSeparadaEnSesion(ses,db.config)});
 }
 function efectivoCigarrillosVenta(total,cig,montoEfectivo){
   const limite=Math.min(Math.max(0,Number(total)||0),Math.max(0,Number(cig)||0),Math.max(0,Number(montoEfectivo)||0));
   return Math.round(limite*100)/100;
 }
-function calcularTotalesTurno({desde,ventasTodas,pagos,egresos}){
-  const moduloCigarros=db.config.moduloCigarros!==false;
+function calcularTotalesTurno({desde,ventasTodas,pagos,egresos,moduloCigarros:moduloSeparado}){
+  const moduloCigarros=moduloSeparado==null?db.config.moduloCigarros!==false:moduloSeparado===true;
   const ventas=ventasTodas.filter(v=>!v.anulada); // las anuladas no suman a ningún total
 
   const porForma={efectivo:0,transferencia:0,qr:0,tarjeta:0,fiado:0};
@@ -7636,7 +7642,6 @@ function calcularTotalesTurno({desde,ventasTodas,pagos,egresos}){
   const egrGeneral=egrEfectivo.filter(e=>!moduloCigarros||e.caja!=='cigarrillos').reduce((a,e)=>a+e.monto,0);
   const egrCigarros=moduloCigarros?egrEfectivo.filter(e=>e.caja==='cigarrillos').reduce((a,e)=>a+e.monto,0):0;
   const egrOtros=egresos.filter(e=>(e.forma||'efectivo')!=='efectivo').reduce((a,e)=>a+e.monto,0);
-  if(!moduloCigarros) cigEfectivo=0;
   const genEfectivo=moduloCigarros?Math.round(Math.max(0,porForma.efectivo-cigEfectivo)*100)/100:porForma.efectivo;
   const total=ventas.reduce((a,v)=>a+(Number(v.total)||0),0);
   return {desde,ventasTodas,ventas,pagos,egresos,porForma,cigTotal,cigEfectivo,genEfectivo,cobEfectivo,cobOtros,egrGeneral,egrCigarros,egrOtros,costo,costosIncompletos,total};
@@ -7706,7 +7711,7 @@ function formAnularVenta(id){
   const efectivo=montoEfectivoVenta(v);
   const sesion=f3Estado&&f3Estado.session;
   const puedeRegistrarReintegro=!ventaPerteneceTurnoAbierto(v)&&efectivo>0&&(!f3Activo()||(sesion&&sesion.estado==='abierta'));
-  const moduloCigarros=db.config.moduloCigarros!==false;
+  const moduloCigarros=f56CajaSeparadaEnSesion(sesion,db.config);
   modal({titulo:'Anular venta Nº'+v.nro,
     cuerpo:`<p style="margin:0 0 16px;line-height:1.6">Se repone el stock de cada producto${v.clienteId?', y se descuenta lo que se le había anotado al cliente':''}. La venta queda registrada como anulada, no se borra.</p>
       <label class="f" for="an_mot">Motivo</label>
@@ -7807,19 +7812,22 @@ function textoResumenCierre(c){
   if((c.egrGeneral||0)+(c.egrCigarros||0)>0.009){
     l.push('');
     l.push('*Egresos*');
-    if(c.egrGeneral>0.009) l.push(`De caja general: ${$m(c.egrGeneral)}`);
+    if(c.egrGeneral>0.009) l.push(`${c.cajaUnica?'De caja':'De caja general'}: ${$m(c.egrGeneral)}`);
     if(c.egrCigarros>0.009) l.push(`De caja cigarrillos: ${$m(c.egrCigarros)}`);
   }
   l.push('');
-  l.push('*Caja general*');
+  l.push(c.cajaUnica?'*Caja única*':'*Caja general*');
   l.push(`Debería haber: ${$m(c.esperadoGeneral)}`);
   l.push(`Contado: ${$m(c.contadoGeneral)}`);
   l.push(`Diferencia: ${c.diferenciaGeneral>=0?'+':''}${$m(c.diferenciaGeneral)}`);
-  l.push('');
-  l.push('*Caja de cigarrillos*');
-  l.push(`Debería haber: ${$m(c.esperadoCigarros)}`);
-  l.push(`Contado: ${$m(c.contadoCigarros)}`);
-  l.push(`Diferencia: ${c.diferenciaCigarros>=0?'+':''}${$m(c.diferenciaCigarros)}`);
+  if(!c.cajaUnica){
+    l.push('');
+    l.push('*Caja de cigarrillos*');
+    l.push(`Debería haber: ${$m(c.esperadoCigarros)}`);
+    l.push(`Contado: ${$m(c.contadoCigarros)}`);
+    l.push(`Diferencia: ${c.diferenciaCigarros>=0?'+':''}${$m(c.diferenciaCigarros)}`);
+  }
+  if(c.apartadoCigarrillos>0.009)l.push(`Apartado para cigarrillos del retiro: ${$m(c.apartadoCigarrillos)}`);
   if(c.nota) { l.push(''); l.push(`Nota: ${c.nota}`); }
   return l.join('\n');
 }
@@ -7912,6 +7920,27 @@ function f52CalcularDestinoCierre(contadoGeneral,contadoCigarros,decision,quedaG
   return {ok:true,quedaGeneral:general.value,quedaCigarros:cigarros.value,
     retiroGeneral:redondear(contadoG-general.value),retiroCigarros:redondear(contadoC-cigarros.value)};
 }
+function f56ValidarApartadoCigarrillos(texto,destino){
+  if(!String(texto??'').trim())return {ok:true,value:0};
+  const dato=numImportacion(texto);
+  if(!dato.ok||dato.blank||!Number.isFinite(dato.value)||dato.value<0||
+    !destino||destino.ok!==true||dato.value>Number(destino.retiroGeneral)+0.009)
+    return {ok:false,error:'El apartado de cigarrillos debe estar entre $0 y el efectivo que retirás de la caja.'};
+  return {ok:true,value:Math.round(dato.value*100)/100};
+}
+function f56CajaSeparadaEnSesion(session,config){
+  // Si se corrigió una configuración de dos cajas a una sola, el arqueo del
+  // turno abierto también debe incluir todo el efectivo. La operación inversa
+  // conserva el modo del turno hasta el siguiente cierre.
+  if(config?.moduloCigarros===false)return false;
+  return session&&typeof session.cajaSeparadaCigarros==='boolean'
+    ?session.cajaSeparadaCigarros:config?.moduloCigarros!==false;
+}
+function f56EsperadoCajaUnica({fondoGeneral=0,fondoCigarros=0,efectivoVentas=0,cobrosFiado=0,egresosGeneral=0,egresosCigarros=0,contado=0}={}){
+  const centavos=n=>Math.round((Number(n)||0)*100);
+  const esperado=centavos(fondoGeneral)+centavos(fondoCigarros)+centavos(efectivoVentas)+centavos(cobrosFiado)-centavos(egresosGeneral)-centavos(egresosCigarros);
+  return {esperado:esperado/100,diferencia:(centavos(contado)-esperado)/100};
+}
 function f52UltimoCierreLocal(cierres,cajaId){
   const id=String(cajaId||'');
   if(!id)return null;
@@ -7962,10 +7991,11 @@ function htmlCierresAnteriores(){
     <div class="card-h"><h2>Cierres anteriores</h2>${responsables.length>1?`<select class="inp" id="cierreResponsable" aria-label="Filtrar cierres por persona" style="max-width:240px"><option value="todos">Todas las personas</option>${responsables.map(nombre=>`<option ${cierreResponsableFiltro===nombre?'selected':''}>${esc(nombre)}</option>`).join('')}</select>`:''}</div>
     ${cierres.length?`<div class="cash-history-list" role="list" aria-label="Cierres anteriores">
       ${cierres.map(c=>{const general=estadoDiferenciaCaja(c.diferenciaGeneral),cigarrillos=estadoDiferenciaCaja(c.diferenciaCigarros);const tieneCigarrillos=Math.abs(Number(c.contadoCigarros)||0)>0.009||Math.abs(Number(c.esperadoCigarros)||0)>0.009||Math.abs(Number(c.diferenciaCigarros)||0)>0.009;return `<div class="cash-history-item" role="listitem">
-        <div class="cash-history-main"><div><b>${fFH(c.hasta)}</b><div class="hint">${esc(responsableCierre(c))} · ${c.cantVentas||0} ${c.cantVentas===1?'venta':'ventas'}</div></div><div class="r"><b class="num">Vendido: ${$m(c.total)}</b><div class="cash-history-statuses"><span class="pill ${general.clase}">General: ${general.texto}</span>${tieneCigarrillos?`<span class="pill ${cigarrillos.clase}">Cigarrillos: ${cigarrillos.texto}</span>`:''}</div></div></div>
+        <div class="cash-history-main"><div><b>${fFH(c.hasta)}</b><div class="hint">${esc(responsableCierre(c))} · ${c.cantVentas||0} ${c.cantVentas===1?'venta':'ventas'}</div></div><div class="r"><b class="num">Vendido: ${$m(c.total)}</b><div class="cash-history-statuses"><span class="pill ${general.clase}">${c.cajaUnica?'Caja':'General'}: ${general.texto}</span>${tieneCigarrillos?`<span class="pill ${cigarrillos.clase}">Cigarrillos: ${cigarrillos.texto}</span>`:''}</div></div></div>
+        ${!c.cajaUnica&&tieneCigarrillos&&c._v4estado==='requiere_conciliacion'?`<div class="cash-review-advice" style="margin:8px 0">Cierre con dos cajas en revisión. Si contaste todo el efectivo en general y también anotaste cigarrillos, revisá el posible doble conteo.</div>`:''}
         ${c._v4metaAlerta||c.aperturaRequiereRevision?`<div class="cash-review-advice" style="margin:8px 0">Este cierre tiene datos de apertura o traspaso pendientes de conciliación. Contá la plata al abrir el próximo turno.</div>`:''}
         ${(Math.abs(Number(c.aperturaDiferenciaGeneral)||0)>0.009||Math.abs(Number(c.aperturaDiferenciaCigarros)||0)>0.009)?`<div class="cash-review-advice" style="margin:8px 0">Al abrir este turno: general ${estadoDiferenciaCaja(c.aperturaDiferenciaGeneral).texto}${Math.abs(Number(c.aperturaDiferenciaCigarros)||0)>0.009?` · cigarrillos ${estadoDiferenciaCaja(c.aperturaDiferenciaCigarros).texto}`:''}${c.aperturaMotivo?` · ${esc(c.aperturaMotivo)}`:''}</div>`:''}
-        <details><summary>Ver detalle</summary><div class="cash-history-detail"><div>General: contado <b>${$m(c.contadoGeneral)}</b> · ${general.texto}</div>${tieneCigarrillos?`<div>Cigarrillos: contado <b>${$m(c.contadoCigarros)}</b> · ${cigarrillos.texto}</div>`:''}${c.traspasoConfirmado?`<div>Retirado: <b>${$m((Number(c.retiroGeneral)||0)+(Number(c.retiroCigarros)||0))}</b> · Quedó: <b>${$m((Number(c.quedaGeneral)||0)+(Number(c.quedaCigarros)||0))}</b></div>`:''}${c.nota?`<div>Nota: ${esc(c.nota)}</div>`:''}<div><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></div></div></details>
+        <details><summary>Ver detalle</summary><div class="cash-history-detail"><div>${c.cajaUnica?'Caja':'General'}: contado <b>${$m(c.contadoGeneral)}</b> · ${general.texto}</div>${tieneCigarrillos?`<div>Cigarrillos: contado <b>${$m(c.contadoCigarros)}</b> · ${cigarrillos.texto}</div>`:''}${c.traspasoConfirmado?`<div>Retirado: <b>${$m((Number(c.retiroGeneral)||0)+(Number(c.retiroCigarros)||0))}</b> · Quedó: <b>${$m((Number(c.quedaGeneral)||0)+(Number(c.quedaCigarros)||0))}</b></div>`:''}${c.apartadoCigarrillos>0.009?`<div>Apartado para cigarrillos: <b>${$m(c.apartadoCigarrillos)}</b> (incluido en lo retirado)</div>`:''}${c.nota?`<div>Nota: ${esc(c.nota)}</div>`:''}<div><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></div></div></details>
       </div>`;}).join('')}</div>`
     :`<div class="empty"><b>Sin cierres todavía</b>Los cierres de este comercio quedan registrados acá, incluidos los realizados por empleados cuando se sincronizan.</div>`}
   </div>`;
@@ -7988,11 +8018,15 @@ function vCaja(m){
     $('#abrirTurnoCaja').onclick=()=>ir('vender');
     return;
   }
-  const moduloCigarros=db.config.moduloCigarros!==false;
+  const moduloCigarros=f56CajaSeparadaEnSesion(activeSession,db.config);
   const fondoGeneralTurno=activeSession?Number(activeSession.fondoGeneral)||0:Number(db.config.fondoCaja||0);
   const fondoCigarrosTurno=activeSession?Number(activeSession.fondoCigarros)||0:Number(db.config.fondoCajaCigarros||0);
   const fondoGeneralEfectivo=fondoGeneralTurno+(moduloCigarros?0:fondoCigarrosTurno);
-  const espGeneral=fondoGeneralEfectivo+t.genEfectivo+t.cobEfectivo-t.egrGeneral;
+  const espGeneral=moduloCigarros
+    ?fondoGeneralEfectivo+t.genEfectivo+t.cobEfectivo-t.egrGeneral
+    :f56EsperadoCajaUnica({fondoGeneral:fondoGeneralTurno,fondoCigarros:fondoCigarrosTurno,
+      efectivoVentas:t.porForma.efectivo,cobrosFiado:t.cobEfectivo,
+      egresosGeneral:t.egrGeneral,egresosCigarros:t.egrCigarros}).esperado;
   const espCigarros=moduloCigarros?fondoCigarrosTurno+t.cigEfectivo-t.egrCigarros:0;
   const egresosOperativos=t.egresos.filter(esEgresoOperativo).reduce((a,e)=>a+(Number(e.monto)||0),0);
   const gananciaEstimada=t.costosIncompletos?null:t.total-t.costo-egresosOperativos;
@@ -8008,13 +8042,13 @@ function vCaja(m){
 
   <section data-caja-panel="turno" ${cajaVista==='turno'?'':'hidden'}>
     <div class="cash-hero"><div><strong>Caja abierta desde ${fFH(t.desde)}</strong><p>${activeSession&&activeSession.abiertoPor?`${esc(activeSession.abiertoPor)} · `:''}${t.ventas.length} venta${t.ventas.length===1?'':'s'} registrada${t.ventas.length===1?'':'s'}. Al terminar el turno, te guiamos para contar la plata.</p>
-      ${esDuenio()?`<div class="cash-expected"><span>Plata que debería haber en caja general</span><b>${$m(Math.max(0,espGeneral))}</b><small>Es un cálculo. El monto real se confirma al contar.</small>${moduloCigarros?`<small>Caja de cigarrillos: ${$m(Math.max(0,espCigarros))}</small>`:''}
+      ${esDuenio()?`<div class="cash-expected"><span>Plata que debería haber en ${moduloCigarros?'caja general':'la caja'}</span><b>${$m(Math.max(0,espGeneral))}</b><small>Es un cálculo. El monto real se confirma al contar.</small>${moduloCigarros?`<small>Caja de cigarrillos: ${$m(Math.max(0,espCigarros))}</small>`:''}
         ${espGeneral<0?`<div class="cash-review-advice">Los gastos registrados superan la plata calculada en la caja general. Revisá de qué caja salió cada gasto.</div>`:''}
         ${espGeneral>100000?`<div class="cash-review-advice">Si sacás plata, registrala antes del cierre para que el cálculo siga correcto.</div>`:''}</div>`:''}
     </div><button class="btn" type="button" id="irCierreCaja">Cerrar caja</button></div>
     <div class="cash-kpis">
       <div class="kpi"><span>Vendido en el turno</span><b>${$m(t.total)}</b><small>${t.ventas.length} venta${t.ventas.length===1?'':'s'}${t.ventas.length?` · ticket ${$m(t.total/t.ventas.length)}`:''}</small></div>
-      <div class="kpi"><span>Cobrado en efectivo</span><b>${$m(t.genEfectivo+t.cigEfectivo+t.cobEfectivo)}</b><small>ventas y cobros de fiado</small></div>
+      <div class="kpi"><span>Cobrado en efectivo</span><b>${$m(t.porForma.efectivo+t.cobEfectivo)}</b><small>ventas y cobros de fiado</small></div>
       <div class="kpi"><span>Anotado en fiado</span><b>${$m(t.porForma.fiado)}</b><small>plata todavía no cobrada</small></div>
     </div>
     <div class="cash-quick-actions">
@@ -8056,8 +8090,8 @@ function vCaja(m){
   <div class="cash-close-dialog"><div class="cash-close-head"><h2>Cerrar caja</h2><button type="button" class="btn ghost sm" id="cancelarCierreCaja" aria-label="Cerrar ventana de cierre">Salir del cierre</button></div>
     <div class="cash-step-progress" aria-label="Pasos del cierre"><span data-caja-indicador="contar">1 · Contar</span><span data-caja-indicador="revisar">2 · Revisar</span><span data-caja-indicador="finalizar">3 · Finalizar</span></div>
     <div data-caja-paso="contar" class="cash-step-panel">
-      <div class="cash-step-intro"><h2>Contá la plata de la caja</h2><p>Contá la plata que hay físicamente, sin mirar el cálculo del sistema. Si no hay efectivo, escribí 0.</p></div>
-      <div class="card"><div class="card-b"><div class="cash-count-box"><label class="f" for="contadoG">Plata contada en caja general</label><input id="contadoG" class="inp num cash-count-input" inputmode="decimal"><div class="cash-count-help">Si no hay plata, escribí 0.</div></div>
+      <div class="cash-step-intro"><h2>Contá la plata de la caja</h2><p>${moduloCigarros?'Contá cada caja física por separado, sin incluir la misma plata en ambas.':'Caja única: contá todo el efectivo una sola vez, incluidos los cobros de cigarrillos.'} Si no hay efectivo, escribí 0.</p></div>
+      <div class="card"><div class="card-b"><div class="cash-count-box"><label class="f" for="contadoG">${moduloCigarros?'Plata contada en caja general':'Todo el efectivo contado'}</label><input id="contadoG" class="inp num cash-count-input" inputmode="decimal"><div class="cash-count-help">Si no hay plata, escribí 0.</div></div>
       ${moduloCigarros?`<div class="cash-count-box"><label class="f" for="contadoC">Plata contada en caja de cigarrillos</label><input id="contadoC" class="inp num cash-count-input" inputmode="decimal"><div class="cash-count-help">Si no hay plata, escribí 0.</div></div>`:''}
       <div class="cash-step-actions"><button type="button" class="btn" id="pasoCajaSiguiente" disabled>Revisar resultado</button></div><div class="hint" id="ayudaConteoCaja" role="status" style="margin-top:8px"></div></div></div>
     </div>
@@ -8065,7 +8099,7 @@ function vCaja(m){
       <div class="cash-step-intro"><h2>Revisá el resultado</h2><p>Comparamos lo que contaste con las ventas, cobros y egresos registrados. Si hay una diferencia, podés volver a corregir el conteo.</p></div>
       <div>
         <div class="cash-section-heading">
-          <h2>Caja general</h2>
+          <h2>${moduloCigarros?'Caja general':'Caja única'}</h2>
           ${moduloCigarros?`<button type="button" class="cash-toggle" data-caja-cig-toggle>${cajaCigarrosPlegada?'Mostrar':'Ocultar'} caja de cigarrillos ›</button>`:''}
         </div>
       <div class="card">
@@ -8074,10 +8108,10 @@ function vCaja(m){
             <tr><td style="padding-left:0">Plata al abrir${!moduloCigarros&&fondoCigarrosTurno?' (incluye caja de cigarrillos)':''}</td><td class="r num">${$m(fondoGeneralEfectivo)}</td></tr>
             <tr><td style="padding-left:0">Ventas en efectivo</td><td class="r num">+ ${$m(t.genEfectivo)}</td></tr>
             <tr><td style="padding-left:0">Cobros de fiado en efectivo</td><td class="r num">+ ${$m(t.cobEfectivo)}</td></tr>
-            ${t.egrGeneral>0?`<tr><td style="padding-left:0">Egresos</td><td class="r num">– ${$m(t.egrGeneral)}</td></tr>`:''}
+            ${t.egrGeneral+(moduloCigarros?0:t.egrCigarros)>0?`<tr><td style="padding-left:0">Egresos</td><td class="r num">– ${$m(t.egrGeneral+(moduloCigarros?0:t.egrCigarros))}</td></tr>`:''}
             <tr><td style="padding-left:0">Debería haber</td><td class="r num" style="font-size:17px">${$m(espGeneral)}</td></tr>
           </table>
-          <div class="hint">Contaste <b id="resumenContadoG">—</b> en caja general.</div>
+          <div class="hint">Contaste <b id="resumenContadoG">—</b> ${moduloCigarros?'en caja general':'en toda la caja'}.</div>
           <div id="difG" class="cash-difference neutral"><span>Diferencia</span><b>—</b></div>
         </div>
       </div>
@@ -8102,7 +8136,7 @@ function vCaja(m){
       <div class="cash-step-actions"><button type="button" class="btn ghost" data-caja-volver="contar">Corregir conteo</button><button type="button" class="btn" id="pasoCajaFinalizar">Continuar</button></div>
     </div>
     <div data-caja-paso="finalizar" class="cash-step-panel" hidden>
-      <div class="cash-step-intro"><h2>¿Qué hacés con la plata contada?</h2><p>Elegí una opción para que el próximo turno sepa cuánto tiene que encontrar en cada caja.</p></div>
+      <div class="cash-step-intro"><h2>¿Qué hacés con la plata contada?</h2><p>Elegí una opción para que el próximo turno sepa cuánto tiene que encontrar ${moduloCigarros?'en cada caja':'en la caja'}.</p></div>
       <div>
       <div class="card cash-action-card">
         <div class="card-b">
@@ -8116,6 +8150,7 @@ function vCaja(m){
             <input id="quedaCajaGeneral" class="inp num" inputmode="decimal" autocomplete="off">
             ${moduloCigarros?`<label class="f" for="quedaCajaCigarros" style="margin-top:10px">Queda en caja de cigarrillos</label><input id="quedaCajaCigarros" class="inp num" inputmode="decimal" autocomplete="off">`:''}
           </div>
+          ${!moduloCigarros?`<div style="margin-top:14px"><label class="f" for="apartadoCigarrillos">De lo que retirás, ¿cuánto apartás para cigarrillos? (opcional)</label><input id="apartadoCigarrillos" class="inp num" inputmode="decimal" autocomplete="off" placeholder="0"><div class="hint">En este turno se cobraron ${$m(t.cigEfectivo)} en efectivo por cigarrillos. Es solo una referencia: registrá la plata que realmente separás. Este apartado forma parte del retiro, no es otro gasto.</div></div>`:''}
           <div id="resumenDestinoCaja" class="cash-destination-summary" role="status">Elegí qué hacés con la plata contada.</div>
           <label class="f" for="responsableCierreCaja" style="margin-top:14px">Quién cierra la caja</label>
           <input id="responsableCierreCaja" class="inp" maxlength="120" value="${esc(activeSession?.abiertoPor||'')}" autocomplete="name">
@@ -8163,6 +8198,7 @@ function vCaja(m){
 
   const inpG=$('#contadoG'), inpC=$('#contadoC'), cerrarCaja=$('#cerrarCaja');
   const quedaG=$('#quedaCajaGeneral'),quedaC=$('#quedaCajaCigarros');
+  const apartadoInput=$('#apartadoCigarrillos');
   let decisionDestino='';
   const motivoConteoCaja=()=>{
     const faltante=motivoCierrePendiente(inpG?.value,inpC?.value,moduloCigarros);
@@ -8183,7 +8219,8 @@ function vCaja(m){
     const explicacion=$('#motivoDiferenciaCaja');
     const razon=motivo?'' : motivoDiferenciaCaja(num(inpG.value)-espGeneral,moduloCigarros?num(inpC.value)-espCigarros:0,explicacion?.value);
     const destino=f52CalcularDestinoCierre(num(inpG.value),moduloCigarros?num(inpC.value):0,decisionDestino,quedaG?.value,quedaC?.value,moduloCigarros);
-    const pendiente=motivo||razon||(!destino.ok?destino.error:'');
+    const apartado=moduloCigarros?{ok:true,value:0}:f56ValidarApartadoCigarrillos(apartadoInput?.value,destino);
+    const pendiente=motivo||razon||(!destino.ok?destino.error:'')||(!apartado.ok?apartado.error:'');
     cerrarCaja.disabled=!!pendiente;
     cerrarCaja.title=pendiente;
     const ayuda=$('#ayudaCerrarCaja');if(ayuda){ayuda.textContent=pendiente;ayuda.hidden=!pendiente;}
@@ -8191,9 +8228,12 @@ function vCaja(m){
   };
   const pintarDestinoCaja=()=>{
     const destino=f52CalcularDestinoCierre(num(inpG.value),moduloCigarros?num(inpC.value):0,decisionDestino,quedaG?.value,quedaC?.value,moduloCigarros);
+    const apartado=moduloCigarros?{ok:true,value:0}:f56ValidarApartadoCigarrillos(apartadoInput?.value,destino);
     const resumen=$('#resumenDestinoCaja');
     if(resumen)resumen.textContent=destino.ok
-      ?`Caja general: contaste ${$m(num(inpG.value))} · retirás ${$m(destino.retiroGeneral)} · queda ${$m(destino.quedaGeneral)}.${moduloCigarros?` Caja de cigarrillos: contaste ${$m(num(inpC.value))} · retirás ${$m(destino.retiroCigarros)} · queda ${$m(destino.quedaCigarros)}.`:''}`
+      ?moduloCigarros
+        ?`Caja general: contaste ${$m(num(inpG.value))} · retirás ${$m(destino.retiroGeneral)} · queda ${$m(destino.quedaGeneral)}. Caja de cigarrillos: contaste ${$m(num(inpC.value))} · retirás ${$m(destino.retiroCigarros)} · queda ${$m(destino.quedaCigarros)}.`
+        :apartado.ok?`Contaste ${$m(num(inpG.value))} · retirás ${$m(destino.retiroGeneral)}${apartado.value?` (de eso, ${$m(apartado.value)} para cigarrillos)`:''} · queda ${$m(destino.quedaGeneral)} para el próximo turno.`:apartado.error
       :destino.error;
     actualizarEstadoCierre();
   };
@@ -8206,6 +8246,7 @@ function vCaja(m){
   });
   if(quedaG)quedaG.oninput=pintarDestinoCaja;
   if(quedaC)quedaC.oninput=pintarDestinoCaja;
+  if(apartadoInput)apartadoInput.oninput=pintarDestinoCaja;
   const actualizarDiferencia=(inp,esperado,box)=>{
     if(!inp||!box) return;
     inp.oninput=()=>{
@@ -8274,14 +8315,17 @@ function vCaja(m){
     const contadoGeneral=num(inpG.value), contadoCigarros=moduloCigarros&&inpC?num(inpC.value):0;
     const destino=f52CalcularDestinoCierre(contadoGeneral,contadoCigarros,decisionDestino,quedaG?.value,quedaC?.value,moduloCigarros);
     if(!destino.ok){aviso(destino.error,'bad');pintarDestinoCaja();return;}
+    const apartado=moduloCigarros?{ok:true,value:0}:f56ValidarApartadoCigarrillos(apartadoInput?.value,destino);
+    if(!apartado.ok){aviso(apartado.error,'bad');apartadoInput.focus();return;}
     const dG=contadoGeneral-espGeneral, dC=moduloCigarros?contadoCigarros-espCigarros:0;
     const razon=motivoDiferenciaCaja(dG,dC,explicacionCaja.value);
     if(razon){aviso(razon,'bad');mostrarPasoCaja('revisar');explicacionCaja.focus();return;}
     const partes=[];
-    partes.push(Math.abs(dG)<0.01?'La caja general cuadra justo.':`Caja general: <b style="color:${dG<0?'var(--rojo)':'var(--ambar)'}">${dG<0?'Falta':'Sobra'} ${$m(Math.abs(dG))}</b>.`);
+    partes.push(Math.abs(dG)<0.01?`${moduloCigarros?'La caja general':'La caja'} cuadra justo.`:`${moduloCigarros?'Caja general':'Caja única'}: <b style="color:${dG<0?'var(--rojo)':'var(--ambar)'}">${dG<0?'Falta':'Sobra'} ${$m(Math.abs(dG))}</b>.`);
     if(moduloCigarros) partes.push(Math.abs(dC)<0.01?'La caja de cigarrillos cuadra justo.':`Caja de cigarrillos: <b style="color:${dC<0?'var(--rojo)':'var(--ambar)'}">${dC<0?'Falta':'Sobra'} ${$m(Math.abs(dC))}</b>.`);
-    partes.push(`Retirás <b>${$m(destino.retiroGeneral)}</b> de la caja general${moduloCigarros?` y <b>${$m(destino.retiroCigarros)}</b> de cigarrillos`:''}.`);
-    partes.push(`Para el próximo turno quedan <b>${$m(destino.quedaGeneral)}</b> en general${moduloCigarros?` y <b>${$m(destino.quedaCigarros)}</b> en cigarrillos`:''}.`);
+    partes.push(`Retirás <b>${$m(destino.retiroGeneral)}</b> ${moduloCigarros?'de la caja general':'de la caja'}${moduloCigarros?` y <b>${$m(destino.retiroCigarros)}</b> de cigarrillos`:''}.`);
+    if(apartado.value)partes.push(`De ese retiro, apartás <b>${$m(apartado.value)}</b> para cigarrillos. No se descuenta otra vez.`);
+    partes.push(`Para el próximo turno quedan <b>${$m(destino.quedaGeneral)}</b> ${moduloCigarros?'en general':'en caja'}${moduloCigarros?` y <b>${$m(destino.quedaCigarros)}</b> en cigarrillos`:''}.`);
     confirmar('Cerrar la caja',
       `Vendiste <b>${$m(t.total)}</b> en ${t.ventas.length} ${t.ventas.length===1?'venta':'ventas'}${t.egresos.length?` y registraste <b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b> en egresos`:''}.<br><br>${partes.join('<br>')}`,
       async()=>{
@@ -8290,6 +8334,7 @@ function vCaja(m){
           esperadoGeneral:espGeneral,contadoGeneral,diferenciaGeneral:dG,
           esperadoCigarros:espCigarros,contadoCigarros,diferenciaCigarros:dC,
           egrGeneral:t.egrGeneral,egrCigarros:moduloCigarros?t.egrCigarros:0,
+          cajaUnica:!moduloCigarros,apartadoCigarrillos:apartado.value,
           _v4cajaId:f3Estado.cajaId,traspasoConfirmado:true,retiroGeneral:destino.retiroGeneral,retiroCigarros:destino.retiroCigarros,
           quedaGeneral:destino.quedaGeneral,quedaCigarros:destino.quedaCigarros,
           aperturaDiferenciaGeneral:activeSession?.aperturaDiferenciaGeneral??null,
@@ -9172,7 +9217,7 @@ function vConfig(m){
         <button class="toggle-switch" role="switch" aria-label="Activar Vencimientos" aria-checked="${db.config.moduloVencimientos!==false}" data-mod="moduloVencimientos"></button>
       </div>
       <div class="fila-config">
-        <div><b>Caja separada de cigarrillos</b><span class="sub-config">Si está activa, el efectivo de cigarrillos tiene arqueo propio. Al apagarla, los nuevos turnos piden un único fondo total, sin sumar la sugerencia anterior de cigarrillos.</span></div>
+        <div><b>Dos cajas físicas</b><span class="sub-config">Activá esto solo si guardás y contás el efectivo de cigarrillos en otra caja durante todo el turno. Si juntás todo y lo separás al final del día, dejalo apagado: el cierre pedirá un único conteo y seguirá mostrando las ventas de cigarrillos.</span></div>
         <button class="toggle-switch" role="switch" aria-label="Activar caja separada de cigarrillos" aria-checked="${db.config.moduloCigarros!==false}" data-mod="moduloCigarros"></button>
       </div>
       <div class="fila-config">
@@ -9323,12 +9368,12 @@ function vConfig(m){
     if(k==='manejaTurnos'&&!on&&typeof f3Estado!=='undefined'&&f3Estado.session&&f3Estado.session.estado==='abierta'){
       aviso('Cerrá la caja abierta antes de activar turnos. Así cada turno empieza con su propio fondo.','bad');return;
     }
-    if(k==='moduloCigarros'&&typeof f3Estado!=='undefined'&&f3Estado.session&&f3Estado.session.estado==='abierta'){
-      aviso('Cerrá la caja abierta antes de cambiar la caja separada de cigarrillos. Así el arqueo conserva la distribución de efectivo del turno.','bad');return;
+    if(k==='moduloCigarros'&&!on&&typeof f3Estado!=='undefined'&&f3Estado.session&&f3Estado.session.estado==='abierta'){
+      aviso('Cerrá la caja abierta antes de activar dos cajas físicas. Así el siguiente turno empieza con cada fondo separado.','bad');return;
     }
     db.config[k]=!on;
     guardar(); render();
-    const etiqueta={moduloFiado:'Fiado',moduloVencimientos:'Vencimientos',moduloCigarros:'Caja separada de cigarrillos',manejaTurnos:'Caja por turnos'}[k]||'Función';
+    const etiqueta={moduloFiado:'Fiado',moduloVencimientos:'Vencimientos',moduloCigarros:'Dos cajas físicas',manejaTurnos:'Caja por turnos'}[k]||'Función';
     aviso(`${etiqueta} ${!on?'activada':'desactivada'}`,'ok');
   });
   const avisoTurno=$('#cfgAvisoTurno');if(avisoTurno)avisoTurno.onchange=()=>{
@@ -10479,6 +10524,7 @@ function f32bMapCierre(row,extra={},base=db){
     esperadoGeneral:Number(row.esperado_general)||0,contadoGeneral:Number(row.contado_general)||0,diferenciaGeneral:Number(row.diferencia_general)||0,
     esperadoCigarros:Number(row.esperado_cigarros)||0,contadoCigarros:Number(row.contado_cigarros)||0,diferenciaCigarros:Number(row.diferencia_cigarros)||0,
     egrGeneral:Number(row.egresos_general)||0,egrCigarros:Number(row.egresos_cigarros)||0,nota:row.nota||'',costo:Number(row.costo_ventas)||0,
+    cajaUnica:(traspaso.modelo_caja||row.modelo_caja)==='unica',apartadoCigarrillos:Number(traspaso.apartado_cigarrillos??row.apartado_cigarrillos)||0,
     traspasoConfirmado:traspaso.queda_general!=null&&traspaso.retiro_general!=null,
     retiroGeneral:traspaso.retiro_general==null?null:Number(traspaso.retiro_general),retiroCigarros:traspaso.retiro_cigarros==null?null:Number(traspaso.retiro_cigarros),
     quedaGeneral:traspaso.queda_general==null?null:Number(traspaso.queda_general),quedaCigarros:traspaso.queda_cigarros==null?null:Number(traspaso.queda_cigarros),
@@ -10554,7 +10600,7 @@ async function f32bFetchCierreExtras(rows){
     const q=await sb.from('caja_sesiones').select('id,caja_id,device_id,opened_at_device').eq('comercio_id',f3Estado.comercioId).in('id',sesIds);
     if(q.error) throw new Error(`F32B_PULL_SESIONES:${q.error.message||q.error.code||'query'}`);sesiones=q.data||[];
   }
-  const traspasoQuery=await sb.from('cierres_caja').select('id,cerrado_por,responsable_nombre,retiro_general,retiro_cigarros,queda_general,queda_cigarros,rev52_meta_alerta').eq('comercio_id',f3Estado.comercioId).in('id',ids);
+  const traspasoQuery=await sb.from('cierres_caja').select('id,cerrado_por,responsable_nombre,retiro_general,retiro_cigarros,queda_general,queda_cigarros,modelo_caja,apartado_cigarrillos,rev52_meta_alerta').eq('comercio_id',f3Estado.comercioId).in('id',ids);
   if(traspasoQuery.error)throw new Error(`F32B_PULL_TRASPASOS:${traspasoQuery.error.message||traspasoQuery.error.code||'query'}`);
   let miembros=[];
   const actores=[...new Set((traspasoQuery.data||[]).map(x=>x.cerrado_por).filter(Boolean))];
@@ -13137,7 +13183,7 @@ const F6_WIZARD_COPY=Object.freeze({
 function f6CamposPaso(step){
   if(step==='datos_comercio')return `<div class="onboarding-grid"><div class="wide"><label class="f" for="f6Nombre">Nombre del comercio</label><input class="inp" id="f6Nombre" required maxlength="160"></div><div class="wide"><label class="f" for="f6Timezone">Zona horaria</label><select class="inp" id="f6Timezone"><option value="America/Argentina/Buenos_Aires">Argentina · Buenos Aires</option></select></div></div>`;
   if(step==='caja_inicial')return `<div class="onboarding-grid"><div><label class="f" for="f6CajaCodigo">Código</label><input class="inp" id="f6CajaCodigo" value="CAJA-1" pattern="[A-Za-z0-9._-]+" required></div><div><label class="f" for="f6CajaNombre">Nombre</label><input class="inp" id="f6CajaNombre" value="Caja principal" required></div><div class="wide"><label class="f" for="f6Fondo">Fondo de caja</label><input class="inp num" id="f6Fondo" type="number" min="0" step="0.01" value="0" required></div></div>`;
-  if(step==='modulos')return `<div class="onboarding-checks"><label><input type="checkbox" id="f6Fiado" checked> Cuenta corriente / fiado</label><label><input type="checkbox" id="f6Vencimientos" checked> Control de vencimientos</label><label><input type="checkbox" id="f6Cigarros"> Venta de cigarrillos</label></div><label class="f" for="f6ManejaTurnos" style="margin-top:16px">¿Manejás la caja por turnos?</label><select class="inp" id="f6ManejaTurnos"><option value="no">No, vendo sin apertura obligatoria</option><option value="si">Sí, quiero abrir un turno antes de vender</option></select><label class="f" for="f6Whatsapp" style="margin-top:16px">WhatsApp del dueño (opcional)</label><input class="inp" id="f6Whatsapp" maxlength="40" inputmode="tel">`;
+  if(step==='modulos')return `<div class="onboarding-checks"><label><input type="checkbox" id="f6Fiado" checked> Cuenta corriente / fiado</label><label><input type="checkbox" id="f6Vencimientos" checked> Control de vencimientos</label><label><input type="checkbox" id="f6Cigarros"> Caja física separada para cigarrillos</label><div class="hint">Dejalo apagado si todo el efectivo entra en una misma caja y separás cigarrillos al finalizar el día. Las ventas de cigarrillos se informan igual.</div></div><label class="f" for="f6ManejaTurnos" style="margin-top:16px">¿Manejás la caja por turnos?</label><select class="inp" id="f6ManejaTurnos"><option value="no">No, vendo sin apertura obligatoria</option><option value="si">Sí, quiero abrir un turno antes de vender</option></select><label class="f" for="f6Whatsapp" style="margin-top:16px">WhatsApp del dueño (opcional)</label><input class="inp" id="f6Whatsapp" maxlength="40" inputmode="tel">`;
   if(step==='productos')return `<div class="onboarding-grid"><div class="wide"><label class="f" for="f6ProductoNombre">Producto</label><input class="inp" id="f6ProductoNombre" placeholder="Ej.: Coca Cola 500 ml" maxlength="160" required></div><div><label class="f" for="f6ProductoRubro">Rubro</label><input class="inp" id="f6ProductoRubro" maxlength="120"></div><div><label class="f" for="f6ProductoEan">Código de barras</label><input class="inp" id="f6ProductoEan" maxlength="80"></div><div><label class="f" for="f6ProductoCosto">Costo</label><input class="inp num" id="f6ProductoCosto" type="number" min="0" step="0.01" value="0"></div><div><label class="f" for="f6ProductoPrecio">Precio</label><input class="inp num" id="f6ProductoPrecio" type="number" min="0" step="0.01" required></div><div><label class="f" for="f6ProductoStock">Stock inicial</label><input class="inp num" id="f6ProductoStock" type="number" min="0" step="0.001" value="0"></div></div>`;
   if(step==='empleados')return `<p class="onboarding-help">Podrás invitar empleados desde Configuración cuando termines. Omitir este paso no crea usuarios ni permisos.</p>`;
   if(step==='clientes')return `<p class="onboarding-help">Podrás cargar clientes desde la sección Clientes. Omitir este paso no crea registros de ejemplo.</p>`;

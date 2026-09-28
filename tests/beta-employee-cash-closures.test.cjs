@@ -105,6 +105,7 @@ function load() {
     'f32bMapEgreso', 'f32bMapVenta', 'f32bMapCierre', 'f32bMapOperacion', 'f32bDeviceFila', 'f32bAplicarVisible',
     'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'responsableCierre',
     'montoDiferenciaCaja', 'motivoCierrePendiente', 'motivoDiferenciaCaja', 'estadoDiferenciaCaja', 'f52CalcularDestinoCierre',
+    'f56ValidarApartadoCigarrillos', 'f56CajaSeparadaEnSesion', 'f56EsperadoCajaUnica',
     'esEgresoOperativo', 'vCaja',
   ];
   vm.runInContext([
@@ -236,7 +237,7 @@ test('el historial sigue visible con un turno abierto y ordena por fecha de cier
 test('el arqueo reserva el rojo para una diferencia negativa real', () => {
   const { context, main, nodes } = load();
   const turno = context.turnoActual('turno-duenio');
-  context.turnoActual = () => ({ ...turno, genEfectivo: 1000 });
+  context.turnoActual = () => ({ ...turno, genEfectivo: 1000, porForma: { ...turno.porForma, efectivo: 1000 } });
   context.f3Estado.session = { id: 'turno-duenio', estado: 'abierta' };
   context.vCaja(main);
 
