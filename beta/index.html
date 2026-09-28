@@ -759,7 +759,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:57,
+  packageRevision:58,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -3796,7 +3796,19 @@ function pintarFoot(){
     ${sesion?`<div style="margin-top:6px;overflow-wrap:anywhere;word-break:break-word">${esc(sesion.user.email)}<br><button class="btn text sm" id="btnLogout" style="padding:2px 0;color:#AEB7C4">Cerrar sesión</button></div>`:''}`;
   const bl=$('#btnLogout'); if(bl) bl.onclick=cerrarSesion;
   const br=$('#btnBloqueoVisual'); if(br) br.onclick=alternarBloqueoVisual;
-  const bs=$('#btnSync'); if(bs) bs.onclick=()=>subirALaNube().then(ok=>aviso(ok?'Todo sincronizado':'Todavía no se pudo — se reintenta solo',ok?'ok':'bad'));
+  const bs=$('#btnSync'); if(bs) bs.onclick=async()=>{
+    bs.disabled=true;let r=null,errorReintento=null;
+    try{
+      if(typeof f33ReintentarTodo==='function'&&f3Activo()){
+        try{r=await f33ReintentarTodo();}catch(err){errorReintento=err;console.error(err);}
+      }
+      const ok=await subirALaNube();
+      if(errorReintento)aviso('No pudimos reintentar todas las operaciones. Revisá el panel de sincronización.','bad');
+      else if(!ok)aviso('Todavía no se pudo subir la copia a la nube. Revisá la conexión y la sesión.','bad');
+      else aviso(r?f33MensajeReintentoTodo(r):'Todo sincronizado',r&&(r.problemas||r.pendientes)?'bad':'ok');
+    }catch(err){console.error(err);aviso('No pudimos sincronizar. Revisá la conexión y volvé a intentar.','bad');}
+    finally{bs.disabled=false;}
+  };
 }
 async function alternarBloqueoVisual(){
   if(!f3RolServidorAdmin()) return;
@@ -11393,8 +11405,35 @@ async function f33ReactivarCierresListos(streamKey=null){
   }
   return {reactivados:n};
 }
+// REV58: reencola las operaciones reintentables del comercio actual en orden causal.
+// Los cierres con descartes previos conservan la resolución por excepción.
+async function f33ReintentarTodo({procesar=true}={}){
+  const comercio=String(f3Estado&&f3Estado.comercioId||'');
+  if(!comercio)throw new Error('F33_COMERCIO_NO_RESUELTO');
+  const ev=f33EstadoLicencia(),rows=(await f33LeerOutboxRuntime()).filter(op=>String(op.comercioId||'')===comercio);
+  const elegibles=rows.filter(op=>f33PuedeReintentar(op,ev).ok&&!f33CierreRequiereExcepcion(op,rows))
+    .sort((a,b)=>f33Num(a.localSeq)-f33Num(b.localSeq)||f33Num(a.opOrder)-f33Num(b.opOrder));
+  for(const op of elegibles)await f33GuardarOperacion(f33PrepararReintento(op,ev));
+  if(procesar&&typeof f3ProcesarOutbox==='function')await f3ProcesarOutbox({allowHidden:true});
+  const quedan=f33ContarOutbox((await f33LeerOutboxRuntime()).filter(op=>String(op.comercioId||'')===comercio));
+  if(typeof f33UIActualizar==='function')await f33UIActualizar();
+  return {reintentadas:elegibles.length,pendientes:quedan.pendientes,problemas:quedan.problemas+quedan.licencia};
+}
+function f33MensajeReintentoTodo(r){
+  if(!r)return 'No se pudo reintentar.';
+  if(!r.reintentadas&&!r.pendientes&&!r.problemas)return 'Todo sincronizado.';
+  const base=r.reintentadas?`Reintentamos ${r.reintentadas} ${r.reintentadas===1?'operación':'operaciones'}.`:'No había operaciones trabadas.';
+  if(r.problemas)return `${base} Todavía ${r.problemas===1?'queda 1 con problemas':`quedan ${r.problemas} con problemas`}: si dice «JWT» o «sesión», volvé a ingresar y tocá otra vez.`;
+  if(r.pendientes)return `${base} ${r.pendientes===1?'Queda 1 pendiente de envío':`Quedan ${r.pendientes} pendientes de envío`}; se enviarán cuando haya conexión y una sesión válida.`;
+  return `${base} Todo sincronizado.`;
+}
+function f33CierreRequiereExcepcion(op,rows){
+  return op?.operationType==='cerrar_sesion_caja_v4'&&
+    (rows||[]).some(prev=>prev.estado===F33_DISCARDED_STATE&&f33MismaCorrienteAnterior(prev,op));
+}
 async function f33ReintentarOperacion(operationId){
   const rows=await f33LeerOutboxRuntime(),op=rows.find(x=>x.operationId===operationId);if(!op)throw new Error('F33_OP_FALTANTE');
+  if(f33CierreRequiereExcepcion(op,rows))throw new Error('F33_CIERRE_REQUIERE_EXCEPCION');
   const nuevo=f33PrepararReintento(op,f33EstadoLicencia());await f33GuardarOperacion(nuevo);
   // No reactivar cierres aquí: pendiente_v4 sólo significa "reencolada", no resuelta.
   // La reactivación queda exclusivamente atada al ACK confirmado en el hook de
@@ -11642,7 +11681,8 @@ function f33GuardiaEvento(e){
 }
 async function f33UIRenderPanel(){
   f33UIAsegurarDom();const box=document.getElementById('f33-content');if(!box)return;
-  let rows=[];try{rows=await f33LeerOutboxRuntime();}catch(e){box.innerHTML=`<div class="f33-err">${f33Esc(e.message||e)}</div>`;return;}
+  const comercio=String(f3Estado&&f3Estado.comercioId||'');
+  let rows=[];try{rows=(await f33LeerOutboxRuntime()).filter(op=>comercio&&String(op.comercioId||'')===comercio);}catch(e){box.innerHTML=`<div class="f33-err">${f33Esc(e.message||e)}</div>`;return;}
   const ev=f33EstadoLicencia(),c=f33ContarOutbox(rows),vis=rows.filter(f33EsVisible).sort((a,b)=>f33Num(a.localSeq)-f33Num(b.localSeq)||f33Num(a.opOrder)-f33Num(b.opOrder));
   box.innerHTML=`
     <div class="f33-summary">
@@ -11650,16 +11690,18 @@ async function f33UIRenderPanel(){
       <div class="f33-kpi"><span>Pendientes</span><b>${c.pendientes}</b></div>
       <div class="f33-kpi"><span>Problemas</span><b>${c.problemas+c.licencia}</b></div>
     </div>
-    <div class="f33-actions"><button class="f33-btn primary" id="f33-refresh">Revalidar licencia</button><button class="f33-btn" id="f33-process">Reintentar sync</button></div>
+    <div class="f33-actions"><button class="f33-btn primary" id="f33-refresh">Revalidar licencia</button><button class="f33-btn" id="f33-process" title="Vuelve a enviar todas las operaciones pendientes y trabadas">Reintentar todo</button></div>
     <div style="margin-top:14px">${vis.length?vis.map(op=>f33UIOpHtml(op,rows)).join(''):'<div class="f33-empty">No hay operaciones pendientes ni excepciones.</div>'}</div>`;
   document.getElementById('f33-refresh').onclick=async()=>{await f33RefrescarLicencia({silent:false});await f33UIRenderPanel();};
-  document.getElementById('f33-process').onclick=async()=>{if(typeof f3ProcesarOutbox==='function')await f3ProcesarOutbox();await f33UIRenderPanel();};
+  document.getElementById('f33-process').onclick=async e=>{const b=e.currentTarget;b.disabled=true;b.textContent='Reintentando…';
+    let r=null;try{r=await f33ReintentarTodo();}catch(err){console.error(err);}
+    if(typeof aviso==='function')aviso(f33MensajeReintentoTodo(r),r&&!r.problemas&&!r.pendientes?'ok':'bad');await f33UIRenderPanel();};
   box.querySelectorAll('[data-f33-retry]').forEach(b=>b.onclick=async()=>{try{await f33ReintentarOperacion(b.dataset.f33Retry);}catch(e){alert(e.message||e);}await f33UIRenderPanel();});
   box.querySelectorAll('[data-f33-discard]').forEach(b=>b.onclick=async()=>{const motivo=prompt('Motivo obligatorio para descartar esta operación:','');if(!motivo)return;try{await f33DescartarOperacion(b.dataset.f33Discard,motivo);}catch(e){alert(e.message||e);}await f33UIRenderPanel();});
   box.querySelectorAll('[data-f33-close-ex]').forEach(b=>b.onclick=async()=>{const motivo=prompt('Nota general del cierre con excepción (opcional):','')||'';try{await f33CerrarConExcepcion(b.dataset.f33CloseEx,motivo);}catch(e){alert(e.message||e);}await f33UIRenderPanel();});
 }
 function f33UIOpHtml(op,rows){
-  const retry=f33PuedeReintentar(op,f33EstadoLicencia()).ok;
+  const retry=f33PuedeReintentar(op,f33EstadoLicencia()).ok&&!f33CierreRequiereExcepcion(op,rows);
   const discard=f33PuedeDescartar(op,f5RolActual()).ok;
   let closeEx=false;if(op.operationType==='cerrar_sesion_caja_v4'&&['esperando_excepcion_v4','bloqueada_v4','dead_letter_v4'].includes(op.estado)){
     try{f33ConstruirCierreExcepcion(op,rows,{rol:f5RolActual()});closeEx=true;}catch(_e){}
@@ -11678,11 +11720,13 @@ function f33UIOpHtml(op,rows){
 async function f33UIActualizar(){
   if(typeof document==='undefined')return;f33UIAsegurarDom();
   const ev=f33EstadoLicencia(),status=document.getElementById('f33-status'),banner=document.getElementById('f33-banner');
-  let counts={pendientes:0,problemas:0,licencia:0};try{counts=f33ContarOutbox(await f33LeerOutboxRuntime());}catch(_e){}
+  const comercio=String(f3Estado&&f3Estado.comercioId||'');
+  let counts={pendientes:0,problemas:0,licencia:0},lecturaFallida=false;
+  try{counts=f33ContarOutbox((await f33LeerOutboxRuntime()).filter(op=>comercio&&String(op.comercioId||'')===comercio));}catch(_e){lecturaFallida=true;}
   const guard=assertWritable('ui_mutation');
-  status.dataset.bad=guard.ok?'0':'1';status.dataset.warn=guard.ok&&(!ev.online||counts.problemas+counts.licencia>0)?'1':'0';
-  status.hidden=guard.ok&&ev.estado==='activa'&&ev.online&&!counts.pendientes&&!counts.problemas&&!counts.licencia;
-  document.getElementById('f33-status-text').textContent=`${f33EstadoTexto(ev)}${counts.problemas+counts.licencia?` · ${counts.problemas+counts.licencia} excepción(es)`:''}`;
+  status.dataset.bad=guard.ok?'0':'1';status.dataset.warn=guard.ok&&(!ev.online||lecturaFallida||counts.problemas+counts.licencia>0)?'1':'0';
+  status.hidden=guard.ok&&ev.estado==='activa'&&ev.online&&!lecturaFallida&&!counts.pendientes&&!counts.problemas&&!counts.licencia;
+  document.getElementById('f33-status-text').textContent=`${f33EstadoTexto(ev)}${lecturaFallida?' · pendientes sin verificar':counts.problemas+counts.licencia?` · ${counts.problemas+counts.licencia} excepción(es)`:''}`;
   if(guard.ok){banner.style.display='none';document.documentElement.removeAttribute('data-f33-readonly');}
   else{banner.style.display='block';banner.textContent=f5MensajeCausas(guard.causas);document.documentElement.setAttribute('data-f33-readonly','1');}
   if(f33PanelAbierto)await f33UIRenderPanel();
