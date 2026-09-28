@@ -13,4 +13,4 @@
 
 - **En código:** no cambiaron los cálculos de caja ni los datos de comercios.
 - **Localmente:** 250 pruebas, integridad y sintaxis correctas. Navegador con datos sintéticos: tres modos de caja, lista corta y larga, expansión/contracción, búsqueda y acciones de corrección, texto de cigarrillos y vista móvil sin desborde.
-- **Entorno público:** pendiente de comprobar tras la publicación.
+- **Entorno público:** la beta sirvió `packageRevision:60` y el service worker `micomercio-beta-6.0.0-f6-rc2-rev60` en lecturas sin caché. El HTML publicado contiene el nuevo control de movimientos y ya no contiene «Usalo como referencia». El recorrido autenticado de Caja no se repitió con datos reales en público; los tres modos se comprobaron localmente con datos sintéticos.
