@@ -159,6 +159,7 @@ test('crear empleado despliega el formulario y cancelarlo conserva la lista visi
     $, $$: () => [],
     descargarBackup: () => {},
     f5PuedeGestionarEmpleados: () => false,
+    f57OpcionesModoCajaHTML: () => '',
   };
   vm.createContext(context);
   vm.runInContext(`${between('function vConfig(m){', '\n/* ═══════════════════════════════════════════════════════\n   COMERCIOS DE EJEMPLO')}\nthis.show=vConfig;`, context);
@@ -192,6 +193,7 @@ test('tras guardar un empleado el próximo formulario vuelve a los permisos mín
     TXT_PERMISO: {}, DESC_PERMISO: {}, moduloActivo: () => true, esc: value => value,
     $, $$: selector => selector === '[data-f5-new-perm]' ? permissions : [],
     descargarBackup: () => {}, f5PuedeGestionarEmpleados: () => false,
+    f57OpcionesModoCajaHTML: () => '',
     f5PayloadCrearEmpleado: (values, perms) => ({ ...values, perms }),
     f5MembersRequest: async () => ({}), f5CargarGestionEmpleados: async () => {}, aviso: () => {},
   };

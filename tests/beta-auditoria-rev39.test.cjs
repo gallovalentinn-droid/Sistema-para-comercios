@@ -46,22 +46,30 @@ test('abrir la pantalla no reinicia el plazo de un arranque ya iniciado', async 
   assert.equal(resets, 0);
 });
 
-test('no se puede cambiar la separación de cigarrillos con una caja abierta', () => {
-  const button = { dataset: { mod: 'moduloCigarros' } };
+test('con una caja abierta se puede elegir separación al cierre, pero no activar dos cajas físicas', () => {
+  const button = { value: 'dos_cajas', checked: true };
   const notices = []; let saves = 0;
-  const ctx = run(block("  $$('[data-mod]').forEach", '  const avisoTurno='), {
-    $$: () => [button], db: { config: { moduloCigarros: false } },
+  const ctx = run(block("  $$('input[name=\"modoCaja\"]',m).forEach", "  $$('[data-mod]').forEach"), {
+    $$: () => [button], db: { config: { moduloCigarros: false, separaCigarrillosAlCierre: false } },
+    m: {},
     f3Estado: { session: { estado: 'abierta' } },
     aviso: message => notices.push(message), guardar: () => { saves++; }, render: () => {},
+    f57ModoCaja: config => config.moduloCigarros ? 'dos_cajas' : config.separaCigarrillosAlCierre ? 'unica_separa_cigarrillos' : 'unica',
   });
-  button.onclick();
+  button.onchange();
   assert.equal(ctx.db.config.moduloCigarros, false);
   assert.equal(saves, 0);
-  assert.match(notices[0], /Cerrá la caja/i);
-  ctx.f3Estado.session.estado = 'cerrada';
-  button.onclick();
-  assert.equal(ctx.db.config.moduloCigarros, true);
+  assert.match(notices[0], /Cerrá el turno/i);
+  button.value = 'unica_separa_cigarrillos';
+  button.onchange();
+  assert.equal(ctx.db.config.separaCigarrillosAlCierre, true);
   assert.equal(saves, 1);
+  ctx.f3Estado.session.estado = 'cerrada';
+  button.value = 'dos_cajas';
+  button.onchange();
+  assert.equal(ctx.db.config.moduloCigarros, true);
+  assert.equal(ctx.db.config.separaCigarrillosAlCierre, false);
+  assert.equal(saves, 2);
 });
 
 test('la importación rechaza un producto nuevo sin precio y conserva el precio existente si la celda está vacía', () => {

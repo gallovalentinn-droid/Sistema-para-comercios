@@ -309,6 +309,10 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .cash-destination-options button small{display:block;margin-top:6px;color:var(--muted);font-size:12px;font-weight:400}
 .cash-destination-options button.selected{border:2px solid var(--primary);background:var(--primary-l);color:var(--primary-d)}
 .cash-destination-summary{margin-top:16px;padding:14px 16px;border-radius:12px;background:var(--verde-l);color:var(--verde-d);line-height:1.6}
+.cash-cigarette-separation{margin-top:18px;padding:18px;border:1px solid #D6C193;border-left:5px solid var(--ambar);border-radius:12px;background:#FFFBF2}
+.cash-cigarette-separation h3{margin:0 0 7px;font-size:17px}
+.cash-cigarette-separation p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.5}
+.cash-cigarette-separation .hint{margin-top:8px}
 .cash-detail{margin-bottom:16px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper)}
 .cash-detail summary{cursor:pointer;padding:16px 18px;font-weight:700}
 .cash-detail>div{padding:0 18px 18px}
@@ -554,6 +558,14 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .fila-config:last-child{border-bottom:0}
 .fila-config b{font-size:15px}
 .sub-config{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;max-width:42ch;line-height:1.4}
+.cash-mode-options{display:grid;gap:10px;margin:12px 0 16px;border:0;padding:0;min-width:0}
+.cash-mode-options legend{font-size:15px;font-weight:700;margin-bottom:10px}
+.cash-mode-option{display:flex;align-items:flex-start;gap:12px;padding:15px 16px;border:1px solid var(--line);border-radius:12px;cursor:pointer;background:var(--paper);line-height:1.35}
+.cash-mode-option.selected{border:2px solid var(--primary);background:var(--primary-l)}
+.cash-mode-option input{width:18px;height:18px;flex:none;margin:2px 0 0;accent-color:var(--primary)}
+.cash-mode-option b{display:block;font-size:14px}
+.cash-mode-option small{display:block;color:var(--muted);font-size:12.5px;margin-top:4px;line-height:1.45}
+.cash-mode-option:focus-within{outline:2px solid var(--primary);outline-offset:2px}
 
 /* ---------- acceso ---------- */
 .franja-off{position:fixed;top:0;left:0;right:0;z-index:90;background:var(--ambar);color:#fff;
@@ -747,10 +759,10 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:56,
+  packageRevision:57,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
-  configContract:'10-canonical+6-legacy-only',
+  configContract:'11-canonical+6-legacy-only',
   licenseContract:'f6-license-v1'
 });
 if(typeof window!=='undefined') window.MiComercioBuild=MICOMERCIO_BUILD;
@@ -884,7 +896,7 @@ const VACIA=()=>({
   _tombstones:{}, _configSyncAt:'', _configSync:{},
   config:{nombre:'Mi Comercio', nroVenta:1, fondoCaja:0, fondoCajaCigarros:0, ultBackup:null, whatsappDueno:'', pinHash:'', pinDuenio:'', motivosEgresoExtra:[], diasAvisoVence:7,
     diasPlazoFiado:30, recargoFiadoPct:10, manejaTurnos:false, avisoTurnoHoras:8,
-    moduloFiado:true, moduloVencimientos:true, moduloCigarros:false, permisosEmpleado:{}}
+    moduloFiado:true, moduloVencimientos:true, moduloCigarros:false, separaCigarrillosAlCierre:false, permisosEmpleado:{}}
 });
 const F423_VERSION='4.2.3-rc1'; // caja de cigarrillos opcional + importación fail-closed >10
 const SYNC_COLECCIONES=['productos','clientes','ventas','movs','pagos','cierres','combos','egresos','ajustesFiado','promociones'];
@@ -1777,7 +1789,7 @@ function f3OperacionCierre(cierre){
     esperado_general:Number(cierre.esperadoGeneral)||0,contado_general:Number(cierre.contadoGeneral)||0,diferencia_general:Number(cierre.diferenciaGeneral)||0,
     esperado_cigarros:Number(cierre.esperadoCigarros)||0,contado_cigarros:Number(cierre.contadoCigarros)||0,diferencia_cigarros:Number(cierre.diferenciaCigarros)||0,
     egresos_general:Number(cierre.egrGeneral)||0,egresos_cigarros:Number(cierre.egrCigarros)||0,costo_ventas:Number(cierre.costo)||0,nota:cierre.nota||'',
-    modelo_caja:cierre.cajaUnica===true?'unica':'separada',apartado_cigarrillos:Number(cierre.apartadoCigarrillos)||0,
+    modelo_caja:cierre.cajaUnica===true?(cierre.separaCigarrosAlCierre===true?'unica_separa_cigarrillos':'unica'):'separada',apartado_cigarrillos:Number(cierre.apartadoCigarrillos)||0,
     responsable_nombre:String(cierre.responsableNombre||'').trim().slice(0,120),
     ...(cierre.traspasoConfirmado?{
       retiro_general:Number(cierre.retiroGeneral)||0,retiro_cigarros:Number(cierre.retiroCigarros)||0,
@@ -1851,6 +1863,7 @@ const F5_CONFIG_MAPA=Object.freeze({
   moduloFiado:{col:'modulo_fiado',desdeV4:v=>v!==false,haciaV4:v=>v!==false},
   moduloVencimientos:{col:'modulo_vencimientos',desdeV4:v=>v!==false,haciaV4:v=>v!==false},
   moduloCigarros:{col:'modulo_cigarros',desdeV4:v=>v!==false,haciaV4:v=>v!==false},
+  separaCigarrillosAlCierre:{col:'separa_cigarrillos_al_cierre',desdeV4:v=>v===true,haciaV4:v=>v===true},
   manejaTurnos:{col:'maneja_turnos',desdeV4:v=>v===true,haciaV4:v=>v===true},
   avisoTurnoHoras:{col:'aviso_turno_horas',desdeV4:v=>Number(v)||8,haciaV4:v=>Number(v)||8},
   motivosEgresoExtra:{col:'motivos_egreso_extra',desdeV4:v=>Array.isArray(v)?v:[],haciaV4:v=>v||[]}
@@ -1873,7 +1886,7 @@ const F5_CONFIG_OPERATIVA_KEYS=Object.freeze([
   'recargo_fiado_pct','motivos_egreso_extra'
 ]);
 const F5_CONFIG_PRIVILEGIADA_KEYS=Object.freeze([
-  'whatsapp_dueno','modulo_fiado','modulo_vencimientos','modulo_cigarros'
+  'whatsapp_dueno','modulo_fiado','modulo_vencimientos','modulo_cigarros','separa_cigarrillos_al_cierre'
 ]);
 function f3PayloadConfig(cfg){
   const out={};
@@ -7827,7 +7840,8 @@ function textoResumenCierre(c){
     l.push(`Contado: ${$m(c.contadoCigarros)}`);
     l.push(`Diferencia: ${c.diferenciaCigarros>=0?'+':''}${$m(c.diferenciaCigarros)}`);
   }
-  if(c.apartadoCigarrillos>0.009)l.push(`Apartado para cigarrillos del retiro: ${$m(c.apartadoCigarrillos)}`);
+  if(c.separaCigarrosAlCierre)l.push(`Efectivo separado para cigarrillos (incluido en el retiro): ${$m(c.apartadoCigarrillos)}`);
+  else if(c.apartadoCigarrillos>0.009)l.push(`Apartado para cigarrillos del retiro: ${$m(c.apartadoCigarrillos)}`);
   if(c.nota) { l.push(''); l.push(`Nota: ${c.nota}`); }
   return l.join('\n');
 }
@@ -7920,13 +7934,20 @@ function f52CalcularDestinoCierre(contadoGeneral,contadoCigarros,decision,quedaG
   return {ok:true,quedaGeneral:general.value,quedaCigarros:cigarros.value,
     retiroGeneral:redondear(contadoG-general.value),retiroCigarros:redondear(contadoC-cigarros.value)};
 }
-function f56ValidarApartadoCigarrillos(texto,destino){
-  if(!String(texto??'').trim())return {ok:true,value:0};
+function f56ValidarApartadoCigarrillos(texto,destino,requerido=false){
+  if(!String(texto??'').trim())return requerido
+    ?{ok:false,error:'Indicá cuánto efectivo separás para cigarrillos. Si no separás nada, escribí 0.'}
+    :{ok:true,value:0};
   const dato=numImportacion(texto);
   if(!dato.ok||dato.blank||!Number.isFinite(dato.value)||dato.value<0||
     !destino||destino.ok!==true||dato.value>Number(destino.retiroGeneral)+0.009)
     return {ok:false,error:'El apartado de cigarrillos debe estar entre $0 y el efectivo que retirás de la caja.'};
   return {ok:true,value:Math.round(dato.value*100)/100};
+}
+function f57DesgloseRetiroCigarrillos(destino,apartado){
+  const centavos=n=>Math.round((Number(n)||0)*100);
+  const retiro=centavos(destino?.retiroGeneral),cigarrillos=centavos(apartado),queda=centavos(destino?.quedaGeneral);
+  return {apartadoCigarrillos:cigarrillos/100,otrosRetiros:(retiro-cigarrillos)/100,quedaGeneral:queda/100};
 }
 function f56CajaSeparadaEnSesion(session,config){
   // Si se corrigió una configuración de dos cajas a una sola, el arqueo del
@@ -7935,6 +7956,22 @@ function f56CajaSeparadaEnSesion(session,config){
   if(config?.moduloCigarros===false)return false;
   return session&&typeof session.cajaSeparadaCigarros==='boolean'
     ?session.cajaSeparadaCigarros:config?.moduloCigarros!==false;
+}
+function f57ModoCaja(config){
+  if(config?.moduloCigarros!==false)return 'dos_cajas';
+  return config?.separaCigarrillosAlCierre===true?'unica_separa_cigarrillos':'unica';
+}
+function f57OpcionesModoCajaHTML(config){
+  const actual=f57ModoCaja(config);
+  const opciones=[
+    ['unica','Una sola caja','Todo el efectivo se cuenta junto. Al cerrar elegís cuánto queda y cuánto retirás.'],
+    ['unica_separa_cigarrillos','Una caja · separo cigarrillos al cerrar','Contás toda la plata una vez. Después indicás cuánto del retiro apartás para cigarrillos.'],
+    ['dos_cajas','Dos cajas físicas','Durante todo el turno guardás y contás el efectivo de cigarrillos en otra caja.']
+  ];
+  return opciones.map(([id,titulo,detalle])=>`<label class="cash-mode-option ${actual===id?'selected':''}">
+    <input type="radio" name="modoCaja" value="${id}" ${actual===id?'checked':''}>
+    <span><b>${titulo}</b><small>${detalle}</small></span>
+  </label>`).join('');
 }
 function f56EsperadoCajaUnica({fondoGeneral=0,fondoCigarros=0,efectivoVentas=0,cobrosFiado=0,egresosGeneral=0,egresosCigarros=0,contado=0}={}){
   const centavos=n=>Math.round((Number(n)||0)*100);
@@ -7991,11 +8028,11 @@ function htmlCierresAnteriores(){
     <div class="card-h"><h2>Cierres anteriores</h2>${responsables.length>1?`<select class="inp" id="cierreResponsable" aria-label="Filtrar cierres por persona" style="max-width:240px"><option value="todos">Todas las personas</option>${responsables.map(nombre=>`<option ${cierreResponsableFiltro===nombre?'selected':''}>${esc(nombre)}</option>`).join('')}</select>`:''}</div>
     ${cierres.length?`<div class="cash-history-list" role="list" aria-label="Cierres anteriores">
       ${cierres.map(c=>{const general=estadoDiferenciaCaja(c.diferenciaGeneral),cigarrillos=estadoDiferenciaCaja(c.diferenciaCigarros);const tieneCigarrillos=Math.abs(Number(c.contadoCigarros)||0)>0.009||Math.abs(Number(c.esperadoCigarros)||0)>0.009||Math.abs(Number(c.diferenciaCigarros)||0)>0.009;return `<div class="cash-history-item" role="listitem">
-        <div class="cash-history-main"><div><b>${fFH(c.hasta)}</b><div class="hint">${esc(responsableCierre(c))} · ${c.cantVentas||0} ${c.cantVentas===1?'venta':'ventas'}</div></div><div class="r"><b class="num">Vendido: ${$m(c.total)}</b><div class="cash-history-statuses"><span class="pill ${general.clase}">${c.cajaUnica?'Caja':'General'}: ${general.texto}</span>${tieneCigarrillos?`<span class="pill ${cigarrillos.clase}">Cigarrillos: ${cigarrillos.texto}</span>`:''}</div></div></div>
+        <div class="cash-history-main"><div><b>${fFH(c.hasta)}</b><div class="hint">${esc(responsableCierre(c))} · ${c.cantVentas||0} ${c.cantVentas===1?'venta':'ventas'}</div></div><div class="r"><b class="num">Vendido: ${$m(c.total)}</b><div class="cash-history-statuses"><span class="pill ${general.clase}">${c.cajaUnica?'Caja única':'General'}: ${general.texto}</span>${tieneCigarrillos?`<span class="pill ${cigarrillos.clase}">Cigarrillos: ${cigarrillos.texto}</span>`:''}${c.separaCigarrosAlCierre?`<span class="pill warn">Apartado para cigarrillos: ${$m(c.apartadoCigarrillos)}</span>`:''}</div></div></div>
         ${!c.cajaUnica&&tieneCigarrillos&&c._v4estado==='requiere_conciliacion'?`<div class="cash-review-advice" style="margin:8px 0">Cierre con dos cajas en revisión. Si contaste todo el efectivo en general y también anotaste cigarrillos, revisá el posible doble conteo.</div>`:''}
         ${c._v4metaAlerta||c.aperturaRequiereRevision?`<div class="cash-review-advice" style="margin:8px 0">Este cierre tiene datos de apertura o traspaso pendientes de conciliación. Contá la plata al abrir el próximo turno.</div>`:''}
         ${(Math.abs(Number(c.aperturaDiferenciaGeneral)||0)>0.009||Math.abs(Number(c.aperturaDiferenciaCigarros)||0)>0.009)?`<div class="cash-review-advice" style="margin:8px 0">Al abrir este turno: general ${estadoDiferenciaCaja(c.aperturaDiferenciaGeneral).texto}${Math.abs(Number(c.aperturaDiferenciaCigarros)||0)>0.009?` · cigarrillos ${estadoDiferenciaCaja(c.aperturaDiferenciaCigarros).texto}`:''}${c.aperturaMotivo?` · ${esc(c.aperturaMotivo)}`:''}</div>`:''}
-        <details><summary>Ver detalle</summary><div class="cash-history-detail"><div>${c.cajaUnica?'Caja':'General'}: contado <b>${$m(c.contadoGeneral)}</b> · ${general.texto}</div>${tieneCigarrillos?`<div>Cigarrillos: contado <b>${$m(c.contadoCigarros)}</b> · ${cigarrillos.texto}</div>`:''}${c.traspasoConfirmado?`<div>Retirado: <b>${$m((Number(c.retiroGeneral)||0)+(Number(c.retiroCigarros)||0))}</b> · Quedó: <b>${$m((Number(c.quedaGeneral)||0)+(Number(c.quedaCigarros)||0))}</b></div>`:''}${c.apartadoCigarrillos>0.009?`<div>Apartado para cigarrillos: <b>${$m(c.apartadoCigarrillos)}</b> (incluido en lo retirado)</div>`:''}${c.nota?`<div>Nota: ${esc(c.nota)}</div>`:''}<div><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></div></div></details>
+        <details><summary>Ver detalle</summary><div class="cash-history-detail"><div>${c.cajaUnica?'Caja única':'General'}: contado <b>${$m(c.contadoGeneral)}</b> · ${general.texto}</div>${tieneCigarrillos?`<div>Cigarrillos: contado <b>${$m(c.contadoCigarros)}</b> · ${cigarrillos.texto}</div>`:''}${c.traspasoConfirmado?`<div>Retirado: <b>${$m((Number(c.retiroGeneral)||0)+(Number(c.retiroCigarros)||0))}</b> · Quedó: <b>${$m((Number(c.quedaGeneral)||0)+(Number(c.quedaCigarros)||0))}</b></div>`:''}${c.separaCigarrosAlCierre||c.apartadoCigarrillos>0.009?`<div>Apartado para cigarrillos: <b>${$m(c.apartadoCigarrillos)}</b> (incluido en lo retirado)</div>`:''}${c.nota?`<div>Nota: ${esc(c.nota)}</div>`:''}<div><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></div></div></details>
       </div>`;}).join('')}</div>`
     :`<div class="empty"><b>Sin cierres todavía</b>Los cierres de este comercio quedan registrados acá, incluidos los realizados por empleados cuando se sincronizan.</div>`}
   </div>`;
@@ -8019,6 +8056,7 @@ function vCaja(m){
     return;
   }
   const moduloCigarros=f56CajaSeparadaEnSesion(activeSession,db.config);
+  const separaCigarrillosAlCierre=!moduloCigarros&&f57ModoCaja(db.config)==='unica_separa_cigarrillos';
   const fondoGeneralTurno=activeSession?Number(activeSession.fondoGeneral)||0:Number(db.config.fondoCaja||0);
   const fondoCigarrosTurno=activeSession?Number(activeSession.fondoCigarros)||0:Number(db.config.fondoCajaCigarros||0);
   const fondoGeneralEfectivo=fondoGeneralTurno+(moduloCigarros?0:fondoCigarrosTurno);
@@ -8042,6 +8080,7 @@ function vCaja(m){
 
   <section data-caja-panel="turno" ${cajaVista==='turno'?'':'hidden'}>
     <div class="cash-hero"><div><strong>Caja abierta desde ${fFH(t.desde)}</strong><p>${activeSession&&activeSession.abiertoPor?`${esc(activeSession.abiertoPor)} · `:''}${t.ventas.length} venta${t.ventas.length===1?'':'s'} registrada${t.ventas.length===1?'':'s'}. Al terminar el turno, te guiamos para contar la plata.</p>
+      ${separaCigarrillosAlCierre?'<span class="pill warn">Una caja · cigarrillos se separan al cerrar</span>':''}
       ${esDuenio()?`<div class="cash-expected"><span>Plata que debería haber en ${moduloCigarros?'caja general':'la caja'}</span><b>${$m(Math.max(0,espGeneral))}</b><small>Es un cálculo. El monto real se confirma al contar.</small>${moduloCigarros?`<small>Caja de cigarrillos: ${$m(Math.max(0,espCigarros))}</small>`:''}
         ${espGeneral<0?`<div class="cash-review-advice">Los gastos registrados superan la plata calculada en la caja general. Revisá de qué caja salió cada gasto.</div>`:''}
         ${espGeneral>100000?`<div class="cash-review-advice">Si sacás plata, registrala antes del cierre para que el cálculo siga correcto.</div>`:''}</div>`:''}
@@ -8136,7 +8175,7 @@ function vCaja(m){
       <div class="cash-step-actions"><button type="button" class="btn ghost" data-caja-volver="contar">Corregir conteo</button><button type="button" class="btn" id="pasoCajaFinalizar">Continuar</button></div>
     </div>
     <div data-caja-paso="finalizar" class="cash-step-panel" hidden>
-      <div class="cash-step-intro"><h2>¿Qué hacés con la plata contada?</h2><p>Elegí una opción para que el próximo turno sepa cuánto tiene que encontrar ${moduloCigarros?'en cada caja':'en la caja'}.</p></div>
+      <div class="cash-step-intro"><h2>${separaCigarrillosAlCierre?'¿Qué queda en caja y cuánto separás para cigarrillos?':'¿Qué hacés con la plata contada?'}</h2><p>${separaCigarrillosAlCierre?'Primero indicá qué plata queda para el próximo turno. Después anotá cuánto del retiro apartás para cigarrillos.':'Elegí una opción para que el próximo turno sepa cuánto tiene que encontrar '+(moduloCigarros?'en cada caja':'en la caja')+'.'}</p></div>
       <div>
       <div class="card cash-action-card">
         <div class="card-b">
@@ -8146,11 +8185,11 @@ function vCaja(m){
           </div>
           <div id="camposQuedaCaja" hidden>
             <p class="hint">Si dejás toda la plata, usá los importes que ya contamos. También podés escribir una cantidad menor.</p>
-            <label class="f" for="quedaCajaGeneral">Queda en caja general</label>
+            <label class="f" for="quedaCajaGeneral">${moduloCigarros?'Queda en caja general':'Queda en caja para el próximo turno'}</label>
             <input id="quedaCajaGeneral" class="inp num" inputmode="decimal" autocomplete="off">
             ${moduloCigarros?`<label class="f" for="quedaCajaCigarros" style="margin-top:10px">Queda en caja de cigarrillos</label><input id="quedaCajaCigarros" class="inp num" inputmode="decimal" autocomplete="off">`:''}
           </div>
-          ${!moduloCigarros?`<div style="margin-top:14px"><label class="f" for="apartadoCigarrillos">De lo que retirás, ¿cuánto apartás para cigarrillos? (opcional)</label><input id="apartadoCigarrillos" class="inp num" inputmode="decimal" autocomplete="off" placeholder="0"><div class="hint">En este turno se cobraron ${$m(t.cigEfectivo)} en efectivo por cigarrillos. Es solo una referencia: registrá la plata que realmente separás. Este apartado forma parte del retiro, no es otro gasto.</div></div>`:''}
+          ${separaCigarrillosAlCierre?`<div class="cash-cigarette-separation"><h3>Separación de cigarrillos</h3><p>Contaste toda la plata en una sola caja. Ahora registrá el efectivo que sacás de ese retiro para guardar aparte por cigarrillos.</p><label class="f" for="apartadoCigarrillos">¿Cuánto efectivo apartás para cigarrillos?</label><input id="apartadoCigarrillos" class="inp num" inputmode="decimal" autocomplete="off" placeholder="Escribí el monto real, incluso 0" aria-required="true"><div class="hint">Ventas de cigarrillos cobradas en efectivo en este turno: ${$m(t.cigEfectivo)}. Usalo como referencia; anotá lo que realmente separás. Si no separás nada, escribí 0. No se resta dos veces.</div></div>`:''}
           <div id="resumenDestinoCaja" class="cash-destination-summary" role="status">Elegí qué hacés con la plata contada.</div>
           <label class="f" for="responsableCierreCaja" style="margin-top:14px">Quién cierra la caja</label>
           <input id="responsableCierreCaja" class="inp" maxlength="120" value="${esc(activeSession?.abiertoPor||'')}" autocomplete="name">
@@ -8219,7 +8258,7 @@ function vCaja(m){
     const explicacion=$('#motivoDiferenciaCaja');
     const razon=motivo?'' : motivoDiferenciaCaja(num(inpG.value)-espGeneral,moduloCigarros?num(inpC.value)-espCigarros:0,explicacion?.value);
     const destino=f52CalcularDestinoCierre(num(inpG.value),moduloCigarros?num(inpC.value):0,decisionDestino,quedaG?.value,quedaC?.value,moduloCigarros);
-    const apartado=moduloCigarros?{ok:true,value:0}:f56ValidarApartadoCigarrillos(apartadoInput?.value,destino);
+    const apartado=separaCigarrillosAlCierre?f56ValidarApartadoCigarrillos(apartadoInput?.value,destino,true):{ok:true,value:0};
     const pendiente=motivo||razon||(!destino.ok?destino.error:'')||(!apartado.ok?apartado.error:'');
     cerrarCaja.disabled=!!pendiente;
     cerrarCaja.title=pendiente;
@@ -8228,12 +8267,15 @@ function vCaja(m){
   };
   const pintarDestinoCaja=()=>{
     const destino=f52CalcularDestinoCierre(num(inpG.value),moduloCigarros?num(inpC.value):0,decisionDestino,quedaG?.value,quedaC?.value,moduloCigarros);
-    const apartado=moduloCigarros?{ok:true,value:0}:f56ValidarApartadoCigarrillos(apartadoInput?.value,destino);
+    const apartado=separaCigarrillosAlCierre?f56ValidarApartadoCigarrillos(apartadoInput?.value,destino,true):{ok:true,value:0};
+    const desglose=apartado.ok?f57DesgloseRetiroCigarrillos(destino,apartado.value):null;
     const resumen=$('#resumenDestinoCaja');
     if(resumen)resumen.textContent=destino.ok
       ?moduloCigarros
         ?`Caja general: contaste ${$m(num(inpG.value))} · retirás ${$m(destino.retiroGeneral)} · queda ${$m(destino.quedaGeneral)}. Caja de cigarrillos: contaste ${$m(num(inpC.value))} · retirás ${$m(destino.retiroCigarros)} · queda ${$m(destino.quedaCigarros)}.`
-        :apartado.ok?`Contaste ${$m(num(inpG.value))} · retirás ${$m(destino.retiroGeneral)}${apartado.value?` (de eso, ${$m(apartado.value)} para cigarrillos)`:''} · queda ${$m(destino.quedaGeneral)} para el próximo turno.`:apartado.error
+        :apartado.ok?separaCigarrillosAlCierre
+          ?`De lo contado: ${$m(desglose.apartadoCigarrillos)} para cigarrillos · ${$m(desglose.otrosRetiros)} en otros retiros · ${$m(desglose.quedaGeneral)} queda para el próximo turno.`
+          :`Contaste ${$m(num(inpG.value))} · retirás ${$m(destino.retiroGeneral)} · queda ${$m(destino.quedaGeneral)} para el próximo turno.`:apartado.error
       :destino.error;
     actualizarEstadoCierre();
   };
@@ -8315,7 +8357,7 @@ function vCaja(m){
     const contadoGeneral=num(inpG.value), contadoCigarros=moduloCigarros&&inpC?num(inpC.value):0;
     const destino=f52CalcularDestinoCierre(contadoGeneral,contadoCigarros,decisionDestino,quedaG?.value,quedaC?.value,moduloCigarros);
     if(!destino.ok){aviso(destino.error,'bad');pintarDestinoCaja();return;}
-    const apartado=moduloCigarros?{ok:true,value:0}:f56ValidarApartadoCigarrillos(apartadoInput?.value,destino);
+    const apartado=separaCigarrillosAlCierre?f56ValidarApartadoCigarrillos(apartadoInput?.value,destino,true):{ok:true,value:0};
     if(!apartado.ok){aviso(apartado.error,'bad');apartadoInput.focus();return;}
     const dG=contadoGeneral-espGeneral, dC=moduloCigarros?contadoCigarros-espCigarros:0;
     const razon=motivoDiferenciaCaja(dG,dC,explicacionCaja.value);
@@ -8323,8 +8365,10 @@ function vCaja(m){
     const partes=[];
     partes.push(Math.abs(dG)<0.01?`${moduloCigarros?'La caja general':'La caja'} cuadra justo.`:`${moduloCigarros?'Caja general':'Caja única'}: <b style="color:${dG<0?'var(--rojo)':'var(--ambar)'}">${dG<0?'Falta':'Sobra'} ${$m(Math.abs(dG))}</b>.`);
     if(moduloCigarros) partes.push(Math.abs(dC)<0.01?'La caja de cigarrillos cuadra justo.':`Caja de cigarrillos: <b style="color:${dC<0?'var(--rojo)':'var(--ambar)'}">${dC<0?'Falta':'Sobra'} ${$m(Math.abs(dC))}</b>.`);
-    partes.push(`Retirás <b>${$m(destino.retiroGeneral)}</b> ${moduloCigarros?'de la caja general':'de la caja'}${moduloCigarros?` y <b>${$m(destino.retiroCigarros)}</b> de cigarrillos`:''}.`);
-    if(apartado.value)partes.push(`De ese retiro, apartás <b>${$m(apartado.value)}</b> para cigarrillos. No se descuenta otra vez.`);
+    if(separaCigarrillosAlCierre){
+      const desglose=f57DesgloseRetiroCigarrillos(destino,apartado.value);
+      partes.push(`Del efectivo contado, separás <b>${$m(desglose.apartadoCigarrillos)}</b> para cigarrillos y retirás <b>${$m(desglose.otrosRetiros)}</b> para otros destinos. El importe de cigarrillos ya está incluido en el retiro.`);
+    }else partes.push(`Retirás <b>${$m(destino.retiroGeneral)}</b> ${moduloCigarros?'de la caja general':'de la caja'}${moduloCigarros?` y <b>${$m(destino.retiroCigarros)}</b> de cigarrillos`:''}.`);
     partes.push(`Para el próximo turno quedan <b>${$m(destino.quedaGeneral)}</b> ${moduloCigarros?'en general':'en caja'}${moduloCigarros?` y <b>${$m(destino.quedaCigarros)}</b> en cigarrillos`:''}.`);
     confirmar('Cerrar la caja',
       `Vendiste <b>${$m(t.total)}</b> en ${t.ventas.length} ${t.ventas.length===1?'venta':'ventas'}${t.egresos.length?` y registraste <b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b> en egresos`:''}.<br><br>${partes.join('<br>')}`,
@@ -8334,7 +8378,7 @@ function vCaja(m){
           esperadoGeneral:espGeneral,contadoGeneral,diferenciaGeneral:dG,
           esperadoCigarros:espCigarros,contadoCigarros,diferenciaCigarros:dC,
           egrGeneral:t.egrGeneral,egrCigarros:moduloCigarros?t.egrCigarros:0,
-          cajaUnica:!moduloCigarros,apartadoCigarrillos:apartado.value,
+          cajaUnica:!moduloCigarros,separaCigarrosAlCierre:separaCigarrillosAlCierre,apartadoCigarrillos:apartado.value,
           _v4cajaId:f3Estado.cajaId,traspasoConfirmado:true,retiroGeneral:destino.retiroGeneral,retiroCigarros:destino.retiroCigarros,
           quedaGeneral:destino.quedaGeneral,quedaCigarros:destino.quedaCigarros,
           aperturaDiferenciaGeneral:activeSession?.aperturaDiferenciaGeneral??null,
@@ -9175,6 +9219,7 @@ function vConfig(m){
 
   <div class="config-nav">
     <button type="button" data-ir-a="cf-datos">Datos del comercio</button>
+    <button type="button" data-ir-a="cf-caja">Caja</button>
     <button type="button" data-ir-a="cf-funciones">Funciones</button>
     <button type="button" data-ir-a="cf-empleados">Empleados</button>
     <button type="button" data-ir-a="cf-empleado">Bloqueo de mostrador</button>
@@ -9216,10 +9261,14 @@ function vConfig(m){
         <div><b>Vencimientos</b><span class="sub-config">Aviso de productos por vencer. Si lo apagás, desaparece del menú para todos.</span></div>
         <button class="toggle-switch" role="switch" aria-label="Activar Vencimientos" aria-checked="${db.config.moduloVencimientos!==false}" data-mod="moduloVencimientos"></button>
       </div>
-      <div class="fila-config">
-        <div><b>Dos cajas físicas</b><span class="sub-config">Activá esto solo si guardás y contás el efectivo de cigarrillos en otra caja durante todo el turno. Si juntás todo y lo separás al final del día, dejalo apagado: el cierre pedirá un único conteo y seguirá mostrando las ventas de cigarrillos.</span></div>
-        <button class="toggle-switch" role="switch" aria-label="Activar caja separada de cigarrillos" aria-checked="${db.config.moduloCigarros!==false}" data-mod="moduloCigarros"></button>
-      </div>
+    </div>
+  </div>
+
+  <div class="card config-card" id="cf-caja" style="margin-bottom:16px">
+    <div class="card-h"><h2>Cómo manejás la plata de la caja</h2></div>
+    <div class="card-b">
+      <fieldset class="cash-mode-options"><legend>¿Cuántas cajas contás durante el turno?</legend>${f57OpcionesModoCajaHTML(db.config)}</fieldset>
+      <div class="hint">Elegí según dónde está físicamente la plata antes del cierre. Las ventas de cigarrillos se muestran en los tres modos.</div>
       <div class="fila-config">
         <div><b>¿Manejás la caja por turnos?</b><span class="sub-config">Si está activado, hay que abrir un turno antes de vender.</span></div>
         <button class="toggle-switch" role="switch" aria-label="Manejar caja por turnos" aria-checked="${db.config.manejaTurnos===true}" data-mod="manejaTurnos"></button>
@@ -9363,17 +9412,26 @@ function vConfig(m){
     if(copia)copia.then(()=>aviso('Código copiado','ok'),()=>aviso('No pudimos copiar el código','bad'));
     else aviso(`Código: ${codigo}`,'ok');
   };
+  $$('input[name="modoCaja"]',m).forEach(radio=>radio.onchange=()=>{
+    if(!radio.checked)return;
+    const elegido=radio.value;
+    if(elegido===f57ModoCaja(db.config))return;
+    if(elegido==='dos_cajas'&&f3Estado?.session?.estado==='abierta'){
+      render();aviso('Cerrá el turno actual antes de activar dos cajas físicas. El próximo turno podrá abrir con dos fondos.','bad');return;
+    }
+    db.config.moduloCigarros=elegido==='dos_cajas';
+    db.config.separaCigarrillosAlCierre=elegido==='unica_separa_cigarrillos';
+    guardar();render();
+    aviso(elegido==='unica_separa_cigarrillos'?'Al cerrar, contarás toda la plata una vez y registrarás cuánto apartás para cigarrillos.':elegido==='dos_cajas'?'El próximo turno contará dos cajas físicas.':'El cierre contará una sola caja.','ok');
+  });
   $$('[data-mod]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.mod, on=k==='manejaTurnos'?db.config[k]===true:db.config[k]!==false;
     if(k==='manejaTurnos'&&!on&&typeof f3Estado!=='undefined'&&f3Estado.session&&f3Estado.session.estado==='abierta'){
       aviso('Cerrá la caja abierta antes de activar turnos. Así cada turno empieza con su propio fondo.','bad');return;
     }
-    if(k==='moduloCigarros'&&!on&&typeof f3Estado!=='undefined'&&f3Estado.session&&f3Estado.session.estado==='abierta'){
-      aviso('Cerrá la caja abierta antes de activar dos cajas físicas. Así el siguiente turno empieza con cada fondo separado.','bad');return;
-    }
     db.config[k]=!on;
     guardar(); render();
-    const etiqueta={moduloFiado:'Fiado',moduloVencimientos:'Vencimientos',moduloCigarros:'Dos cajas físicas',manejaTurnos:'Caja por turnos'}[k]||'Función';
+    const etiqueta={moduloFiado:'Fiado',moduloVencimientos:'Vencimientos',manejaTurnos:'Caja por turnos'}[k]||'Función';
     aviso(`${etiqueta} ${!on?'activada':'desactivada'}`,'ok');
   });
   const avisoTurno=$('#cfgAvisoTurno');if(avisoTurno)avisoTurno.onchange=()=>{
@@ -10524,7 +10582,9 @@ function f32bMapCierre(row,extra={},base=db){
     esperadoGeneral:Number(row.esperado_general)||0,contadoGeneral:Number(row.contado_general)||0,diferenciaGeneral:Number(row.diferencia_general)||0,
     esperadoCigarros:Number(row.esperado_cigarros)||0,contadoCigarros:Number(row.contado_cigarros)||0,diferenciaCigarros:Number(row.diferencia_cigarros)||0,
     egrGeneral:Number(row.egresos_general)||0,egrCigarros:Number(row.egresos_cigarros)||0,nota:row.nota||'',costo:Number(row.costo_ventas)||0,
-    cajaUnica:(traspaso.modelo_caja||row.modelo_caja)==='unica',apartadoCigarrillos:Number(traspaso.apartado_cigarrillos??row.apartado_cigarrillos)||0,
+    cajaUnica:['unica','unica_separa_cigarrillos'].includes(traspaso.modelo_caja||row.modelo_caja),
+    separaCigarrosAlCierre:(traspaso.modelo_caja||row.modelo_caja)==='unica_separa_cigarrillos',
+    apartadoCigarrillos:Number(traspaso.apartado_cigarrillos??row.apartado_cigarrillos)||0,
     traspasoConfirmado:traspaso.queda_general!=null&&traspaso.retiro_general!=null,
     retiroGeneral:traspaso.retiro_general==null?null:Number(traspaso.retiro_general),retiroCigarros:traspaso.retiro_cigarros==null?null:Number(traspaso.retiro_cigarros),
     quedaGeneral:traspaso.queda_general==null?null:Number(traspaso.queda_general),quedaCigarros:traspaso.queda_cigarros==null?null:Number(traspaso.queda_cigarros),
@@ -11690,7 +11750,7 @@ function f34ProductLocal(p){return {legacy_id:f34Str(p.id),ean:f34Str(p.ean),nom
 function f34ClientLocal(c){return {legacy_id:f34Str(c.id),nombre:f34Str(c.nombre),telefono:f34Str(c.tel||c.telefono),alta_at:f34Date(c.alta)};}
 function f34ComboLocal(c){return {legacy_id:f34Str(c.id),nombre:f34Str(c.nombre),precio:f34Round(c.precio,2),activo:c.activo!==false,items:f34Sort((c.items||[]).map(i=>({producto_legacy_id:f34Str(i.prodId),cantidad:f34Round(i.cant||1,3)})),x=>`${x.producto_legacy_id}:${x.cantidad}`)};}
 function f34PromoLocal(p){const regla=p.tipo==='producto'?reglaPromoCantidad(p.modalidad):null;return {legacy_id:f34Str(p.id),tipo:f34Str(p.tipo),producto_legacy_id:p.tipo==='producto'?f34Null(p.objetivoId):null,objetivo_texto:p.tipo==='producto'?(regla?regla.texto:''):f34Str(p.objetivoId),porcentaje:regla?0:f34Round(p.porcentaje,3),desde:f34Day(p.desde),hasta:f34Day(p.hasta),activa:p.activa!==false};}
-function f34ConfigLocal(c){return {fondo_caja:f34Round(c.fondoCaja,2),fondo_caja_cigarros:f34Round(c.fondoCajaCigarros,2),whatsapp_dueno:f34Str(c.whatsappDueno),dias_aviso_vence:Math.trunc(f34Num(c.diasAvisoVence,7)),dias_plazo_fiado:Math.trunc(f34Num(c.diasPlazoFiado,30)),recargo_fiado_pct:f34Round(c.recargoFiadoPct??10,3),modulo_fiado:c.moduloFiado!==false,modulo_vencimientos:c.moduloVencimientos!==false,modulo_cigarros:c.moduloCigarros!==false,maneja_turnos:c.manejaTurnos===true,aviso_turno_horas:Math.trunc(f34Num(c.avisoTurnoHoras,8)),motivos_egreso_extra:[...(c.motivosEgresoExtra||[])]};}
+function f34ConfigLocal(c){return {fondo_caja:f34Round(c.fondoCaja,2),fondo_caja_cigarros:f34Round(c.fondoCajaCigarros,2),whatsapp_dueno:f34Str(c.whatsappDueno),dias_aviso_vence:Math.trunc(f34Num(c.diasAvisoVence,7)),dias_plazo_fiado:Math.trunc(f34Num(c.diasPlazoFiado,30)),recargo_fiado_pct:f34Round(c.recargoFiadoPct??10,3),modulo_fiado:c.moduloFiado!==false,modulo_vencimientos:c.moduloVencimientos!==false,modulo_cigarros:c.moduloCigarros!==false,separa_cigarrillos_al_cierre:c.separaCigarrillosAlCierre===true,maneja_turnos:c.manejaTurnos===true,aviso_turno_horas:Math.trunc(f34Num(c.avisoTurnoHoras,8)),motivos_egreso_extra:[...(c.motivosEgresoExtra||[])]};}
 function f34SaleItemLocal(i){const base={legacy_line_id:f34Str(i.lineId||''),tipo:i.tipo==='combo'?'combo':'producto',nombre:f34Str(i.nombre),cantidad:f34Round(i.cant,3),precio_unitario:f34Round(i.precio,2),costo_unitario:f34Round(i.costo,4),bruto:f34Round(i.bruto,2),neto:f34Round(i.neto,2)};if(base.tipo==='producto')return {...base,producto_legacy_id:f34Str(i.prodId),combo_legacy_id:null,rubro:f34Str(i.rubro),promo_pct:i.promoPct==null?null:f34Round(i.promoPct,3),componentes:[]};return {...base,producto_legacy_id:null,combo_legacy_id:f34Str(i.comboId),rubro:'',promo_pct:i.promoPct==null?null:f34Round(i.promoPct,3),componentes:f34Sort((i.componentes||[]).map(c=>({producto_legacy_id:f34Str(c.prodId),nombre:f34Str(c.nombre),cantidad_por_combo:f34Round(c.cant,3),costo_unitario_snapshot:f34Round(c.costo,4)})),x=>`${x.producto_legacy_id}:${x.cantidad_por_combo}`)};}
 function f34SaleLocal(v){let pagos=v.pagos;if(!Array.isArray(pagos)||!pagos.length)pagos=[{forma:v.forma,monto:v.total}];return {legacy_id:f34Str(v.id),ticket_seq:Math.trunc(f34Num(v.nro)),cliente_legacy_id:f34Null(v.clienteId),occurred_at:f34Date(v.fecha),subtotal:f34Round(v.subtotal,2),descuento_manual:f34Round(v.descuento,2),descuento_detalle:f34Stable(v.descuentoDetalle||null),promo_auto:f34Round(v.promoAuto,2),promo_auto_detalle:f34Stable(v.promoAutoDetalle||[]),promo_pago:f34Round(v.promoPago,2),promo_pago_detalle:f34Stable(v.promoPagoDetalle||null),total:f34Round(v.total,2),forma:f34Forma(v.forma),recibido:f34Round(v.recibido,2),vuelto:f34Round(v.vuelto,2),monto_fiado:f34Round(v.montoFiado,2),plazo_fiado_dias:v.plazoFiadoDias==null?null:Math.trunc(f34Num(v.plazoFiadoDias)),vence_fiado:f34Day(v.venceFiado),items:f34Sort((v.items||[]).map(f34SaleItemLocal),x=>x.legacy_line_id||`${x.tipo}:${x.producto_legacy_id||x.combo_legacy_id}`),pagos:f34Sort(pagos.map(p=>({forma:f34Forma(p.forma),monto:f34Round(p.monto,2)})),x=>`${x.forma}:${x.monto}`)};}
 function f34PagoLocal(p){return {legacy_id:f34Str(p.id),cliente_legacy_id:f34Str(p.clienteId),monto:f34Round(p.monto,2),forma:f34Forma(p.forma),nota:f34Str(p.nota),occurred_at:f34Date(p.fecha)};}
@@ -11802,7 +11862,7 @@ async function f34ActualMaster(spec){const row=await f34One(spec.table,spec.id);
   if(spec.table==='promociones')return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),tipo:f34Str(row.tipo),producto_legacy_id:row.tipo==='producto'?await f34LegacyOne('productos',row.producto_id):null,objetivo_texto:row.tipo==='producto'?(reglaPromoCantidad(row.objetivo_texto)?.texto||''):f34Str(row.objetivo_texto),porcentaje:f34Round(row.porcentaje,3),desde:f34Day(row.desde),hasta:f34Day(row.hasta),activa:row.activa!==false};
   return null;
 }
-async function f34ActualConfig(){const r=await sb.from('comercio_configuracion').select('*').eq('comercio_id',f3Estado.comercioId).limit(1);f34QueryError(r,'F34_FETCH_CONFIG');const row=(r.data||[])[0];if(!row)return null;return {fondo_caja:f34Round(row.fondo_caja,2),fondo_caja_cigarros:f34Round(row.fondo_caja_cigarros,2),whatsapp_dueno:f34Str(row.whatsapp_dueno),dias_aviso_vence:Math.trunc(f34Num(row.dias_aviso_vence,7)),dias_plazo_fiado:Math.trunc(f34Num(row.dias_plazo_fiado,30)),recargo_fiado_pct:f34Round(row.recargo_fiado_pct??10,3),modulo_fiado:row.modulo_fiado!==false,modulo_vencimientos:row.modulo_vencimientos!==false,modulo_cigarros:row.modulo_cigarros!==false,maneja_turnos:row.maneja_turnos===true,aviso_turno_horas:Math.trunc(f34Num(row.aviso_turno_horas,8)),motivos_egreso_extra:[...(row.motivos_egreso_extra||[])]};}
+async function f34ActualConfig(){const r=await sb.from('comercio_configuracion').select('*').eq('comercio_id',f3Estado.comercioId).limit(1);f34QueryError(r,'F34_FETCH_CONFIG');const row=(r.data||[])[0];if(!row)return null;return {fondo_caja:f34Round(row.fondo_caja,2),fondo_caja_cigarros:f34Round(row.fondo_caja_cigarros,2),whatsapp_dueno:f34Str(row.whatsapp_dueno),dias_aviso_vence:Math.trunc(f34Num(row.dias_aviso_vence,7)),dias_plazo_fiado:Math.trunc(f34Num(row.dias_plazo_fiado,30)),recargo_fiado_pct:f34Round(row.recargo_fiado_pct??10,3),modulo_fiado:row.modulo_fiado!==false,modulo_vencimientos:row.modulo_vencimientos!==false,modulo_cigarros:row.modulo_cigarros!==false,separa_cigarrillos_al_cierre:row.separa_cigarrillos_al_cierre===true,maneja_turnos:row.maneja_turnos===true,aviso_turno_horas:Math.trunc(f34Num(row.aviso_turno_horas,8)),motivos_egreso_extra:[...(row.motivos_egreso_extra||[])]};}
 async function f34ActualVenta(spec){const row=await f34One('ventas',spec.id);if(!row)return null;const items=await f34Many('venta_items','venta_id',[row.id]);const itemIds=items.map(x=>x.id);const comps=await f34Many('venta_item_componentes','venta_item_id',itemIds);const pagos=await f34Many('venta_pagos','venta_id',[row.id]);const pm=await f34LegacyMap('productos',[...items.map(x=>x.producto_id),...comps.map(x=>x.producto_id)]);const cm=await f34LegacyMap('combos',items.map(x=>x.combo_id));const cliente=await f34LegacyOne('clientes',row.cliente_id);
   const normItems=items.map(i=>{const base={legacy_line_id:f34Str(i.legacy_line_id||''),tipo:i.tipo==='combo'?'combo':'producto',nombre:f34Str(i.nombre_snapshot),cantidad:f34Round(i.cantidad,3),precio_unitario:f34Round(i.precio_unitario,2),costo_unitario:f34Round(i.costo_unitario,4),bruto:f34Round(i.bruto,2),neto:f34Round(i.neto,2)};if(base.tipo==='producto')return {...base,producto_legacy_id:pm.get(String(i.producto_id))||`v4:${i.producto_id}`,combo_legacy_id:null,rubro:f34Str(i.rubro_snapshot),promo_pct:i.promo_pct==null?null:f34Round(i.promo_pct,3),componentes:[]};const cs=comps.filter(c=>String(c.venta_item_id)===String(i.id));return {...base,producto_legacy_id:null,combo_legacy_id:cm.get(String(i.combo_id))||`v4:${i.combo_id}`,rubro:'',promo_pct:i.promo_pct==null?null:f34Round(i.promo_pct,3),componentes:f34Sort(cs.map(c=>({producto_legacy_id:pm.get(String(c.producto_id))||`v4:${c.producto_id}`,nombre:f34Str(c.nombre_snapshot),cantidad_por_combo:f34Round(c.cantidad_por_combo,3),costo_unitario_snapshot:f34Round(c.costo_unitario_snapshot,4)})),x=>`${x.producto_legacy_id}:${x.cantidad_por_combo}`)};});
   return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),ticket_seq:Math.trunc(f34Num(row.ticket_seq)),cliente_legacy_id:cliente,occurred_at:f34Date(row.occurred_at_device),subtotal:f34Round(row.subtotal,2),descuento_manual:f34Round(row.descuento_manual,2),descuento_detalle:f34Stable(row.descuento_detalle||null),promo_auto:f34Round(row.promo_auto,2),promo_auto_detalle:f34Stable(row.promo_auto_detalle||[]),promo_pago:f34Round(row.promo_pago,2),promo_pago_detalle:f34Stable(row.promo_pago_detalle||null),total:f34Round(row.total,2),forma:f34Str(row.forma),recibido:f34Round(row.recibido,2),vuelto:f34Round(row.vuelto,2),monto_fiado:f34Round(row.monto_fiado,2),plazo_fiado_dias:row.plazo_fiado_dias==null?null:Math.trunc(f34Num(row.plazo_fiado_dias)),vence_fiado:f34Day(row.vence_fiado),items:f34Sort(normItems,x=>x.legacy_line_id||`${x.tipo}:${x.producto_legacy_id||x.combo_legacy_id}`),pagos:f34Sort(pagos.map(p=>({forma:f34Str(p.forma),monto:f34Round(p.monto,2)})),x=>`${x.forma}:${x.monto}`)};

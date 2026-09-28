@@ -105,7 +105,7 @@ function load() {
     'f32bMapEgreso', 'f32bMapVenta', 'f32bMapCierre', 'f32bMapOperacion', 'f32bDeviceFila', 'f32bAplicarVisible',
     'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'responsableCierre',
     'montoDiferenciaCaja', 'motivoCierrePendiente', 'motivoDiferenciaCaja', 'estadoDiferenciaCaja', 'f52CalcularDestinoCierre',
-    'f56ValidarApartadoCigarrillos', 'f56CajaSeparadaEnSesion', 'f56EsperadoCajaUnica',
+    'f56ValidarApartadoCigarrillos', 'f57DesgloseRetiroCigarrillos', 'f56CajaSeparadaEnSesion', 'f57ModoCaja', 'f56EsperadoCajaUnica',
     'esEgresoOperativo', 'vCaja',
   ];
   vm.runInContext([
@@ -270,6 +270,32 @@ test('Caja exige contar y elegir el destino antes de habilitar el cierre', () =>
   nodes.get('[data-destino-caja]:retirar_todo').onclick();
   assert.equal(boton.disabled, false);
   assert.equal(ayuda.hidden, true);
+});
+
+test('una caja con separación de cigarrillos cuenta el efectivo una vez y exige el importe apartado', () => {
+  const { context, main, nodes } = load();
+  const turno = context.turnoActual('turno-duenio');
+  context.turnoActual = () => ({ ...turno, genEfectivo: 514440, cigEfectivo: 159530,
+    porForma: { ...turno.porForma, efectivo: 673970 } });
+  context.numImportacion = text => ({ ok: /^\d+(?:[.,]\d{1,2})?$/.test(String(text)),
+    blank: !String(text).trim(), value: Number(String(text).replace(',', '.')) });
+  context.db.config.separaCigarrillosAlCierre = true;
+  context.f3Estado.session = { id:'turno-duenio', estado:'abierta', fondoGeneral:8030, fondoCigarros:0 };
+  context.vCaja(main);
+  assert.match(main.innerHTML, /Una caja · cigarrillos se separan al cerrar/);
+  assert.match(main.innerHTML, /Separación de cigarrillos/);
+  assert.doesNotMatch(main.innerHTML, /id="contadoC"/);
+  nodes.get('#contadoG').value = '682000';
+  nodes.get('#contadoG').oninput();
+  assert.match(nodes.get('#difG').innerHTML, /\$0\.00/);
+  nodes.get('[data-destino-caja]:retirar_todo').onclick();
+  assert.equal(nodes.get('#cerrarCaja').disabled, true);
+  assert.match(nodes.get('#ayudaCerrarCaja').textContent, /cuánto efectivo separás para cigarrillos/i);
+  nodes.get('#apartadoCigarrillos').value = '159530';
+  nodes.get('#apartadoCigarrillos').oninput();
+  assert.equal(nodes.get('#cerrarCaja').disabled, false);
+  assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$159530\.00 para cigarrillos/);
+  assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$522470\.00 en otros retiros/);
 });
 
 test('el cierre guiado no revela el cálculo hasta que se cuenta y permite volver', () => {
