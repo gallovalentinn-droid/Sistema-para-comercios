@@ -22,6 +22,7 @@ test('al vencer una consulta de arranque las siguientes fallan enseguida, y rein
       requests++;
       return new Promise((_resolve, reject) => init.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true }));
     },
+    f61VigilarRespuesta: async response => response,
   };
   vm.createContext(context);
   vm.runInContext(`${between('let f6ArranqueActivo=true;', 'const sb = ')}\nthis.request=f6FetchArranque;this.retry=f6IniciarArranque;`, context);

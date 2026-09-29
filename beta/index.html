@@ -603,6 +603,9 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .franja-off{position:fixed;top:0;left:0;right:0;z-index:90;background:var(--ambar);color:#fff;
   padding:8px 16px;text-align:center;font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:9px}
 .franja-off .pulso{width:8px;height:8px;border-radius:99px;background:#fff;animation:pulso 1.6s ease-in-out infinite}
+.session-alert{position:sticky;top:0;z-index:91;background:#9E2E1B;color:#fff;min-height:42px;padding:8px 18px;display:flex;align-items:center;justify-content:center;gap:12px;text-align:center;font-size:13px;font-weight:600}
+.session-alert button{border:1px solid #fff;border-radius:7px;background:#fff;color:#9E2E1B;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer}
+@media(max-width:600px){.session-alert{flex-wrap:wrap;padding:7px 12px}.session-alert button{white-space:nowrap}}
 @keyframes pulso{50%{opacity:.35}}
 body.offline .app{padding-top:34px}
 @media(max-width:820px){ body.offline .main{padding-top:44px} }
@@ -773,6 +776,7 @@ body.offline .app{padding-top:34px}
     </form>
   </section>
 </div>
+<div class="session-alert" id="sesionAviso" role="alert" hidden><span>La sesión se cerró. Volvé a ingresar para subir las ventas. Tus datos siguen en este dispositivo.</span><button type="button" id="sesionReingresar">Volver a ingresar</button></div>
 <div class="app" id="appWrap" hidden>
   <aside class="rail">
     <div class="brand"><span class="mk" id="brandMk" title="Expandir menú" aria-hidden="true"></span><div class="brand-txt"><b id="brandName">Mi Comercio</b><span>micomercio.ar</span></div>
@@ -791,7 +795,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:60,
+  packageRevision:61,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -843,7 +847,7 @@ let f6ArranqueRedAgotada=false;
 function f6IniciarArranque(){f6ArranqueActivo=true;f6ArranqueRedAgotada=false;}
 function f6TerminarArranque(){f6ArranqueActivo=false;f6ArranqueRedAgotada=false;}
 async function f6FetchArranque(input,init={}){
-  if(!f6ArranqueActivo)return fetch(input,init);
+  if(!f6ArranqueActivo)return f61VigilarRespuesta(await fetch(input,init),input);
   if(f6ArranqueRedAgotada)throw new Error('NETWORK_TIMEOUT');
   const controller=new AbortController();
   const original=init.signal||(input&&input.signal);
@@ -856,7 +860,7 @@ async function f6FetchArranque(input,init={}){
   // solicitudes consecutivas y no debe vencer por el tiempo total de apertura.
   const timer=setTimeout(()=>{f6ArranqueRedAgotada=true;controller.abort();},8000);
   try{
-    return await fetch(input,{...init,signal:controller.signal});
+    return f61VigilarRespuesta(await fetch(input,{...init,signal:controller.signal}),input);
   }catch(error){
     if(controller.signal.aborted&&!(original&&original.aborted))throw new Error('NETWORK_TIMEOUT');
     throw error;
@@ -937,6 +941,52 @@ let vista='vender';
 let ultimaVistaRenderizada='';
 let mem={};
 let sesion=null;
+/* F61_SESSION_CORE_START */
+let f61SesionCerrada=false,f61CierreIntencional=false;
+function f61EsRechazoSesion(status,url,body=''){
+  const direccion=String(url||'');
+  if(/\/functions\/v1\/f5-login(?:[?#]|$)/i.test(direccion))return false;
+  if(/\/auth\/v1\//i.test(direccion)){
+    return /\/auth\/v1\/token\?[^#]*grant_type=refresh_token/i.test(direccion)
+      &&(status===400||status===401)
+      &&/refresh_token_not_found|invalid_refresh_token|refresh token not found|refresh token.*invalid/i.test(String(body||''));
+  }
+  return status===401&&/\/(?:rest|functions|storage)\/v1\//i.test(direccion);
+}
+/* F61_SESSION_CORE_END */
+function f61MarcarSesionCerrada(){
+  if(!sesion||f61CierreIntencional||f61SesionCerrada)return false;
+  f61SesionCerrada=true;
+  if(typeof pintarFoot==='function')pintarFoot();
+  return true;
+}
+function f61LimpiarAvisoSesion(){
+  f61SesionCerrada=false;
+  if(typeof pintarFoot==='function')pintarFoot();
+}
+async function f61CerrarAuthLocal(){
+  if(!sb)return {error:null};
+  f61CierreIntencional=true;
+  try{return await sb.auth.signOut({scope:'local'});}
+  finally{queueMicrotask(()=>{f61CierreIntencional=false;});}
+}
+async function f61VigilarRespuesta(response,input){
+  if(!sesion||f61SesionCerrada||!response)return response;
+  const url=typeof input==='string'?input:String(input&&input.url||'');
+  let body='';
+  if((response.status===400||response.status===401)&&/\/auth\/v1\/token\?[^#]*grant_type=refresh_token/i.test(url)){
+    try{body=await response.clone().text();}catch(_){}
+  }
+  if(f61EsRechazoSesion(response.status,url,body))f61MarcarSesionCerrada();
+  return response;
+}
+if(sb)sb.auth.onAuthStateChange((event,nuevaSesion)=>{
+  if(event==='SIGNED_OUT')queueMicrotask(()=>f61MarcarSesionCerrada());
+  else if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&nuevaSesion&&sesion&&nuevaSesion.user?.id===sesion.user?.id){
+    sesion=nuevaSesion;
+    if(f61SesionCerrada)f61LimpiarAvisoSesion();
+  }
+});
 let revisionNube=0;
 let snapshotLocal=null;
 let ultimaNubeDb=null;
@@ -2139,7 +2189,7 @@ async function f3ProcesarUna(op){
 }
 
 async function f3ProcesarOutbox({allowHidden=false}={}){
-  if(!f3Activo()||!enLinea||(!allowHidden&&document.hidden)) return false;
+  if(f61SesionCerrada||!f3Activo()||!enLinea||(!allowHidden&&document.hidden)) return false;
   if(f3Procesando){
     f3DrainPendiente=true;
     f3DrainPendienteAllowHidden=f3DrainPendienteAllowHidden||allowHidden;
@@ -2894,6 +2944,7 @@ async function guardarAtomico(payload,revision){
   return Number(data)||0;
 }
 async function subirALaNube(){
+  if(f61SesionCerrada)return false;
   if(!(sb&&sesion)){
     pendienteSubir=false;
     await guardarLocal();
@@ -2935,7 +2986,7 @@ async function subirALaNube(){
 
         if(sinLicencia){
           aviso('La licencia fue desactivada. Los cambios quedaron pendientes en este dispositivo.','bad');
-          if(sb) await sb.auth.signOut();
+          if(sb) await f61CerrarAuthLocal();
           sesion=null;
           setTimeout(()=>mostrarLogin({texto:'Tu cuenta no está activa. Contactá al administrador.',tipo:'warn'}),100);
           return false;
@@ -3056,7 +3107,7 @@ window.addEventListener('online',()=>{
     aviso('Volvió la conexión — reconciliando cambios…','ok');
     subirALaNube().then(ok=>{if(ok){render();aviso('Todo sincronizado','ok');}});
   } else aviso('Volvió la conexión','ok');
-  if(sb&&sesion) f3DescubrirContextoV4().then(()=>f3ProcesarOutbox()).catch(e=>console.warn('F3 al volver online',e));
+  if(sb&&sesion&&!f61SesionCerrada) f3DescubrirContextoV4().then(()=>f3ProcesarOutbox()).catch(e=>console.warn('F3 al volver online',e));
 });
 window.addEventListener('offline',()=>{
   f3ContextoServidorVerificado=false;
@@ -3109,22 +3160,22 @@ async function iniciarSesionEmpleado(comercio,usuario,clave){
   if(!window.MiComercioF33)return {ok:false,msg:'F3.3 no está inicializado.',tipo:'warn'};
   try{
     const result=await f5LoginEmpleadoClient({comercio,usuario,clave});
-    sesion=result.session;
+    sesion=result.session;f61LimpiarAvisoSesion();
     if(typeof f3LeerEstadoLocal==='function')await f3LeerEstadoLocal();
     if(typeof f3DescubrirContextoV4==='function')await f3DescubrirContextoV4();
-    if(!f3Estado.comercioId){await sb.auth.signOut();sesion=null;return {ok:false,msg:'Tu usuario no tiene un comercio habilitado.',tipo:'warn'};}
+    if(!f3Estado.comercioId){await f61CerrarAuthLocal();sesion=null;return {ok:false,msg:'Tu usuario no tiene un comercio habilitado.',tipo:'warn'};}
     if(result.membresia&&result.membresia.comercio_id&&result.membresia.comercio_id!==f3Estado.comercioId){
-      await sb.auth.signOut();sesion=null;return {ok:false,msg:'No pudimos validar el comercio de este usuario.',tipo:'warn'};
+      await f61CerrarAuthLocal();sesion=null;return {ok:false,msg:'No pudimos validar el comercio de este usuario.',tipo:'warn'};
     }
     if(typeof f6OnboardingPendiente==='function'&&await f6OnboardingPendiente())return {ok:true,onboarding:true};
     const ev=await window.MiComercioF33.refrescarLicencia({silent:true,reactivar:false});
-    if(!ev.puedeOperar){await sb.auth.signOut();sesion=null;return {ok:false,msg:'La licencia del comercio no está activa.',tipo:'warn'};}
+    if(!ev.puedeOperar){await f61CerrarAuthLocal();sesion=null;return {ok:false,msg:'La licencia del comercio no está activa.',tipo:'warn'};}
     return {ok:true};
   }catch(error){
     if(sesion){
       const ev=window.MiComercioF33.estadoLicencia();
       if(ev.puedeOperar)return {ok:true,offline:true};
-      try{await sb.auth.signOut();}catch(_){}sesion=null;
+      try{await f61CerrarAuthLocal();}catch(_){}sesion=null;
     }
     return {ok:false,msg:f5MensajeErrorLoginEmpleado(error),tipo:'warn'};
   }
@@ -3136,12 +3187,12 @@ async function iniciarSesion(email,pass){
   try{
     const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
     if(error) return {ok:false,msg:error.message==='Invalid login credentials'?'Mail o contraseña incorrectos.':error.message};
-    sesion=data.session;
+    sesion=data.session;f61LimpiarAvisoSesion();
     if(typeof f3LeerEstadoLocal==='function') await f3LeerEstadoLocal();
     if(typeof f3DescubrirContextoV4==='function') await f3DescubrirContextoV4();
     if(typeof f6OnboardingPendiente==='function'&&await f6OnboardingPendiente())return {ok:true,onboarding:true};
     const ev=await window.MiComercioF33.refrescarLicencia({silent:true,reactivar:false});
-    if(!ev.puedeOperar){await sb.auth.signOut();sesion=null;return {ok:false,msg:'La licencia del comercio no está activa.',tipo:'warn'};}
+    if(!ev.puedeOperar){await f61CerrarAuthLocal();sesion=null;return {ok:false,msg:'La licencia del comercio no está activa.',tipo:'warn'};}
     return {ok:true};
   }catch(err){
     const ev=window.MiComercioF33.estadoLicencia();
@@ -3149,12 +3200,18 @@ async function iniciarSesion(email,pass){
     return {ok:false,msg:'No se pudo validar la licencia: '+String(err&&err.message||err)};
   }
 }
-function cerrarSesion(){
-  if(sb) sb.auth.signOut();
+async function cerrarSesion(){
+  try{await esperarPersistenciaLocal();}catch(error){aviso('No se pudo confirmar el guardado local. No cierres sesión todavía.','bad');return false;}
+  try{
+    const result=await f61CerrarAuthLocal();
+    if(result&&result.error)throw result.error;
+  }catch(error){aviso('No pudimos cerrar la sesión de este dispositivo. Revisá la conexión y volvé a intentar.','bad');return false;}
   if(f5AuthorityTimer){clearInterval(f5AuthorityTimer);f5AuthorityTimer=null;}
   cerrarIdb();
   sesion=null; db=VACIA(); cambioLocalSeq=0; f3Estado=f3EstadoInicial(); f3ContextoServidorVerificado=false;
+  f61LimpiarAvisoSesion();
   mostrarLogin();
+  return true;
 }
 function mostrarLogin(msg){
   f6TerminarArranque();
@@ -3790,10 +3847,15 @@ function etiquetaRolVisible(rol,bloqueado){
 }
 function pintarFoot(){
   // franja de aviso arriba de todo, para que no pase desapercibido
+  const sa=$('#sesionAviso');
+  if(sa){
+    sa.hidden=!(f61SesionCerrada&&sesion);
+    const btn=$('#sesionReingresar',sa);if(btn)btn.onclick=cerrarSesion;
+  }
   const fo=$('#franjaOff');
   if(fo){
     const problemaSync = sb&&sesion&&(!enLinea||pendienteSubir)&&!sincronizando;
-    const mostrar = falloGuardadoLocal || problemaSync;
+    const mostrar = !f61SesionCerrada&&(falloGuardadoLocal || problemaSync);
     fo.hidden=!mostrar;
     document.body.classList.toggle('offline',!!mostrar);
     if(mostrar){
@@ -3807,6 +3869,7 @@ function pintarFoot(){
   const f=$('#railFoot'); if(!f) return;
   let txt,color;
   if(falloGuardadoLocal){ txt='ERROR: sin respaldo local'; color='var(--rojo)'; }
+  else if(f61SesionCerrada){ txt='Sesión cerrada · datos en este dispositivo'; color='var(--rojo)'; }
   else if(guardando||sincronizando){ txt='Sincronizando…'; color='var(--ambar)'; }
   else if(sb&&sesion&&!enLinea){ txt=pendienteSubir?'Sin conexión · cambios guardados acá':'Sin conexión'; color='var(--ambar)'; }
   else if(sb&&sesion&&pendienteSubir){ txt='Falta subir a la nube'; color='var(--ambar)'; }
@@ -3824,7 +3887,7 @@ function pintarFoot(){
     ${pluralProductos(activosPie)} activo${activosPie===1?'':'s'} · ${db.ventas.length} ventas
     ${f3Activo()?`<div style="margin-top:4px;font-size:10.5px;color:#AEB7C4">F3 shadow · ${esc(f3Estado.cajaCodigo||'caja')}</div>`:''}
     <div class="estado"><span class="dot" style="background:${color}"></span>${txt}</div>
-    ${(sb&&sesion&&pendienteSubir&&enLinea&&!sincronizando)?`<button class="btn text sm" id="btnSync" style="padding:2px 0;color:#AEB7C4;font-size:11.5px">Reintentar ahora</button>`:''}
+    ${(sb&&sesion&&!f61SesionCerrada&&pendienteSubir&&enLinea&&!sincronizando)?`<button class="btn text sm" id="btnSync" style="padding:2px 0;color:#AEB7C4;font-size:11.5px">Reintentar ahora</button>`:''}
     ${sesion?`<div style="margin-top:6px;overflow-wrap:anywhere;word-break:break-word">${esc(sesion.user.email)}<br><button class="btn text sm" id="btnLogout" style="padding:2px 0;color:#AEB7C4">Cerrar sesión</button></div>`:''}`;
   const bl=$('#btnLogout'); if(bl) bl.onclick=cerrarSesion;
   const br=$('#btnBloqueoVisual'); if(br) br.onclick=alternarBloqueoVisual;
@@ -8187,7 +8250,7 @@ function vCaja(m){
   <section data-caja-panel="turno" ${cajaVista==='turno'?'':'hidden'}>
     <div class="cash-hero"><div class="cash-turn-status"><span class="cash-status-dot" aria-hidden="true"></span><div><strong>Caja abierta</strong><p>Desde ${fFecha(t.desde)} ${new Date(t.desde).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false})} · ${f59TiempoAbiertoCaja(t.desde)}${activeSession&&activeSession.abiertoPor?` · abrió ${esc(activeSession.abiertoPor)}`:''} · ${t.ventas.length} venta${t.ventas.length===1?'':'s'}</p></div></div>
       <div class="cash-turn-actions"><button type="button" class="btn ghost" id="bGastoCaja">${ic('mas')} Registrar gasto</button><button type="button" class="btn ghost" id="bRetiroCaja">${ic('subir')} Sacar plata</button><button class="btn" type="button" id="irCierreCaja">Cerrar caja</button></div></div>
-    <div class="cash-boxes ${moduloCigarros?'':'single'}">
+    ${esDuenio()?`<div class="cash-boxes ${moduloCigarros?'':'single'}">
       ${tarjetaCaja(moduloCigarros?'Caja general':'Caja única',resumen.general,espGeneral,
         separaCigarrillosAlCierre?'Todo el efectivo se cuenta junto. El monto de cigarrillos se aparta al cerrar.':
         !moduloCigarros?'Todo el efectivo, incluidos cigarrillos, se cuenta una sola vez.':'')}
@@ -8206,7 +8269,7 @@ function vCaja(m){
     <div class="cash-extra-metrics">
       <div><span>Vendido en cigarrillos</span><b>${$m(t.cigTotal)}</b></div>
       <div><span>Egresos del turno</span><b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b></div>
-      <div><span>Ganancia estimada</span><b>${gananciaEstimada===null?'—':$m(gananciaEstimada)}</b><small class="hint">${gananciaEstimada===null?`${t.costosIncompletos} líneas sin costo cargado`:''}</small></div>
+      ${esDuenio()?`<div><span>Ganancia estimada</span><b>${gananciaEstimada===null?'—':$m(gananciaEstimada)}</b><small class="hint">${gananciaEstimada===null?`${t.costosIncompletos} líneas sin costo cargado`:''}</small></div>`:''}
     </div>
     <div class="card">
       <div class="card-h"><h2>Ventas del turno</h2></div>
@@ -8223,7 +8286,7 @@ function vCaja(m){
           <td class="r"><button class="x" data-del-eg="${e.id}" aria-label="Eliminar egreso">${ic('cerrar')}</button></td></tr>`).join('')}
       </tbody></table></div>`:''}
     </div>
-    </div></details>
+    </div></details>`:''}
   </section>
 
   <section data-caja-panel="cierre" class="cash-close-modal" role="dialog" aria-modal="true" aria-label="Cerrar caja" ${cajaVista==='cierre'?'':'hidden'}>
@@ -9884,7 +9947,7 @@ function panelDemo(){
 function demo(){ cargarDemo('kiosco'); }
 
 async function revisarCambiosNube(){
-  if(!(sb&&sesion&&enLinea)||sincronizando) return;
+  if(f61SesionCerrada||!(sb&&sesion&&enLinea)||sincronizando) return;
   if(document.hidden) return;   // pestaña en segundo plano: no gastamos datos ni batería
   try{
     // Primero el sondeo liviano. En la enorme mayoría de los casos no hay nada nuevo
@@ -11446,7 +11509,7 @@ async function f33ActualizarReloj(){
 }
 async function f33RefrescarLicencia({silent=false,reactivar=true}={}){
   if(f33ProcesandoLicencia) return f33EstadoLicencia();
-  if(!sb||!sesion||!enLinea) return f33EstadoLicencia();
+  if(!sb||!sesion||!enLinea||f61SesionCerrada) return f33EstadoLicencia();
   f33ProcesandoLicencia=true;
   try{
     if(!f3Estado.comercioId&&typeof f3DescubrirContextoV4==='function') await f3DescubrirContextoV4();
@@ -11598,6 +11661,7 @@ function f33InstalarGuardiaPush(){
   if(typeof f3ProcesarOutbox!=='function'||f3ProcesarOutbox._f33Wrapped)return;
   const base=f3ProcesarOutbox;
   const wrapped=async function(){
+    if(f61SesionCerrada)return false;
     const ev=f33EstadoLicencia();
     // Nunca empujar si la licencia no permite operar. Si el navegador dice online pero
     // la última validación del backend falló, tampoco quemamos intentos: esperamos la
@@ -11612,6 +11676,7 @@ function f33InstalarGuardiaBlobLegacy(){
   if(typeof subirALaNube!=='function'||subirALaNube._f33Wrapped)return;
   const base=subirALaNube;
   const wrapped=async function(){
+    if(f61SesionCerrada)return false;
     const ev=f33EstadoLicencia();
     // F3 todavía conserva el blob legacy en shadow. La licencia debe frenar también
     // ese write, no sólo el outbox v4; las lecturas/catch-up permanecen separadas.
@@ -11624,6 +11689,7 @@ function f33InstalarSyncF32(){
   if(!window.MiComercioF32||window.MiComercioF32.sync._f33Wrapped)return;
   const base=window.MiComercioF32.sync;
   const wrapped=async function(opts={}){
+    if(f61SesionCerrada)return {ok:false,skip:true,reason:'session_closed'};
     let ev=f33EstadoLicencia();
     if(enLinea)ev=await f33RefrescarLicencia({silent:true,reactivar:true});
     if(ev.puedeOperar&&ev.online)return base.call(this,opts);
@@ -11641,13 +11707,13 @@ function f33InstalarLoginV4(){
     try{
       const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
       if(error)return {ok:false,msg:error.message==='Invalid login credentials'?'Mail o contraseña incorrectos.':error.message};
-      sesion=data.session;
+      sesion=data.session;f61LimpiarAvisoSesion();
       if(typeof f3LeerEstadoLocal==='function')await f3LeerEstadoLocal();
       if(typeof f3DescubrirContextoV4==='function')await f3DescubrirContextoV4();
-      if(!f3Estado.comercioId){await sb.auth.signOut();sesion=null;return {ok:false,msg:'Tu usuario no tiene un comercio v4 habilitado.',tipo:'warn'};}
+      if(!f3Estado.comercioId){await f61CerrarAuthLocal();sesion=null;return {ok:false,msg:'Tu usuario no tiene un comercio v4 habilitado.',tipo:'warn'};}
       if(typeof f6OnboardingPendiente==='function'&&await f6OnboardingPendiente())return {ok:true,onboarding:true};
       const ev=await f33RefrescarLicencia({silent:true,reactivar:false});
-      if(!ev.puedeOperar){await sb.auth.signOut();sesion=null;return {ok:false,msg:'La licencia del comercio no está activa.',tipo:'warn'};}
+      if(!ev.puedeOperar){await f61CerrarAuthLocal();sesion=null;return {ok:false,msg:'La licencia del comercio no está activa.',tipo:'warn'};}
       return {ok:true};
     }catch(e){
       if(sesion){const ev=f33EstadoLicencia();if(ev.puedeOperar)return {ok:true,offline:true};}
@@ -12465,11 +12531,13 @@ async function f5Persistir(next){
   return f5Estado();
 }
 async function f5MembersRequest(body){
+  if(f61SesionCerrada)throw new Error('F61_SESION_CERRADA');
   if(!(sesion&&sesion.access_token)) throw new Error('F5_MEMBERS_REQUIERE_SESION');
   const response=await fetch(`${SUPABASE_URL}/functions/v1/f5-members`,{
     method:'POST',headers:{'content-type':'application/json','apikey':SUPABASE_ANON_KEY,'authorization':`Bearer ${sesion.access_token}`},
     body:JSON.stringify({comercioId:f3Estado.comercioId,...body})
   });
+  if(response.status===401)f61MarcarSesionCerrada();
   let data=null;try{data=await response.json();}catch(_){data=null;}
   if(!response.ok) throw new Error(String(data&&data.code||`F5_MEMBERS_HTTP_${response.status}`));
   return data;
@@ -12508,6 +12576,7 @@ function f5ActualizarNavegacion(){
   if(typeof f33UIActualizar==='function') f33UIActualizar().catch(()=>{});
 }
 async function f5ChequearAutoridad({silent=false,emitir=true}={}){
+  if(f61SesionCerrada)return f5EvaluarAutoridad(f5Estado());
   if(f5AuthorityBusy) return f5EvaluarAutoridad(f5Estado());
   if(!(sb&&sesion&&enLinea&&f3Estado.comercioId&&f3Estado.deviceUuid)) return f5EvaluarAutoridad(f5Estado());
   f5AuthorityBusy=true;
@@ -13558,7 +13627,7 @@ function mostrarErrorDependencia(){
       return;
     }
     if(session){
-      sesion=session;
+      sesion=session;f61LimpiarAvisoSesion();
       // F3.3: la restauración nunca borra datos por licencia. Se abre la app y,
       // si el lease no permite operar, la guardia la deja en modo solo lectura.
       try{

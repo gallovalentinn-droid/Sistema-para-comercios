@@ -25,6 +25,7 @@ test('una solicitud de arranque colgada termina por tiempo máximo; las posterio
     }),
     AbortController, setTimeout: callback => { queueMicrotask(callback); return 1; },
     clearTimeout: () => {},
+    f61VigilarRespuesta: async response => response,
   });
   await assert.rejects(ctx.fetchInicio('/rpc/estado_f43', {}), /NETWORK_TIMEOUT/);
   assert.equal(aborted, true);

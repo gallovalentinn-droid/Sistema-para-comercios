@@ -1,14 +1,14 @@
 {
   "version": "6.0.0-f6-rc2",
-  "packageRevision": 60,
+  "packageRevision": 61,
   "algorithm": "sha256",
   "generatedAt": "2026-09-28",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "f46ce740552b38e355c902093d012b0ee8e59056d3b4dfcd8ffb6ec7a7a4713e",
+    "beta/index.html": "118cc665be869cec9595f684251bf9f3a6975365c17bd8f80545d7b762adca99",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "89bea433065053afd183b462345fa78adf3401a07ae16d7391b6b76dafce97ce",
+    "beta/sw.js": "0f399315669c7a3cf3ee888003a48e85f22aa3833e83a6274b1cd86a81cb0ada",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -22,6 +22,7 @@
     "REV53-PROMOCIONES-CANTIDAD.sql": "55fd70bc75fb1e3e48fc7001e4b4bd71f282368759a7ec6dceaf7cdd5435e25a",
     "REV55-RESPALDO-PREVIO.sql": "f06689fa9c44bb769fafe791a8f4a7aab4ebde40c537a34659dd27fb716c4f23",
     "REV56-CAJA-UNICA.sql": "2a0fc87457189852141b437efd37ff0d58637600ea6e15d17e98e953396ccac8",
-    "REV57-MODOS-CAJA-CIGARRILLOS.sql": "42176ba6b8025319b0c5b88084ed0d07670e4117ed166a321095adb270ec812c"
+    "REV57-MODOS-CAJA-CIGARRILLOS.sql": "6c50d1628d130dd03e974a05e6e5e44b08ff9673a13e3d0845a7ccb36e4d9527",
+    "REV61-PERMISO-CONFIG.sql": "55c596e236728162bebdcf1bc2ed83a5789895c95716ddb319192846e2bad095"
   }
 }

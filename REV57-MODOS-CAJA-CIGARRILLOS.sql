@@ -105,6 +105,8 @@ begin
 end;
 $function$;
 revoke all on function private._f5_actualizar_config_privilegiada(uuid,jsonb) from public,anon,authenticated;
+-- Aplicar REV61-PERMISO-CONFIG.sql a continuación: el wrapper público se
+-- ejecuta como invocador y necesita EXECUTE para authenticated.
 
 create or replace function private.f5_colecciones_por_permisos(p_permissions text[])
 returns jsonb language plpgsql immutable set search_path = '' as $function$

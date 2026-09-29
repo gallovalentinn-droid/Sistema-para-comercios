@@ -79,6 +79,7 @@ test('una apertura larga no convierte consultas posteriores rápidas en error de
     Date: { now: () => now }, AbortController,
     fetch: async () => ({ ok: true }),
     setTimeout: () => 1, clearTimeout: () => {},
+    f61VigilarRespuesta: async response => response,
   });
   ctx.comenzar();
   now = 9000;
@@ -93,7 +94,7 @@ test('al reabrir envía todas las operaciones pendientes del mismo turno en orde
     createdAt: `2026-09-25T10:00:0${localSeq}Z`, nextAttemptAt: null,
   }));
   const ctx = context(`${sourceOf('f3ProcesarOutbox')}\nthis.drenar=f3ProcesarOutbox;`, {
-    f3Activo: () => true, enLinea: true, document: { hidden: false },
+    f3Activo: () => true, enLinea: true, f61SesionCerrada: false, document: { hidden: false },
     f3Procesando: false, f3DrainPendiente: false, f3DrainPendienteAllowHidden: false,
     f3Estado: { comercioId: 'comercio' },
     esperarPersistenciaLocal: async () => {}, f3LeerOutbox: async () => rows,
@@ -112,7 +113,7 @@ test('una operación fallida bloquea las siguientes del mismo turno, sin frenar 
     { operationId: 'caja2-a', streamKey: 'caja-2', localSeq: 1 },
   ].map(o => ({ ...o, schemaVersion: 4, estado: 'pendiente_v4', comercioId: 'comercio', createdAt: '2026-09-25T10:00:00Z' }));
   const ctx = context(`${sourceOf('f3ProcesarOutbox')}\nthis.drenar=f3ProcesarOutbox;`, {
-    f3Activo: () => true, enLinea: true, document: { hidden: false },
+    f3Activo: () => true, enLinea: true, f61SesionCerrada: false, document: { hidden: false },
     f3Procesando: false, f3DrainPendiente: false, f3DrainPendienteAllowHidden: false,
     f3Estado: { comercioId: 'comercio' },
     esperarPersistenciaLocal: async () => {}, f3LeerOutbox: async () => rows,
