@@ -115,8 +115,8 @@ test('la barra empieza expandida y su control queda visible al colapsar', () => 
 });
 
 test('la tabla de notebooks conserva el nombre al agregar la selección en lote', () => {
-  assert.ok(/#tabProd th:nth-child\(3\),#tabProd td:nth-child\(3\),#tabProd th:nth-child\(4\),#tabProd td:nth-child\(4\)\{display:none\}/.test(html));
-  assert.ok(!/#tabProd th:nth-child\(2\)[^\n]*display:none/.test(html));
+  assert.ok(/#tabProd \.product-code,#tabProd \.product-category\{display:none\}/.test(html));
+  assert.ok(!/#tabProd (?:th|td):nth-child\(\d+\)[^\n]*display:none/.test(html));
 });
 
 test('la migración incluye el contrato de sincronización de archivos y turnos', () => {

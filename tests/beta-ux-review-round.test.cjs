@@ -156,9 +156,9 @@ test('Soporte prepara el contacto con diagnóstico técnico de solo lectura', ()
 test('Productos compacta columnas y acciones en notebooks de hasta 1440 px', () => {
   const text = source();
   assert.match(text, /@media\(max-width:1440px\) and \(min-width:761px\)/);
-  assert.match(text, /#tabProd th:nth-child\(3\).*#tabProd td:nth-child\(4\)\{display:none\}/s);
+  assert.match(text, /#tabProd \.product-code,#tabProd \.product-category\{display:none\}/);
   assert.match(text, /#tabProd td:last-child \.btn\{width:38px/);
-  assert.match(text, /@media\(max-width:1100px\) and \(min-width:761px\)[\s\S]*#tabProd th:nth-child\(7\)/);
+  assert.match(text, /@media\(max-width:1100px\) and \(min-width:761px\)[\s\S]*#tabProd \.product-cost,#tabProd \.product-margin\{display:none\}/);
 });
 
 test('Para pedir y Movimientos contienen sus tablas en notebooks angostas', () => {
