@@ -109,7 +109,7 @@ test('Productos y Para pedir renderizan la misma foto firmada', async () => {
     this.producto=producto;
     const db={productos:[producto]};
     const fProd={q:'',rubros:[],actividad:'',estado:'activos',orden:'nombre'};
-    const selectedProductosRev31=new Set(),productoArchivadoRev31=p=>!!p.archivadoAt;
+    const selectedProductosRev31=new Set(),seleccionProductosActivo=false,productoArchivadoRev31=p=>!!p.archivadoAt;
     const pedido={}; let repOrden='rubro';
     const target={innerHTML:''};
     const $=()=>target, $$=()=>[];

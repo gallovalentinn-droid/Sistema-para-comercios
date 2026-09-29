@@ -45,12 +45,12 @@ test('Vender protege la cancelación y los atajos abren el flujo visible', () =>
   assert.doesNotMatch(shortcuts, /e\.key==='Escape'[\s\S]{0,120}ticket=\[\]/);
 });
 
-test('el cobro en efectivo ofrece montos rápidos y exige monto recibido', () => {
+test('el cobro en efectivo ofrece montos rápidos y acepta el importe exacto por defecto', () => {
   const text = source();
   const payment = block(text, 'function pintarPagoModal(ov){', '\nfunction pintarMixtoFilas(');
   assert.match(payment, /data-cash-quick/);
   assert.match(payment, /Justo/);
-  assert.match(payment, /recibido&&num\(recibido\)>=t/);
+  assert.match(payment, /f62ImporteEfectivo\(recibido,t\)\.valido/);
   assert.match(payment, /!recibido\?'vacio'/);
 });
 

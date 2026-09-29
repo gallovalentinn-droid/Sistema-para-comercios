@@ -59,7 +59,7 @@ test('al reconstruir la tabla de Productos conserva también su desplazamiento i
   const ctx = {
     db: { productos: [{ id: 'p1', nombre: 'Atado', costo: 10 }] },
     fProd: { q: '', rubros: [], actividad: '', estado: 'activos', orden: 'nombre', incompletos: false },
-    ultimoCambioPrecios: null, selectedProductosRev31: new Set(),
+    ultimoCambioPrecios: null, selectedProductosRev31: new Set(), seleccionProductosActivo: false, filtrosProductosAbiertos: false,
     productoArchivadoRev31: () => false, productoIncompleto: () => false, bajo: () => false,
     esc: String, ic: () => '', htmlFiltroRubrosRev31: () => '',
     $: selector => selector === '#tabProd' ? (rebuilt ? newList : oldList) : null,

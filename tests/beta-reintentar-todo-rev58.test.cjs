@@ -12,12 +12,12 @@ function section(start, end) {
   return html.slice(a, b);
 }
 
-test('el panel ofrece «Reintentar todo» y la barra lateral también reintenta la cola', () => {
+test('el panel y el único indicador de nube permiten reintentar la cola', () => {
   assert.match(html, /id="f33-process"[^>]*>Reintentar todo<\/button>/);
   assert.match(html, /r=await f33ReintentarTodo\(\);/);
-  const barra = section("const bs=$('#btnSync');", "function ");
-  assert.match(barra, /f33ReintentarTodo\(\)/);
-  assert.match(barra, /subirALaNube\(\)/);
+  const indicador = section('function f33UIAsegurarDom(', 'function f33TargetPermitido(');
+  assert.match(indicador, /f33ReintentarTodo\(\)/);
+  assert.match(indicador, /subirALaNube\(\)/);
 });
 
 test('reintentar todo reencola en orden sólo las operaciones reintentables del comercio actual', async () => {
@@ -110,22 +110,24 @@ test('si falla la lectura final no informa que todo está sincronizado', async (
 });
 
 test('el acceso rápido no anuncia éxito si falló el reintento del outbox', async () => {
-  const code = section("const bs=$('#btnSync');", '\n}\nasync function alternarBloqueoVisual');
-  const button = { disabled: false };
+  const code = section('function f33UIAsegurarDom(', 'function f33TargetPermitido(');
+  const nodes = {};
   const notices = [];
   const ctx = vm.createContext({
-    $: () => button, f3Activo: () => true,
+    document: {getElementById: id => nodes[id]||(id==='f33-close'?{}:undefined), createElement: () => ({ dataset:{},style:{} }), head:{appendChild:()=>{}},body:{appendChild:el=>{nodes[el.id]=el;}}},
+    f33Css:()=>'', enLinea:true, f33UIActualizar:async()=>{}, f33UICerrarPanel:()=>{}, f33UIAbrirPanel:()=>{},
     f33ReintentarTodo: async () => { throw new Error('OUTBOX_INDISPONIBLE'); },
     subirALaNube: async () => true,
     aviso: (message, tone) => notices.push({ message, tone }),
     console: { error: () => {} },
   });
-  vm.runInContext(code, ctx);
+  vm.runInContext(`${code}\nthis.init=f33UIAsegurarDom;`, ctx);
+  ctx.init();const button=nodes['f33-status'];button.dataset.accion='retry';
   await button.onclick();
   assert.equal(button.disabled, false);
   assert.equal(notices.length, 1);
   assert.equal(notices[0].tone, 'bad');
-  assert.match(notices[0].message, /No pudimos reintentar/i);
+  assert.match(notices[0].message, /No pudimos subir/i);
   assert.doesNotMatch(notices[0].message, /Todo sincronizado/i);
 });
 
@@ -230,11 +232,11 @@ test('el indicador no alerta por problemas de otro comercio', async () => {
     f33UIAsegurarDom: () => {}, f33EstadoLicencia: () => ({ estado: 'activa', online: true }),
     f33LeerOutboxRuntime: async () => [{ comercioId: 'c2', estado: 'dead_letter_v4' }],
     f33ContarOutbox: rows => ({ pendientes: 0, problemas: rows.length, licencia: 0 }),
-    assertWritable: () => ({ ok: true }), f33EstadoTexto: () => 'Activa',
+    assertWritable: () => ({ ok: true }), sb:{},sesion:{},f61SesionCerrada:false,falloGuardadoLocal:false,pendienteSubir:false,guardando:false,sincronizando:false,
   });
-  vm.runInContext(`${code}\nthis.actualizar=f33UIActualizar;`, ctx);
+  vm.runInContext(`${section('function f62ResumenSync(', 'function f62RevisionNueva(')}\n${code}\nthis.actualizar=f33UIActualizar;`, ctx);
   await ctx.actualizar();
-  assert.equal(status.hidden, true);
+  assert.equal(status.hidden, false);
   assert.equal(status.dataset.warn, '0');
   assert.doesNotMatch(label.textContent, /excepción/i);
 });
@@ -251,13 +253,13 @@ test('el indicador queda visible si no se pudieron leer las operaciones', async 
     f33UIAsegurarDom: () => {}, f33EstadoLicencia: () => ({ estado: 'activa', online: true }),
     f33LeerOutboxRuntime: async () => { throw new Error('IDB no disponible'); },
     f33ContarOutbox: () => ({ pendientes: 0, problemas: 0, licencia: 0 }),
-    assertWritable: () => ({ ok: true }), f33EstadoTexto: () => 'Activa',
+    assertWritable: () => ({ ok: true }), sb:{},sesion:{},f61SesionCerrada:false,falloGuardadoLocal:false,pendienteSubir:false,guardando:false,sincronizando:false,
   });
-  vm.runInContext(`${code}\nthis.actualizar=f33UIActualizar;`, ctx);
+  vm.runInContext(`${section('function f62ResumenSync(', 'function f62RevisionNueva(')}\n${code}\nthis.actualizar=f33UIActualizar;`, ctx);
   await ctx.actualizar();
   assert.equal(status.hidden, false);
   assert.equal(status.dataset.warn, '1');
-  assert.match(label.textContent, /sin verificar/i);
+  assert.match(label.textContent, /No se pudo verificar/i);
 });
 
 test('el arnés de navegador sirve esta beta por defecto', async () => {

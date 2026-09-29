@@ -49,12 +49,13 @@ test('abrir la pantalla no reinicia el plazo de un arranque ya iniciado', async 
 
 test('con una caja abierta se puede elegir separación al cierre, pero no activar dos cajas físicas', () => {
   const button = { value: 'dos_cajas', checked: true };
-  const notices = []; let saves = 0;
+  const notices = []; let saves = 0, aceptarCambio;
   const ctx = run(block("  $$('input[name=\"modoCaja\"]',m).forEach", "  $$('[data-mod]').forEach"), {
     $$: () => [button], db: { config: { moduloCigarros: false, separaCigarrillosAlCierre: false } },
     m: {},
     f3Estado: { session: { estado: 'abierta' } },
     aviso: message => notices.push(message), guardar: () => { saves++; }, render: () => {},
+    confirmar: (_titulo, _texto, aceptar) => { aceptarCambio=aceptar; },
     f57ModoCaja: config => config.moduloCigarros ? 'dos_cajas' : config.separaCigarrillosAlCierre ? 'unica_separa_cigarrillos' : 'unica',
   });
   button.onchange();
@@ -63,6 +64,8 @@ test('con una caja abierta se puede elegir separación al cierre, pero no activa
   assert.match(notices[0], /Cerrá el turno/i);
   button.value = 'unica_separa_cigarrillos';
   button.onchange();
+  assert.equal(saves, 0, 'espera la confirmación porque el turno está abierto');
+  aceptarCambio();
   assert.equal(ctx.db.config.separaCigarrillosAlCierre, true);
   assert.equal(saves, 1);
   ctx.f3Estado.session.estado = 'cerrada';
