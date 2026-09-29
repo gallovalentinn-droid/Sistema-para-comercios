@@ -825,7 +825,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:63,
+  packageRevision:64,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -3939,6 +3939,14 @@ function f62ImporteEfectivo(raw,total){
   const valido=Number.isFinite(valor)&&valor>=Number(total);
   return {valido,recibido:valor,vuelto:valido?Math.max(0,valor-Number(total)):0};
 }
+function f64IntentoCobroEfectivo(raw,total,productos=[]){
+  const texto=String(raw??'').trim();
+  const posibleCodigo=/^\d{8,14}$/.test(texto);
+  const producto=posibleCodigo?(productos||[]).find(p=>String(p&&p.ean||'').trim()===texto)||null:null;
+  const codigo=posibleCodigo&&(!!producto||Number(texto)>Math.max(1,Number(total)||0)*50);
+  if(codigo)return {valido:false,recibido:0,vuelto:0,codigo:true,producto};
+  return {...f62ImporteEfectivo(raw,total),codigo:false,producto:null};
+}
 let f62VersionNueva=null;
 function f62PintarActualizacion(){
   let banner=document.getElementById('f62VersionBanner');
@@ -4324,9 +4332,11 @@ function vAbrirTurnoRev31(m){
     <div id="rev31Conteo" hidden><p class="hint">Contá la plata que hay ahora. Si la caja está vacía, escribí 0.</p><label class="f" for="rev31Fondo">${moduloCigarros?'Plata en caja general':'Plata en caja'}</label><input class="inp num" id="rev31Fondo" type="text" inputmode="decimal" autocomplete="off">${moduloCigarros?`<label class="f" for="rev31FondoCig" style="margin-top:12px">Plata en caja de cigarrillos</label><input class="inp num" id="rev31FondoCig" type="text" inputmode="decimal" autocomplete="off">`:''}</div>
     <div id="rev31MotivoBox" hidden><label class="f" for="rev31Motivo" style="margin-top:12px">¿Por qué hay una diferencia?</label><input class="inp" id="rev31Motivo" maxlength="500" placeholder="Por ejemplo, faltante entre turnos"></div>
     <label class="f" for="rev31Responsable" style="margin-top:12px">Quién abre</label><input class="inp" id="rev31Responsable" maxlength="120" value="${esc(nombre)}"><button type="button" class="btn" id="rev31Abrir" style="margin-top:18px" disabled>Abrir turno y vender</button>
-    <button type="button" class="btn ghost sm" id="rev31Reintentar" hidden>Reintentar consulta</button></div></div>`;
+    <button type="button" class="btn ghost sm" id="rev31Reintentar" hidden>Reintentar consulta</button><button type="button" class="btn ghost sm" id="rev31Ingresar" hidden>Volver a ingresar</button></div></div>`;
   let contexto=null,modo='';
   const estado=$('#rev31Estado',m),boton=$('#rev31Abrir',m),conteo=$('#rev31Conteo',m);
+  const reingresar=$('#rev31Ingresar',m);
+  reingresar.onclick=()=>cerrarSesion();
   const actualizarMotivo=()=>{
     if(!contexto||contexto.tipo!=='confirmado'||modo!=='contado'){$('#rev31MotivoBox',m).hidden=true;return;}
     const esperado=f52ImportesApertura(contexto,moduloCigarros);
@@ -4351,7 +4361,9 @@ function vAbrirTurnoRev31(m){
     $('#rev31NoCoincide',m).classList.add('selected');$('#rev31Coincide',m).classList.remove('selected');
   };
   const consultar=async()=>{
-    boton.disabled=true;estado.textContent='Consultando el último cierre de esta caja…';$('#rev31Reintentar',m).hidden=true;
+    boton.disabled=true;estado.textContent='Consultando el último cierre de esta caja…';$('#rev31Reintentar',m).hidden=true;reingresar.hidden=true;
+    const pedirIngreso=texto=>{contexto=null;modo='';conteo.hidden=true;$('#rev31Pregunta',m).hidden=true;estado.textContent=texto;reingresar.hidden=false;};
+    if(f61SesionCerrada){pedirIngreso('Tu sesión se cerró. Volvé a ingresar para abrir el turno.');return;}
     try{
       const dato=await f52ConsultarTraspasoCaja();if($('#rev31Estado',m)!==estado)return;
       contexto=dato;modo='';$('#rev31Pregunta',m).hidden=dato.tipo!=='confirmado';
@@ -4363,7 +4375,14 @@ function vAbrirTurnoRev31(m){
         conteo.hidden=false;modo='contado';boton.disabled=false;
         estado.textContent=dato.tipo==='en_revision'?'El último cierre necesita revisión. Contá la plata actual; no vamos a suponer un saldo.':dato.tipo==='anterior'?'El último cierre es anterior a esta función. Contá la plata actual; no vamos a suponer un saldo.':dato.consultaError==='actualizacion_pendiente'?'La nube necesita la actualización de Caja. Contá la plata actual; el turno se guardará para sincronizar después.':dato.sinConexion?'No pudimos consultar la nube. Contá la plata actual para abrir.':'Esta caja no tiene cierres anteriores. Contá la plata inicial.';
       }
-    }catch(error){if($('#rev31Estado',m)!==estado)return;contexto=null;estado.textContent='No se pudo consultar el último cierre. Revisá la conexión y reintentá.';$('#rev31Reintentar',m).hidden=false;}
+    }catch(error){
+      if($('#rev31Estado',m)!==estado)return;
+      if(f61SesionCerrada||['42501','PGRST301'].includes(f3CodigoError(error))){
+        pedirIngreso(f61SesionCerrada?'Tu sesión se cerró. Volvé a ingresar para abrir el turno.':'No pudimos validar tu acceso. Volvé a ingresar para abrir el turno.');
+        return;
+      }
+      contexto=null;estado.textContent='No se pudo consultar el último cierre. Revisá la conexión y reintentá.';$('#rev31Reintentar',m).hidden=false;
+    }
   };
   $('#rev31Reintentar',m).onclick=consultar;
   consultar();
@@ -4610,6 +4629,7 @@ function abrirModalPago(){
 function pintarPagoModal(ov){
   const t=totalTicket();
   const vuelto=num(recibido)-t;
+  const intentoEfectivo=f64IntentoCobroEfectivo(recibido,t,db.productos);
   const pctPago=promoPagoPct(pago);
   const billetes=[5000,10000,20000].filter((v,i,a)=>v>=t&&a.indexOf(v)===i).slice(0,3);
   $('#pagoBody',ov).innerHTML=`
@@ -4623,10 +4643,10 @@ function pintarPagoModal(ov){
       <input id="rec" class="inp num" inputmode="decimal" placeholder="Importe exacto si lo dejás vacío" value="${esc(recibido)}">
       <div class="hint">Dejalo vacío para cobrar el total exacto.</div>
       <div class="cash-quick"><button type="button" class="btn ghost sm" data-cash-quick="${t}">Justo</button>${billetes.map(v=>`<button type="button" class="btn ghost sm" data-cash-quick="${v}">${$m(v)}</button>`).join('')}</div>
-      <div class="vuelto ${!recibido?'vacio':vuelto<0?'falta':''}">
-        <span>${recibido&&vuelto<0?'Falta':'Vuelto'}</span><b>${recibido?$m(Math.abs(vuelto)):$m(0)}</b>
+      <div class="vuelto ${!recibido?'vacio':intentoEfectivo.codigo||vuelto<0?'falta':''}">
+        <span>${intentoEfectivo.codigo?'Parece un código de barras':recibido&&vuelto<0?'Falta':'Vuelto'}</span><b>${intentoEfectivo.codigo?'No se cobró':recibido?$m(Math.abs(vuelto)):$m(0)}</b>
       </div>
-      <button class="btn verde big" id="cobrar" style="margin-top:8px" ${f62ImporteEfectivo(recibido,t).valido?'':'disabled'}>Cobrar ${$m(t)}</button>`
+      <button class="btn verde big" id="cobrar" style="margin-top:8px" ${intentoEfectivo.valido?'':'disabled'}>Cobrar ${$m(t)}</button>`
     : pago==='fiado'?`
       <label class="f" for="cliF">¿A quién se lo anotamos?</label>
       <select id="cliF" class="inp">
@@ -4654,11 +4674,21 @@ function pintarPagoModal(ov){
   const rec=$('#rec',ov);
   if(rec){
     rec.focus();
-    rec.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();if(f62ImporteEfectivo(rec.value,t).valido)cerrarVenta('efectivo');}};
+    rec.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){
+      e.preventDefault();
+      const intento=f64IntentoCobroEfectivo(rec.value,t,db.productos);
+      if(intento.codigo){
+        if(intento.producto){recibido='';cerrarModal();seleccionarProducto(intento.producto);aviso('Producto escaneado: revisá el nuevo total antes de cobrar.','ok');}
+        else{aviso('Esto parece un código de barras. Volvé al ticket para agregar el producto.','bad');rec.select();}
+        return;
+      }
+      if(intento.valido)cerrarVenta('efectivo');
+    }};
     rec.oninput=()=>{ recibido=rec.value; const v=num(recibido)-t;
-      const box=$('.vuelto',ov); box.className='vuelto '+(!recibido?'vacio':v<0?'falta':'');
-      box.innerHTML=`<span>${recibido&&v<0?'Falta':'Vuelto'}</span><b>${recibido?$m(Math.abs(v)):$m(0)}</b>`;
-      const cobrar=$('#cobrar',ov);if(cobrar)cobrar.disabled=!f62ImporteEfectivo(recibido,t).valido; };
+      const intento=f64IntentoCobroEfectivo(recibido,t,db.productos);
+      const box=$('.vuelto',ov); box.className='vuelto '+(!recibido?'vacio':intento.codigo||v<0?'falta':'');
+      box.innerHTML=`<span>${intento.codigo?'Parece un código de barras':recibido&&v<0?'Falta':'Vuelto'}</span><b>${intento.codigo?'No se cobró':recibido?$m(Math.abs(v)):$m(0)}</b>`;
+      const cobrar=$('#cobrar',ov);if(cobrar)cobrar.disabled=!intento.valido; };
     $$('[data-cash-quick]',ov).forEach(b=>b.onclick=()=>{recibido=String(b.dataset.cashQuick);rec.value=recibido;rec.oninput();rec.focus();});
   }
   const cf=$('#cliF',ov); if(cf) cf.onchange=()=>clienteFiado=cf.value;
@@ -4837,7 +4867,10 @@ function cerrarVenta(forma){
     pagosFinal=pagoMixto.map(f=>({forma:f.forma,monto:num(f.monto)}));
   } else {
     if(forma==='fiado'&&!clienteFiado){ aviso('Elegí a qué cliente se lo anotás','bad'); return; }
-    if(forma==='efectivo'&&!f62ImporteEfectivo(recibido,total).valido){ aviso('El monto recibido no alcanza','bad'); return; }
+    if(forma==='efectivo'){
+      const intento=f64IntentoCobroEfectivo(recibido,total,db.productos);
+      if(!intento.valido){aviso(intento.codigo?'El importe parece un código de barras. Volvé al ticket para agregar el producto.':'El monto recibido no alcanza','bad');return;}
+    }
     clienteId = forma==='fiado'? clienteFiado : '';
   }
 
@@ -8143,9 +8176,10 @@ function f56ValidarApartadoCigarrillos(texto,destino,requerido=false){
     ?{ok:false,error:'Indicá cuánto efectivo separás para cigarrillos. Si no separás nada, escribí 0.'}
     :{ok:true,value:0};
   const dato=numImportacion(texto);
-  if(!dato.ok||dato.blank||!Number.isFinite(dato.value)||dato.value<0||
-    !destino||destino.ok!==true||dato.value>Number(destino.retiroGeneral)+0.009)
+  if(!dato.ok||dato.blank||!Number.isFinite(dato.value)||dato.value<0||!destino||destino.ok!==true)
     return {ok:false,error:'El apartado de cigarrillos debe estar entre $0 y el efectivo que retirás de la caja.'};
+  if(dato.value>Number(destino.retiroGeneral)+0.009)
+    return {ok:false,error:`Retirás ${$m(destino.retiroGeneral)} y apartás ${$m(dato.value)}. Bajá lo que queda o el apartado.`};
   return {ok:true,value:Math.round(dato.value*100)/100};
 }
 function f57DesgloseRetiroCigarrillos(destino,apartado){

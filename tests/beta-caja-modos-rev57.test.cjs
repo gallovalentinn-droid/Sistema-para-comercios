@@ -32,13 +32,15 @@ test('la elección de caja muestra tres opciones con la actual marcada', () => {
 });
 
 test('el modo de separación exige indicar un importe real, incluso cero, sin duplicar el retiro', () => {
-  const context = vm.createContext({ numImportacion: text => ({ ok: /^\d+(?:[.,]\d{1,2})?$/.test(String(text)), blank: !String(text).trim(), value: Number(String(text).replace(',', '.')) }) });
+  const context = vm.createContext({ numImportacion: text => ({ ok: /^\d+(?:[.,]\d{1,2})?$/.test(String(text)), blank: !String(text).trim(), value: Number(String(text).replace(',', '.')) }), $m: value => `$${Number(value).toFixed(2)}` });
   vm.runInContext(`${section('function f56ValidarApartadoCigarrillos(', 'function f52UltimoCierreLocal(')}\nthis.validar=f56ValidarApartadoCigarrillos;this.desglosar=f57DesgloseRetiroCigarrillos;`, context);
   const destino = { ok: true, retiroGeneral: 582000, quedaGeneral: 100000 };
   assert.equal(context.validar('', destino, true).ok, false);
   assert.equal(context.validar('0', destino, true).value, 0);
   assert.equal(context.validar('127600', destino, true).value, 127600);
   assert.equal(context.validar('582001', destino, true).ok, false);
+  assert.match(context.validar('6000', {ok:true,retiroGeneral:2000,quedaGeneral:14000}, true).error,
+    /Retirás \$2000\.00 y apartás \$6000\.00\. Bajá lo que queda o el apartado/);
   const partes = context.desglosar(destino, 127600);
   assert.equal(partes.otrosRetiros, 454400);
   assert.equal(partes.apartadoCigarrillos + partes.otrosRetiros + partes.quedaGeneral, 682000);

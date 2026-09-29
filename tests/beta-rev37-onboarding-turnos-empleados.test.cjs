@@ -33,7 +33,7 @@ test('el alta inicial pide nombre y zona horaria sin exponer el corte del día',
   });
 });
 
-function turnoFixture(moduloCigarros, cigarrillos = '75,50', sessionBefore = null, traspaso = null) {
+function turnoFixture(moduloCigarros, cigarrillos = '75,50', sessionBefore = null, traspaso = null, options = {}) {
   const session = { fondoCigarros: 50 };
   const messages = [];
   const fields = {
@@ -43,7 +43,7 @@ function turnoFixture(moduloCigarros, cigarrillos = '75,50', sessionBefore = nul
     '#rev31FondoCig': { value: cigarrillos, focus(){} },
     '#rev31Responsable': { value: ' Ana ' },
   };
-  for (const id of ['rev31Estado','rev31Pregunta','rev31Esperado','rev31Conteo','rev31MotivoBox','rev31Motivo','rev31Coincide','rev31NoCoincide','rev31Reintentar'])
+  for (const id of ['rev31Estado','rev31Pregunta','rev31Esperado','rev31Conteo','rev31MotivoBox','rev31Motivo','rev31Coincide','rev31NoCoincide','rev31Reintentar','rev31Ingresar'])
     fields[`#${id}`] = { value:'', hidden:false, textContent:'', classList:{add(){},remove(){}}, focus(){}, onclick:null };
   let saved = 0;
   const context = {
@@ -53,7 +53,10 @@ function turnoFixture(moduloCigarros, cigarrillos = '75,50', sessionBefore = nul
     esc: value => value,
     $m: value => `$${Number(value).toFixed(2)}`,
     $: selector => fields[selector],
-    f52ConsultarTraspasoCaja: async () => traspaso || ({ tipo:'sin_cierre',sinConexion:false,cierreId:null }),
+    f52ConsultarTraspasoCaja: async () => {if(options.error)throw options.error;return traspaso || ({ tipo:'sin_cierre',sinConexion:false,cierreId:null });},
+    f61SesionCerrada: options.sesionCerrada || false,
+    f3CodigoError: error => String(error?.code || ''),
+    cerrarSesion: () => { options.reingresos = (options.reingresos || 0) + 1; },
     numImportacion: value => ({ ok: /^\d+(?:[,.]\d+)?$/.test(value), blank: value === '', value: Number(value.replace(',', '.')) }),
     f5ExigirEscritura: () => {},
     f3AsegurarSesionLocal: () => session,
@@ -65,8 +68,27 @@ function turnoFixture(moduloCigarros, cigarrillos = '75,50', sessionBefore = nul
   vm.runInContext(`${between('function f52ImportesApertura(', 'async function f52ConsultarTraspasoCaja(')}\n${between('let rev31ReabrirTrasCierre=false;', 'function mostrarAvisoTurnoRev31')}\nthis.open=vAbrirTurnoRev31;`, context);
   const main = { innerHTML: '' };
   context.open(main);
-  return { main, fields, session, messages, saved: () => saved, ready: () => new Promise(resolve=>setImmediate(resolve)) };
+  return { main, fields, session, messages, saved: () => saved, reingresos: () => options.reingresos || 0, ready: () => new Promise(resolve=>setImmediate(resolve)) };
 }
+
+test('si la sesión está cerrada, la apertura guía a volver a ingresar en lugar de culpar a la conexión', async () => {
+  const ui = turnoFixture(false, '0', null, null, {sesionCerrada:true});
+  await ui.ready();
+  assert.match(ui.fields['#rev31Estado'].textContent, /sesión se cerró/i);
+  assert.equal(ui.fields['#rev31Reintentar'].hidden, true);
+  assert.equal(ui.fields['#rev31Ingresar'].hidden, false);
+  assert.equal(ui.fields['#rev31Abrir'].disabled, true);
+  ui.fields['#rev31Ingresar'].onclick();
+  assert.equal(ui.reingresos(), 1);
+});
+
+test('si falla la autorización de la consulta, la apertura ofrece volver a ingresar', async () => {
+  const ui = turnoFixture(false, '0', null, null, {error:{code:'42501'}});
+  await ui.ready();
+  assert.match(ui.fields['#rev31Estado'].textContent, /volvé a ingresar/i);
+  assert.equal(ui.fields['#rev31Reintentar'].hidden, true);
+  assert.equal(ui.fields['#rev31Ingresar'].hidden, false);
+});
 
 test('la apertura separa ambos fondos cuando está activa la caja de cigarrillos', async () => {
   const ui = turnoFixture(true);

@@ -50,7 +50,8 @@ test('el cobro en efectivo ofrece montos rápidos y acepta el importe exacto por
   const payment = block(text, 'function pintarPagoModal(ov){', '\nfunction pintarMixtoFilas(');
   assert.match(payment, /data-cash-quick/);
   assert.match(payment, /Justo/);
-  assert.match(payment, /f62ImporteEfectivo\(recibido,t\)\.valido/);
+  assert.match(payment, /f64IntentoCobroEfectivo\(recibido,t,db\.productos\)/);
+  assert.match(payment, /intentoEfectivo\.valido/);
   assert.match(payment, /!recibido\?'vacio'/);
 });
 

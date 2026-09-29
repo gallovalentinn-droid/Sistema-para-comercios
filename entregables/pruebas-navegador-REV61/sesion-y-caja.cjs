@@ -32,16 +32,18 @@ const {open}=require('../pruebas-navegador-REV58/harness.cjs');
       const ventas=db.ventas.length;
       const response=new Response('Unauthorized',{status:401});
       await f61VigilarRespuesta(response,'https://qrvdfqpxutymmlcplsal.supabase.co/rest/v1/rpc/f5_obtener_proyeccion');
+      await f33UIActualizar();
       return {cerrada:f61SesionCerrada,ventasAntes:ventas,ventasDespues:db.ventas.length,
         aviso:document.querySelector('#sesionAviso')?.textContent,
         visible:!document.querySelector('#sesionAviso')?.hidden,
-        pie:document.querySelector('#railFoot')?.textContent};
+        indicador:document.querySelector('#f33-status-text')?.textContent,
+        estadoCalculado:f62ResumenSync({sesionActiva:true,sesionCerrada:true,enLinea:true,falloGuardadoLocal:false,counts:{pendientes:0,problemas:0,licencia:0}}).texto};
     });
     assert.equal(sesion.cerrada,true);
     assert.equal(sesion.ventasDespues,sesion.ventasAntes);
     assert.equal(sesion.visible,true);
     assert.match(sesion.aviso,/Volvé a ingresar para subir las ventas/);
-    assert.match(sesion.pie,/Sesión cerrada/);
+    assert.match(sesion.estadoCalculado,/Sesión cerrada/);
     await app.page.screenshot({path:path.join(__dirname,'sesion-cerrada.png'),fullPage:false});
     await app.page.setViewportSize({width:390,height:844});
     const mobile=await app.page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,
@@ -51,6 +53,6 @@ const {open}=require('../pruebas-navegador-REV58/harness.cjs');
     assert.ok(mobile.contenido>=mobile.aviso,'el aviso no debe tapar la caja en celular');
     await app.page.screenshot({path:path.join(__dirname,'sesion-cerrada-movil.png'),fullPage:false});
     assert.deepEqual(app.errors.filter(error=>error.startsWith('pageerror:')),[]);
-    console.log(JSON.stringify({caja,sesion:{...sesion,pie:undefined,aviso:undefined},mobile}));
+    console.log(JSON.stringify({caja,sesion:{...sesion,indicador:undefined,aviso:undefined},mobile}));
   }finally{await app.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

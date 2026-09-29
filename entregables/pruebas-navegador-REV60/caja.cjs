@@ -66,9 +66,9 @@ const {open}=require('../pruebas-navegador-REV58/harness.cjs');
         await app.page.fill('#contadoG','64850');
         await app.page.click('#pasoCajaSiguiente');
         await app.page.click('#pasoCajaFinalizar');
-        const ayuda=await app.page.locator('#apartadoCigarrillos + .hint').innerText();
-        assert.match(ayuda,/Ventas de cigarrillos cobradas en efectivo en este turno: \$12\.600,00\./);
-        assert.doesNotMatch(ayuda,/Usalo como referencia|No se resta dos veces/);
+        const sugerencia=await app.page.locator('.cash-cigarette-suggestion').innerText();
+        assert.match(sugerencia,/Sugerencia por ventas de cigarrillos ya cobradas: \$12\.600,00/);
+        assert.match(sugerencia,/Efectivo \$12\.600,00/);
         await app.page.screenshot({path:path.join(__dirname,'cierre-cigarrillos.png'),fullPage:false});
         await app.page.click('#cancelarCierreCaja');
       }

@@ -35,7 +35,7 @@ test('una caja física suma todo el efectivo y conserva cigarrillos como dato de
 });
 
 test('el apartado es una parte del retiro posterior al conteo', () => {
-  const context = vm.createContext({ numImportacion: text => ({ ok: /^\d+(?:[.,]\d{1,2})?$/.test(String(text)), blank: !String(text).trim(), value: Number(String(text).replace(',', '.')) }) });
+  const context = vm.createContext({ numImportacion: text => ({ ok: /^\d+(?:[.,]\d{1,2})?$/.test(String(text)), blank: !String(text).trim(), value: Number(String(text).replace(',', '.')) }), $m: value => `$${Number(value).toFixed(2)}` });
   vm.runInContext(`${section('function f56ValidarApartadoCigarrillos(', 'function f52UltimoCierreLocal(')}\nthis.validar=f56ValidarApartadoCigarrillos;`, context);
   assert.equal(context.validar('127600', { ok: true, retiroGeneral: 200000 }).value, 127600);
   assert.equal(context.validar('', { ok: true, retiroGeneral: 200000 }).value, 0);
