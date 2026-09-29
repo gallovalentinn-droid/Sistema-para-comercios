@@ -17,7 +17,7 @@
 
 - **Código:** se confirmó que el cliente usa `supabase-js` 2.112.3. La documentación oficial de Supabase indica que el alcance predeterminado de `signOut()` es `global` y que `local` conserva las otras sesiones. Las llamadas de esta beta usan ahora el alcance local.
 - **Local:** 257 pruebas automáticas aprobadas, análisis sintáctico del script principal, verificación de integridad de 20 archivos y escenario de navegador en tres estados (dueño, empleado y pantalla bloqueada). Un 401 mostró el aviso sin borrar la venta local; el aviso se revisó también a 390 px sin superposición ni desborde.
-- **Entorno público:** pendiente de confirmar la propagación de REV61 y de repetir el reingreso y la sincronización en el dispositivo real del mostrador. La consulta a la base pública del 28/09/2026 seguía mostrando como última venta recibida la de las 16:33, hora argentina.
+- **Entorno público:** `https://micomercio.ar/beta/` respondió HTTP 200 sin caché con `packageRevision:61` y `signOut({scope:'local'})`; el service worker público respondió HTTP 200 con caché `micomercio-beta-6.0.0-f6-rc2-rev61`. Queda pendiente repetir el reingreso y la sincronización en el dispositivo real del mostrador. La consulta a la base pública del 28/09/2026 seguía mostrando como última venta recibida la de las 16:33, hora argentina.
 
 ## Recuperación del mostrador
 
