@@ -2,7 +2,7 @@
 
 Fecha: 29/09/2026.
 
-La auditoría adjunta se trató como evidencia para contrastar con el código. Esta revisión corrige los hallazgos reproducibles sin modificar datos de comercios ni publicar la beta.
+La auditoría adjunta se trató como evidencia para contrastar con el código. Esta revisión corrige los hallazgos reproducibles sin modificar datos de comercios. REV64 se publicó en la beta el 29/09/2026.
 
 ## Cambios
 
@@ -16,13 +16,13 @@ La auditoría adjunta se trató como evidencia para contrastar con el código. E
 
 - **M2, criterio de cigarrillos:** se mantiene la decisión ya aprobada de sugerir lo cobrado por todos los medios, excluyendo fiado. La pantalla de cierre lo indica, desglosa efectivo, transferencia/QR y tarjeta, y exige confirmar el efectivo realmente apartado. La sugerencia no se contabiliza como efectivo adicional.
 - **A2, conciliación de datos reales:** una consulta propia de solo lectura a Supabase, a las 10:04 de Argentina, confirmó **17 excepciones en `requiere_conciliacion`, una sesión abierta y tres sesiones en revisión** para el comercio identificado en la auditoría. La última venta recibida fue a las 09:45:53; llegaron tres ventas desde la hora de referencia del informe. No se modificaron registros. Resolver las excepciones requiere contrastar cada cierre con las ventas y los datos locales de los dispositivos, y conciliar sin inventar movimientos.
-- **B2, publicación:** REV64 se entrega como paquete local; no se subió al repositorio remoto ni se publicó en `micomercio.ar/beta`.
+- **B2, publicación:** se subieron REV62, REV63 y REV64 a `main` y se comprobó que `micomercio.ar/beta` sirve REV64.
 
 ## Verificación
 
 - **Código:** la identidad de `beta/index.html`, `beta/sw.js`, el manifiesto y las expectativas de las pruebas corresponden a REV64.
 - **Local:** 269/269 pruebas de código aprobadas; el verificador de integridad confirmó 20 archivos y no detectó secretos privados; prueba de navegador REV64 aprobada para lectura de código, cobro normal y apertura con sesión cerrada; recorridos REV62 y REV63 aprobados a 1366 y 390 píxeles. Las pruebas históricas de REV60/61 también se actualizaron y ejecutaron.
-- **Entorno público:** REV64 no está desplegada, por lo que sus escenarios no se verificaron allí. El estado de conciliación indicado arriba sí se verificó directamente en la base de datos de producción mediante consultas de solo lectura.
+- **Entorno público:** `beta/index.html` y `beta/sw.js` se descargaron sin caché y sus hashes SHA-256 coincidieron exactamente con los archivos locales probados. Un navegador aislado abrió la página pública REV64 con datos ficticios y el backend bloqueado: al escanear un producto con el cobro abierto no se registró una venta y el producto entró al ticket. Esta prueba no modificó datos de producción. El estado de conciliación indicado arriba se verificó directamente en la base de datos de producción mediante consultas de solo lectura.
 
 ## Archivos principales
 
