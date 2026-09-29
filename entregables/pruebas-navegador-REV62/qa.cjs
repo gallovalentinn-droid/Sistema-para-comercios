@@ -28,7 +28,7 @@ async function check(width){
     await page.locator(width<820?'#posMobilePay':'#abrirPago').click();
     assert.equal(await page.locator('#cobrar').isEnabled(),true);
     assert.match(await page.locator('.vuelto').innerText(),/\$\s*0/);
-    await page.evaluate(()=>{f62VersionNueva=63;f62PintarActualizacion();});
+    await page.evaluate(()=>{f62VersionNueva=64;f62PintarActualizacion();});
     assert.equal(await page.locator('#f62VersionBanner button').isEnabled(),false);
     await page.evaluate(()=>{cerrarModal();ticket=[];pintarPOS();});
     assert.equal(await page.locator('#f62VersionBanner button').isEnabled(),true);

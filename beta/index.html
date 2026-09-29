@@ -355,6 +355,10 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .cash-cigarette-separation h3{margin:0 0 7px;font-size:17px}
 .cash-cigarette-separation p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.5}
 .cash-cigarette-separation .hint{margin-top:8px}
+.cash-cigarette-suggestion{margin:12px 0;padding:12px;border-radius:9px;background:#fff;border:1px solid #EAD9B6;line-height:1.5}
+.cash-cigarette-suggestion small{display:block;color:var(--muted);margin-top:4px}
+.cash-cigarette-separation .btn{margin:8px 0}
+.cash-cigarette-warning{color:#A43E18;font-weight:600}
 .cash-detail{margin-bottom:16px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper)}
 .cash-detail summary{cursor:pointer;padding:16px 18px;font-weight:700}
 .cash-detail>div{padding:0 18px 18px}
@@ -821,7 +825,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:62,
+  packageRevision:63,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -7787,12 +7791,34 @@ function efectivoCigarrillosVenta(total,cig,montoEfectivo){
   const limite=Math.min(Math.max(0,Number(total)||0),Math.max(0,Number(cig)||0),Math.max(0,Number(montoEfectivo)||0));
   return Math.round(limite*100)/100;
 }
+function f63CigarrillosCobradosVenta(total,cig,pagos){
+  const centavos=n=>Math.max(0,Math.round((Number(n)||0)*100));
+  const totalCentavos=centavos(total),cigCentavos=Math.min(totalCentavos,centavos(cig));
+  const montos={efectivo:0,transferencia:0,tarjeta:0,otros:0};
+  (pagos||[]).forEach(p=>{
+    const forma=formaKey(p.forma);
+    if(forma==='fiado')return;
+    const grupo=Object.hasOwn(montos,forma)?forma:'otros';
+    montos[grupo]+=centavos(p.monto);
+  });
+  const cobrado=Object.values(montos).reduce((a,b)=>a+b,0);
+  const objetivo=totalCentavos?Math.min(cigCentavos,Math.round(cigCentavos*Math.min(cobrado,totalCentavos)/totalCentavos)):0;
+  const grupos=Object.keys(montos).map(forma=>{
+    const exacto=cobrado?objetivo*montos[forma]/cobrado:0;
+    return {forma,centavos:Math.floor(exacto),resto:exacto%1};
+  });
+  let faltan=objetivo-grupos.reduce((a,g)=>a+g.centavos,0);
+  grupos.slice().sort((a,b)=>b.resto-a.resto).forEach(g=>{if(faltan>0){g.centavos++;faltan--;}});
+  const porForma=Object.fromEntries(grupos.map(g=>[g.forma,g.centavos/100]));
+  return {total:objetivo/100,porForma};
+}
 function calcularTotalesTurno({desde,ventasTodas,pagos,egresos,moduloCigarros:moduloSeparado}){
   const moduloCigarros=moduloSeparado==null?db.config.moduloCigarros!==false:moduloSeparado===true;
   const ventas=ventasTodas.filter(v=>!v.anulada); // las anuladas no suman a ningún total
 
   const porForma={efectivo:0,transferencia:0,qr:0,tarjeta:0,fiado:0};
-  let cigTotal=0, cigEfectivo=0, costo=0, costosIncompletos=0;
+  let cigTotal=0, cigEfectivo=0, cigCobradoCentavos=0, costo=0, costosIncompletos=0;
+  const cigCobradoPorFormaCentavos={efectivo:0,transferencia:0,tarjeta:0,otros:0};
   ventas.forEach(v=>{
     let cig=0, efectivoMixto=0;
     (v.items||[]).forEach(i=>{
@@ -7808,6 +7834,11 @@ function calcularTotalesTurno({desde,ventasTodas,pagos,egresos,moduloCigarros:mo
       } else if(esCigarrillo(i.rubro)) cig+=neto;
     });
     cigTotal+=cig;
+    const detalleCobrado=f63CigarrillosCobradosVenta(v.total,cig,v.pagos&&v.pagos.length?v.pagos:[{forma:v.forma,monto:v.total}]);
+    cigCobradoCentavos+=Math.round(detalleCobrado.total*100);
+    Object.keys(cigCobradoPorFormaCentavos).forEach(forma=>{
+      cigCobradoPorFormaCentavos[forma]+=Math.round(detalleCobrado.porForma[forma]*100);
+    });
     if(v.pagos&&v.pagos.length){
       v.pagos.forEach(pg=>{
         const fk=formaKey(pg.forma);
@@ -7829,7 +7860,8 @@ function calcularTotalesTurno({desde,ventasTodas,pagos,egresos,moduloCigarros:mo
   const egrOtros=egresos.filter(e=>(e.forma||'efectivo')!=='efectivo').reduce((a,e)=>a+e.monto,0);
   const genEfectivo=moduloCigarros?Math.round(Math.max(0,porForma.efectivo-cigEfectivo)*100)/100:porForma.efectivo;
   const total=ventas.reduce((a,v)=>a+(Number(v.total)||0),0);
-  return {desde,ventasTodas,ventas,pagos,egresos,porForma,cigTotal,cigEfectivo,genEfectivo,cobEfectivo,cobOtros,egrGeneral,egrCigarros,egrOtros,costo,costosIncompletos,total};
+  const cigCobradoPorForma=Object.fromEntries(Object.entries(cigCobradoPorFormaCentavos).map(([forma,centavos])=>[forma,centavos/100]));
+  return {desde,ventasTodas,ventas,pagos,egresos,porForma,cigTotal,cigEfectivo,cigCobradoTotal:cigCobradoCentavos/100,cigCobradoPorForma,genEfectivo,cobEfectivo,cobOtros,egrGeneral,egrCigarros,egrOtros,costo,costosIncompletos,total};
 }
 function montoEfectivoVenta(venta){
   if(!venta)return 0;
@@ -8137,7 +8169,7 @@ function f57OpcionesModoCajaHTML(config){
   const actual=f57ModoCaja(config);
   const opciones=[
     ['unica','Una sola caja','Todo el efectivo se cuenta junto. Al cerrar elegís cuánto queda y cuánto retirás.'],
-    ['unica_separa_cigarrillos','Una caja · separo cigarrillos al cerrar','Contás toda la plata una vez. Después indicás cuánto del retiro apartás para cigarrillos.'],
+    ['unica_separa_cigarrillos','Una caja · separo cigarrillos al cerrar','Contás todo el efectivo una vez. Al cerrar, el sistema sugiere cuánto separar por las ventas de cigarrillos ya cobradas, incluso con medios electrónicos.'],
     ['dos_cajas','Dos cajas físicas','Durante todo el turno guardás y contás el efectivo de cigarrillos en otra caja.']
   ];
   return opciones.map(([id,titulo,detalle])=>`<label class="cash-mode-option ${actual===id?'selected':''}">
@@ -8268,6 +8300,8 @@ function vCaja(m){
   }
   const moduloCigarros=f56CajaSeparadaEnSesion(activeSession,db.config);
   const separaCigarrillosAlCierre=!moduloCigarros&&f57ModoCaja(db.config)==='unica_separa_cigarrillos';
+  const sugerenciaCigarrillos=Math.max(0,Number(t.cigCobradoTotal)||0);
+  const cigCobradoPorForma=t.cigCobradoPorForma||{};
   const fondoGeneralTurno=activeSession?Number(activeSession.fondoGeneral)||0:Number(db.config.fondoCaja||0);
   const fondoCigarrosTurno=activeSession?Number(activeSession.fondoCigarros)||0:Number(db.config.fondoCajaCigarros||0);
   const fondoGeneralEfectivo=fondoGeneralTurno+(moduloCigarros?0:fondoCigarrosTurno);
@@ -8404,21 +8438,21 @@ function vCaja(m){
       <div class="cash-step-actions"><button type="button" class="btn ghost" data-caja-volver="contar">Corregir conteo</button><button type="button" class="btn" id="pasoCajaFinalizar">Continuar</button></div>
     </div>
     <div data-caja-paso="finalizar" class="cash-step-panel" hidden>
-      <div class="cash-step-intro"><h2>${separaCigarrillosAlCierre?'¿Qué queda en caja y cuánto separás para cigarrillos?':'¿Qué hacés con la plata contada?'}</h2><p>${separaCigarrillosAlCierre?'Primero indicá qué plata queda para el próximo turno. Después anotá cuánto del retiro apartás para cigarrillos.':'Elegí una opción para que el próximo turno sepa cuánto tiene que encontrar '+(moduloCigarros?'en cada caja':'en la caja')+'.'}</p></div>
+      <div class="cash-step-intro"><h2>${separaCigarrillosAlCierre?'¿Cuánto separás para cigarrillos?':'¿Qué hacés con la plata contada?'}</h2><p>${separaCigarrillosAlCierre?'Indicá el efectivo real que apartás y después elegí cuánto queda para el próximo turno. La caja se contó una sola vez.':'Elegí una opción para que el próximo turno sepa cuánto tiene que encontrar '+(moduloCigarros?'en cada caja':'en la caja')+'.'}</p></div>
       <div>
       <div class="card cash-action-card">
         <div class="card-b">
+          ${separaCigarrillosAlCierre?`<div class="cash-cigarette-separation"><h3>Separación de cigarrillos</h3><p>Sugerimos cuánto apartar por cigarrillos cobrados con cualquier medio. Confirmá el efectivo que realmente sacás de la caja.</p><div class="cash-cigarette-suggestion">Sugerencia por ventas de cigarrillos ya cobradas: <b>${$m(sugerenciaCigarrillos)}</b><small>Efectivo ${$m(cigCobradoPorForma.efectivo||0)} · Transferencia / QR ${$m(cigCobradoPorForma.transferencia||0)} · Tarjeta ${$m(cigCobradoPorForma.tarjeta||0)}${cigCobradoPorForma.otros?` · Otros ${$m(cigCobradoPorForma.otros)}`:''}</small></div><div class="hint">Transferencias y tarjetas no suman al efectivo de caja. El fiado pendiente no se incluye; los cobros posteriores no se asignan a productos. En pagos combinados se prorratea.</div><label class="f" for="apartadoCigarrillos">Efectivo que apartás para cigarrillos</label><input id="apartadoCigarrillos" class="inp num" inputmode="decimal" autocomplete="off" placeholder="Escribí el monto real, incluso 0" aria-required="true"><button type="button" class="btn ghost sm" id="usarSugerenciaCigarrillos">Usar sugerencia</button><div id="avisoSugerenciaCigarrillos" class="cash-cigarette-warning" role="status" hidden></div></div>`:''}
           <div class="cash-destination-options" role="group" aria-label="Destino de la plata contada">
-            <button type="button" data-destino-caja="dejar" aria-pressed="false">Dejo plata<small>Elegí cuánto queda para el siguiente turno.</small></button>
+            <button type="button" data-destino-caja="dejar" aria-pressed="false">Dejo plata<small>${separaCigarrillosAlCierre?'Calculamos cuánto queda después de apartar cigarrillos. Podés cambiarlo.':'Elegí cuánto queda para el siguiente turno.'}</small></button>
             <button type="button" data-destino-caja="retirar_todo" aria-pressed="false">Retiro todo<small>La próxima caja comienza en $0.</small></button>
           </div>
           <div id="camposQuedaCaja" hidden>
-            <p class="hint">Si dejás toda la plata, usá los importes que ya contamos. También podés escribir una cantidad menor.</p>
+            <p class="hint">${separaCigarrillosAlCierre?'Mostramos el resto luego de apartar cigarrillos. Si también retirás otra plata, escribí cuánto queda realmente.':'Si dejás toda la plata, usá los importes que ya contamos. También podés escribir una cantidad menor.'}</p>
             <label class="f" for="quedaCajaGeneral">${moduloCigarros?'Queda en caja general':'Queda en caja para el próximo turno'}</label>
             <input id="quedaCajaGeneral" class="inp num" inputmode="decimal" autocomplete="off">
             ${moduloCigarros?`<label class="f" for="quedaCajaCigarros" style="margin-top:10px">Queda en caja de cigarrillos</label><input id="quedaCajaCigarros" class="inp num" inputmode="decimal" autocomplete="off">`:''}
           </div>
-          ${separaCigarrillosAlCierre?`<div class="cash-cigarette-separation"><h3>Separación de cigarrillos</h3><p>Contaste toda la plata en una sola caja. Ahora registrá el efectivo que sacás de ese retiro para guardar aparte por cigarrillos.</p><label class="f" for="apartadoCigarrillos">¿Cuánto efectivo apartás para cigarrillos?</label><input id="apartadoCigarrillos" class="inp num" inputmode="decimal" autocomplete="off" placeholder="Escribí el monto real, incluso 0" aria-required="true"><div class="hint">Ventas de cigarrillos cobradas en efectivo en este turno: ${$m(t.cigEfectivo)}.</div></div>`:''}
           <div id="resumenDestinoCaja" class="cash-destination-summary" role="status">Elegí qué hacés con la plata contada.</div>
           <label class="f" for="responsableCierreCaja" style="margin-top:14px">Quién cierra la caja</label>
           <input id="responsableCierreCaja" class="inp" maxlength="120" value="${esc(activeSession?.abiertoPor||'')}" autocomplete="name">
@@ -8473,7 +8507,24 @@ function vCaja(m){
   const inpG=$('#contadoG'), inpC=$('#contadoC'), cerrarCaja=$('#cerrarCaja');
   const quedaG=$('#quedaCajaGeneral'),quedaC=$('#quedaCajaCigarros');
   const apartadoInput=$('#apartadoCigarrillos');
+  const avisoSugerencia=$('#avisoSugerenciaCigarrillos');
   let decisionDestino='';
+  let quedaGeneralEditada=false;
+  const avisarSugerencia=()=>{
+    if(!avisoSugerencia)return;
+    const contado=inpG.value.trim()===''?null:num(inpG.value);
+    const falta=contado==null?0:Math.round((sugerenciaCigarrillos-contado)*100)/100;
+    avisoSugerencia.textContent=falta>0.009
+      ?`La sugerencia supera el efectivo contado por ${$m(falta)}. Solo podés apartar plata que esté en la caja; indicá el importe real, incluso 0.`:'';
+    avisoSugerencia.hidden=!avisoSugerencia.textContent;
+  };
+  const ajustarQuedaTrasApartado=()=>{
+    if(!separaCigarrillosAlCierre||decisionDestino!=='dejar'||quedaGeneralEditada||!quedaG)return;
+    const dato=numImportacion(apartadoInput?.value||'');
+    if(!dato.ok&&!dato.blank)return;
+    const apartado=dato.blank?0:dato.value;
+    quedaG.value=String(Math.round(Math.max(0,num(inpG.value)-apartado)*100)/100);
+  };
   const motivoConteoCaja=()=>{
     const faltante=motivoCierrePendiente(inpG?.value,inpC?.value,moduloCigarros);
     if(faltante)return faltante;
@@ -8518,15 +8569,22 @@ function vCaja(m){
     decisionDestino=b.dataset.destinoCaja;
     $$('[data-destino-caja]',m).forEach(x=>{const elegida=x===b;x.classList.toggle('selected',elegida);x.setAttribute('aria-pressed',String(elegida));});
     $('#camposQuedaCaja').hidden=decisionDestino!=='dejar';
-    if(decisionDestino==='dejar'){quedaG.value=inpG.value;if(quedaC)quedaC.value=inpC.value;}
+    if(decisionDestino==='dejar'){quedaGeneralEditada=false;quedaG.value=inpG.value;ajustarQuedaTrasApartado();if(quedaC)quedaC.value=inpC.value;}
     pintarDestinoCaja();
   });
-  if(quedaG)quedaG.oninput=pintarDestinoCaja;
+  if(quedaG)quedaG.oninput=()=>{quedaGeneralEditada=true;pintarDestinoCaja();};
   if(quedaC)quedaC.oninput=pintarDestinoCaja;
-  if(apartadoInput)apartadoInput.oninput=pintarDestinoCaja;
+  if(apartadoInput)apartadoInput.oninput=()=>{ajustarQuedaTrasApartado();pintarDestinoCaja();};
+  const usarSugerencia=$('#usarSugerenciaCigarrillos');
+  if(usarSugerencia)usarSugerencia.onclick=()=>{
+    if(!inpG.value.trim()){inpG.focus();return;}
+    apartadoInput.value=String(Math.round(Math.min(sugerenciaCigarrillos,num(inpG.value))*100)/100);
+    apartadoInput.oninput();
+  };
   const actualizarDiferencia=(inp,esperado,box)=>{
     if(!inp||!box) return;
     inp.oninput=()=>{
+      if(inp===inpG)avisarSugerencia();
       if(decisionDestino){decisionDestino='';$$('[data-destino-caja]',m).forEach(x=>{x.classList.remove('selected');x.setAttribute('aria-pressed','false');});$('#camposQuedaCaja').hidden=true;pintarDestinoCaja();}
       if(inp.value.trim()===''){
         box.className='cash-difference neutral';

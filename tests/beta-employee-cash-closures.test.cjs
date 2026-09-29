@@ -301,6 +301,58 @@ test('una caja con separación de cigarrillos cuenta el efectivo una vez y exige
   assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$522470\.00 en otros retiros/);
 });
 
+test('el cierre sugiere cigarrillos cobrados por otros medios y calcula cuánto queda tras apartarlos', () => {
+  const { context, main, nodes } = load();
+  const turno = context.turnoActual('turno-duenio');
+  context.turnoActual = () => ({ ...turno, cigCobradoTotal: 30000,
+    cigCobradoPorForma: { efectivo: 10000, transferencia: 15000, tarjeta: 5000, otros: 0 } });
+  context.numImportacion = text => ({ ok: /^\d+(?:[.,]\d{1,2})?$/.test(String(text)),
+    blank: !String(text).trim(), value: Number(String(text).replace(',', '.')) });
+  context.db.config.separaCigarrillosAlCierre = true;
+  context.f3Estado.session = { id:'turno-duenio', estado:'abierta', fondoGeneral:50000, fondoCigarros:0 };
+  context.vCaja(main);
+  assert.match(main.innerHTML, /Sugerencia por ventas de cigarrillos ya cobradas: <b>\$30000\.00<\/b>/);
+  assert.match(main.innerHTML, /Transferencia \/ QR \$15000\.00/);
+  assert.match(main.innerHTML, /El fiado pendiente no se incluye/);
+  assert.equal(nodes.get('#apartadoCigarrillos').value, '');
+  nodes.get('#contadoG').value = '50000';
+  nodes.get('#contadoG').oninput();
+  nodes.get('[data-destino-caja]:dejar').onclick();
+  nodes.get('#usarSugerenciaCigarrillos').onclick();
+  assert.equal(nodes.get('#apartadoCigarrillos').value, '30000');
+  assert.equal(nodes.get('#quedaCajaGeneral').value, '20000');
+  assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$30000\.00 para cigarrillos/);
+  assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$20000\.00 queda/);
+  nodes.get('#apartadoCigarrillos').value = '25000';
+  nodes.get('#apartadoCigarrillos').oninput();
+  assert.equal(nodes.get('#quedaCajaGeneral').value, '25000');
+  nodes.get('#quedaCajaGeneral').value = '18000';
+  nodes.get('#quedaCajaGeneral').oninput();
+  nodes.get('#apartadoCigarrillos').value = '20000';
+  nodes.get('#apartadoCigarrillos').oninput();
+  assert.equal(nodes.get('#quedaCajaGeneral').value, '18000');
+});
+
+test('si lo vendido en cigarrillos supera el efectivo contado, advierte y no intenta apartar plata inexistente', () => {
+  const { context, main, nodes } = load();
+  const turno = context.turnoActual('turno-duenio');
+  context.turnoActual = () => ({ ...turno, cigCobradoTotal: 30000,
+    cigCobradoPorForma: { efectivo: 0, transferencia: 30000, tarjeta: 0, otros: 0 } });
+  context.numImportacion = text => ({ ok: /^\d+(?:[.,]\d{1,2})?$/.test(String(text)),
+    blank: !String(text).trim(), value: Number(String(text).replace(',', '.')) });
+  context.db.config.separaCigarrillosAlCierre = true;
+  context.f3Estado.session = { id:'turno-duenio', estado:'abierta', fondoGeneral:10000, fondoCigarros:0 };
+  context.vCaja(main);
+  nodes.get('#contadoG').value = '10000';
+  nodes.get('#contadoG').oninput();
+  assert.match(nodes.get('#avisoSugerenciaCigarrillos').textContent, /supera el efectivo contado por \$20000\.00/);
+  nodes.get('[data-destino-caja]:dejar').onclick();
+  nodes.get('#usarSugerenciaCigarrillos').onclick();
+  assert.equal(nodes.get('#apartadoCigarrillos').value, '10000');
+  assert.equal(nodes.get('#quedaCajaGeneral').value, '0');
+  assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$10000\.00 para cigarrillos/);
+});
+
 test('el cierre guiado no revela el cálculo hasta que se cuenta y permite volver', () => {
   const { context, main, nodes } = load();
   context.f3Estado.session = { id:'turno-duenio', estado:'abierta' };
