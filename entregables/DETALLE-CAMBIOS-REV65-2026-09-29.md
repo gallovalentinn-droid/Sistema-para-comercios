@@ -17,4 +17,4 @@ En la captura de REV64, el nombre y el encabezado de Producto aparecían centrad
 
 - **Código:** las columnas de Producto usan clases semánticas; `beta/index.html`, `beta/sw.js` y el manifiesto corresponden a REV65.
 - **Local:** 269/269 pruebas de código y verificación de integridad aprobadas. La regresión de navegador reproduce el desborde anterior y comprueba la tabla con datos extensos a 1919, 1366 y 1024 píxeles, con y sin selección. A 390 píxeles comprueba que las acciones secundarias conservan sus nombres. También pasaron los recorridos de REV62 y REV64.
-- **Entorno público:** pendiente de comprobar después de la publicación.
+- **Entorno público:** REV65 se publicó en `micomercio.ar/beta`. Una lectura sin caché confirmó `packageRevision:65` y `rev65` en el service worker. Los hashes SHA-256 del HTML y el service worker públicos coincidieron exactamente con los archivos locales probados. En un navegador aislado, la página pública mostró Productos sin desborde a 1919 píxeles y con la última acción visible. La prueba usó datos ficticios y bloqueó el backend; no alteró datos reales.
