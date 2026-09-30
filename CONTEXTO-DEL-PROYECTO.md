@@ -8,7 +8,9 @@ El usuario autorizó publicar REV75 para comenzar a cargar facturas reales. Se i
 
 Supabase: se creó el respaldo operativo interno `private.rev75_predeploy_snapshot` (27 tablas operativas, sin Auth ni configuración), se aplicó `REV71-ALIAS-FACTURA.sql` y se desplegó `leer-factura` v18 con JWT habilitado. Los tres archivos desplegados coinciden con `supabase/functions/`. La memoria tiene RLS, dos políticas, sin lectura anónima ni TRUNCATE para usuarios. No se ejecutó la suite SQL aislada sobre producción.
 
-La publicación web se realiza desde `main`; confirmar el HTML y el service worker públicos contra el manifiesto después del envío. Siguen pendientes las pruebas con facturas reales, Gemini y dos dispositivos físicos. El recorrido local del lector utiliza IA y nube simuladas. Los apartados siguientes conservan el contexto histórico de REV18 y no describen el estado actual de la beta.
+Publicación web confirmada: commit `deece9b` en `main`, GitHub Pages exitoso y lectura pública sin caché de `https://micomercio.ar/beta/` con `packageRevision:75` y caché `micomercio-beta-6.0.0-f6-rc2-rev75`. Los hashes públicos del HTML y del service worker coinciden exactamente con el manifiesto. El navegador público abre el acceso y carga el emparejador REV75. El lector responde OPTIONS 204 desde el dominio autorizado y rechaza POST sin sesión con 401. No se consumió IA ni se cargaron operaciones reales durante la publicación.
+
+Siguen pendientes las pruebas con facturas reales, Gemini y dos dispositivos físicos. El recorrido local del lector utiliza IA y nube simuladas; el navegador de comprobación pública no tenía sesión iniciada, por lo que el flujo protegido completo queda para el piloto. Los apartados siguientes conservan el contexto histórico de REV18 y no describen el estado actual de la beta.
 
 Este documento permite continuar el proyecto desde un chat nuevo sin depender del historial completo de conversaciones anteriores. Describe el estado observado del repositorio y las decisiones de producto importantes. No reemplaza las pruebas ni la verificación del entorno desplegado.
 
