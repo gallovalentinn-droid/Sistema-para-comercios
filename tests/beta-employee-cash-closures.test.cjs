@@ -95,8 +95,10 @@ function load() {
     FORMAS: { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' },
     busCajaTurno: '',
     cierreResponsableFiltro: 'todos',
+    f69Estado: { comercioId: commerceId, items: [], loading: false, loadedAt: 0, error: '' },
     filtrarVentasPorBusqueda: (rows) => rows,
     verVentasTurno: (id) => actions.push(['ventas', id]),
+    verVentasTurnoInterrumpido: (id) => actions.push(['interrumpido', id]),
     modalEnviarResumen: (cierre) => actions.push(['resumen', cierre.id]),
   };
   vm.createContext(context);
@@ -106,7 +108,7 @@ function load() {
     'f32UpsertArray', 'f32AplicarVisible', 'f32bEstado', 'f32bCursorKey', 'f32bSetCursor',
     'f32bMapEgreso', 'f32bMapVenta', 'f32bMapCierre', 'f32bMapOperacion', 'f32bDeviceFila', 'f32bAplicarVisible',
     'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'responsableCierre',
-    'montoDiferenciaCaja', 'motivoCierrePendiente', 'motivoDiferenciaCaja', 'estadoDiferenciaCaja', 'f52CalcularDestinoCierre',
+    'montoDiferenciaCaja', 'motivoCierrePendiente', 'motivoDiferenciaCaja', 'estadoDiferenciaCaja', 'f69ResumenCierre', 'f52CalcularDestinoCierre',
     'f56ValidarApartadoCigarrillos', 'f57DesgloseRetiroCigarrillos', 'f56CajaSeparadaEnSesion', 'f57ModoCaja', 'f56EsperadoCajaUnica',
     'esEgresoOperativo', 'f59DesgloseCajaActual', 'f59MovimientosCajaActual', 'f59TiempoAbiertoCaja', 'vCaja',
   ];
@@ -125,7 +127,7 @@ test('el dueño ve el cierre de otro dispositivo sin tener un turno abierto', as
   context.vCaja(main);
 
   assert.equal(durable.get('cierres:cierre-empleado').total, 1500);
-  assert.match(main.innerHTML, /Cierres anteriores/);
+  assert.match(main.innerHTML, /Historial de turnos/);
   assert.match(main.innerHTML, /Turno de empleado/);
   assert.match(main.innerHTML, /\$1450\.00/);
   assert.equal(context.f3Estado.session, null);
@@ -379,11 +381,11 @@ test('el cierre guiado no revela el cálculo hasta que se cuenta y permite volve
   assert.deepEqual(paneles.map(p => p.hidden), [true,false,true]);
 });
 
-test('sin turno y sin cierres muestra el historial vacío junto a Abrir turno', () => {
+test('sin turno y sin historial muestra Abrir turno', () => {
   const { context, main } = load();
   context.vCaja(main);
   assert.match(main.innerHTML, /Abrir turno/);
-  assert.match(main.innerHTML, /Sin cierres todavía/);
+  assert.match(main.innerHTML, /Sin turnos anteriores/);
 });
 
 test('al terminar un turno, la próxima caja vuelve a la vista de turno actual', () => {

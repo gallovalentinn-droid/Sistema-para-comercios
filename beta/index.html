@@ -834,7 +834,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:68,
+  packageRevision:69,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -3972,6 +3972,7 @@ function render(){
   const m=$('#main');
   ({vender:vVender,resumen:vResumen,productos:vProductos,compras:vCompras,combos:vCombos,promociones:vPromociones,
     vencimientos:vVencimientos,fiado:vFiado,caja:vCaja,movimientos:vMovimientos,config:vConfig,soporte:vSoporte}[vista])(m);
+  if(vista==='caja')void f69CargarTurnosInterrumpidos();
   f6ProgramarFotosProductos(db.productos);
   window.scrollTo(0,mismaVista?posicionAnterior:0);
   ultimaVistaRenderizada=vista;
@@ -7995,6 +7996,30 @@ function resumenStockBusquedaHtml({q,desde,hasta,ventas,inicioLabel='Inicio',fin
     </tbody></table>${todos.length>lista.length?`<div class="hint" style="margin-top:8px">Mostramos los primeros ${lista.length}. Afiná la búsqueda para ver un producto puntual.</div>`:''}
   </div>`;
 }
+function verVentasTurnoInterrumpido(segmentId){
+  const t=f69Estado.items.find(x=>String(x.segmentId)===String(segmentId));if(!t)return;
+  const ids=new Set((t.ventaV4Ids||[]).map(String));
+  const ventas=(db.ventas||[]).filter(v=>String(v._v4sessionSegmentId||v.sessionSegmentId||'')===String(segmentId)||ids.has(String(v._v4id||'')))
+    .sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)));
+  const faltantes=Math.max(0,t.cantVentas-ventas.length);
+  modal({titulo:'Ventas del turno · Sin arqueo — '+fFH(t.hasta),ancho:true,
+    cuerpo:`<div class="grid3" style="margin-bottom:16px">
+      <div class="kpi"><span>Ventas</span><b>${t.cantVentas}</b></div>
+      <div class="kpi"><span>Vendido</span><b>${$m(t.total)}</b></div>
+      <div class="kpi"><span>Turno</span><b style="font-size:15px">${fFH(t.desde)} → ${fFH(t.hasta)}</b></div>
+    </div><div class="cash-review-advice" style="margin-bottom:16px">Turno interrumpido sin conteo de efectivo.</div>
+    ${faltantes?`<div class="hint" style="margin-bottom:16px">Falta el detalle de ${faltantes} ${faltantes===1?'venta':'ventas'} en este dispositivo. El total proviene de las ventas sincronizadas.</div>`:''}
+    ${ventas.length?`<div class="card" style="margin:0"><div class="card-b"><label class="f" for="qCajaInterrumpida">Buscar en estas ventas</label><input class="inp" id="qCajaInterrumpida" placeholder="Nombre del producto…" autocomplete="off"></div><div id="ventasCajaInterrumpida"></div></div>`:''}`,
+    pie:`<button class="btn ghost" data-cerrar>Cerrar</button>`,
+    alAbrir:ov=>{
+      if(!ventas.length)return;
+      const pintar=()=>{
+        const filtradas=filtrarVentasPorBusqueda(ventas,$('#qCajaInterrumpida',ov).value);
+        $('#ventasCajaInterrumpida',ov).innerHTML=filtradas.length?tablaVentasBusqueda(filtradas,{fechaCompleta:true}):`<div class="empty"><b>No encontramos ese producto</b>Probá con otra parte del nombre.</div>`;
+      };
+      $('#qCajaInterrumpida',ov).oninput=pintar;pintar();
+    }});
+}
 function verVentasTurno(cierreId){
   const c=db.cierres.find(x=>x.id===cierreId); if(!c) return;
   const ventas=ventasDeCierre(c).sort((a,b)=>a.fecha.localeCompare(b.fecha));
@@ -8234,26 +8259,105 @@ async function f52ConsultarTraspasoCaja(){
     return resumen;
   }finally{clearTimeout(temporizador);}
 }
+let f69Estado={comercioId:'',items:[],loading:false,loadedAt:0,error:''};
+function f69MapTurnosInterrumpidos(segmentos,ventas){
+  return (segmentos||[]).map(s=>{
+    const propias=(ventas||[]).filter(v=>String(v.session_segment_id)===String(s.segment_id));
+    const centavos=propias.reduce((n,v)=>n+Math.round((Number(v.total)||0)*100),0);
+    return {segmentId:s.segment_id,desde:s.opened_at_device,hasta:s.interrumpido_at_device,
+      motivo:s.interrumpido_motivo||'',registradoPor:s.interrumpido_registrado_por||'',
+      cantVentas:propias.length,total:centavos/100,ventaV4Ids:propias.map(v=>v.id)};
+  });
+}
+function f69ResumenCierre(c){
+  const vistos=new Set();
+  const centavos=(c._v4ajustes||[]).reduce((n,a)=>{
+    if(a.tipo!=='efectivo_arrastrado_turno_interrumpido'||a.estado!=='resuelto')return n;
+    const origen=String(a.origenSegmentId||a.metadata?.origenSegmentId||a.id||'');
+    if(vistos.has(origen))return n;
+    vistos.add(origen);
+    return n+Math.round((Number(a.monto)||0)*100);
+  },0);
+  const esperadoOriginal=Math.round((Number(c.esperadoGeneral)||0)*100);
+  const contado=Math.round((Number(c.contadoGeneral)||0)*100);
+  return {arrastre:centavos/100,esperadoOriginal:esperadoOriginal/100,
+    esperadoAjustado:(esperadoOriginal+centavos)/100,
+    diferenciaAjustada:(contado-esperadoOriginal-centavos)/100};
+}
+async function f69CargarTurnosInterrumpidos(){
+  const comercioId=String(f3Estado&&f3Estado.comercioId||'');
+  if(!comercioId||!sb||!sesion||!enLinea)return;
+  if(f69Estado.comercioId!==comercioId)f69Estado={comercioId,items:[],loading:false,loadedAt:0,error:''};
+  if(f69Estado.loading||Date.now()-f69Estado.loadedAt<60000)return;
+  f69Estado.loading=true;
+  try{
+    const r=await sb.from('caja_sesion_segmentos')
+      .select('segment_id,opened_at_device,interrumpido_at_device,interrumpido_motivo,interrumpido_registrado_por')
+      .eq('comercio_id',comercioId).not('interrumpido_at_device','is',null)
+      .order('interrumpido_at_device',{ascending:false}).limit(50);
+    if(r.error)throw r.error;
+    const segmentos=r.data||[],ids=segmentos.map(s=>s.segment_id),ventas=[];
+    if(ids.length){
+      for(let offset=0;offset<100000;offset+=1000){
+        const q=await sb.from('ventas').select('id,session_segment_id,total')
+          .eq('comercio_id',comercioId).in('session_segment_id',ids)
+          .order('id',{ascending:true}).range(offset,offset+999);
+        if(q.error)throw q.error;
+        ventas.push(...(q.data||[]));
+        if((q.data||[]).length<1000)break;
+      }
+    }
+    if(f69Estado.comercioId!==comercioId)return;
+    f69Estado.items=f69MapTurnosInterrumpidos(segmentos,ventas);
+    f69Estado.error='';
+  }catch(error){
+    if(f69Estado.comercioId===comercioId)f69Estado.error='No pudimos actualizar los turnos interrumpidos. Los cierres anteriores siguen disponibles.';
+    console.warn('REV69 historial:',error);
+  }finally{
+    if(f69Estado.comercioId===comercioId){
+      f69Estado.loading=false;f69Estado.loadedAt=Date.now();
+      if(vista==='caja'){
+        const posicion=window.scrollY||0;
+        render();requestAnimationFrame(()=>window.scrollTo(0,posicion));
+      }
+    }
+  }
+}
 function htmlCierresAnteriores(){
   const todos=[...(db.cierres||[])].sort((a,b)=>(Date.parse(b.hasta)||0)-(Date.parse(a.hasta)||0));
   const responsables=[...new Set(todos.map(responsableCierre))].sort((a,b)=>a.localeCompare(b));
   const cierres=cierreResponsableFiltro==='todos'?todos:todos.filter(c=>responsableCierre(c)===cierreResponsableFiltro);
+  const interrumpidos=cierreResponsableFiltro==='todos'&&f69Estado.comercioId===String(f3Estado&&f3Estado.comercioId||'')?f69Estado.items:[];
+  const eventos=[...cierres.map(c=>({tipo:'cierre',fecha:c.hasta,c})),...interrumpidos.map(t=>({tipo:'interrumpido',fecha:t.hasta,t}))]
+    .sort((a,b)=>(Date.parse(b.fecha)||0)-(Date.parse(a.fecha)||0));
   return `<div class="card cash-history-card">
-    <div class="card-h"><h2>Cierres anteriores</h2>${responsables.length>1?`<select class="inp" id="cierreResponsable" aria-label="Filtrar cierres por persona" style="max-width:240px"><option value="todos">Todas las personas</option>${responsables.map(nombre=>`<option ${cierreResponsableFiltro===nombre?'selected':''}>${esc(nombre)}</option>`).join('')}</select>`:''}</div>
-    ${cierres.length?`<div class="cash-history-list" role="list" aria-label="Cierres anteriores">
-      ${cierres.map(c=>{const general=estadoDiferenciaCaja(c.diferenciaGeneral),cigarrillos=estadoDiferenciaCaja(c.diferenciaCigarros);const tieneCigarrillos=Math.abs(Number(c.contadoCigarros)||0)>0.009||Math.abs(Number(c.esperadoCigarros)||0)>0.009||Math.abs(Number(c.diferenciaCigarros)||0)>0.009;return `<div class="cash-history-item" role="listitem">
+    <div class="card-h"><h2>Historial de turnos</h2>${responsables.length>1?`<select class="inp" id="cierreResponsable" aria-label="Filtrar cierres por persona" style="max-width:240px"><option value="todos">Todas las personas</option>${responsables.map(nombre=>`<option ${cierreResponsableFiltro===nombre?'selected':''}>${esc(nombre)}</option>`).join('')}</select>`:''}</div>
+    ${f69Estado.error&&f69Estado.comercioId===String(f3Estado&&f3Estado.comercioId||'')?`<div class="cash-review-advice" role="status">${esc(f69Estado.error)}</div>`:''}
+    ${eventos.length?`<div class="cash-history-list" role="list" aria-label="Historial de turnos">
+      ${eventos.map(e=>{if(e.tipo==='interrumpido'){
+        const t=e.t;
+        return `<div class="cash-history-item" role="listitem">
+          <div class="cash-history-main"><div><b>${fFH(t.hasta)}</b><div class="hint">Turno desde ${fFH(t.desde)} · ${t.cantVentas} ${t.cantVentas===1?'venta':'ventas'}</div></div>
+            <div class="r"><b class="num">Vendido: ${$m(t.total)}</b><div class="cash-history-statuses"><span class="pill warn">Sin arqueo</span></div></div></div>
+          <div class="cash-review-advice" style="margin:8px 0">Este turno se interrumpió. Sus ventas siguen registradas; nadie contó la plata al terminarlo.</div>
+          <details><summary>Ver detalle</summary><div class="cash-history-detail"><div>Motivo: ${esc(t.motivo||'Interrupción registrada')}</div><div>Registrado por: ${esc(t.registradoPor||'Administración')}</div><div>No hay efectivo contado, diferencia ni retiro de este turno.</div><button class="btn ghost sm" data-vt-interrumpido="${esc(t.segmentId)}">Ver ventas</button></div></details>
+        </div>`;
+      }
+      const c=e.c,resumen=f69ResumenCierre(c),general=estadoDiferenciaCaja(resumen.diferenciaAjustada),cigarrillos=estadoDiferenciaCaja(c.diferenciaCigarros);const tieneCigarrillos=Math.abs(Number(c.contadoCigarros)||0)>0.009||Math.abs(Number(c.esperadoCigarros)||0)>0.009||Math.abs(Number(c.diferenciaCigarros)||0)>0.009;return `<div class="cash-history-item" role="listitem">
         <div class="cash-history-main"><div><b>${fFH(c.hasta)}</b><div class="hint">${esc(responsableCierre(c))} · ${c.cantVentas||0} ${c.cantVentas===1?'venta':'ventas'}</div></div><div class="r"><b class="num">Vendido: ${$m(c.total)}</b><div class="cash-history-statuses"><span class="pill ${general.clase}">${c.cajaUnica?'Caja única':'General'}: ${general.texto}</span>${tieneCigarrillos?`<span class="pill ${cigarrillos.clase}">Cigarrillos: ${cigarrillos.texto}</span>`:''}${c.separaCigarrosAlCierre?`<span class="pill warn">Apartado para cigarrillos: ${$m(c.apartadoCigarrillos)}</span>`:''}</div></div></div>
+        ${resumen.arrastre&&c._v4estado==='requiere_conciliacion'?`<div class="cash-review-advice" style="margin:8px 0">Revisión pendiente: el efectivo arrastrado explica parte del arqueo, pero todavía hay una diferencia.</div>`:''}
         ${!c.cajaUnica&&tieneCigarrillos&&c._v4estado==='requiere_conciliacion'?`<div class="cash-review-advice" style="margin:8px 0">Cierre con dos cajas en revisión. Si contaste todo el efectivo en general y también anotaste cigarrillos, revisá el posible doble conteo.</div>`:''}
         ${c._v4metaAlerta||c.aperturaRequiereRevision?`<div class="cash-review-advice" style="margin:8px 0">Este cierre tiene datos de apertura o traspaso pendientes de conciliación. Contá la plata al abrir el próximo turno.</div>`:''}
         ${(Math.abs(Number(c.aperturaDiferenciaGeneral)||0)>0.009||Math.abs(Number(c.aperturaDiferenciaCigarros)||0)>0.009)?`<div class="cash-review-advice" style="margin:8px 0">Al abrir este turno: general ${estadoDiferenciaCaja(c.aperturaDiferenciaGeneral).texto}${Math.abs(Number(c.aperturaDiferenciaCigarros)||0)>0.009?` · cigarrillos ${estadoDiferenciaCaja(c.aperturaDiferenciaCigarros).texto}`:''}${c.aperturaMotivo?` · ${esc(c.aperturaMotivo)}`:''}</div>`:''}
-        <details><summary>Ver detalle</summary><div class="cash-history-detail"><div>${c.cajaUnica?'Caja única':'General'}: contado <b>${$m(c.contadoGeneral)}</b> · ${general.texto}</div>${tieneCigarrillos?`<div>Cigarrillos: contado <b>${$m(c.contadoCigarros)}</b> · ${cigarrillos.texto}</div>`:''}${c.traspasoConfirmado?`<div>Retirado: <b>${$m((Number(c.retiroGeneral)||0)+(Number(c.retiroCigarros)||0))}</b> · Quedó: <b>${$m((Number(c.quedaGeneral)||0)+(Number(c.quedaCigarros)||0))}</b></div>`:''}${c.separaCigarrosAlCierre||c.apartadoCigarrillos>0.009?`<div>Apartado para cigarrillos: <b>${$m(c.apartadoCigarrillos)}</b> (incluido en lo retirado)</div>`:''}${c.nota?`<div>Nota: ${esc(c.nota)}</div>`:''}<div><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></div></div></details>
+        <details><summary>Ver detalle</summary><div class="cash-history-detail">${resumen.arrastre?`<div>Esperado original: ${$m(resumen.esperadoOriginal)} + efectivo de turno interrumpido: ${$m(resumen.arrastre)} = <b>${$m(resumen.esperadoAjustado)} esperados</b></div><div>Contado: <b>${$m(c.contadoGeneral)}</b> · ${general.texto}</div><div class="hint">El arqueo y el retiro originales no se modificaron.</div>`:`<div>${c.cajaUnica?'Caja única':'General'}: contado <b>${$m(c.contadoGeneral)}</b> · ${general.texto}</div>`}${tieneCigarrillos?`<div>Cigarrillos: contado <b>${$m(c.contadoCigarros)}</b> · ${cigarrillos.texto}</div>`:''}${c.traspasoConfirmado?`<div>Retirado: <b>${$m((Number(c.retiroGeneral)||0)+(Number(c.retiroCigarros)||0))}</b> · Quedó: <b>${$m((Number(c.quedaGeneral)||0)+(Number(c.quedaCigarros)||0))}</b></div>`:''}${c.separaCigarrosAlCierre||c.apartadoCigarrillos>0.009?`<div>Apartado para cigarrillos: <b>${$m(c.apartadoCigarrillos)}</b> (incluido en lo retirado)</div>`:''}${c.nota?`<div>Nota: ${esc(c.nota)}</div>`:''}<div><button class="btn ghost sm" data-vt="${c.id}">Ver ventas</button> <button class="btn text sm" data-wa="${c.id}">WhatsApp</button></div></div></details>
       </div>`;}).join('')}</div>`
-    :`<div class="empty"><b>Sin cierres todavía</b>Los cierres de este comercio quedan registrados acá, incluidos los realizados por empleados cuando se sincronizan.</div>`}
+    :`<div class="empty"><b>Sin turnos anteriores</b>Los cierres y los turnos interrumpidos quedan registrados acá cuando se sincronizan.</div>`}
   </div>`;
 }
 function enlazarCierresAnteriores(m){
   const filtro=$('#cierreResponsable',m);if(filtro)filtro.onchange=()=>{cierreResponsableFiltro=filtro.value;render();};
   $$('[data-vt]',m).forEach(b=>b.onclick=()=>verVentasTurno(b.dataset.vt));
+  $$('[data-vt-interrumpido]',m).forEach(b=>b.onclick=()=>verVentasTurnoInterrumpido(b.dataset.vtInterrumpido));
   $$('[data-wa]',m).forEach(b=>b.onclick=()=>{const c=db.cierres.find(x=>x.id===b.dataset.wa);if(c)modalEnviarResumen(c);});
 }
 function f59DesgloseCajaActual(t,moduloCigarros,fondoGeneral,fondoCigarros){
@@ -10900,6 +11004,10 @@ function f32bRecalcularEstadoCierre(cierre){
   const descartados=arr.filter(x=>x.estado==='descartado').length;
   let estado=cierre._v4estadoBase||cierre._v4estado||'registrado';
   if(pendientes>0)estado='requiere_conciliacion';
+  else if(arr.some(x=>x.tipo==='efectivo_arrastrado_turno_interrumpido')&&estado==='requiere_conciliacion'){
+    // El arrastre explica parte del dinero, pero no resuelve otros sobrantes ni revisiones.
+    estado='requiere_conciliacion';
+  }
   else if(arr.length){estado=descartados>0?'cerrado_excepcion':'conciliado';}
   return {...cierre,_v4estado:estado,_v4requiereConciliacion:estado==='requiere_conciliacion'};
 }

@@ -69,7 +69,7 @@ test('el historial informa faltas y sobrantes por caja sin compensarlos', () => 
   assert.equal(context.estado(-1500).texto, 'Faltó $1.500,00');
   assert.equal(context.estado(2001).clase, 'bad');
   const historial = section(text, 'function htmlCierresAnteriores(', '\nfunction enlazarCierresAnteriores(');
-  assert.match(historial, /estadoDiferenciaCaja\(c\.diferenciaGeneral\)/);
+  assert.match(historial, /estadoDiferenciaCaja\(resumen\.diferenciaAjustada\)/);
   assert.match(historial, /estadoDiferenciaCaja\(c\.diferenciaCigarros\)/);
   assert.doesNotMatch(historial, /Diferencia neta/);
   assert.match(historial, /Vendido:/);
