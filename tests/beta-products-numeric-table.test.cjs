@@ -70,12 +70,13 @@ test('la tabla distingue costo faltante, venta principal y margen calculado', ()
   assert.match(rendered, /data-label="Margen" class="[^"]*product-value[^"]*">52%<\/td>/);
 });
 
-test('el stock distingue agotado de bajo mínimo', () => {
+test('el stock muestra la cantidad como antes de REV62: rojo si está agotado', () => {
   const rendered = renderProducts([
     { id:'p0', nombre:'Agotado', ean:'', rubro:'', proveedor:'', costo:1, precio:2, stock:0, stockMin:4, stockDeseado:8, unidad:'unidad', vence:'' },
     { id:'p1', nombre:'Disponible', ean:'', rubro:'', proveedor:'', costo:1, precio:2, stock:6, stockMin:8, stockDeseado:12, unidad:'unidad', vence:'' }
   ]);
 
-  assert.match(rendered, /product-stock[^>]*><span class="pill bad num">Sin stock · 0<\/span>/);
-  assert.match(rendered, /product-stock[^>]*><span class="pill warn num">Bajo · 6<\/span>/);
+  assert.match(rendered, /product-stock[^>]*><span class="pill bad num">0<\/span>/);
+  assert.match(rendered, /product-stock[^>]*><span class="pill mute num">6<\/span>/);
+  assert.doesNotMatch(rendered, /Sin stock · |Bajo · /);
 });

@@ -131,12 +131,11 @@ test('Vencimientos informa cobertura y permite cargar o liquidar', () => {
   assert.match(expiry, /Cargar fechas/);
 });
 
-test('Configuración usa switches, explica precedencia y protege restauraciones', () => {
+test('Configuración usa switches y protege restauraciones (sin bloqueo de mostrador desde REV67)', () => {
   const text = source();
   const config = text;
-  assert.match(config, /permission-order/);
   assert.match(config, /role="switch"/);
-  assert.match(config, /secciones ocultas/);
+  assert.doesNotMatch(config, /secciones ocultas/);
   assert.match(config, /Confirmá escribiendo RESTAURAR/);
   assert.match(config, /backupAuto\(\)/);
   assert.match(config, /Copiar código/);

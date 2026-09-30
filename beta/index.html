@@ -166,8 +166,6 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
   #tabProd th.product-select,#tabProd td.product-select{width:52px;min-width:52px;text-align:center}
   #tabProd td[data-label="Producto"]{min-width:260px;max-width:360px}
   html.modo-pantalla-completa #tabProd td[data-label="Producto"]{min-width:300px;max-width:420px}
-  #tabProd td:last-child .product-secondary-action{width:38px;padding:8px;font-size:0;gap:0}
-  #tabProd td:last-child .product-secondary-action svg{width:16px;height:16px}
   .rep-table{min-width:1100px}
   .rep-table th{white-space:normal}
 }
@@ -692,6 +690,14 @@ body.offline .app{padding-top:34px}
 .toggle-switch{position:relative;width:44px;height:24px;border:0;border-radius:99px;background:var(--line-2);padding:0;cursor:pointer;transition:.15s}.toggle-switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,22,32,.22);transition:.15s}.toggle-switch[aria-checked="true"]{background:var(--primary)}.toggle-switch[aria-checked="true"]::after{transform:translateX(20px)}
 .permission-order{margin-bottom:16px}.settings-wide{max-width:none}.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.danger-zone{border-color:#E7B4AA;background:#FFF9F8}.config-nav button.active{background:var(--primary-l);color:var(--primary-d);border-color:#BED0FA}
 .support-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:16px}.support-diagnostic{font:12px/1.55 var(--mono);background:var(--bg)}
+/* REV66: en pantallas anchas, Código y Rubro se acotan para que las acciones con texto no se corten */
+@media(min-width:1905px){
+  #tabProd .product-code{white-space:nowrap}
+  #tabProd table.product-selecting .product-code{display:none}
+  #tabProd .product-code-value{display:inline-block;max-width:118px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+  #tabProd .product-category .pill{display:inline-block;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+  #tabProd td[data-label="Producto"],html.modo-pantalla-completa #tabProd td[data-label="Producto"]{min-width:260px}
+}
 @media(max-width:1904px) and (min-width:761px){
   #tabProd .product-code,#tabProd .product-category{display:none}
   #tabProd td[data-label="Producto"]{min-width:220px;max-width:300px}
@@ -828,7 +834,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:65,
+  packageRevision:68,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -1641,12 +1647,27 @@ function f3TurnoLegacyLimpio(){
   }catch(e){return false;}
 }
 
+// REV68: una sesión sólo es un «marcador» viejo (pre-FIX4) si nadie la abrió a mano y no tiene
+// ningún movimiento propio. serverOpened nunca pasa a true, así que antes esta comprobación borraba
+// en cada arranque el turno abierto normal y dejaba sus ventas fuera de cualquier cierre.
+function f3SesionTieneMovimientos(s){
+  const ids=new Set([s&&s.sessionSegmentId,s&&s.id,s&&s.rootSessionId].filter(Boolean).map(String));
+  if(!ids.size)return false;
+  const tiene=rows=>(Array.isArray(rows)?rows:[]).some(r=>ids.has(String(r&&r._v4sessionSegmentId||''))||
+    (!r?._v4sessionSegmentId&&ids.has(String(r&&r._v4cajaSesionId||''))));
+  try{return tiene(db.ventas)||tiene(db.pagos)||tiene(db.egresos)||tiene(db.cierres);}catch(_e){return true;}
+}
+function f3SesionEsMarcadorViejo(s){
+  if(!s||s.serverOpened!==false)return false;
+  const estado=String(s.estado||'').toLowerCase();
+  if(['cerrada_confirmada','cerrada'].includes(estado))return false;
+  if(s.rev31AperturaExplicita===true||s.abiertoPor)return false;
+  if(f3SesionTieneMovimientos(s))return false;
+  return f3TurnoLegacyLimpio();
+}
 function f3MigrarPlaceholderSesionLocal(){
   const s=f3Estado&&f3Estado.session;
-  if(!s||s.serverOpened!==false) return false;
-  const estado=String(s.estado||'').toLowerCase();
-  if(['cerrada_confirmada','cerrada'].includes(estado)) return false;
-  if(!f3TurnoLegacyLimpio()) return false;
+  if(!f3SesionEsMarcadorViejo(s)) return false;
   // One-time state migration for profiles created by pre-FIX4 shadow activation:
   // remove the never-opened local placeholder so old and new profiles converge.
   f3Estado.session=null;
@@ -3750,45 +3771,12 @@ async function f6SolicitarCambioPinDispositivo({titulo='Cambiar PIN de este disp
   });
 }
 
+// REV67: el PIN del dispositivo y el bloqueo de mostrador se quitaron a pedido del dueño.
+// La función se conserva porque la llaman el arranque y otras rutas; ya no pide ni crea PIN.
 async function f6AsegurarProteccionDispositivo(){
-  const estado=f6EstadoProteccionDispositivo({
-    authenticated:!!(sb&&sesion&&sesion.user),
-    privileged:f3RolServidorAdmin(),
-    stored:f6LeerDevicePin()
-  });
-  if(estado==='sin_aplicar'){
-    interfazProtegida=false;
-    return;
-  }
-  interfazProtegida=true;
-  if(!vistasVisibles().some(v=>v.id===vista))vista='vender';
-
-  if(estado==='requiere_pin'){
-    await new Promise(resolve=>{
-      const intento=f6CrearIntentoProteccion(sesion.user.id);
-      let finalizar=resultado=>resolve(resultado);
-      const ov=modal({titulo:'Desbloquear interfaz',
-        cuerpo:`<label class="f" for="pinIn">PIN de este dispositivo</label>
-          <input id="pinIn" class="inp num" type="password" inputmode="numeric" placeholder="••••" autocomplete="off">
-          <div class="hint">Para crear o cambiar el PIN de este dispositivo, confirmá la contraseña de tu cuenta.</div>`,
-        pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="okPin">Entrar</button>`,
-        alAbrir:contenedor=>{
-          const inp=$('#pinIn',contenedor); inp.focus();
-          const probar=async()=>{
-            const ok=await f6VerificarPinVigente(inp.value.trim(),intento);
-            if(!intento.vigente())return;
-            if(ok){interfazProtegida=false;finalizar(true);cerrarModal();}
-            else{const espera=f6PinEsperaMs(intento.userId);aviso(espera?`Demasiados intentos. Probá de nuevo en ${Math.ceil(espera/1000)} segundos.`:'PIN incorrecto','bad');inp.value='';inp.focus();}
-          };
-          inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();probar();}};
-          $('#okPin',contenedor).onclick=probar;
-        }});
-      finalizar=f6ResolverModalProteccion(ov,resolve,intento);
-    });
-    return;
-  }
-
-  if(await f6SolicitarCambioPinDispositivo({titulo:'Proteger este dispositivo',textoBoton:'Confirmar y crear PIN'}))interfazProtegida=false;
+  interfazProtegida=false;
+  try{if(sesion&&sesion.user&&sesion.user.id)localStorage.removeItem(f6DevicePinKey(sesion.user.id,deviceId));}catch(_e){}
+  if(db&&db.config&&(db.config.pinHash||db.config.pinDuenio)){db.config.pinHash='';db.config.pinDuenio='';}
 }
 
 const VISTAS=[
@@ -3907,13 +3895,11 @@ function pintarFoot(){
   f.innerHTML=`
     <div class="modo-caja">
       <span class="pill ${puedeBloquear?'info':'mute'}" style="font-size:11px">${esc(etiquetaRolVisible(rolActual,interfazProtegida))}</span>
-      ${puedeBloquear?`<button class="btn text sm" id="btnBloqueoVisual" style="padding:2px 6px;color:#AEB7C4;font-size:11.5px">${interfazProtegida?'Desbloquear':'Bloquear'}</button>`:''}
     </div>
     ${pluralProductos(activosPie)} activo${activosPie===1?'':'s'} · ${db.ventas.length} ventas
     ${f3Activo()?`<div style="margin-top:4px;font-size:10.5px;color:#AEB7C4">F3 shadow · ${esc(f3Estado.cajaCodigo||'caja')}</div>`:''}
     ${sesion?`<div style="margin-top:6px;overflow-wrap:anywhere;word-break:break-word">${esc(sesion.user.email)}<br><button class="btn text sm" id="btnLogout" style="padding:2px 0;color:#AEB7C4">Cerrar sesión</button></div>`:''}`;
   const bl=$('#btnLogout'); if(bl) bl.onclick=cerrarSesion;
-  const br=$('#btnBloqueoVisual'); if(br) br.onclick=alternarBloqueoVisual;
   if(typeof f33UIActualizar==='function')f33UIActualizar().catch(()=>{});
 }
 function f62ResumenSync(s){
@@ -3970,19 +3956,6 @@ async function f62ComprobarVersion(){
     const rev=f62RevisionNueva(await r.text(),MICOMERCIO_BUILD.packageRevision);
     if(rev){f62VersionNueva=rev;f62PintarActualizacion();}
   }catch(_e){}
-}
-async function alternarBloqueoVisual(){
-  if(!f3RolServidorAdmin()) return;
-  if(!interfazProtegida){
-    interfazProtegida=true;
-    if(!vistasVisibles().some(v=>v.id===vista)) vista='vender';
-    render();
-    aviso('Interfaz protegida en este dispositivo','ok');
-    return;
-  }
-  await f6AsegurarProteccionDispositivo();
-  render();
-  if(!interfazProtegida)aviso('Interfaz desbloqueada','ok');
 }
 function ir(v){
   if(v==='reponer'){comprasTab='pedir';v='compras';}
@@ -4112,7 +4085,7 @@ function miniFoto(p,variante='lista'){
   const url=f6FotoProductoUrl(p);
   const clase=variante==='editor'?'thumb product-thumb product-thumb-editor':'thumb product-thumb';
   if(url) return `<span class="${clase}"><img src="${esc(url)}" alt="Foto de ${esc(p&&p.nombre||'producto')}" loading="lazy"></span>`;
-  return '';
+  return `<span class="${clase}" aria-hidden="true">${esc((p&&p.nombre||'?').trim().charAt(0).toUpperCase())}</span>`;
 }
 function celdaProductoConFoto(p,contenido){
   return `<div class="product-cell">${miniFoto(p)}<div class="product-cell-copy">${contenido}</div></div>`;
@@ -5259,7 +5232,7 @@ function tablaProductos(){
     return;
   }
   if(!l.length){ const activos=[fProd.q&&`búsqueda “${esc(fProd.q)}”`,fProd.rubros.length&&`${fProd.rubros.length} rubros`,fProd.actividad&&$('#fActividad')?.selectedOptions[0]?.textContent,fProd.estado==='archivados'&&'archivados',fProd.incompletos&&'datos faltantes'].filter(Boolean);c.innerHTML=`<div class="empty"><b>Sin resultados</b>${activos.length?`Filtros activos: ${activos.join(' · ')}.`:'No hay productos en esta vista.'} Usá “Limpiar filtros” para ver todos.</div>`; return; }
-  c.innerHTML=`<table class="mtable"><thead><tr>
+  c.innerHTML=`<table class="mtable${seleccionProductosActivo?' product-selecting':''}"><thead><tr>
     ${seleccionProductosActivo?'<th class="product-select"><span class="sr-only">Elegir</span></th>':''}<th class="product-main">Producto</th><th class="product-code">Código</th><th class="product-category">Rubro</th><th class="product-number product-cost">Costo</th><th class="product-number product-sale">Venta</th><th class="product-number product-margin">Margen</th><th class="product-number product-stock">Stock</th><th></th>
   </tr></thead><tbody>${l.map(p=>{
     const mg=Number(p.costo)>0?((p.precio-p.costo)/p.costo*100):null;
@@ -5267,12 +5240,12 @@ function tablaProductos(){
     return `<tr>
       ${seleccionProductosActivo?`<td class="product-select"><input type="checkbox" data-seleccionar-producto="${p.id}" aria-label="Seleccionar ${esc(p.nombre)}" ${selectedProductosRev31.has(p.id)?'checked':''}></td>`:''}
       <td data-label="Producto" class="product-main">${celdaProductoConFoto(p,ficha)}<button type="button" class="product-expand" data-expand-producto aria-expanded="false">Ver detalles ↓</button></td>
-      <td data-label="Código" class="num product-extra product-code" style="font-size:12.5px;color:var(--muted)">${esc(p.ean||'—')}</td>
-      <td data-label="Rubro" class="product-extra product-category">${p.rubro?`<span class="pill mute">${esc(p.rubro)}</span>`:'—'}</td>
+      <td data-label="Código" class="num product-extra product-code" style="font-size:12.5px;color:var(--muted)"><span class="product-code-value" title="${esc(p.ean||'')}">${esc(p.ean||'—')}</span></td>
+      <td data-label="Rubro" class="product-extra product-category">${p.rubro?`<span class="pill mute" title="${esc(p.rubro)}">${esc(p.rubro)}</span>`:'—'}</td>
       <td data-label="Costo" class="r num product-number product-cost product-extra">${Number(p.costo)>0?$m(p.costo):'—'}</td>
       <td data-label="Venta" class="r num product-number product-sale">${$m(p.precio)}</td>
       <td data-label="Margen" class="r num product-number product-margin product-extra ${mg===null?'product-empty':'product-value'}">${mg===null?'—':mg.toFixed(0)+'%'}</td>
-      <td data-label="Stock" class="r product-number product-stock"><span class="pill ${Number(p.stock)<=0?'bad':Number(p.stock)<=Number(p.stockMin)?'warn':'mute'} num">${Number(p.stock)<=0?'Sin stock · ':Number(p.stock)<=Number(p.stockMin)?'Bajo · ':''}${fmtCant(p,p.stock)}</span><br><span style="font-size:11px;color:var(--muted)">${esSuelto(p)?`quedan ${fmtCant(atadoDe(p)||p,(atadoDe(p)||{}).stock||0)} atados`:`mín ${fmtCant(p,p.stockMin)} · ideal ${fmtCant(p,deseado(p))}`}</span></td>
+      <td data-label="Stock" class="r product-number product-stock"><span class="pill ${Number(p.stock)<=0?'bad':'mute'} num">${fmtCant(p,p.stock)}</span><br><span style="font-size:11px;color:var(--muted)">${esSuelto(p)?`quedan ${fmtCant(atadoDe(p)||p,(atadoDe(p)||{}).stock||0)} atados`:`mín ${fmtCant(p,p.stockMin)} · ideal ${fmtCant(p,deseado(p))}`}</span></td>
       <td class="r product-extra" style="white-space:nowrap">
         ${esSuelto(p)?`<button class="btn ghost sm" data-abrir="${p.id}" title="Abrir atado de ${esc(p.nombre)}" aria-label="Abrir atado de ${esc(p.nombre)}">${ic('combo')} Abrir atado</button>`:''}
         <button class="btn ghost sm" data-ed="${p.id}" title="Editar ${esc(p.nombre)}" aria-label="Editar ${esc(p.nombre)}">${ic('editar')} Editar</button>
@@ -9553,7 +9526,7 @@ function vConfig(m){
     <button type="button" data-ir-a="cf-caja">Caja</button>
     <button type="button" data-ir-a="cf-funciones">Funciones</button>
     <button type="button" data-ir-a="cf-empleados">Empleados</button>
-    <button type="button" data-ir-a="cf-empleado">Bloqueo de mostrador</button>
+
     <button type="button" data-ir-a="cf-respaldo">Copias de seguridad</button>
     <button type="button" data-ir-a="cf-demo">Comercio de ejemplo</button>
     <button type="button" data-ir-a="cf-zona">Acciones irreversibles</button>
@@ -9573,9 +9546,6 @@ function vConfig(m){
         <div><label class="f" for="cfgWa">WhatsApp del dueño</label>
           <input id="cfgWa" class="inp num" value="${esc(db.config.whatsappDueno||'')}" placeholder="Ej: 5491122334455">
           <div class="hint">Para mandarte el resumen al cerrar caja.</div></div>
-        <div><label class="f">PIN de este dispositivo</label>
-          <div class="hint">La protección es obligatoria para dueños y administradores. Podés reemplazar el PIN confirmando la contraseña de tu cuenta.</div>
-          <button type="button" class="btn ghost sm" id="cambiarPinDispositivo" style="margin-top:8px">Cambiar PIN de este dispositivo</button></div>
       </div>
       <button class="btn" id="okCfg" style="margin-top:16px">Guardar cambios</button>
     </div>
@@ -9639,21 +9609,6 @@ function vConfig(m){
     </div>
   </div>
 
-  <div class="card config-card settings-wide" id="cf-empleado" style="margin-bottom:16px">
-    <div class="card-h"><h2>Bloqueo de mostrador</h2><span class="pill ${seccionesOcultas?'warn':'ok'}">${seccionesOcultas} secciones ocultas</span></div>
-    <div class="card-b">
-      <div class="ux-banner permission-order"><div><b>Orden de permisos</b><br>Primero se aplican los permisos de la cuenta del empleado. Después, este bloqueo puede ocultar todavía más secciones cuando protegés el dispositivo.</div></div>
-      <div class="settings-grid">${seccionesConfigurables.map(id=>{
-        const on=perm[id]!==false;
-        return `<div class="fila-config">
-          <div><b>${TXT_PERMISO[id]}</b><span class="sub-config">${DESC_PERMISO[id]}</span></div>
-          <button class="toggle-switch" role="switch" aria-label="Mostrar ${TXT_PERMISO[id]} en el bloqueo de mostrador" aria-checked="${on}" data-perm="${id}"></button>
-        </div>`;
-      }).join('')}</div>
-      ${!SECCIONES_PERMISO.some(moduloActivo)?`<div class="empty" style="padding:20px"><b>No hay nada para configurar acá</b>Fiado y Vencimientos están apagados — el resto siempre está disponible para el empleado.</div>`:''}
-    </div>
-  </div>
-
   <div class="card config-card" id="cf-respaldo" style="margin-bottom:16px">
     <div class="card-h"><h2>Copias de seguridad</h2>
       <span class="pill ${u?'ok':'mute'}">Última automática: ${u?fFH(u):'ninguna'}</span></div>
@@ -9706,10 +9661,6 @@ function vConfig(m){
     }finally{
       if(document.body.contains(btn))btn.disabled=false;
     }
-  };
-  $('#cambiarPinDispositivo').onclick=async()=>{
-    if(!f3RolServidorAdmin())return;
-    if(await f6SolicitarCambioPinDispositivo()){render();aviso('PIN de este dispositivo actualizado','ok');}
   };
   const abrirCrearEmpleado=$('#f5AbrirCrearEmpleado'),panelCrearEmpleado=$('#f5CrearEmpleadoPanel');
   const mostrarCrearEmpleado=mostrar=>{
@@ -13165,8 +13116,8 @@ document.addEventListener('keydown',e=>{
           if(['cerrada_confirmada','cerrada'].includes(estado)) return false;
           // Backward compatibility for profiles created by pre-FIX4 shadow activation.
           // A never-opened placeholder is harmless only when the legacy turn is empty.
-          if(s.serverOpened===false&&typeof bindings.f3TurnoLegacyLimpio==='function'){
-            try{if(bindings.f3TurnoLegacyLimpio()) return false;}catch(_){}
+          if(s.serverOpened===false&&typeof bindings.f3SesionEsMarcadorViejo==='function'){
+            try{if(bindings.f3SesionEsMarcadorViejo(s)) return false;}catch(_){}
           }
           return true;
         },
@@ -13297,6 +13248,7 @@ document.addEventListener('keydown',e=>{
     get MiComercioF34(){return window.MiComercioF34;},
     get f3Estado(){return f3Estado;},
     f3TurnoLegacyLimpio,
+    f3SesionEsMarcadorViejo,
     get cambioLocalSeq(){return cambioLocalSeq;},
     get db(){return db;},
     f42RowsOutbox,

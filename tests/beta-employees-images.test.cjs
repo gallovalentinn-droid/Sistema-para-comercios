@@ -86,11 +86,11 @@ test('la beta conserva todas las secciones funcionales del sistema completo', ()
   ]);
 });
 
-test('Configuración ofrece empleados reales sin confundirlos con el bloqueo de mostrador', () => {
+test('Configuración ofrece empleados reales; desde REV67 ya no hay bloqueo de mostrador', () => {
   const source = html();
   assert.match(source, /id="cf-empleados"/);
   assert.match(source, />Empleados</);
-  assert.match(source, />Bloqueo de mostrador</);
+  assert.doesNotMatch(source, />Bloqueo de mostrador</);
   assert.match(source, /id="f5EmpleadoNombre"/);
   assert.match(source, /id="f5EmpleadoUsuario"/);
   assert.match(source, /id="f5EmpleadoClave"/);

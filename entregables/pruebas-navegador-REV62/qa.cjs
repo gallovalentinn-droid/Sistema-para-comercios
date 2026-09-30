@@ -10,7 +10,9 @@ async function check(width){
       db.productos=[{id:'qa62',nombre:'Cigarrillos de prueba',ean:'7790000000001',rubro:'Cigarrillos',proveedor:'QA',costo:100,precio:150,stock:2,stockMin:5,stockDeseado:10,unidad:'unidad',origenId:'',porAtado:0,vence:''}];
       vista='productos';render();
     });
-    assert.match(await page.locator('#tabProd').innerText(),/Bajo · 2/);
+    // REV66: el stock vuelve a mostrarse como antes de REV62 (solo la cantidad).
+    assert.equal(await page.locator('#tabProd .product-stock .pill').first().innerText(),'2');
+    assert.doesNotMatch(await page.locator('#tabProd').innerText(),/Bajo · |Sin stock · /);
     await page.locator('#productosFiltrosToggle').click();
     assert.equal(await page.locator('#productosFiltrosExtra').isVisible(),true);
     await page.locator('#seleccionarFiltrados').click();
