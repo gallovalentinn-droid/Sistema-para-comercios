@@ -151,6 +151,8 @@ test('revisar una factura con un producto nuevo no cambia el catálogo hasta con
     cerrarModal:()=>{}, panelIngreso:()=>{}, aviso:()=>{},
   };
   vm.createContext(context);
+  // REV70: la revisión usa el emparejador y la memoria de alias.
+  vm.runInContext(html.slice(html.indexOf('/* REV70_EMPAREJADOR_START */'), html.indexOf('/* REV70_MEMORIA_END */')), context);
   // REV54: la revisión guarda una copia del paso anterior para poder volver.
   vm.runInContext(html.slice(html.indexOf('let facturaIA=null;'), html.indexOf('function abrirRevisionFactura(')), context);
   vm.runInContext(functionSource(html, 'abrirRevisionFactura'), context);

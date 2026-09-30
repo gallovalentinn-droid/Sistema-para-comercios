@@ -737,6 +737,7 @@ body.offline .app{padding-top:34px}
 #iTabla,#revTabla{container:factura / inline-size}
 #iTabla table.invoice-lines,#revTabla table.invoice-lines{width:100%}
 .invoice-lines td[data-label="Producto"],.invoice-lines td[data-label="Leído en la factura"]{min-width:230px}
+.rev70-resumen{margin:0 0 10px;font-size:13.5px;color:var(--muted)}.rev70-desc{font-size:12.5px;color:var(--muted);font-weight:400}.rev70-cands{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.rev70-cands .btn.sm{display:inline-block;min-height:32px;padding:5px 10px;font-size:13px;white-space:normal;text-align:left;line-height:1.35}.rev70-costo{white-space:normal;text-align:left;margin-top:4px}
 .invoice-lines td[data-label="Leído en la factura"]{overflow-wrap:anywhere}
 .invoice-lines .inp{min-width:0;width:100%}
 #iCheck .pill{white-space:normal;line-height:1.45;max-width:100%}
@@ -834,7 +835,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:69,
+  packageRevision:75,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -6726,20 +6727,452 @@ function numFactura(v){
 function normalizarTexto(s){
   return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
-function coincidenciaProducto(nombreExtraido){
-  const q=normalizarTexto(nombreExtraido);
-  if(!q) return null;
-  const qWords=q.split(' ').filter(w=>w.length>1);
-  let mejor=null, mejorScore=0;
-  db.productos.forEach(p=>{
-    const n=normalizarTexto(p.nombre);
-    if(!n) return;
-    const nWords=n.split(' ');
-    let score = n===q ? 10 : 0;
-    qWords.forEach(w=>{ if(nWords.includes(w)) score+=2; else if(n.includes(w)) score+=1; });
-    if(score>mejorScore){ mejorScore=score; mejor=p; }
+/* REV70_EMPAREJADOR_START */
+// REV70: emparejador de renglones de factura con productos del catálogo.
+// Entiende presentaciones (750CC = 750 ml, 2LT = 2 L), abreviaturas (CERV, VDKA, STA),
+// texto pegado (SPEEDXLUNLIMITEDX473CC) y no elige a ciegas cuando hay empate.
+const REV70_ABREV=Object.freeze({
+  vdka:'vodka',vdk:'vodka',sta:'santa',sto:'santo',gtas:'galletitas',gtita:'galletita',gllt:'galletita',
+  bca:'blanca',bco:'blanco',ngra:'negra',ngro:'negro',nja:'naranja',nar:'naranja',mzna:'manzana',mza:'manzana',
+  dce:'dulce',lche:'leche',frut:'frutilla',fruti:'frutilla',yba:'yerba',cig:'cigarrillo',cigs:'cigarrillo',
+  cerv:'cerveza',crv:'cerveza',alf:'alfajor',choc:'chocolate',chocol:'chocolate',gall:'galletita',galle:'galletita',
+  pap:'papel',hig:'higienico',jab:'jabon',det:'detergente',desod:'desodorante',shamp:'shampoo',acond:'acondicionador',
+  clas:'clasico',clasic:'clasico',trip:'triple',sal:'salado',mant:'manteca',mayon:'mayonesa',ketch:'ketchup',
+  gaseo:'gaseosa',gas:'gaseosa',lat:'lata',bot:'botella',ret:'retornable',desc:'descartable',
+  mlb:'marlboro',marl:'marlboro',chest:'chesterfield',phil:'philip',pm:'philip'
+});
+// Palabras que no identifican al producto: se ignoran al comparar.
+const REV70_RUIDO=new Set(['de','del','la','el','los','las','con','sin','y','en','x','u','un','uni','und','unid','unidad','unidades',
+  'cc','ml','cm','cm3','gr','grs','g','kg','l','lt','lts','ltr','s','c','p','pack','pck','caja','cja','cj','bulto','blt','display','dsp',
+  'art','cod','codigo','sp','ud','uds','pz','pza','bolsa','bls','fardo','fdo','paq','gaseosa','gas','bebida','prod','varios','mg','mcg']);
+function rev70Base(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[´`']/g,'');
+}
+function rev70ClaveTexto(s){return rev70Base(s).replace(/[^a-z0-9]+/g,' ').trim();}
+// Presentación: volumen en ml o peso en g. Acepta 750CC, 2,25LT, 473cm3, 1 L, 500GR, 1KG.
+// REV72: también MG y MCG (UG), convertidos a g, para que 500MG y 500MCG no se confundan. Guarda el número tal cual (crudo).
+const REV72_UNIDADES='mcg|ug|mg|ml|cc|cm\\s?3|cmc|litros?|lts?|ltr|l|grs?|gramos?|g|kgs?|kilos?|k';
+function rev70Presentacion(s){
+  const t=rev70Base(s).replace(/µ/g,'u').replace(/(\d),(\d)/g,'$1.$2');
+  const re=new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(${REV72_UNIDADES})(?![a-wyz])`,'g');
+  let m,out=null;
+  while((m=re.exec(t))){
+    const n=parseFloat(m[1]),u=m[2].replace(/\s/g,'');
+    if(!(n>=0))continue; // REV73: 0MG también es una medida (antes se perdía)
+    let r=null;
+    if(/^(ml|cc|cm3|cmc)$/.test(u))r={tipo:'ml',valor:n};
+    else if(/^(l|lt|lts|ltr|litro|litros)$/.test(u))r={tipo:'ml',valor:n*1000};
+    else if(/^(g|gr|grs|gramo|gramos)$/.test(u))r={tipo:'g',valor:n};
+    else if(u==='mg')r={tipo:'g',valor:n/1000};
+    else if(u==='mcg'||u==='ug')r={tipo:'g',valor:n/1e6};
+    else r={tipo:'g',valor:n*1000};
+    r.crudo=n;
+    out=r; // la última presentación del texto es la del producto
+  }
+  return out;
+}
+// REV73: todas las medidas del texto, no solo la última («200MG 60ML» son dos: dosis y volumen).
+function rev73Medidas(s){
+  const t=rev70Base(s).replace(/µ/g,'u').replace(/(\d),(\d)/g,'$1.$2');
+  const re=new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(${REV72_UNIDADES})(?![a-wyz])`,'g');
+  const out=[];let m;
+  while((m=re.exec(t))){const r=rev70Presentacion(m[0]);if(r)out.push(r);}
+  return out;
+}
+// REV75: cada medida con las palabras que la preceden (el componente al que pertenece):
+// «Pack Nivea Crema 125g Jabon 75g» -> 125 g de [pack, nivea, crema] y 75 g de [jabon].
+function rev75Componentes(s){
+  const t=rev70Base(s).replace(/µ/g,'u').replace(/(\d),(\d)/g,'$1.$2');
+  const re=new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(${REV72_UNIDADES})(?![a-wyz])`,'g');
+  const out=[];let m,desde=0;
+  while((m=re.exec(t))){
+    const r=rev70Presentacion(m[0]);
+    // Lo que va antes de la primera medida también nombra al producto entero (Pack Nivea): de esa etiqueta
+    // solo la última palabra dice el componente (Crema).
+    if(r){const ws=rev70Tokens(t.slice(desde,m.index)).palabras;out.push({...r,etiqueta:ws,componente:desde===0?ws.slice(-1):ws});}
+    desde=m.index+m[0].length;
+  }
+  return out;
+}
+// REV75: si un lado tiene dos o más medidas del mismo tipo (un pack de crema y jabón, un combo de dos jugos),
+// no alcanza con que coincidan los valores: cada medida tiene que ser la del mismo componente.
+// Devuelve 'ok', 'contradiccion' (el mismo componente con otra medida) o 'dudoso' (no se puede saber cuál es cuál).
+function rev75CompararComponentes(qc,pc){
+  const parecida=(a,b)=>rev70Credito(a,b)>=0.8||rev70Credito(b,a)>=0.8;
+  let estado='ok';
+  for(const tipo of new Set([...qc,...pc].map(m=>m.tipo))){
+    const qs=qc.filter(m=>m.tipo===tipo),ps=pc.filter(m=>m.tipo===tipo);
+    if(!qs.length||!ps.length||(qs.length<2&&ps.length<2))continue;
+    // Palabras propias de cada componente del producto (las que no aparecen en los otros componentes).
+    const propias=ps.map((m,i)=>m.componente.filter(w=>!ps.some((o,j)=>j!==i&&o.etiqueta.some(v=>parecida(w,v)))));
+    let sinPar=false;
+    for(const a of qs){
+      // Pesa más la palabra más cercana a la medida: en «Pack Nivea Jabon 75G», «jabon» dice de qué es el 75.
+      const puntos=propias.map(ws=>a.etiqueta.reduce((t,v,j)=>t+(ws.some(w=>parecida(v,w))?1/(a.etiqueta.length-j):0),0));
+      const max=Math.max(...puntos);
+      if(max>0&&puntos.filter(x=>Math.abs(x-max)<1e-9).length===1){if(!rev72MismaMedida(a,ps[puntos.indexOf(max)]))return 'contradiccion';}
+      else sinPar=true;
+    }
+    // Sin palabras que lo digan, solo vale el mismo orden con los mismos valores («125G 75G» contra «125g … 75g»).
+    if(sinPar&&!(qs.length===ps.length&&qs.every((a,i)=>rev72MismaMedida(a,ps[i]))))estado='dudoso';
+    // Si el renglón nombra menos componentes que el producto («JABON NIVEA 75G» contra el pack), puede ser el suelto.
+    if(ps.length>=2&&qs.length<ps.length)estado='dudoso';
+  }
+  return estado;
+}
+// REV72: dos presentaciones son la misma medida. Sin tolerancia: 500 y 501 ml son distintas (solo se absorbe el error de redondeo).
+function rev72MismaMedida(a,b){return !!a&&!!b&&a.tipo===b.tipo&&Math.abs(a.valor-b.valor)<=Math.abs(b.valor)*1e-6+1e-9;}
+// REV72: un número suelto del renglón (750, 2, 500) coincide con la presentación del producto.
+function rev72NumeroEsPres(n,pres){
+  if(!pres)return false;
+  const cerca=(a,b)=>Math.abs(a-b)<=Math.abs(b)*1e-6+1e-9;
+  return cerca(n,pres.crudo)||cerca(n,pres.valor)||cerca(n*1000,pres.valor);
+}
+const REV72_CUENTA=new Set(['u','un','uni','und','unid','unidad','unidades','ud','uds','comp','comps','comprimidos','caps','capsulas','sobres','saquitos','rollos','atados']);
+function rev70Tokens(s){
+  const t=rev70Base(s).replace(/µ/g,'u').replace(/(\d),(\d)/g,'$1.$2')
+    .replace(new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(${REV72_UNIDADES})(?![a-wyz])`,'g'),' ')
+    .replace(/[^a-z0-9.]+/g,' ').replace(/\.(?!\d)|(?<!\d)\./g,' ')
+    .replace(/([a-z])(\d)/g,'$1 $2').replace(/(\d)([a-z])/g,'$1 $2');
+  const palabras=[],numeros=[],packs=[];
+  const crudos=t.split(/\s+/).filter(Boolean);
+  for(let i=0;i<crudos.length;i++){
+    const w=crudos[i];
+    // x6, x20: unidades por pack. x 750 es una medida sin unidad, no un pack.
+    if(w==='x'&&/^\d{1,3}$/.test(crudos[i+1]||'')){const n=Number(crudos[++i]);if(n<150)packs.push(n);else numeros.push(n);continue;}
+    // REV72: «20 comprimidos», «6 u», «10 sobres» son unidades por paquete, igual que x20.
+    // REV72: 000 / 0000 (tipo de harina) es parte del nombre, no una cantidad.
+    if(/^00+$/.test(w)){palabras.push(w);numeros.push(w);continue;} // y también identifica: 000 no es 0000 ni 1
+    if(/^\d+(?:\.\d+)?$/.test(w)){
+      if(REV72_CUENTA.has(crudos[i+1]||'')){packs.push(Number(w));i++;continue;}
+      numeros.push(Number(w));continue; // REV72: también los de un dígito (RINDE 2, 7UP): cuentan para detectar contradicciones
+    }
+    if(w.length<2||REV70_RUIDO.has(w))continue;
+    palabras.push(w);
+  }
+  return {palabras,numeros,packs};
+}
+function rev70Subsecuencia(corta,larga){
+  if(corta[0]!==larga[0])return false;
+  let j=0;for(const ch of larga){if(ch===corta[j])j++;if(j===corta.length)return true;}
+  return false;
+}
+// Qué tanto un token leído se parece a una palabra del producto (0 a 1).
+function rev70Credito(q,p){
+  if(q===p)return 1;
+  if(REV70_ABREV[q]&&(REV70_ABREV[q]===p||p.startsWith(REV70_ABREV[q])))return 0.95;
+  if(q.length>=4&&p.length>=4&&(q.startsWith(p)||p.startsWith(q))&&Math.abs(q.length-p.length)<=2)return 0.95; // plurales
+  if(q.length>=3&&p.startsWith(q))return 0.8;
+  if(q.length>=3&&q.length<p.length&&rev70Subsecuencia(q,p))return 0.6;
+  if(q.length>=9&&p.length>=4&&q.includes(p))return 0.7; // texto pegado: SPEEDXLUNLIMITED
+  if(p.length>=9&&q.length>=4&&p.includes(q))return 0.7; // nombre pegado en el catálogo: VILLAMANAOS
+  return 0;
+}
+function rev70Indice(productos){
+  const items=(productos||[]).filter(p=>p&&!p.archivadoAt&&String(p.nombre||'').trim()).map(p=>{
+    const tk=rev70Tokens(p.nombre);
+    const medidas=rev73Medidas(p.nombre);
+    return {p,palabras:[...new Set(tk.palabras)],numeros:tk.numeros,packs:tk.packs,todos:[...tk.numeros,...tk.packs],pres:rev70Presentacion(p.nombre),medidas,
+      items:rev74Items({medidas,numeros:tk.numeros,packs:tk.packs}),comp:rev75Componentes(p.nombre),
+      prov:rev70ClaveTexto(p.proveedor||'')};
   });
-  return mejorScore>=2 ? mejor : null;
+  const df=new Map();
+  items.forEach(it=>it.palabras.forEach(w=>df.set(w,(df.get(w)||0)+1)));
+  const N=Math.max(1,items.length);
+  const idf=w=>Math.log(1+N/(df.get(w)||0.5));
+  items.forEach(it=>{it.pesos=it.palabras.map(idf);it.total=it.pesos.reduce((a,b)=>a+b,0);});
+  return {items,idf,N};
+}
+function rev70Puntaje(q,it,proveedor,idf){
+  let logrado=0,usados=0,sinPar=0;const extras=[];
+  const tomado=new Array(it.palabras.length).fill(0);
+  for(const w of q.palabras){
+    let mejor=0,mejorIx=-1;
+    it.palabras.forEach((pw,ix)=>{const c=rev70Credito(w,pw)*it.pesos[ix];if(c>mejor){mejor=c;mejorIx=ix;}});
+    if(mejorIx>=0&&mejor>tomado[mejorIx]){logrado+=mejor-tomado[mejorIx];tomado[mejorIx]=mejor;usados++;}
+    else if(mejorIx<0&&w.length>=3){sinPar++;extras.push(w);} // palabra leída que este producto no tiene (GOLD, QUILMES)
+  }
+  if(!logrado)return {puntaje:0,incompatible:false,usados:0,sinPar,sobran:[],extras,sinExplicar:[],componenteDudoso:false};
+  const faltante=it.pesos.reduce((a,peso,ix)=>a+(tomado[ix]?0:peso),0);
+  const sobran=it.palabras.filter((w,ix)=>!tomado[ix]);
+  let puntaje=logrado-0.35*faltante-0.5*sinPar;
+  let incompatible=false,anclas=0;
+  // REV74: medidas y números conciliados con su procedencia (todas las medidas, en cualquier orden).
+  const conc=rev74Conciliar(q.items||rev74Items(q),it.items||rev74Items(it));
+  if(conc.medidas){puntaje+=2.5;anclas++;}
+  else if(conc.sueltoMedida){puntaje+=2;anclas++;}
+  else if((q.medidas||[]).length&&!(it.medidas||[]).length)puntaje-=0.4;
+  if(conc.contradiccion){incompatible=true;puntaje-=4;}
+  // REV75: con dos medidas del mismo tipo, cada una tiene que ser la de su componente (crema 125g, jabón 75g).
+  const componentes=rev75CompararComponentes(q.comp||[],it.comp||[]);
+  if(componentes==='contradiccion'&&!incompatible){incompatible=true;puntaje-=4;}
+  const componenteDudoso=componentes==='dudoso';
+  // Números propios del nombre (1882, 600, 7) y unidades por paquete (x10, x20, 20 comprimidos).
+  for(const n of it.numeros){if(q.numeros.includes(n)||q.packs.includes(n)){puntaje+=1;anclas++;}else puntaje-=0.5;}
+  for(const n of it.packs){if(q.packs.includes(n)||q.numeros.includes(n)){puntaje+=1;anclas++;}}
+  // REV72: regla única de números. Si el renglón trae algún número que el producto no explica
+  // y al producto le queda algún número propio sin aparecer en el renglón, es otra presentación:
+  // CIG BOX 10 contra Box x20, VIENA 12 contra x6, ACTRON 400 20 COMP contra 600 20 comp.
+  // Compartir un número no alcanza. El embalaje del mayorista (X24, X10 de más) no choca si al
+  // producto no le falta ninguno de sus números.
+  // Se comparan como multiconjuntos: «1 gel + 3» y «3 gel + 3» no son lo mismo.
+  const {sinExplicar,faltantes}=conc;
+  if(sinExplicar.length&&faltantes.length&&!incompatible){incompatible=true;puntaje-=1.5;}
+  // Un número leído que el producto no explica resta un poco (desempata a favor del que sí lo tiene).
+  puntaje-=0.4*sinExplicar.length;
+  if(proveedor&&it.prov&&(it.prov===proveedor||it.prov.includes(proveedor)||proveedor.includes(it.prov)))puntaje+=0.3;
+  return {puntaje,incompatible,usados,anclas,sinPar,logrado,faltante,sobran,extras,sinExplicar,componenteDudoso};
+}
+// REV74: concilia lo numérico del renglón con lo del producto SIN perder de dónde viene cada número:
+//   m = medida con unidad (200MG, 60ML), s = número suelto (600, 1882, 000), p = unidades por paquete (x20, 20 comprimidos).
+// Orden:
+//   1. medida con medida del mismo tipo y valor exacto;
+//   2. si a los dos lados les queda una medida del mismo tipo, es una contradicción explícita (10G contra 20g),
+//      y ningún otro número puede taparla;
+//   3. número con número (suelto o paquete; primero del mismo origen);
+//   4. número SUELTO del renglón con una medida del producto (la factura omitió la unidad: 600 con 600mg);
+//   5. medida del renglón con número SUELTO del producto (el catálogo omitió la unidad: 600MG con «Actron 600»).
+//   Un número de paquete nunca explica una medida, ni una medida explica un paquete.
+function rev74Items(x){
+  return [...(x.medidas||(x.pres?[x.pres]:[])).map(m=>({k:'m',...m})),
+    ...(x.numeros||[]).map(n=>({k:'s',n})),...(x.packs||[]).map(n=>({k:'p',n}))];
+}
+function rev74Conciliar(qItems,pItems){
+  const q=[...qItems],p=[...pItems];const cuenta={medidas:0,sueltoMedida:0,numeros:0};
+  const cruzar=(ok,clave)=>{for(let i=q.length-1;i>=0;i--){const j=p.findIndex(y=>ok(q[i],y));if(j>=0){p.splice(j,1);q.splice(i,1);cuenta[clave]++;}}};
+  cruzar((a,b)=>a.k==='m'&&b.k==='m'&&rev72MismaMedida(a,b),'medidas');
+  const contradiccion=q.some(a=>a.k==='m'&&p.some(b=>b.k==='m'&&b.tipo===a.tipo));
+  cruzar((a,b)=>a.k!=='m'&&a.k===b.k&&a.n===b.n,'numeros');
+  cruzar((a,b)=>a.k!=='m'&&b.k!=='m'&&a.n===b.n,'numeros');
+  cruzar((a,b)=>a.k==='s'&&typeof a.n==='number'&&b.k==='m'&&rev72NumeroEsPres(a.n,b),'sueltoMedida');
+  cruzar((a,b)=>a.k==='m'&&b.k==='s'&&typeof b.n==='number'&&Math.abs(b.n-a.crudo)<1e-9,'sueltoMedida');
+  return {sinExplicar:q,faltantes:p,contradiccion,...cuenta};
+}
+// ¿El producto explica este dato del renglón?
+function rev73Explica(item,it){return rev74Conciliar([item],rev74Items(it)).sinExplicar.length===0;}
+// Dos productos del catálogo con el mismo nombre en la práctica (7up 2l / 7UP 2L).
+function rev70MismoNombre(a,b){
+  const k=it=>it.palabras.map(w=>w.replace(/s$/,'')).sort().join(' ')+'|'+(it.medidas||[]).map(m=>m.tipo+m.valor).sort().join(',')+'|'+[...it.numeros].sort().join(',')+'|'+[...it.packs].sort().join(',');
+  return k(a)===k(b);
+}
+// Devuelve {estado:'seguro'|'dudoso'|'ninguno', producto, candidatos:[{producto,puntaje}]}
+function rev70EmparejarTexto(texto,indice,proveedor){
+  const base=rev70Tokens(texto);
+  const q={palabras:[...new Set(base.palabras)],numeros:[...new Set(base.numeros)],packs:[...new Set(base.packs)],
+    todos:[...base.numeros,...base.packs],pres:rev70Presentacion(texto),medidas:rev73Medidas(texto)};
+  q.items=rev74Items({medidas:q.medidas,numeros:base.numeros,packs:base.packs}); // sin deduplicar
+  q.comp=rev75Componentes(texto);
+  if(!q.palabras.length)return {estado:'ninguno',producto:null,candidatos:[],evaluar:()=>null,bloqueo:()=>true};
+  const prov=rev70ClaveTexto(proveedor||'');
+  const lista=indice.items.map(it=>({it,...rev70Puntaje(q,it,prov)})).filter(x=>x.puntaje>0)
+    .sort((a,b)=>b.puntaje-a.puntaje||a.it.p.nombre.localeCompare(b.it.p.nombre));
+  const cand=x=>({producto:x.it.p,puntaje:Math.round(x.puntaje*100)/100,incompatible:x.incompatible,sinPar:x.sinPar});
+  const candidatos=lista.slice(0,3).map(cand);
+  const a=lista[0],b=lista[1];
+  // Los umbrales se escalan con el tamaño del catálogo (el peso de una palabra rara depende de cuántos productos hay).
+  const k=Math.max(0.35,Math.log(1+indice.N)/Math.log(721));
+  // REV71: cómo queda un producto cualquiera frente a este texto (para revisar lo que propone la descripción).
+  const evaluar=p=>{const it=indice.items.find(x=>x.p===p);return it?{producto:p,it,...rev70Puntaje(q,it,prov)}:null;};
+  // REV75: los datos numéricos que impiden elegir solo un producto, medidos contra este texto. Se usan igual
+  // para el mejor candidato de lo impreso y para el que propone la descripción de la IA (hallazgo R74-02).
+  const bloqueo=x=>{
+    const otros=lista.filter(y=>y.it!==x.it);
+    const sinExplicar=x.sinExplicar||[];
+    // REV72: si el renglón trae un número que el producto no explica (BOX 10 contra «Marlboro box») y otro candidato
+    // compatible sí lo tiene (Marlboro x10), ese número puede decidir: se pregunta.
+    // Si el renglón ya confirma los números propios del producto (BOX 20 X10), lo que sobra es embalaje del mayorista.
+    const decisivo=sinExplicar.length>0&&(
+      (!(x.it.todos||[]).length&&otros.some(y=>!y.incompatible&&y.puntaje>0&&sinExplicar.some(n=>rev73Explica(n,y.it))))
+      // REV73: o una medida (480G) cuando el producto no tiene ninguna de ese tipo y otro del mismo producto sí
+      // (el catálogo distingue presentaciones: «chizitos krachitos» y «Chizitos Krachitos 240g»).
+      ||sinExplicar.some(m=>m.k==='m'&&!(x.it.medidas||[]).some(z=>z.tipo===m.tipo)
+        &&otros.some(y=>y.puntaje>0&&(y.it.medidas||[]).some(z=>z.tipo===m.tipo)))
+      // o un número suelto (CHIZITOS 241) cuando el producto no tiene ningún dato numérico y otro del mismo producto sí.
+      ||(!(x.it.todos||[]).length&&!(x.it.medidas||[]).length&&sinExplicar.some(n=>n.k!=='m')
+        &&otros.some(y=>y.puntaje>0&&((y.it.medidas||[]).length||(y.it.todos||[]).length))));
+    // REV74: solo un paquete de más (X24, X10) se toma como embalaje del mayorista. Una medida (620GR) o un
+    // número suelto (45) que el producto no explica son datos de la presentación que el catálogo no confirma: se pregunta.
+    const medidaSobrante=sinExplicar.some(m=>m.k==='m'||m.k==='s');
+    // REV75: con dos medidas del mismo tipo y sin forma de saber cuál es de qué componente, se pregunta.
+    return decisivo||medidaSobrante||!!x.componenteDudoso;
+  };
+  const bloqueoDe=p=>{const v=evaluar(p);return v?bloqueo(v):true;};
+  if(!a||a.puntaje<1.5*k)return {estado:'ninguno',producto:null,candidatos:lista.filter(x=>x.puntaje>=0.8).slice(0,3).map(cand),evaluar,bloqueo:bloqueoDe};
+  const margen=b?a.puntaje-b.puntaje:a.puntaje;
+  const duplicado=b&&rev70MismoNombre(a.it,b.it);
+  // Una palabra leída que el producto no tiene (GOLD, MENTA, QUILMES) puede ser otra variante: se pregunta.
+  const extraOk=a.sinPar===0;
+  // Si al elegido le sobra una variante (RASPBERRY) y otro producto coincide igual de bien, falta información.
+  const compatible=lista.slice(1).find(x=>!x.incompatible);
+  const variante=!!compatible&&Math.abs(a.logrado-compatible.logrado)<1&&margen<3
+    &&a.sobran.some(w=>!compatible.sobran.some(v=>v.replace(/s$/,'')===w.replace(/s$/,''))); // REV72: cigarrillo = cigarrillos
+  const seguro=!a.incompatible&&!duplicado&&!variante&&!bloqueo(a)&&a.puntaje>=4*k&&margen>=1.5*k&&extraOk&&(a.usados+a.anclas)>=2;
+  return {estado:seguro?'seguro':'dudoso',producto:seguro?a.it.p:null,candidatos,evaluar,bloqueo:bloqueoDe};
+}
+// Empareja por el texto impreso. REV71: la descripción expandida por la IA nunca pisa lo impreso:
+// - si el impreso es seguro y la descripción apunta con seguridad a otro producto, se pregunta;
+// - si el impreso duda, la descripción solo resuelve cuando su producto es compatible con lo impreso
+//   (mismo tamaño, atado y números, y todas las palabras impresas presentes en el producto).
+function rev70Emparejar(texto,indice,{proveedor='',descripcion=''}={}){
+  const impreso=rev70EmparejarTexto(texto,indice,proveedor);
+  if(!descripcion||rev70ClaveTexto(descripcion)===rev70ClaveTexto(texto))return impreso;
+  const expandido=rev70EmparejarTexto(descripcion,indice,proveedor);
+  const dudoso=()=>{
+    const vistos=new Set(),candidatos=[];
+    const sumar=c=>{if(c&&!vistos.has(c.producto)&&candidatos.length<3){vistos.add(c.producto);candidatos.push(c);}};
+    // Lo que agrega la descripción se muestra con la compatibilidad medida contra el texto impreso.
+    const medir=c=>{const v=c&&impreso.evaluar(c.producto);return v?{producto:c.producto,puntaje:Math.round(v.puntaje*100)/100,incompatible:v.incompatible,sinPar:v.sinPar,soloDescripcion:!(v.logrado>0)}:c;};
+    // Primero lo mejor de cada lectura, para que la propuesta de la descripción siempre se vea.
+    sumar(impreso.candidatos[0]);sumar(medir(expandido.candidatos[0]));
+    impreso.candidatos.slice(1).forEach(sumar);expandido.candidatos.slice(1).forEach(c=>sumar(medir(c)));
+    return {estado:candidatos.length?'dudoso':'ninguno',producto:null,candidatos,evaluar:impreso.evaluar,bloqueo:impreso.bloqueo};
+  };
+  if(impreso.estado==='seguro'){
+    if(expandido.estado==='seguro'&&expandido.producto!==impreso.producto)return dudoso();
+    return impreso;
+  }
+  if(expandido.estado==='seguro'){
+    const v=impreso.evaluar(expandido.producto);
+    // Además, lo impreso tiene que cubrir la mayor parte del nombre: «LATA 473» no alcanza para aceptar una marca que solo trae la descripción.
+    const cubre=v&&v.logrado>0?v.logrado/(v.logrado+v.faltante):0;
+    // REV75: y la descripción no puede saltear los datos que lo impreso no confirma (45, 620GR, 35GR) ni un número
+    // que decide la presentación: se aplican las mismas reglas que al elegir por lo impreso (hallazgo R74-02).
+    if(v&&v.puntaje>0&&!v.incompatible&&v.sinPar===0&&cubre>=0.6&&!impreso.bloqueo(expandido.producto))
+      return {...expandido,evaluar:impreso.evaluar,bloqueo:impreso.bloqueo};
+  }
+  return dudoso();
+}
+/* REV70_EMPAREJADOR_END */
+/* REV70_MEMORIA_START */
+// REV70: memoria «texto de la factura -> producto» por comercio y proveedor.
+// Vive en la nube (tabla factura_alias_producto) con una copia local para trabajar sin conexión.
+const REV70_ALIAS_TABLA='factura_alias_producto';
+const REV70_ALIAS_LS='micomercio.rev70.alias.';
+const REV70_PROVEEDOR_RUIDO=new Set(['sa','srl','sas','sh','s','a','de','la','el','los','y','e','hijos','hnos','cia']);
+function rev70ClaveProveedor(s){return rev70ClaveTexto(s).split(' ').filter(w=>w&&!REV70_PROVEEDOR_RUIDO.has(w)).join(' ').slice(0,160);}
+function rev70ClaveAlias(s){return rev70ClaveTexto(s).slice(0,220);}
+function rev70ClaveCodigo(c){const k=rev70Base(c).replace(/[^a-z0-9]/g,'');return k&&k.length<=40?`cod:${k}`:'';}
+function rev70RefProducto(p){
+  if(!p)return '';
+  const v4=String(p._v4id||'');
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v4)?v4:String(p.id||'');
+}
+function rev70ProductoDeRef(ref,productos){
+  if(!ref)return null;
+  const p=(productos||[]).find(x=>x&&(x.id===ref||x._v4id===ref));
+  return p&&!p.archivadoAt?p:null;
+}
+function rev70MemoriaVacia(){return {filas:{}};}
+function rev70LeerMemoria(cid){
+  if(!cid)return rev70MemoriaVacia();
+  try{
+    const v=JSON.parse(localStorage.getItem(REV70_ALIAS_LS+cid)||'null');
+    return v&&typeof v==='object'&&v.filas&&typeof v.filas==='object'?v:rev70MemoriaVacia();
+  }catch(_e){return rev70MemoriaVacia();}
+}
+function rev70GuardarMemoria(cid,mem){
+  if(!cid)return;
+  try{localStorage.setItem(REV70_ALIAS_LS+cid,JSON.stringify(mem));}catch(_e){}
+}
+// Busca primero por código de artículo, después por el texto exacto del mismo proveedor,
+// y por último el mismo texto con otro nombre de proveedor si todas las veces fue el mismo producto.
+function rev70BuscarEnMemoria(mem,{proveedor='',texto='',codigo=''},productos){
+  const filas=(mem&&mem.filas)||{};
+  const pv=rev70ClaveProveedor(proveedor),cod=rev70ClaveCodigo(codigo),tx=rev70ClaveAlias(texto);
+  const usar=(f,via)=>{const p=f&&rev70ProductoDeRef(f.ref,productos);return p?{producto:p,upb:Math.max(1,Math.floor(Number(f.upb))||1),via}:null;};
+  if(cod){const r=usar(filas[`${pv}|${cod}`],'codigo');if(r)return r;}
+  if(!tx)return null;
+  const directo=usar(filas[`${pv}|${tx}`],'texto');if(directo)return directo;
+  const otros=Object.values(filas).filter(f=>f&&f.tx===tx&&rev70ProductoDeRef(f.ref,productos));
+  // REV71: de otro proveedor solo se toma el producto (y solo si todas las memorias coinciden).
+  // El bulto es del embalaje de cada proveedor: no se hereda, queda el que leyó la IA.
+  if(otros.length&&otros.every(f=>f.ref===otros[0].ref)){const r=usar(otros[0],'otro-proveedor');return r?{...r,upb:null}:null;}
+  return null;
+}
+function rev70Recordar(mem,{proveedor='',texto='',codigo='',ref='',upb=1}){
+  if(!mem||!mem.filas||!ref)return mem;
+  const pv=rev70ClaveProveedor(proveedor);
+  const unidades=Math.min(1000,Math.max(1,Math.floor(Number(upb))||1));
+  [rev70ClaveAlias(texto),rev70ClaveCodigo(codigo)].filter(Boolean).forEach(tx=>{
+    const k=`${pv}|${tx}`,antes=mem.filas[k];
+    const usos=antes&&antes.ref===ref?Math.min(1000000,(Number(antes.usos)||1)+1):1;
+    mem.filas[k]={pv,tx,ref:String(ref).slice(0,120),upb:unidades,usos,pend:true};
+  });
+  return mem;
+}
+function rev70PuedeNube(){
+  return typeof sb!=='undefined'&&!!sb&&typeof sesion!=='undefined'&&!!sesion
+    &&(typeof navigator==='undefined'||navigator.onLine!==false);
+}
+// Sube lo pendiente y trae lo de la nube. Si no hay conexión o tarda, sigue con la copia local.
+async function rev70SincronizarMemoria(cid,{timeoutMs=3500}={}){
+  const local=rev70LeerMemoria(cid);
+  if(!cid||!rev70PuedeNube())return local;
+  const subidas=new Set();
+  const trabajo=(async()=>{
+    const pend=Object.entries(local.filas).filter(([,f])=>f&&f.pend);
+    if(pend.length){
+      const {error}=await sb.from(REV70_ALIAS_TABLA).upsert(pend.map(([,f])=>({
+        comercio_id:cid,proveedor_clave:f.pv,texto_clave:f.tx,producto_ref:f.ref,unidades_por_bulto:f.upb,usos:f.usos
+      })),{onConflict:'comercio_id,proveedor_clave,texto_clave'});
+      if(error)throw error;
+      pend.forEach(([k,f])=>subidas.add(`${k}>${f.ref}>${f.upb}`));
+    }
+    const {data,error}=await sb.from(REV70_ALIAS_TABLA)
+      .select('proveedor_clave,texto_clave,producto_ref,unidades_por_bulto,usos').eq('comercio_id',cid).limit(5000);
+    if(error)throw error;
+    const nube=rev70MemoriaVacia();
+    (data||[]).forEach(r=>{nube.filas[`${r.proveedor_clave}|${r.texto_clave}`]={pv:r.proveedor_clave,tx:r.texto_clave,
+      ref:r.producto_ref,upb:Number(r.unidades_por_bulto)||1,usos:Number(r.usos)||1};});
+    return nube;
+  })();
+  let reloj;
+  try{
+    const nube=await Promise.race([trabajo,new Promise((_,rej)=>{reloj=setTimeout(()=>rej(new Error('REV70_MEMORIA_TIEMPO')),timeoutMs);})]);
+    // Lo que se recordó mientras tanto y todavía no subió, se conserva como pendiente.
+    const actual=rev70LeerMemoria(cid);
+    Object.entries(actual.filas).forEach(([k,f])=>{if(f&&f.pend&&!subidas.has(`${k}>${f.ref}>${f.upb}`))nube.filas[k]=f;});
+    nube.sincronizado=new Date().toISOString();
+    rev70GuardarMemoria(cid,nube);
+    return nube;
+  }catch(e){
+    console.warn('REV70_MEMORIA_SIN_NUBE',String(e&&(e.code||e.message)||e).slice(0,120));
+    return local;
+  }finally{clearTimeout(reloj);}
+}
+// Arma las filas de la revisión: memoria primero, después el emparejador.
+function rev70PrepararFilas(parsed,productos,mem){
+  const indice=rev70Indice(productos);
+  const proveedor=String(parsed&&parsed.proveedor||'');
+  return ((parsed&&parsed.items)||[]).map(it=>{
+    const original=String(it.producto||'').trim()||'(sin nombre)';
+    const codigo=String(it.codigo||'').trim().slice(0,40),descripcion=String(it.descripcion||'').trim().slice(0,200);
+    const recordado=rev70BuscarEnMemoria(mem,{proveedor,texto:original,codigo},productos);
+    const auto=recordado?null:rev70Emparejar(original,indice,{proveedor,descripcion});
+    const upbIa=Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||detectarBulto(original));
+    return {original,codigo,descripcion,
+      cantidad:Math.max(0,numFactura(it.cantidad))||1,costoU:numFactura(it.precioUnit),descuento:Math.abs(numFactura(it.descuento)),
+      porBulto:recordado&&recordado.upb?recordado.upb:upbIa,porBultoIa:upbIa,via:recordado?recordado.via:'',
+      prodId:recordado?recordado.producto.id:(auto.producto?auto.producto.id:''),
+      origen:recordado?'memoria':(auto.producto?'auto':''),
+      estado:recordado?'recordado':auto.estado,
+      candidatos:recordado?[]:auto.candidatos.map(c=>({id:c.producto.id,nombre:c.producto.nombre,otroTamano:!!c.incompatible,soloDescripcion:!!c.soloDescripcion}))};
+  });
+}
+// refDe(fila) devuelve el identificador estable del producto elegido (o '' para no recordar la fila).
+function rev70RecordarRevision(mem,filas,proveedor,refDe){
+  (filas||[]).forEach(r=>{
+    if(!r||!r.prodId||!(r.cantidad>0))return;
+    const ref=refDe?refDe(r):(r.prodId==='__nuevo__'?'':r.prodId);
+    if(ref)rev70Recordar(mem,{proveedor,texto:r.original,codigo:r.codigo,ref,upb:r.porBulto});
+  });
+  return mem;
+}
+/* REV70_MEMORIA_END */
+// Compatibilidad: devuelve el producto solo cuando la coincidencia es segura (REV70).
+function coincidenciaProducto(nombreExtraido){
+  const r=rev70Emparejar(nombreExtraido,rev70Indice(db.productos));
+  return r.estado==='seguro'?r.producto:null;
 }
 
 function f6RegistrarUsoIa(usage){
@@ -6782,7 +7215,9 @@ async function leerFacturaFoto(file,ov){
     }
     f6RegistrarUsoIa(data&&data.iaUsage);
     if(!data||!data.items||!data.items.length){ aviso('No pude reconocer productos en esa foto','bad'); mostrarCargaManualFactura(ov,{focus:false}); return; }
-    abrirRevisionFactura(data);
+    if(estado)estado.textContent='Buscando tus productos…';
+    const memoria=await rev70SincronizarMemoria(f3Estado.comercioId);
+    abrirRevisionFactura(data,{memoria});
   }catch(e){
     console.error(e);
     const code=String(e&&e.code||e&&e.message||'');
@@ -6834,14 +7269,11 @@ function volverARevisionFactura(){
   revisionFactura=JSON.parse(JSON.stringify(facturaIA.filas));
   abrirRevisionFactura(facturaIA.parsed,{conservarFilas:true});
 }
-function abrirRevisionFactura(parsed,{conservarFilas=false}={}){
+function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
   if(!conservarFilas||!facturaIA)facturaIA={parsed,antes:copiaFactura(),filas:null,aplicado:null};
-  if(!conservarFilas)revisionFactura=parsed.items.map(it=>{
-    const m=coincidenciaProducto(it.producto);
-    const upb=Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||detectarBulto(it.producto));
-    return {original:(it.producto||'').trim()||'(sin nombre)', cantidad:Math.max(0,numFactura(it.cantidad))||1,
-            costoU:numFactura(it.precioUnit), descuento:Math.abs(numFactura(it.descuento)), porBulto:upb, prodId:m?m.id:''};
-  });
+  // REV70: primero lo que el comercio ya emparejó con este proveedor; después el emparejador nuevo.
+  const comercioRev=typeof f3Estado!=='undefined'&&f3Estado?f3Estado.comercioId:'';
+  if(!conservarFilas)revisionFactura=rev70PrepararFilas(parsed,db.productos,memoria||rev70LeerMemoria(comercioRev));
   modal({titulo:'Revisá lo que leímos de la factura', ancho:true,
     cuerpo:`
       ${pasosFacturaIA('revisar')}
@@ -6867,7 +7299,7 @@ function abrirRevisionFactura(parsed,{conservarFilas=false}={}){
           if(pid==='__nuevo__'){
             const nuevo={id:uid(),ean:'',nombre:r.original.slice(0,80),rubro:'',proveedor:parsed.proveedor||'',costo:costoUnitario,precio:0,stock:0,stockMin:3,unidad:'unidad'};
             productosFacturaPendientes.push(nuevo);
-            pid=nuevo.id; creados++;
+            pid=nuevo.id; r.refCreado=nuevo.id; creados++;
           }
           if(!pid){ saltados++; return; }
           const y=remito.find(l=>l.prodId===pid);
@@ -6880,6 +7312,14 @@ function abrirRevisionFactura(parsed,{conservarFilas=false}={}){
           nroComprobante: parsed.nroComprobante? String(parsed.nroComprobante).trim() : remitoHeader.nroComprobante,
           total: numFactura(parsed.total)>0? numFactura(parsed.total).toFixed(2) : remitoHeader.total
         };
+        // REV70: recordar lo elegido para la próxima factura de este proveedor.
+        if(comercioRev){
+          const mem=rev70LeerMemoria(comercioRev);
+          rev70RecordarRevision(mem,revisionFactura,parsed.proveedor,
+            r=>r.prodId==='__nuevo__'?(r.refCreado||''):(rev70RefProducto(prod(r.prodId))||r.prodId));
+          rev70GuardarMemoria(comercioRev,mem);
+          rev70SincronizarMemoria(comercioRev).catch(()=>{});
+        }
         cerrarModal();
         panelIngreso(false,'manual',{desdeRevision:true});
         if(facturaIA)facturaIA.aplicado=huellaFactura();
@@ -6887,30 +7327,58 @@ function abrirRevisionFactura(parsed,{conservarFilas=false}={}){
       };
     }});
 }
+// REV70: estado de cada fila y aviso cuando el costo se aleja mucho del anterior.
+function rev70EstadoFila(r){
+  if(r.prodId==='__nuevo__')return {clase:'',texto:'Producto nuevo'};
+  if(r.prodId&&r.origen==='memoria')return {clase:'ok',texto:r.via==='otro-proveedor'?'Recordado de otro proveedor':'Recordado'};
+  if(r.prodId&&r.origen==='auto')return {clase:'ok',texto:'Coincide'};
+  if(r.prodId)return {clase:'',texto:'Elegido a mano'};
+  if((r.candidatos||[]).length)return {clase:'warn',texto:'Elegí cuál es'};
+  return {clase:'warn',texto:'Sin coincidencia'};
+}
+function rev70AvisoCosto(r,p,costoU){
+  const anterior=p&&Number(p.costo)>0?Number(p.costo):0;
+  if(!anterior||!(costoU>0))return '';
+  const razon=costoU/anterior;
+  if(razon>=0.6&&razon<=1.4)return '';
+  const pista=razon<0.6&&Math.max(1,r.porBulto||1)>1?' ¿El precio es por unidad y no por bulto?':(razon>1.4&&Math.max(1,r.porBulto||1)===1?' ¿El precio es por caja?':'');
+  return `<br><span class="pill warn rev70-costo">Antes costaba ${$m(anterior)}.${pista}</span>`;
+}
 function pintarRevision(ov2){
   const c=$('#revTabla',ov2);
-  const opciones=db.productos.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
-  c.innerHTML=`<table class="mtable invoice-lines"><thead><tr><th>Leído en la factura</th><th style="width:240px">Emparejado con</th><th class="r" style="width:80px">Cantidad</th><th class="r" style="width:95px">Unid. x bulto</th><th class="r" style="width:110px">Precio unit.</th><th class="r" style="width:110px">Descuento</th><th class="r">Se carga</th></tr></thead><tbody>
+  const opciones=db.productos.filter(p=>!p.archivadoAt).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const cuenta={ok:0,elegir:0,nada:0,nuevo:0};
+  revisionFactura.forEach(r=>{const e=rev70EstadoFila(r);if(r.prodId==='__nuevo__')cuenta.nuevo++;else if(r.prodId)cuenta.ok++;else if(e.texto==='Elegí cuál es')cuenta.elegir++;else cuenta.nada++;});
+  const resumen=[`${cuenta.ok} con producto`,cuenta.elegir?`${cuenta.elegir} para elegir`:'',cuenta.nada?`${cuenta.nada} sin coincidencia`:'',cuenta.nuevo?`${cuenta.nuevo} nuevos`:''].filter(Boolean).join(' · ');
+  c.innerHTML=`<p class="rev70-resumen">${resumen}</p><table class="mtable invoice-lines"><thead><tr><th>Leído en la factura</th><th style="width:240px">Emparejado con</th><th class="r" style="width:80px">Cantidad</th><th class="r" style="width:95px">Unid. x bulto</th><th class="r" style="width:110px">Precio unit.</th><th class="r" style="width:110px">Descuento</th><th class="r">Se carga</th></tr></thead><tbody>
     ${revisionFactura.map((r,ix)=>{
       const upb=Math.max(1,r.porBulto||1);
       const unidades=r.cantidad*upb;
       const bruto=r.costoU*r.cantidad;
       const neto=Math.max(0,bruto-(r.descuento||0));
       const costoU=unidades>0?neto/unidades:0;
+      const est=rev70EstadoFila(r);
+      const extra=r.descripcion&&rev70ClaveTexto(r.descripcion)!==rev70ClaveTexto(r.original)?`<br><span class="rev70-desc">${esc(r.descripcion)}</span>`:'';
+      const cod=r.codigo?` <span class="rev70-desc">· Cód. ${esc(r.codigo)}</span>`:'';
+      const cands=(!r.prodId||r.prodId==='__nuevo__')&&(r.candidatos||[]).length
+        ?`<div class="rev70-cands">${r.prodId==='__nuevo__'?'<span class="rev70-desc">¿No es alguno de estos?</span>':''}${r.candidatos.map((k,j)=>`<button type="button" class="btn ghost sm" data-rev-cand="${ix}:${j}">${esc(k.nombre)}${k.otroTamano?' <span class="rev70-desc">(otra presentación)</span>':(k.soloDescripcion?' <span class="rev70-desc">(solo según la descripción de la IA)</span>':'')}</button>`).join('')}</div>`:'';
+      // REV71: si el bulto recordado no coincide con el leído, se avisa para revisarlo (no queda en una nota gris).
+      const bultoIa=r.origen==='memoria'&&r.porBultoIa&&r.porBultoIa!==upb?`<br><span class="pill warn rev70-costo">La IA leyó ${r.porBultoIa}. Revisá el bulto</span>`:'';
       return `<tr>
-      <td data-label="Leído en la factura"><b>${esc(r.original)}</b>${r.prodId?'':'<br><span class="pill warn">Sin coincidencia</span>'}</td>
+      <td data-label="Leído en la factura"><b>${esc(r.original)}</b>${cod}${extra}<br><span class="pill ${est.clase}">${est.texto}</span>${cands}</td>
       <td data-label="Emparejado con"><select class="inp" data-rev-prod="${ix}">
           <option value="">— No cargar esta fila —</option>
           <option value="__nuevo__" ${r.prodId==='__nuevo__'?'selected':''}>+ Crear producto nuevo</option>
           ${opciones.map(p=>`<option value="${p.id}" ${r.prodId===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}
         </select></td>
       <td data-label="Cantidad" class="r"><input class="inp num" data-rev-cant="${ix}" value="${r.cantidad}"></td>
-      <td data-label="Unid. x bulto" class="r"><input class="inp num" data-rev-bulto="${ix}" value="${upb}"></td>
+      <td data-label="Unid. x bulto" class="r"><input class="inp num" data-rev-bulto="${ix}" value="${upb}">${bultoIa}</td>
       <td data-label="Precio unit." class="r"><input class="inp num" data-rev-costo="${ix}" value="${r.costoU}"></td>
       <td data-label="Descuento" class="r"><input class="inp num" data-rev-dto="${ix}" value="${r.descuento||0}"></td>
-      <td data-label="Se carga" class="r"><b class="num">${unidades}</b> unidades<br><span style="font-size:12px;color:var(--muted)">a ${$m(costoU)} c/u${r.descuento>0?` <span class="pill ok">con dto.</span>`:''}</span></td>
+      <td data-label="Se carga" class="r"><b class="num">${unidades}</b> unidades<br><span style="font-size:12px;color:var(--muted)">a ${$m(costoU)} c/u${r.descuento>0?` <span class="pill ok">con dto.</span>`:''}</span>${r.prodId&&r.prodId!=='__nuevo__'?rev70AvisoCosto(r,prod(r.prodId),costoU):''}</td>
     </tr>`;}).join('')}</tbody></table>`;
-  $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>revisionFactura[s.dataset.revProd].prodId=s.value);
+  $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>{const r=revisionFactura[s.dataset.revProd];r.prodId=s.value;r.origen=s.value?'manual':'';pintarRevision(ov2);});
+  $$('[data-rev-cand]',c).forEach(b=>b.onclick=()=>{const [ix,j]=b.dataset.revCand.split(':').map(Number);const r=revisionFactura[ix],k=r&&r.candidatos[j];if(!k)return;r.prodId=k.id;r.origen='manual';pintarRevision(ov2);});
   $$('[data-rev-cant]',c).forEach(i=>i.onchange=()=>{const l=revisionFactura[i.dataset.revCant],p=prod(l.prodId);l.cantidad=Math.max(0,p&&p.unidad==='kg'?numCantidad(i.value):num(i.value));pintarRevision(ov2);});
   $$('[data-rev-bulto]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revBulto].porBulto=Math.max(1,Math.floor(num(i.value))||1);pintarRevision(ov2);});
   $$('[data-rev-costo]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revCosto].costoU=Math.max(0,num(i.value));pintarRevision(ov2);});

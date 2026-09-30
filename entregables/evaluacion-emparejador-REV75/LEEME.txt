@@ -1,0 +1,39 @@
+Evaluación del emparejador (REV69 contra REV75).
+El catálogo real no se incluye (el repositorio es público). Para repetir las cifras con el catálogo del comercio,
+exportarlo desde Supabase (SQL Editor) y guardarlo como catalogo.json:
+
+  select json_agg(json_build_object('id', legacy_id, 'nombre', nombre, 'proveedor', proveedor) order by nombre)
+  from productos
+  where comercio_id = '<id del comercio>' and deleted_at is null and archivado_at is null;
+
+  node evaluar.cjs catalogo.json
+  node mutaciones.cjs catalogo.json [raíz de otro paquete]
+      Altera cada nombre: cambia números (el doble, uno más, la mitad), cambia unidades (mg-mcg, ml-L, g-kg),
+      agrega o quita una unidad, intercambia una medida con el número del paquete (10g x20 -> 20g x10) e intercambia
+      los valores de dos medidas del mismo tipo (Crema 125g Jabon 75g -> Crema 75g Jabon 125g).
+      Ni el original ni otro producto que no explique el texto deben quedar elegidos solos.
+  node trasplantes.cjs catalogo.json [raíz de otro paquete]
+      Para cada par de productos de la misma familia (misma primera palabra), arma un texto con las palabras
+      de uno y los números del otro, con sus unidades, paquetes y palabras de cantidad («20 comprimidos»).
+      Si algo queda elegido solo, el oráculo tiene que poder explicarlo.
+  Las dos pruebas corren cada texto dos veces: solo y con la descripción de la IA igual al nombre del producto
+  (el original en las mutaciones; el que dio las palabras en los trasplantes). Es el peor caso: la IA «corrige»
+  el renglón hacia el catálogo y omite el dato alterado.
+  Con [raíz de otro paquete] se mide el emparejador de otra revisión con el mismo oráculo.
+
+El oráculo (función explica en mutaciones.cjs) es independiente del emparejador:
+  - lee números y unidades con su propia expresión y guarda de dónde sale cada uno (medida, número suelto o paquete);
+  - no trunca números («400MGX20» son 400 mg y un paquete de 20; no 40 y 20);
+  - consume cada dato una sola vez (multiconjunto): una medida del producto no explica dos datos del texto;
+  - un número de paquete nunca explica una medida con unidad;
+  - dos medidas del mismo tipo que quedan sin par (10g contra 20g) son una contradicción, aunque haya números
+    sueltos que parezcan explicarlas (REV75);
+  - si un lado tiene dos o más medidas del mismo tipo, cada una tiene que ser la del mismo componente (las palabras
+    que la preceden) o, si no se puede saber, estar en el mismo orden; y el texto no puede nombrar menos componentes
+    que el producto (REV75);
+  - un paquete de más en el texto se acepta como embalaje solo si todo lo del producto ya quedó explicado
+    o si el producto no tiene paquetes propios.
+
+casos.cjs: «ajuste» (usado para calibrar), «control» (escrito después, sin ajustar) y «revision»
+(contraejemplos de las revisiones de REV70 a REV74; ninguno debe quedar elegido solo con el producto indicado).
+Los renglones son inventados imitando facturas de mayoristas: la medición real llega con el uso.
