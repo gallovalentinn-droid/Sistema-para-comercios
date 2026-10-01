@@ -1,6 +1,34 @@
 # MiComercio.ar — contexto de continuidad
 
-Actualizado: 2026-09-30 (America/Argentina/Buenos_Aires)
+Actualizado: 2026-10-01 (America/Argentina/Buenos_Aires)
+
+## Publicación REV80 en curso — 01/10/2026
+
+El usuario aprobó la revisión de REV80 y pidió comprobar y republicar. Se integró la copia aprobada en main local conservando el ZIP c0f089e6550e0624abc89e728208c5e5e44764656f217e6c53d5f65889a8cecf. Las tres observaciones menores quedan para otra revisión: talle omitido con varias opciones, XXXG/marcas sin palabra pañal y productos cuyo nombre contiene crédito.
+
+Verificado en código/localmente: 414/414 pruebas en la copia canónica integrada y 25 archivos de integridad. REV71 ya está aplicada y se verificaron tabla, restricciones, trigger, RLS y políticas de permiso/licencia; no se reaplicó. Se creó private.rev80_predeploy_snapshot: 28 tablas operativas y 16.078 filas, sin Auth ni configuración, RLS y sin lectura anon/authenticated. El lector pasó de versión18 a19, JWT activo; sus tres archivos coinciden con supabase/functions/. Antes de publicar la web, la beta pública seguía en REV75 y origin/main estaba en fbace229ab092a727f3824e113c42b5cd7ea2a5e.
+
+La validación pública de la web REV80 está pendiente mientras se ejecuta la publicación. Gemini con facturas reales, los flujos autenticados en dispositivos físicos y los problemas heredados mencionados abajo no se declaran verificados ni resueltos.
+
+## Continuidad local REV80 — 01/10/2026
+
+Se contrastó la revisión pegada de REV79 y se corrigieron H-01 a H-05 en una nueva copia aislada. El lector distingue talles de pañales, incluyendo PAÑ y MX8U; el contexto puede provenir del catálogo y la IA no puede borrar una contradicción. La separación de MX8U se limita a pañales para conservar los códigos MX20/GX20 de otros productos. Saldo a favor y crédito requieren revisar el signo y conservan el total impreso. Las filas financieras omitidas no cuentan como sin elegir. Stock agrupa el historial por producto una vez y difiere la búsqueda entre turnos 180 ms; los resultados conservan la semántica REV79. Las 15 capturas de raíz se movieron bajo entregables.
+
+Entrega: `entregables/MiComercio-Sistema-Completo-REV80-2026-10-01.zip`, SHA-256 `c0f089e6550e0624abc89e728208c5e5e44764656f217e6c53d5f65889a8cecf`, 7.752.375 bytes y 280 archivos verificados uno a uno contra la copia probada. Fuente aislada: `entregables/preparacion-REV80-2026-10-01/`. Detalle: `entregables/DETALLE-CAMBIOS-REV80-2026-10-01.md`; evidencia dentro del paquete en `entregables/respuesta-revision-REV79/`.
+
+Verificado en código y localmente: 414/414 pruebas en Windows, también después de extraer el ZIP en una carpeta nueva; 25 archivos de integridad; pruebas de stock autónomas sin carpeta REV79. Recorridos de navegador REV80/79/78/77/76/54 aprobados; revisión independiente sin bloqueantes del diff. Catálogo local autorizado de 721 productos: 47/50 y 41/45 automáticos correctos, cero incorrectos; Mi Barrio 3/8 automáticos y cinco opciones correctas; 23 contraejemplos y 6.298 mutaciones sin errores según el oráculo. El catálogo privado no se incluyó. Benchmark sintético de 100.000 movimientos: dibujo síncrono mediano de 8.234 a 122 ms y con layout de 8.480 a 323 ms; medición de arnés local, no de producción.
+
+No publicado ni reemplazado el HTML canónico; no se modificó Supabase y no se verificó de nuevo la beta pública. Del manifiesto sólo cambian beta/index.html y beta/sw.js respecto de REV79. Sigue pendiente comparar el backend realmente desplegado antes de publicar, Gemini real, nuevas facturas y dos dispositivos físicos. Permanecen fuera de alcance los renglones negativos, el descuento global sobre deuda y Ver en Caja sin ventas; conserva la limitación REV79 de turnos interrumpidos cargados previamente desde Caja.
+
+## Continuidad local REV79 — 01/10/2026
+
+El usuario solicitó completar empleados, WhatsApp y stock por turnos sobre el lector corregido. Se preparó una entrega integrada local en `entregables/preparacion-REV79-2026-10-01/` y `entregables/MiComercio-Sistema-Completo-REV79-2026-10-01.zip`, SHA-256 `ae33708713b8fdc76ade0e3bbf14bed227e6b5685c4fc1cba7267a4b80edfeb2`. Detalle: `entregables/DETALLE-CAMBIOS-REV79-2026-10-01.md`.
+
+Incluye las correcciones REV78, Compras visible en configuración de empleados con la vinculación existente entre cargar facturas y Productos explicada, historial de cierres y resumen de diferencias sólo para dueños/administradores, envío del propio cierre recién hecho por empleados, cuatro importes de cigarrillos por pago y comparación de stock de dos segmentos de turno. No se creó un permiso independiente de Compras: se conserva la autoridad actual del servidor. Históricos sin pagos completos o aproximados muestran desglose no disponible; faltantes reconocidos de un turno invalidan el stock global reconstruido de ambos comparados.
+
+Verificado en código y localmente: 387/387 pruebas, revisión independiente sin bloqueos críticos/importantes, navegador de empleado con cierre real local y enlace WhatsApp interceptado a 1366/390 px, configuración/stock y regresiones REV77/78/76/54. Integridad de 25 archivos y ZIP de 240 archivos idénticos a la copia probada. Se confirmó únicamente mediante lectura de metadatos que existe opened_at_device en caja_sesion_segmentos; no se modificó Supabase.
+
+No publicado ni reemplazado el HTML canónico; la comprobación pública de estos cambios y el piloto real siguen pendientes. También siguen los dos fallos heredados de descuento global sobre deuda y Ver en Caja sin ventas. Los turnos interrumpidos se comparan si ya se cargaron desde Caja. La entrada anterior de REV78 que decía que estos cambios estaban pendientes queda como registro histórico, reemplazada por esta entrega local. Antes de publicar, comparar backend contra lo realmente desplegado y repetir la validación pública.
 
 ## Continuidad REV75 — 30/09/2026
 
@@ -244,3 +272,14 @@ Verificación:
 - **En código:** identidad y caché REV17 alineados; revisión independiente sin hallazgos pendientes dentro del alcance.
 - **Localmente:** 40/40 pruebas, sintaxis válida y vista de navegador con datos de ejemplo para Caja sin turno y Fiado.
 - **Entorno público:** publicación de GitHub Pages exitosa; lectura sin caché confirma REV17, caché REV17 y etiquetas nuevas. Supabase confirma alcance por comercio para cierres del dueño y un cierre existente registrado por un empleado. Tras el desbloqueo realizado por el usuario, se verificó en la sesión de dueño, sin turno abierto, el cierre del empleado del 15/09/2026 a las 12:16 (hora argentina), con 1 venta por $1.300; el detalle mostró esa venta. Se comprobaron también las dos etiquetas nuevas en Fiado. No se creó una venta ni se cerró un turno nuevo durante esta comprobación; el ingreso de empleado desde cero y un cierre nuevo siguen formando parte del recorrido integral pendiente.
+
+
+## Preparación local del lector — REV78 (2026-10-01)
+
+Por pedido del usuario se corrigieron los tres hallazgos nuevos de REV77 en una copia aislada del paquete: elecciones automáticas basadas en una letra distinta, deuda/pagos a cuenta y reclasificación manual de filas financieras. La revisión independiente detectó y se resolvió también la copia escalar de una fila puesta en cero.
+
+Entrega: `entregables/MiComercio-Sistema-Completo-REV78-2026-10-01.zip`, SHA-256 `6648327706d225e4c919d97deae9d131c1d431d57d562e692a147bf7ea4d127a`. Detalle: `entregables/DETALLE-CAMBIOS-REV78-2026-10-01.md`. Fuente aislada: `entregables/preparacion-REV78-2026-10-01/`.
+
+Verificado localmente: 358/358 pruebas, nueve escenarios financieros y tres identidades aproximadas en navegador, recorridos heredados REV77/76/54, integridad de 25 archivos y contenido del ZIP idéntico a los 230 archivos de la copia probada. Catálogo autorizado: 47/50 y 41/45 automáticos correctos, cero incorrectos; 23 contraejemplos sin elección errónea; 6.298 mutaciones sin fallos según su oráculo. No se incluye el catálogo privado.
+
+No integrado ni publicado; no se modificó Supabase. La beta pública no fue verificada de nuevo en esta tarea. Siguen pendientes Gemini real, facturas nuevas y dos dispositivos, además de los cambios de empleados, WhatsApp y comparación por turno para integrar después. Los dos problemas heredados de descuento global sobre deuda y Ver en Caja sin ventas quedan expresamente pendientes. Antes de desplegar, comparar backend contra lo realmente publicado.

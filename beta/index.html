@@ -764,6 +764,8 @@ body.offline .app{padding-top:34px}
 }
 .invoice-manual-content .scan input{min-width:0}
 .qty input,.tik-l2 .um,.dto-resumen b,.tik-tot b,.vuelto b,.margen-box>b,.leyenda-item .pct{font-family:var(--sans);font-variant-numeric:tabular-nums}
+.mov-turnos-table td{vertical-align:top;min-width:250px}.mov-turno-label{display:none}
+@media(max-width:650px){.mov-turnos-table{min-width:0!important}.mov-turnos-table td{display:block!important;min-width:0;width:auto}.mov-turnos-table td::before{display:none!important}.mov-turnos-table td+td{border-top:1px solid var(--line);padding-top:14px}.mov-turno-label{display:block;margin-bottom:10px}.mov-turnos-table td .hint{margin-top:8px}}
 </style>
 </head>
 <body>
@@ -835,7 +837,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:75,
+  packageRevision:80,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -6593,7 +6595,7 @@ function panelIngreso(reset=true,modo='ia',{desdeRevision=false,volverFoto=false
         <div class="grid3" style="margin-bottom:16px">
           <div><label class="f" for="facProv">Proveedor</label><input id="facProv" class="inp" placeholder="Opcional" value="${esc(remitoHeader.proveedor)}"></div>
           <div><label class="f" for="facNro">Nº de comprobante</label><input id="facNro" class="inp" placeholder="Opcional" value="${esc(remitoHeader.nroComprobante)}"></div>
-          <div><label class="f" for="facTotal">Total de la factura</label><input id="facTotal" class="inp num" inputmode="decimal" placeholder="Para verificar" value="${esc(remitoHeader.total)}"></div>
+          <div><label class="f" for="facTotal">Total de la factura</label><input id="facTotal" class="inp num" inputmode="decimal" placeholder="Para verificar" value="${esc(remitoHeader.total)}">${remitoHeader.revisarTicket?'<div class="hint rev77-deuda-hint" style="margin-top:4px">Revisá el total de la mercadería: los ajustes leídos no se pudieron conciliar. Conservamos el total del ticket.</div>':remitoHeader.pagosTicket>0?`<div class="hint rev77-deuda-hint" style="margin-top:4px">El ticket dice ${$m(remitoHeader.totalTicket)}${remitoHeader.deudaTicket>0?` e incluye ${$m(remitoHeader.deudaTicket)} de deuda anterior`:''}; ya descontó ${$m(remitoHeader.pagosTicket)} de pagos a cuenta. Comparamos los productos con ${$m(numFactura(remitoHeader.total))}.</div>`:remitoHeader.deudaTicket>0?`<div class="hint rev77-deuda-hint" style="margin-top:4px">El ticket dice ${$m(remitoHeader.totalTicket)}: le descontamos ${$m(remitoHeader.deudaTicket)} de deuda o saldo anterior.</div>`:''}</div>
         </div>
         <div class="scan"><span class="ic">${ic('scan')}</span><input id="iScan" placeholder="Código o nombre del producto…" autocomplete="off"></div>
         <div class="results"><ul id="iRes" hidden></ul></div>
@@ -6650,7 +6652,7 @@ function panelIngreso(reset=true,modo='ia',{desdeRevision=false,volverFoto=false
       if(fotoInput)fotoInput.onchange=e=>{ if(e.target.files[0]) leerFacturaFoto(e.target.files[0],ov); };
       $('#facProv',ov).onchange=e=>remitoHeader.proveedor=e.target.value;
       $('#facNro',ov).onchange=e=>remitoHeader.nroComprobante=e.target.value;
-      $('#facTotal',ov).oninput=()=>{ remitoHeader.total=$('#facTotal',ov).value; pintarRemito(); };
+      $('#facTotal',ov).oninput=()=>{ remitoHeader.total=$('#facTotal',ov).value; remitoHeader.deudaTicket=0;remitoHeader.pagosTicket=0;remitoHeader.revisarTicket=false; const h=$('.rev77-deuda-hint',ov); if(h)h.remove(); pintarRemito(); };
       pintarRemito();
       $('#okIng',ov).onclick=()=>{
         if(!remito.length){aviso('No cargaste ningún producto','bad');return;}
@@ -6830,27 +6832,36 @@ function rev72NumeroEsPres(n,pres){
 }
 const REV72_CUENTA=new Set(['u','un','uni','und','unid','unidad','unidades','ud','uds','comp','comps','comprimidos','caps','capsulas','sobres','saquitos','rollos','atados']);
 function rev70Tokens(s){
+  const esPanal=/(^| )panal(?:es)?( |$)/.test(rev70ClaveTexto(s))||/(^|\s)pañ\.?($|\s)/i.test(String(s||''));
   const t=rev70Base(s).replace(/µ/g,'u').replace(/(\d),(\d)/g,'$1.$2')
+    .replace(/\b(xxg|xg|p|m|g)(?=x\s*\d)/g,(texto,talle)=>esPanal?talle+' ':texto) // REV80: MX8U en pañales conserva M; los códigos MX20 de otros productos no cambian.
     .replace(new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(${REV72_UNIDADES})(?![a-wyz])`,'g'),' ')
+    .replace(/\b([a-z])\s*&\s*([a-z])\b/g,'$1y$2') // REV77: B&N, P&G son una marca, no dos letras sueltas: «byn», «pyg»
     .replace(/[^a-z0-9.]+/g,' ').replace(/\.(?!\d)|(?<!\d)\./g,' ')
-    .replace(/([a-z])(\d)/g,'$1 $2').replace(/(\d)([a-z])/g,'$1 $2');
-  const palabras=[],numeros=[],packs=[];
+    .replace(/([a-z])(\d)/g,'$1 §$2').replace(/(\d)([a-z])/g,'$1 $2');
+  // REV77: § marca un número pegado a una palabra. Si es de un solo dígito (FUSION2) se toma como parte del nombre
+  // más que de la presentación. Los de dos o más dígitos (IBU400, N45) siguen siendo datos estrictos: pueden ser dosis.
+  const palabras=[],numeros=[],packs=[],pegados=[],talles=[...rev70Base(s).matchAll(/\b(xxg|xg|p|m|g)(?=x\s*\d)/g)].map(m=>m[1]);
+  // REV80: en pañales P/M/G/XG/XXG identifican el talle. Las medidas «500 g» ya se quitaron arriba.
   const crudos=t.split(/\s+/).filter(Boolean);
   for(let i=0;i<crudos.length;i++){
-    const w=crudos[i];
+    const pegado=crudos[i].startsWith('§'),w=crudos[i].replace(/^§/,'');
     // x6, x20: unidades por pack. x 750 es una medida sin unidad, no un pack.
-    if(w==='x'&&/^\d{1,3}$/.test(crudos[i+1]||'')){const n=Number(crudos[++i]);if(n<150)packs.push(n);else numeros.push(n);continue;}
+    const sig=(crudos[i+1]||'').replace(/^§/,'');
+    if(w==='x'&&/^\d{1,3}$/.test(sig)){const n=Number(sig);i++;if(n<150)packs.push(n);else numeros.push(n);continue;}
     // REV72: «20 comprimidos», «6 u», «10 sobres» son unidades por paquete, igual que x20.
     // REV72: 000 / 0000 (tipo de harina) es parte del nombre, no una cantidad.
     if(/^00+$/.test(w)){palabras.push(w);numeros.push(w);continue;} // y también identifica: 000 no es 0000 ni 1
     if(/^\d+(?:\.\d+)?$/.test(w)){
-      if(REV72_CUENTA.has(crudos[i+1]||'')){packs.push(Number(w));i++;continue;}
-      numeros.push(Number(w));continue; // REV72: también los de un dígito (RINDE 2, 7UP): cuentan para detectar contradicciones
+      if(REV72_CUENTA.has(sig)){packs.push(Number(w));i++;continue;}
+      numeros.push(Number(w));if(pegado&&/^\d$/.test(w))pegados.push(Number(w));continue; // REV72: también los de un dígito (RINDE 2, 7UP): cuentan para detectar contradicciones
     }
+    // Conservamos el dato aunque el impreso abrevie «PAÑ» u omita el tipo: el candidato puede identificarlo.
+    if(/^(p|m|g|xg|xxg)$/.test(w)){talles.push(w);if(esPanal){palabras.push(w);continue;}}
     if(w.length<2||REV70_RUIDO.has(w))continue;
     palabras.push(w);
   }
-  return {palabras,numeros,packs};
+  return {palabras,numeros,packs,pegados,talles,esPanal};
 }
 function rev70Subsecuencia(corta,larga){
   if(corta[0]!==larga[0])return false;
@@ -6858,10 +6869,20 @@ function rev70Subsecuencia(corta,larga){
   return false;
 }
 // Qué tanto un token leído se parece a una palabra del producto (0 a 1).
+// REV77: dos palabras que difieren en una sola letra (de más, de menos, cambiada o dos letras invertidas):
+// PHILLIP / PHILLP / Philip, SELET / Select. Solo con palabras de 5 letras o más y la misma inicial.
+function rev77UnaLetra(a,b){
+  if(a===b||Math.abs(a.length-b.length)>1)return a===b;
+  let i=0;while(i<a.length&&i<b.length&&a[i]===b[i])i++;
+  const ra=a.slice(i),rb=b.slice(i);
+  if(ra.length===rb.length)return ra.slice(1)===rb.slice(1)||(ra.length>=2&&ra[0]===rb[1]&&ra[1]===rb[0]&&ra.slice(2)===rb.slice(2));
+  return ra.length>rb.length?ra.slice(1)===rb:rb.slice(1)===ra;
+}
 function rev70Credito(q,p){
   if(q===p)return 1;
   if(REV70_ABREV[q]&&(REV70_ABREV[q]===p||p.startsWith(REV70_ABREV[q])))return 0.95;
   if(q.length>=4&&p.length>=4&&(q.startsWith(p)||p.startsWith(q))&&Math.abs(q.length-p.length)<=2)return 0.95; // plurales
+  if(q.length>=5&&p.length>=5&&q[0]===p[0]&&rev77UnaLetra(q,p))return 0.85; // REV77: una letra de diferencia
   if(q.length>=3&&p.startsWith(q))return 0.8;
   if(q.length>=3&&q.length<p.length&&rev70Subsecuencia(q,p))return 0.6;
   if(q.length>=9&&p.length>=4&&q.includes(p))return 0.7; // texto pegado: SPEEDXLUNLIMITED
@@ -6872,8 +6893,8 @@ function rev70Indice(productos){
   const items=(productos||[]).filter(p=>p&&!p.archivadoAt&&String(p.nombre||'').trim()).map(p=>{
     const tk=rev70Tokens(p.nombre);
     const medidas=rev73Medidas(p.nombre);
-    return {p,palabras:[...new Set(tk.palabras)],numeros:tk.numeros,packs:tk.packs,todos:[...tk.numeros,...tk.packs],pres:rev70Presentacion(p.nombre),medidas,
-      items:rev74Items({medidas,numeros:tk.numeros,packs:tk.packs}),comp:rev75Componentes(p.nombre),
+    return {p,palabras:[...new Set(tk.palabras)],esPanal:tk.esPanal,talles:tk.talles,numeros:tk.numeros,packs:tk.packs,todos:[...tk.numeros,...tk.packs],pres:rev70Presentacion(p.nombre),medidas,
+      items:rev74Items({medidas,numeros:tk.numeros,packs:tk.packs,pegados:tk.pegados}),comp:rev75Componentes(p.nombre),
       prov:rev70ClaveTexto(p.proveedor||'')};
   });
   const df=new Map();
@@ -6884,12 +6905,16 @@ function rev70Indice(productos){
   return {items,idf,N};
 }
 function rev70Puntaje(q,it,proveedor,idf){
-  let logrado=0,usados=0,sinPar=0;const extras=[];
+  let logrado=0,usados=0,sinPar=0,aproximado=false;const extras=[];
   const tomado=new Array(it.palabras.length).fill(0);
   for(const w of q.palabras){
     let mejor=0,mejorIx=-1;
     it.palabras.forEach((pw,ix)=>{const c=rev70Credito(w,pw)*it.pesos[ix];if(c>mejor){mejor=c;mejorIx=ix;}});
-    if(mejorIx>=0&&mejor>tomado[mejorIx]){logrado+=mejor-tomado[mejorIx];tomado[mejorIx]=mejor;usados++;}
+    if(mejorIx>=0&&mejor>tomado[mejorIx]){
+      logrado+=mejor-tomado[mejorIx];tomado[mejorIx]=mejor;usados++;
+      // REV78: una letra ayuda a sugerir, pero no confirma identidad (PAPAS / PIPAS / PEPAS).
+      if(rev70Credito(w,it.palabras[mejorIx])===0.85)aproximado=true;
+    }
     else if(mejorIx<0&&w.length>=3){sinPar++;extras.push(w);} // palabra leída que este producto no tiene (GOLD, QUILMES)
   }
   if(!logrado)return {puntaje:0,incompatible:false,usados:0,sinPar,sobran:[],extras,sinExplicar:[],componenteDudoso:false};
@@ -6897,6 +6922,8 @@ function rev70Puntaje(q,it,proveedor,idf){
   const sobran=it.palabras.filter((w,ix)=>!tomado[ix]);
   let puntaje=logrado-0.35*faltante-0.5*sinPar;
   let incompatible=false,anclas=0;
+  // Un talle distinto es otra presentación, incluso con un único candidato o una descripción expandida por IA.
+  if((q.esPanal||it.esPanal)&&(q.talles||[]).some(t=>!(it.talles||[]).includes(t))&&(it.talles||[]).length){incompatible=true;puntaje-=4;}
   // REV74: medidas y números conciliados con su procedencia (todas las medidas, en cualquier orden).
   const conc=rev74Conciliar(q.items||rev74Items(q),it.items||rev74Items(it));
   if(conc.medidas){puntaje+=2.5;anclas++;}
@@ -6921,7 +6948,7 @@ function rev70Puntaje(q,it,proveedor,idf){
   // Un número leído que el producto no explica resta un poco (desempata a favor del que sí lo tiene).
   puntaje-=0.4*sinExplicar.length;
   if(proveedor&&it.prov&&(it.prov===proveedor||it.prov.includes(proveedor)||proveedor.includes(it.prov)))puntaje+=0.3;
-  return {puntaje,incompatible,usados,anclas,sinPar,logrado,faltante,sobran,extras,sinExplicar,componenteDudoso};
+  return {puntaje,incompatible,usados,anclas,sinPar,logrado,faltante,sobran,extras,sinExplicar,componenteDudoso,aproximado};
 }
 // REV74: concilia lo numérico del renglón con lo del producto SIN perder de dónde viene cada número:
 //   m = medida con unidad (200MG, 60ML), s = número suelto (600, 1882, 000), p = unidades por paquete (x20, 20 comprimidos).
@@ -6933,9 +6960,14 @@ function rev70Puntaje(q,it,proveedor,idf){
 //   4. número SUELTO del renglón con una medida del producto (la factura omitió la unidad: 600 con 600mg);
 //   5. medida del renglón con número SUELTO del producto (el catálogo omitió la unidad: 600MG con «Actron 600»).
 //   Un número de paquete nunca explica una medida, ni una medida explica un paquete.
+// REV77: g = número de un dígito pegado a una palabra (FUSION2). Se concilia como un número suelto, pero si el producto
+// no lo explica no se toma como un dato de presentación sin confirmar (no bloquea por sí solo la elección). Sigue
+// contando para detectar otra presentación: si al producto le queda un número propio sin aparecer, es incompatible.
 function rev74Items(x){
+  const pegados=[...(x.pegados||[])];
   return [...(x.medidas||(x.pres?[x.pres]:[])).map(m=>({k:'m',...m})),
-    ...(x.numeros||[]).map(n=>({k:'s',n})),...(x.packs||[]).map(n=>({k:'p',n}))];
+    ...(x.numeros||[]).map(n=>{const j=pegados.indexOf(n);if(j>=0){pegados.splice(j,1);return {k:'g',n};}return {k:'s',n};}),
+    ...(x.packs||[]).map(n=>({k:'p',n}))];
 }
 function rev74Conciliar(qItems,pItems){
   const q=[...qItems],p=[...pItems];const cuenta={medidas:0,sueltoMedida:0,numeros:0};
@@ -6944,8 +6976,9 @@ function rev74Conciliar(qItems,pItems){
   const contradiccion=q.some(a=>a.k==='m'&&p.some(b=>b.k==='m'&&b.tipo===a.tipo));
   cruzar((a,b)=>a.k!=='m'&&a.k===b.k&&a.n===b.n,'numeros');
   cruzar((a,b)=>a.k!=='m'&&b.k!=='m'&&a.n===b.n,'numeros');
-  cruzar((a,b)=>a.k==='s'&&typeof a.n==='number'&&b.k==='m'&&rev72NumeroEsPres(a.n,b),'sueltoMedida');
-  cruzar((a,b)=>a.k==='m'&&b.k==='s'&&typeof b.n==='number'&&Math.abs(b.n-a.crudo)<1e-9,'sueltoMedida');
+  const suelto=x=>x.k==='s'||x.k==='g';
+  cruzar((a,b)=>suelto(a)&&typeof a.n==='number'&&b.k==='m'&&rev72NumeroEsPres(a.n,b),'sueltoMedida');
+  cruzar((a,b)=>a.k==='m'&&suelto(b)&&typeof b.n==='number'&&Math.abs(b.n-a.crudo)<1e-9,'sueltoMedida');
   return {sinExplicar:q,faltantes:p,contradiccion,...cuenta};
 }
 // ¿El producto explica este dato del renglón?
@@ -6958,16 +6991,23 @@ function rev70MismoNombre(a,b){
 // Devuelve {estado:'seguro'|'dudoso'|'ninguno', producto, candidatos:[{producto,puntaje}]}
 function rev70EmparejarTexto(texto,indice,proveedor){
   const base=rev70Tokens(texto);
-  const q={palabras:[...new Set(base.palabras)],numeros:[...new Set(base.numeros)],packs:[...new Set(base.packs)],
+  const q={palabras:[...new Set(base.palabras)],esPanal:base.esPanal,talles:base.talles,numeros:[...new Set(base.numeros)],packs:[...new Set(base.packs)],
     todos:[...base.numeros,...base.packs],pres:rev70Presentacion(texto),medidas:rev73Medidas(texto)};
-  q.items=rev74Items({medidas:q.medidas,numeros:base.numeros,packs:base.packs}); // sin deduplicar
+  q.items=rev74Items({medidas:q.medidas,numeros:base.numeros,packs:base.packs,pegados:base.pegados}); // sin deduplicar
   q.comp=rev75Componentes(texto);
   if(!q.palabras.length)return {estado:'ninguno',producto:null,candidatos:[],evaluar:()=>null,bloqueo:()=>true};
   const prov=rev70ClaveTexto(proveedor||'');
   const lista=indice.items.map(it=>({it,...rev70Puntaje(q,it,prov)})).filter(x=>x.puntaje>0)
     .sort((a,b)=>b.puntaje-a.puntaje||a.it.p.nombre.localeCompare(b.it.p.nombre));
   const cand=x=>({producto:x.it.p,puntaje:Math.round(x.puntaje*100)/100,incompatible:x.incompatible,sinPar:x.sinPar});
-  const candidatos=lista.slice(0,3).map(cand);
+  // REV77: una opción tiene que parecerse al renglón por lo menos la mitad que la mejor. Así no aparecen
+  // productos que comparten una sola palabra de color o variante (BLUE: Frizze Blue; NEGRO: Alfajor Negro).
+  // Además tiene que compartir la primera palabra del renglón, que en las facturas suele ser la marca o el tipo
+  // de producto (PHILLP DE 10 BCO: no un alfajor «blanco»).
+  const primera=q.palabras[0];
+  const parecidos=lista.filter(x=>x===lista[0]||(x.logrado>=0.5*lista[0].logrado
+    &&x.it.palabras.some(w=>rev70Credito(primera,w)>=0.6)));
+  const candidatos=parecidos.slice(0,3).map(cand);
   const a=lista[0],b=lista[1];
   // Los umbrales se escalan con el tamaño del catálogo (el peso de una palabra rara depende de cuántos productos hay).
   const k=Math.max(0.35,Math.log(1+indice.N)/Math.log(721));
@@ -6994,11 +7034,18 @@ function rev70EmparejarTexto(texto,indice,proveedor){
     // número suelto (45) que el producto no explica son datos de la presentación que el catálogo no confirma: se pregunta.
     const medidaSobrante=sinExplicar.some(m=>m.k==='m'||m.k==='s');
     // REV75: con dos medidas del mismo tipo y sin forma de saber cuál es de qué componente, se pregunta.
-    return decisivo||medidaSobrante||!!x.componenteDudoso;
+    const talleSinConfirmar=(q.esPanal||x.it.esPanal)&&(q.talles||[]).some(t=>!(x.it.talles||[]).includes(t));
+    return decisivo||medidaSobrante||talleSinConfirmar||!!x.componenteDudoso||!!x.aproximado;
   };
   const bloqueoDe=p=>{const v=evaluar(p);return v?bloqueo(v):true;};
-  if(!a||a.puntaje<1.5*k)return {estado:'ninguno',producto:null,candidatos:lista.filter(x=>x.puntaje>=0.8).slice(0,3).map(cand),evaluar,bloqueo:bloqueoDe};
-  const margen=b?a.puntaje-b.puntaje:a.puntaje;
+  if(!a||a.puntaje<1.5*k)return {estado:'ninguno',producto:null,candidatos:parecidos.filter(x=>x.puntaje>=0.8).slice(0,3).map(cand),evaluar,bloqueo:bloqueoDe};
+  // REV77: un candidato de otra presentación del MISMO producto (Fusion x10 frente a FUSION DE 20: las palabras de
+  // uno están todas en el otro) no compite, porque ya está descartado por sus números. Uno de otro producto sí
+  // compite aunque sea de otra presentación: puede estar diciendo la marca (Alfajor B&N Negro 73,5gr).
+  const raiz=w=>w.replace(/s$/,'');
+  const contenido=(x,y)=>x.it.palabras.every(w=>y.it.palabras.some(v=>raiz(v)===raiz(w)));
+  const rival=lista.slice(1).find(x=>!x.incompatible||!(contenido(x,a)||contenido(a,x)));
+  const margen=rival?a.puntaje-rival.puntaje:a.puntaje;
   const duplicado=b&&rev70MismoNombre(a.it,b.it);
   // Una palabra leída que el producto no tiene (GOLD, MENTA, QUILMES) puede ser otra variante: se pregunta.
   const extraOk=a.sinPar===0;
@@ -7141,17 +7188,79 @@ async function rev70SincronizarMemoria(cid,{timeoutMs=3500}={}){
   }finally{clearTimeout(reloj);}
 }
 // Arma las filas de la revisión: memoria primero, después el emparejador.
+// REV77: renglones que no son mercadería de esta compra (DEUDA, SALDO ANTERIOR, PAGO o ENTREGA A CUENTA, REDONDEO).
+// No se emparejan ni se cargan, y su importe se descuenta del total del ticket para compararlo con los productos.
+const REV77_NO_MERCADERIA=/(^| )(deuda|deudas|saldo|credito|creditos|a favor|pago|pagos|a cuenta|entrega|anticipo|redondeo)( |$)/;
+function rev77NoEsMercaderia(texto){return REV77_NO_MERCADERIA.test(rev70ClaveTexto(texto));}
+// Lo que el ticket suma aparte de la mercadería: los renglones de deuda o, si no vino ninguno, el saldo anterior leído.
+function rev78CuentaTicket(parsed,filas){
+  const centavos=v=>Math.round(Math.max(0,numFactura(v))*100);
+  let deudaFilas=0,pagosFilas=0,deudaReclasificada=0,pagosReclasificados=0,desconocido=false;
+  (filas||[]).forEach(r=>{
+    // Una elección humana convierte la fila en mercadería; una cantidad cero nunca vale una.
+    if(!r||(!r.noMercaderia&&!r.noMercaderiaIa))return;
+    const monto=centavos(r.cantidad*Number(r.costoU||0));
+    const texto=rev70ClaveTexto(r.original)+' '+rev70ClaveTexto(r.descripcion);
+    const credito=/(^| )(credito|creditos|a favor)( |$)/.test(texto);
+    const pago=/(^| )(pago|pagos|a cuenta|entrega|anticipo)( |$)/.test(texto);
+    const saldo=/(^| )(deuda|deudas|saldo)( |$)/.test(texto);
+    if(r.prodId||!(r.cantidad>0)){
+      const descartado=Number.isFinite(r.noMercaderiaMontoIa)?r.noMercaderiaMontoIa:monto;
+      if((r.origen==='manual'||!(r.cantidad>0))&&pago&&!saldo)pagosReclasificados+=descartado;
+      if((r.origen==='manual'||!(r.cantidad>0))&&saldo&&!pago)deudaReclasificada+=descartado;
+      return;
+    }
+    if(!monto)return;
+    // REV80: el crédito puede tener signo distinto según el proveedor; se revisa antes de ajustar.
+    if(credito){desconocido=true;return;}
+    if(pago&&!saldo)pagosFilas+=monto;
+    else if(saldo&&!pago)deudaFilas+=monto;
+    else desconocido=true; // REDONDEO o etiquetas contradictorias: no se inventa su signo.
+  });
+  let saldo=centavos(parsed&&parsed.saldoAnterior),pagos=centavos(parsed&&parsed.pagosACuenta);
+  // Si la misma fila fue informada también como importe separado, la corrección humana rige en ambos lugares.
+  if(saldo>0&&deudaReclasificada>0){if(saldo===deudaFilas+deudaReclasificada)saldo=deudaFilas;else desconocido=true;}
+  if(pagos>0&&pagosReclasificados>0){if(pagos===pagosFilas+pagosReclasificados)pagos=pagosFilas;else desconocido=true;}
+  const conflicto=desconocido||(saldo>0&&deudaFilas>0&&saldo!==deudaFilas)
+    ||(pagos>0&&pagosFilas>0&&pagos!==pagosFilas);
+  const deuda=saldo||deudaFilas,pagado=pagos||pagosFilas,totalTicket=centavos(parsed&&parsed.total);
+  const totalCalculado=totalTicket-deuda+pagado;
+  const revisar=conflicto||(totalTicket>0&&totalCalculado<0);
+  return {deuda:deuda/100,pagos:pagado/100,ajuste:revisar?0:(deuda-pagado)/100,
+    totalTicket:totalTicket/100,totalMercaderia:revisar?totalTicket/100:totalCalculado/100,revisar};
+}
+// Compatibilidad: ajuste neto del ticket. Los pagos tienen signo contrario a la deuda.
+function rev77DeudaDelTicket(parsed,filas){return rev78CuentaTicket(parsed,filas).ajuste;}
+function rev78NotaCuentaTicket(parsed,filas){
+  const t=rev78CuentaTicket(parsed,filas);
+  if(t.revisar)return '<div class="notice warn rev78-cuenta-aviso"><b>Revisá el total de la mercadería</b><br>Los importes de deuda o pagos no coinciden, o no se conoce el signo del ajuste. Conservamos el total leído: corregilo en el próximo paso.</div>';
+  if(!(t.totalTicket>0)||(!t.deuda&&!t.pagos))return '';
+  if(!t.pagos){const deuda=t.deuda,total=t.totalTicket;
+    return `<div class="notice rev77-deuda"><b>El total del ticket (${$m(total)}) incluye ${$m(deuda)} que no es mercadería</b><br>Es deuda o saldo anterior. Para comparar con los productos vamos a usar ${$m(t.totalMercaderia)}.</div>`;}
+  return `<div class="notice rev77-deuda"><b>Total de la mercadería: ${$m(t.totalMercaderia)}</b><br>El ticket dice ${$m(t.totalTicket)}${t.deuda?` e incluye ${$m(t.deuda)} de deuda anterior`:''}; ya descontó ${$m(t.pagos)} de pagos a cuenta. Esos pagos no son descuentos del costo de los productos.</div>`;
+}
 function rev70PrepararFilas(parsed,productos,mem){
   const indice=rev70Indice(productos);
   const proveedor=String(parsed&&parsed.proveedor||'');
   return ((parsed&&parsed.items)||[]).map(it=>{
     const original=String(it.producto||'').trim()||'(sin nombre)';
     const codigo=String(it.codigo||'').trim().slice(0,40),descripcion=String(it.descripcion||'').trim().slice(0,200);
+    // REV77: la cantidad 0 impresa se conserva (antes pasaba a 1 y se cargaba una unidad que no se compró).
+    const cantidad=Math.max(0,numFactura(it.cantidad));
+    const noMercaderia=rev77NoEsMercaderia(original)||rev77NoEsMercaderia(descripcion);
+    if(noMercaderia||!(cantidad>0)){
+      const sugerido=noMercaderia?null:rev70Emparejar(original,indice,{proveedor,descripcion});
+      return {original,codigo,descripcion,cantidad,costoU:numFactura(it.precioUnit),descuento:Math.abs(numFactura(it.descuento)),
+        porBulto:Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||1),porBultoIa:Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||1),
+        via:'',prodId:'',origen:'',estado:noMercaderia?'no-mercaderia':'cero',noMercaderia,noMercaderiaIa:noMercaderia,
+        noMercaderiaMontoIa:noMercaderia?Math.round(Math.max(0,cantidad*numFactura(it.precioUnit))*100):0,
+        candidatos:sugerido?sugerido.candidatos.map(c=>({id:c.producto.id,nombre:c.producto.nombre,otroTamano:!!c.incompatible,soloDescripcion:!!c.soloDescripcion})):[]};
+    }
     const recordado=rev70BuscarEnMemoria(mem,{proveedor,texto:original,codigo},productos);
     const auto=recordado?null:rev70Emparejar(original,indice,{proveedor,descripcion});
     const upbIa=Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||detectarBulto(original));
     return {original,codigo,descripcion,
-      cantidad:Math.max(0,numFactura(it.cantidad))||1,costoU:numFactura(it.precioUnit),descuento:Math.abs(numFactura(it.descuento)),
+      cantidad,costoU:numFactura(it.precioUnit),descuento:Math.abs(numFactura(it.descuento)),
       porBulto:recordado&&recordado.upb?recordado.upb:upbIa,porBultoIa:upbIa,via:recordado?recordado.via:'',
       prodId:recordado?recordado.producto.id:(auto.producto?auto.producto.id:''),
       origen:recordado?'memoria':(auto.producto?'auto':''),
@@ -7278,6 +7387,7 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
     cuerpo:`
       ${pasosFacturaIA('revisar')}
       <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Así entendimos la foto. <b>"Unid. por bulto"</b> es cuántas unidades sueltas trae cada caja o pack (dejalo en 1 si se compran sueltas). El <b>descuento</b> es el total bonificado de esa fila, y se reparte entre las unidades. Revisá todo antes de confirmar.</p>
+      <div id="rev78TicketResumen" style="margin:0 0 14px"></div>
       ${numFactura(parsed.descuentoGlobal)>0?`<div class="notice" style="margin:0 0 14px"><b>Descuento general leído: ${$m(numFactura(parsed.descuentoGlobal))}</b><br><span style="color:var(--muted)">Ya está distribuido entre los productos para calcular correctamente su costo.</span></div>`:''}
       <div id="revTabla"></div>`,
     pie:`<button class="btn ghost invoice-back" id="volverFotoFac" type="button">← Volver a la foto</button><button class="btn ghost" data-cerrar>Descartar</button><button class="btn verde" id="okRev">Cargar a la factura</button>`,
@@ -7290,6 +7400,7 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
         let creados=0, agregados=0, saltados=0;
         revisionFactura.forEach(r=>{
           if(!r.cantidad||r.cantidad<=0) return;
+          if(r.noMercaderia&&!r.prodId) return;
           const upb=Math.max(1,r.porBulto||1);
           const unidades=r.cantidad*upb;                                  // stock real en unidades sueltas
           const brutoTotal=r.costoU*r.cantidad;                            // lo que suma esa fila antes del descuento
@@ -7307,10 +7418,15 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
           else{ remito.push({prodId:pid,cant:unidades,porBulto:1,costoU:costoUnitario>0?String(costoUnitario):'',totalL:'',descuento:0,precio:''}); recomputeLinea(remito[remito.length-1]); }
           agregados++;
         });
+        // REV77: el total que se compara con los productos es el de la mercadería (sin deuda ni saldo anterior).
+        const cuenta=rev78CuentaTicket(parsed,revisionFactura),totalTicket=cuenta.totalTicket;
+        const totalMercaderia=cuenta.totalMercaderia;
         remitoHeader={
           proveedor: parsed.proveedor? String(parsed.proveedor).trim() : remitoHeader.proveedor,
           nroComprobante: parsed.nroComprobante? String(parsed.nroComprobante).trim() : remitoHeader.nroComprobante,
-          total: numFactura(parsed.total)>0? numFactura(parsed.total).toFixed(2) : remitoHeader.total
+          total: totalMercaderia>0? totalMercaderia.toFixed(2) : remitoHeader.total,
+          deudaTicket: !cuenta.revisar?cuenta.deuda:0,pagosTicket:!cuenta.revisar?cuenta.pagos:0,
+          totalTicket:(cuenta.deuda||cuenta.pagos||cuenta.revisar)?totalTicket:0,revisarTicket:cuenta.revisar
         };
         // REV70: recordar lo elegido para la próxima factura de este proveedor.
         if(comercioRev){
@@ -7329,6 +7445,9 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
 }
 // REV70: estado de cada fila y aviso cuando el costo se aleja mucho del anterior.
 function rev70EstadoFila(r){
+  // REV77: lo que no se va a cargar lo dice antes que nada.
+  if(r.noMercaderia&&!r.prodId)return {clase:'',texto:'No es mercadería: no se carga'};
+  if(typeof r.cantidad==='number'&&!(r.cantidad>0))return {clase:'',texto:'Cantidad 0: no se carga'};
   if(r.prodId==='__nuevo__')return {clase:'',texto:'Producto nuevo'};
   if(r.prodId&&r.origen==='memoria')return {clase:'ok',texto:r.via==='otro-proveedor'?'Recordado de otro proveedor':'Recordado'};
   if(r.prodId&&r.origen==='auto')return {clase:'ok',texto:'Coincide'};
@@ -7346,10 +7465,12 @@ function rev70AvisoCosto(r,p,costoU){
 }
 function pintarRevision(ov2){
   const c=$('#revTabla',ov2);
+  const nota=$('#rev78TicketResumen',ov2);
+  if(nota&&facturaIA)nota.innerHTML=rev78NotaCuentaTicket(facturaIA.parsed,revisionFactura);
   const opciones=db.productos.filter(p=>!p.archivadoAt).sort((a,b)=>a.nombre.localeCompare(b.nombre));
-  const cuenta={ok:0,elegir:0,nada:0,nuevo:0};
-  revisionFactura.forEach(r=>{const e=rev70EstadoFila(r);if(r.prodId==='__nuevo__')cuenta.nuevo++;else if(r.prodId)cuenta.ok++;else if(e.texto==='Elegí cuál es')cuenta.elegir++;else cuenta.nada++;});
-  const resumen=[`${cuenta.ok} con producto`,cuenta.elegir?`${cuenta.elegir} para elegir`:'',cuenta.nada?`${cuenta.nada} sin coincidencia`:'',cuenta.nuevo?`${cuenta.nuevo} nuevos`:''].filter(Boolean).join(' · ');
+  const cuenta={ok:0,elegir:0,nada:0,nuevo:0,fuera:0};
+  revisionFactura.forEach(r=>{const e=rev70EstadoFila(r);if(/no se carga$/.test(e.texto))cuenta.fuera++;else if(r.prodId==='__nuevo__')cuenta.nuevo++;else if(r.prodId)cuenta.ok++;else if(e.texto==='Elegí cuál es')cuenta.elegir++;else cuenta.nada++;});
+  const resumen=[`${cuenta.ok} con producto`,cuenta.elegir?`${cuenta.elegir} para elegir`:'',cuenta.nada?`${cuenta.nada} sin coincidencia`:'',cuenta.nuevo?`${cuenta.nuevo} nuevos`:'',cuenta.fuera?`${cuenta.fuera} no se ${cuenta.fuera===1?'carga':'cargan'}`:''].filter(Boolean).join(' · ');
   c.innerHTML=`<p class="rev70-resumen">${resumen}</p><table class="mtable invoice-lines"><thead><tr><th>Leído en la factura</th><th style="width:240px">Emparejado con</th><th class="r" style="width:80px">Cantidad</th><th class="r" style="width:95px">Unid. x bulto</th><th class="r" style="width:110px">Precio unit.</th><th class="r" style="width:110px">Descuento</th><th class="r">Se carga</th></tr></thead><tbody>
     ${revisionFactura.map((r,ix)=>{
       const upb=Math.max(1,r.porBulto||1);
@@ -7377,7 +7498,7 @@ function pintarRevision(ov2){
       <td data-label="Descuento" class="r"><input class="inp num" data-rev-dto="${ix}" value="${r.descuento||0}"></td>
       <td data-label="Se carga" class="r"><b class="num">${unidades}</b> unidades<br><span style="font-size:12px;color:var(--muted)">a ${$m(costoU)} c/u${r.descuento>0?` <span class="pill ok">con dto.</span>`:''}</span>${r.prodId&&r.prodId!=='__nuevo__'?rev70AvisoCosto(r,prod(r.prodId),costoU):''}</td>
     </tr>`;}).join('')}</tbody></table>`;
-  $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>{const r=revisionFactura[s.dataset.revProd];r.prodId=s.value;r.origen=s.value?'manual':'';pintarRevision(ov2);});
+  $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>{const r=revisionFactura[s.dataset.revProd];r.prodId=s.value;r.origen=s.value?'manual':'';r.noMercaderia=!s.value&&!!r.noMercaderiaIa;pintarRevision(ov2);});
   $$('[data-rev-cand]',c).forEach(b=>b.onclick=()=>{const [ix,j]=b.dataset.revCand.split(':').map(Number);const r=revisionFactura[ix],k=r&&r.candidatos[j];if(!k)return;r.prodId=k.id;r.origen='manual';pintarRevision(ov2);});
   $$('[data-rev-cant]',c).forEach(i=>i.onchange=()=>{const l=revisionFactura[i.dataset.revCant],p=prod(l.prodId);l.cantidad=Math.max(0,p&&p.unidad==='kg'?numCantidad(i.value):num(i.value));pintarRevision(ov2);});
   $$('[data-rev-bulto]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revBulto].porBulto=Math.max(1,Math.floor(num(i.value))||1);pintarRevision(ov2);});
@@ -8243,6 +8364,7 @@ function f6EvaluarCierreTurno(session,cierres,authority){
    ═══════════════════════════════════════════════════════ */
 let busCajaTurno='';
 let cierreResponsableFiltro='todos';
+let cierreRecienteParaCompartir=null;
 function turnoLegacyActual(){
   const ult=db.cierres.length ? db.cierres.reduce((m,c)=>!m||String(c.hasta||'')>m?c.hasta:m,null) : null;
   const primera=db.ventas.length ? db.ventas.reduce((m,v)=>!m||String(v.fecha||'')<m?v.fecha:m,null) : null;
@@ -8465,6 +8587,7 @@ function resumenStockBusquedaHtml({q,desde,hasta,ventas,inicioLabel='Inicio',fin
   </div>`;
 }
 function verVentasTurnoInterrumpido(segmentId){
+  if(!esDuenio())return;
   const t=f69Estado.items.find(x=>String(x.segmentId)===String(segmentId));if(!t)return;
   const ids=new Set((t.ventaV4Ids||[]).map(String));
   const ventas=(db.ventas||[]).filter(v=>String(v._v4sessionSegmentId||v.sessionSegmentId||'')===String(segmentId)||ids.has(String(v._v4id||'')))
@@ -8489,6 +8612,7 @@ function verVentasTurnoInterrumpido(segmentId){
     }});
 }
 function verVentasTurno(cierreId){
+  if(!esDuenio())return;
   const c=db.cierres.find(x=>x.id===cierreId); if(!c) return;
   const ventas=ventasDeCierre(c).sort((a,b)=>a.fecha.localeCompare(b.fecha));
   const cantidad=Number(c.cantVentas??ventas.length)||0;
@@ -8515,6 +8639,57 @@ function verVentasTurno(cierreId){
       pintar();
     }});
 }
+function f79PuedeCompartirCierre(c){
+  if(esDuenio())return true;
+  const m=f5MembresiaActual();
+  return !!(m&&m.rol==='empleado'&&f5PermissionsObject(m.permisos).caja_operar===true&&
+    c&&c===cierreRecienteParaCompartir&&String(c.responsableId||'')===String(m.user_id||'')&&
+    String(m.comercio_id||'')===String(f3Estado.comercioId||''));
+}
+function f79CigarrillosPorFormaTurno(t){
+  const centavos=n=>Math.max(0,Math.round((Number(n)||0)*100));
+  const cobrados=t&&t.cigCobradoPorForma||{};
+  if(centavos(cobrados.otros))return null;
+  const total=centavos(t&&t.cigTotal),formas=['efectivo','transferencia','tarjeta'];
+  let montos=formas.map(k=>centavos(cobrados[k]));
+  const cobrado=montos.reduce((n,m)=>n+m,0);
+  // El redondeo de componentes entre ventas puede superar el total en un centavo.
+  // Ajustamos sólo la presentación, sin cambiar el reparto de efectivo de caja.
+  if(cobrado>total){
+    const exactos=montos.map(m=>total*m/cobrado);
+    montos=exactos.map(Math.floor);
+    let faltan=total-montos.reduce((n,m)=>n+m,0);
+    formas.map((_,i)=>i).sort((a,b)=>(exactos[b]%1)-(exactos[a]%1)).forEach(i=>{if(faltan>0){montos[i]++;faltan--;}});
+  }
+  const fiado=total-montos.reduce((n,m)=>n+m,0);
+  return {...Object.fromEntries(formas.map((k,i)=>[k,montos[i]/100])),fiado:fiado/100};
+}
+function f79CigarrillosPorFormaCierre(c){
+  const keys=['efectivo','transferencia','tarjeta','fiado'];
+  if(c&&Number(c.cigTotal)===0)return {efectivo:0,transferencia:0,tarjeta:0,fiado:0};
+  const snapshot=c&&c.cigPorForma;
+  if(snapshot&&keys.every(k=>typeof snapshot[k]==='number'&&Number.isFinite(snapshot[k])&&snapshot[k]>=0)&&
+    keys.reduce((n,k)=>n+Math.round(snapshot[k]*100),0)===Math.round((Number(c.cigTotal)||0)*100))return {...snapshot};
+  // Una reconstrucción histórica sólo es válida con todos los vínculos y ventas originales.
+  if(!c||!Array.isArray(c.ventaIds)||new Set(c.ventaIds).size!==Number(c.cantVentas))return null;
+  const ventas=ventasDeCierre(c);
+  if(ventas.length!==Number(c.cantVentas)||ventas.some(v=>{
+    if(v.anulada||v._v4reconstruccionAprox||(v.items||[]).some(i=>i._v4reconstruccionAprox||(i.componentes||[]).some(p=>p._v4reconstruccionAprox)))return true;
+    const total=Number(v.total),forma=formaKey(v.forma),formas=['efectivo','transferencia','tarjeta','fiado'];
+    if(!Number.isFinite(total)||total<0||!(forma==='mixto'||formas.includes(forma)))return true;
+    const pagos=Array.isArray(v.pagos)?v.pagos:[];
+    // Un mix incompleto no permite distinguir fiado de un pago aún no descargado.
+    if(!pagos.length)return forma==='mixto'||v._v4remote===true;
+    if(pagos.some(p=>!formas.includes(formaKey(p.forma))||!Number.isFinite(Number(p.monto))||Number(p.monto)<0))return true;
+    if(pagos.reduce((n,p)=>n+Math.round(Number(p.monto)*100),0)!==Math.round(total*100))return true;
+    const medios=[...new Set(pagos.filter(p=>Number(p.monto)>0).map(p=>formaKey(p.forma)))];
+    if(forma==='mixto')return medios.length<2;
+    return medios.some(m=>m!==forma);
+  }))return null;
+  const t=calcularTotalesTurno({desde:c.desde,ventasTodas:ventas,pagos:[],egresos:[],moduloCigarros:false});
+  if(Math.round(t.cigTotal*100)!==Math.round((Number(c.cigTotal)||0)*100))return null;
+  return f79CigarrillosPorFormaTurno(t);
+}
 function textoResumenCierre(c){
   const l=[];
   const formasCierre={};
@@ -8528,6 +8703,14 @@ function textoResumenCierre(c){
   l.push('*Por forma de pago*');
   Object.keys(formasCierre).forEach(f=>{ if(formasCierre[f]>0.009) l.push(`${FORMAS[f]||f}: ${$m(formasCierre[f])}`); });
   if(c.cigTotal>0.009) l.push(`Cigarrillos vendidos: ${$m(c.cigTotal)}`);
+  const cigPorForma=f79CigarrillosPorFormaCierre(c);
+  l.push('');l.push('*Cigarrillos por forma de pago*');
+  if(cigPorForma){
+    l.push(`Efectivo: ${$m(cigPorForma.efectivo)}`);
+    l.push(`Transferencia / QR: ${$m(cigPorForma.transferencia)}`);
+    l.push(`Tarjeta: ${$m(cigPorForma.tarjeta)}`);
+    l.push(`Fiado: ${$m(cigPorForma.fiado)}`);
+  }else l.push('Desglose de cigarrillos no disponible: falta el detalle original completo de este cierre.');
   if((c.egrGeneral||0)+(c.egrCigarros||0)>0.009){
     l.push('');
     l.push('*Egresos*');
@@ -8555,6 +8738,7 @@ const numeroWa=n=>String(n||'').replace(/[^\d]/g,'');
 const linkWhatsapp=(numero,texto)=>`https://wa.me/${numeroWa(numero)}?text=${encodeURIComponent(texto)}`;
 
 function modalEnviarResumen(cierre){
+  if(!f79PuedeCompartirCierre(cierre))return;
   const texto=textoResumenCierre(cierre);
   modal({titulo:'Caja cerrada', ancho:true,
     cuerpo:`
@@ -8566,20 +8750,21 @@ function modalEnviarResumen(cierre){
     alAbrir:ov=>{
       const pintarConfig=()=>{
         $('#waConfig',ov).innerHTML = db.config.whatsappDueno ? `
-          <div class="kpi"><span>Se envía a</span><div class="row" style="margin-top:6px;justify-content:space-between"><b style="font-size:16px">${esc(db.config.whatsappDueno)}</b><button type="button" class="btn text sm" id="waCambiar">Cambiar número</button></div></div>`
+          <div class="kpi"><span>Se envía a</span><div class="row" style="margin-top:6px;justify-content:space-between"><b style="font-size:16px">${esc(db.config.whatsappDueno)}</b>${esDuenio()?'<button type="button" class="btn text sm" id="waCambiar">Cambiar número</button>':''}</div></div>`
           : `
           <label class="f" for="waNum">WhatsApp del dueño</label>
           <input id="waNum" class="inp num" placeholder="Código de país + número, ej: 5491122334455">
-          <div class="hint">Sin espacios ni el +. Lo guardamos para no pedírtelo la próxima vez.</div>`;
-        const camb=$('#waCambiar',ov); if(camb) camb.onclick=()=>{ db.config.whatsappDueno=''; guardar(); pintarConfig(); };
+          <div class="hint">Sin espacios ni el +. ${esDuenio()?'Lo guardamos para no pedírtelo la próxima vez.':'Se usará para enviar este cierre.'}</div>`;
+        const camb=$('#waCambiar',ov); if(camb) camb.onclick=()=>{ if(!esDuenio()||!f79PuedeCompartirCierre(cierre))return;db.config.whatsappDueno=''; guardar(); pintarConfig(); };
       };
       pintarConfig();
       $('#okWa',ov).onclick=()=>{
+        if(!f79PuedeCompartirCierre(cierre))return;
         let num=db.config.whatsappDueno;
         const inp=$('#waNum',ov);
         if(!num){
           if(!inp||!inp.value.trim()){ aviso('Ingresá el WhatsApp del dueño','bad'); return; }
-          num=inp.value.trim(); db.config.whatsappDueno=num; guardar();
+          num=inp.value.trim(); if(esDuenio()){db.config.whatsappDueno=num; guardar();}
         }
         window.open(linkWhatsapp(num,texto),'_blank');
         cerrarModal();
@@ -8753,6 +8938,7 @@ function f69ResumenCierre(c){
     diferenciaAjustada:(contado-esperadoOriginal-centavos)/100};
 }
 async function f69CargarTurnosInterrumpidos(){
+  if(!esDuenio())return;
   const comercioId=String(f3Estado&&f3Estado.comercioId||'');
   if(!comercioId||!sb||!sesion||!enLinea)return;
   if(f69Estado.comercioId!==comercioId)f69Estado={comercioId,items:[],loading:false,loadedAt:0,error:''};
@@ -8792,6 +8978,7 @@ async function f69CargarTurnosInterrumpidos(){
   }
 }
 function htmlCierresAnteriores(){
+  if(!esDuenio())return '';
   const todos=[...(db.cierres||[])].sort((a,b)=>(Date.parse(b.hasta)||0)-(Date.parse(a.hasta)||0));
   const responsables=[...new Set(todos.map(responsableCierre))].sort((a,b)=>a.localeCompare(b));
   const cierres=cierreResponsableFiltro==='todos'?todos:todos.filter(c=>responsableCierre(c)===cierreResponsableFiltro);
@@ -8823,6 +9010,7 @@ function htmlCierresAnteriores(){
   </div>`;
 }
 function enlazarCierresAnteriores(m){
+  if(!esDuenio())return;
   const filtro=$('#cierreResponsable',m);if(filtro)filtro.onchange=()=>{cierreResponsableFiltro=filtro.value;render();};
   $$('[data-vt]',m).forEach(b=>b.onclick=()=>verVentasTurno(b.dataset.vt));
   $$('[data-vt-interrumpido]',m).forEach(b=>b.onclick=()=>verVentasTurnoInterrumpido(b.dataset.vtInterrumpido));
@@ -8918,14 +9106,14 @@ function vCaja(m){
   ];
   const egresosOperativos=t.egresos.filter(esEgresoOperativo).reduce((a,e)=>a+(Number(e.monto)||0),0);
   const gananciaEstimada=t.costosIncompletos?null:t.total-t.costo-egresosOperativos;
-  const vistasCaja=['turno','cierre','historial'];
+  const vistasCaja=esDuenio()?['turno','cierre','historial']:['turno','cierre'];
   const cajaVista=vistasCaja.includes(globalThis.__miCajaVista)?globalThis.__miCajaVista:'turno';
   const cajaCigarrosPlegada=db.config.cajaCigarrosPlegada===true;
   m.innerHTML=`
   <div class="head"><div><h1>Caja</h1></div></div>
   <div class="cash-tabs" role="tablist" aria-label="Secciones de Caja">
     <button type="button" class="cash-tab ${cajaVista==='turno'?'active':''}" data-caja-tab="turno" role="tab" aria-selected="${cajaVista==='turno'}">Turno actual</button>
-    <button type="button" class="cash-tab ${cajaVista==='historial'?'active':''}" data-caja-tab="historial" role="tab" aria-selected="${cajaVista==='historial'}">Historial</button>
+    ${esDuenio()?`<button type="button" class="cash-tab ${cajaVista==='historial'?'active':''}" data-caja-tab="historial" role="tab" aria-selected="${cajaVista==='historial'}">Historial</button>`:''}
   </div>
 
   <section data-caja-panel="turno" ${cajaVista==='turno'?'':'hidden'}>
@@ -9047,16 +9235,16 @@ function vCaja(m){
     </div>
   </div></section>
 
-  <section data-caja-panel="historial" ${cajaVista==='historial'?'':'hidden'}>
+  ${esDuenio()?`<section data-caja-panel="historial" ${cajaVista==='historial'?'':'hidden'}>
     ${htmlCierresAnteriores()}
-  </section>`;
+  </section>`:''}`;
   const qCaja=$('#qCajaTurno');
   if(qCaja) qCaja.oninput=e=>{busCajaTurno=e.target.value;pintarVentasCajaActual(t);};
   pintarVentasCajaActual(t);
   enlazarCierresAnteriores(m);
 
   const aplicarVistaCaja=vista=>{
-    const siguiente=vistasCaja.includes(vista)?vista:'turno';
+    const siguiente=vistasCaja.includes(vista)&&(vista!=='historial'||esDuenio())?vista:'turno';
     globalThis.__miCajaVista=siguiente;
     $$('[data-caja-tab]',m).forEach(tab=>{
       const activa=tab.dataset.cajaTab===siguiente;
@@ -9249,7 +9437,7 @@ function vCaja(m){
       `Vendiste <b>${$m(t.total)}</b> en ${t.ventas.length} ${t.ventas.length===1?'venta':'ventas'}${t.egresos.length?` y registraste <b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b> en egresos`:''}.<br><br>${partes.join('<br>')}`,
       async()=>{
         const nuevoCierre={id:uid(),desde:t.desde,hasta:new Date().toISOString(),
-          cantVentas:t.ventas.length,total:t.total,porForma:t.porForma,cigTotal:t.cigTotal,
+          cantVentas:t.ventas.length,total:t.total,porForma:t.porForma,cigTotal:t.cigTotal,cigPorForma:f79CigarrillosPorFormaTurno(t),
           esperadoGeneral:espGeneral,contadoGeneral,diferenciaGeneral:dG,
           esperadoCigarros:espCigarros,contadoCigarros,diferenciaCigarros:dC,
           egrGeneral:t.egrGeneral,egrCigarros:moduloCigarros?t.egrCigarros:0,
@@ -9275,6 +9463,7 @@ function vCaja(m){
         if(reabrir)vista='vender';
         globalThis.__miCajaVista='turno';
         render(); aviso(reabrir?'Caja cerrada. Contá la plata para abrir el turno nuevo.':'Caja cerrada y respaldo guardado','ok');
+        cierreRecienteParaCompartir=nuevoCierre;
         modalEnviarResumen(nuevoCierre);
       },'Cerrar caja','verde');
   };
@@ -9286,6 +9475,98 @@ function vCaja(m){
 let fechaMovimientos=hoy();
 let filtrosMovimientos={q:'',rubro:''};
 let movRango='dia';
+let movVista='periodo',movTurnoA='',movTurnoB='';
+/* REV79_MOVIMIENTOS_START */
+function f79CompararStockTurnos({productos,movimientos,turnos,ventas=[],q='',rubro=''}){
+  const seleccion=(turnos||[]).filter(Boolean).map(t=>({...t,id:String(t.id),ini:Date.parse(t.desde),fin:Date.parse(t.hasta)}));
+  const min=Math.min(...seleccion.map(t=>t.ini)),max=Math.max(...seleccion.map(t=>t.fin));
+  const claves=new Set(seleccion.map(t=>t.id)),porProducto=new Map(),ids=new Set(),sinTurno=[],conVenta=new Set(),cantidadVentas=new Map();
+  // Índice efímero: cada consulta incorpora ediciones, anulaciones y sincronizaciones nuevas.
+  (movimientos||[]).forEach(m=>{
+    if(!m)return;
+    const id=m.prodId,turno=f6ClaveTurno(m),fecha=Date.parse(m.fecha);
+    const registro={mov:m,turno,fecha,recibido:Date.parse(m._v4receivedAt)};
+    if(!porProducto.has(id))porProducto.set(id,[]);
+    porProducto.get(id).push(registro);
+    const enPeriodo=fecha>=min&&fecha<=max;
+    if(id&&(claves.has(turno)||enPeriodo))ids.add(id);
+    if(!turno&&enPeriodo)sinTurno.push(m);
+    if(m.tipo==='venta')conVenta.add(turno);
+  });
+  (ventas||[]).forEach(v=>{const id=f6ClaveTurno(v);cantidadVentas.set(id,(cantidadVentas.get(id)||0)+1);});
+  const incompletos=seleccion.filter(t=>Number(t.cantVentas)>0&&((cantidadVentas.get(t.id)||0)<Number(t.cantVentas)||!conVenta.has(t.id))).map(t=>t.id);
+  const catalogo=[...(productos||[])],enCatalogo=new Set(catalogo.map(p=>p.id));
+  ids.forEach(id=>{if(!enCatalogo.has(id)){catalogo.push({id,nombre:'Producto no disponible',rubro:'',stockBase:null,ausente:true});enCatalogo.add(id);}});
+  const round=n=>Math.round((n+Number.EPSILON)*1000000)/1000000;
+  const filas=filtrarProductosPorBusqueda(catalogo,q,rubro).filter(p=>ids.has(p.id)).map(producto=>({producto,
+    turnos:seleccion.map(t=>{
+      let ingresos=0,ventas=0,ajustes=0,neto=0,externos=0,inicio=Number(producto.stockBase)||0,final=inicio,tardios=0,fueraDeHorario=false;
+      const propios=[];
+      // El grupo conserva el orden original, incluso en las sumas de cantidades por peso.
+      (porProducto.get(producto.id)||[]).forEach(r=>{
+        const m=r.mov,cant=Number(m.cant)||0;
+        if(r.turno===t.id){
+          propios.push(m);neto+=cant;
+          if(m.tipo==='ingreso')ingresos+=cant;else if(m.tipo==='venta')ventas+=cant;else ajustes+=cant;
+          if(r.recibido>t.fin)tardios++;
+          if(!Number.isFinite(r.fecha)||r.fecha<t.ini||r.fecha>t.fin)fueraDeHorario=true;
+        }else if(r.fecha>=t.ini&&r.fecha<=t.fin)externos+=cant;
+        if(Number.isFinite(r.fecha)){
+          if(r.fecha<t.ini)inicio+=cant;
+          if(r.fecha<=t.fin)final+=cant;
+        }
+      });
+      return {ingresos:round(ingresos),vendidas:-round(ventas),ajustes:round(ajustes),neto:round(neto),externos:round(externos),
+        inicio:producto.stockBase==null||t.aperturaAproximada||incompletos.length||!Number.isFinite(t.ini)?null:round(inicio),
+        final:producto.stockBase==null||incompletos.length||!Number.isFinite(t.fin)?null:round(final),
+        tardios,fueraDeHorario,movs:propios};
+    })})).sort((a,b)=>String(a.producto.nombre).localeCompare(String(b.producto.nombre),'es'));
+  return {filas,incompletos,sinTurno};
+}
+function f79TurnosStock(cierres,activa,interrumpidos,ahora=new Date().toISOString()){
+  const turnos=new Map();
+  (cierres||[]).forEach(c=>{const id=f6ClaveTurno(c);if(id)turnos.set(id,{id,desde:c.desde,hasta:c.hasta,
+    responsable:c.responsableNombre||c.actorNombre||c.empleadoNombre||'Sin responsable',cantVentas:Number(c.cantVentas)||0,estado:'Cerrado',caja:c._v4cajaId||'',aperturaAproximada:!!c._v4aperturaAproximada});});
+  (interrumpidos||[]).forEach(t=>{const id=String(t.segmentId||'');if(id&&!turnos.has(id))turnos.set(id,{id,desde:t.desde,hasta:t.hasta,responsable:t.registradoPor||'Sin responsable',cantVentas:Number(t.cantVentas)||0,estado:'Sin arqueo',caja:t.cajaId||''});});
+  if(activa&&activa.estado==='abierta'){const id=f5SesionIds(activa).effectiveId;if(id&&!turnos.has(id))turnos.set(id,{id,desde:activa.openedAtDevice,hasta:ahora,responsable:activa.abiertoPor||'Sin responsable',estado:'Abierto · provisional',caja:activa.cajaId||''});}
+  return [...turnos.values()].filter(t=>Number.isFinite(Date.parse(t.desde))&&Number.isFinite(Date.parse(t.hasta))&&Date.parse(t.hasta)>=Date.parse(t.desde))
+    .sort((a,b)=>Date.parse(b.hasta)-Date.parse(a.hasta));
+}
+/* REV79_MOVIMIENTOS_END */
+function f79PuedeCompararTurnos(){return esDuenio();}
+function f79OpcionesTurnos(){
+  return f79TurnosStock(db.cierres,f3Estado&&f3Estado.session,f69Estado.comercioId===String(f3Estado.comercioId||'')?f69Estado.items:[]);
+}
+function pintarMovimientosTurnos(){
+  if(!f79PuedeCompararTurnos())return;
+  const cont=$('#tablaMovimientos'),cuenta=$('#cuentaMovimientos'),opciones=f79OpcionesTurnos();
+  if(!cont||!cuenta)return;
+  const elegidos=[opciones.find(t=>t.id===movTurnoA),opciones.find(t=>t.id===movTurnoB)];
+  if(elegidos.some(t=>!t)||movTurnoA===movTurnoB){cuenta.textContent='Elegí dos turnos distintos';cont.innerHTML='<div class="empty"><b>Elegí dos turnos para comparar</b>Podés comparar turnos del mismo día o de fechas distintas.</div>';return;}
+  const d=f79CompararStockTurnos({productos:db.productos,movimientos:db.movs,ventas:db.ventas,turnos:elegidos,...filtrosMovimientos});
+  cuenta.textContent=`${d.filas.length} productos`;
+  const resumen=(r,t)=>`<div>Ingresos: <b>${fmtCant(r.producto,t.ingresos)}</b> · Vendidas: <b>${fmtCant(r.producto,t.vendidas)}</b></div><div>Ajustes: <b>${fmtCant(r.producto,t.ajustes)}</b> · Variación del turno: <b>${fmtCant(r.producto,t.neto)}</b></div><div class="hint">Stock global reconstruido: ${t.inicio==null?'No disponible':fmtCant(r.producto,t.inicio)} → ${t.final==null?'No disponible':fmtCant(r.producto,t.final)}<br>Otros turnos o sin asignar durante esas horas: ${fmtCant(r.producto,t.externos)}</div>${t.tardios?'<span class="pill info">Sincronizado después del cierre</span>':''}${t.fueraDeHorario?'<span class="pill warn">Revisar fecha de movimientos</span>':''}`;
+  cont.innerHTML=`<div class="notice" style="margin:14px">Los movimientos se agrupan por el turno registrado. El stock reconstruido es de todo el comercio; puede cambiar por otros turnos simultáneos y por operaciones entre turnos. No representa un conteo físico. Se calcula con los datos disponibles en este dispositivo.${d.incompletos.length?'<br><b>Detalle incompleto:</b> hay ventas del cierre cuyo detalle o movimiento de stock falta sincronizar. Los importes disponibles pueden cambiar; el stock global de ambos turnos no se muestra mientras falten esos datos.':''} ${d.sinTurno.length?`<br><b>${d.sinTurno.length} movimientos sin turno asignado</b> no se atribuyen a ninguno. <button type="button" class="btn ghost sm" id="movSinTurno">Verlos</button>`:''}</div>${d.filas.length?`<div class="table-scroll" role="region" tabindex="0" aria-label="Comparación de stock entre turnos"><table class="mtable mov-turnos-table"><thead><tr><th>Producto</th>${elegidos.map(t=>`<th>${esc(t.responsable)}<br><span class="hint">${fFH(t.desde)} → ${fFH(t.hasta)}<br>${esc(t.estado)}</span></th>`).join('')}</tr></thead><tbody>${d.filas.map(r=>`<tr><td><b>${esc(r.producto.nombre)}</b>${r.producto.ausente?'<div class="hint">Falta el producto en este dispositivo</div>':''}</td>${r.turnos.map((t,i)=>`<td><div class="mov-turno-label"><b>${esc(elegidos[i].responsable)}</b><br><span class="hint">${fFH(elegidos[i].desde)} → ${fFH(elegidos[i].hasta)} · ${esc(elegidos[i].estado)}</span></div>${resumen(r,t)}<button class="btn ghost sm" data-mov-turno-detalle="${i}" data-prod="${esc(r.producto.id)}">Detalle</button></td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay movimientos disponibles para los productos y turnos elegidos.</div>'}`;
+  const ver=(movs,titulo)=>{if(!f79PuedeCompararTurnos())return;modal({titulo,ancho:true,cuerpo:movs.length?`<div class="table-scroll"><table class="mtable"><thead><tr><th>Producto / responsable</th><th>Fecha</th><th>Tipo / motivo</th><th class="r">Cantidad</th></tr></thead><tbody>${[...movs].sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))).map(m=>`<tr><td>${esc(prod(m.prodId)?.nombre||'Producto no disponible')}<br>${esc(responsableMovimiento(m))}</td><td>${fFH(m.fecha)}</td><td>${esc(m.tipo)}<br>${esc(m.motivo||'')}</td><td>${fmtCant(prod(m.prodId),Number(m.cant)||0)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Sin movimientos registrados en este turno.</div>',pie:'<button class="btn ghost" data-cerrar>Cerrar</button>'});};
+  $$('[data-mov-turno-detalle]',cont).forEach(b=>b.onclick=()=>{const r=d.filas.find(r=>r.producto.id===b.dataset.prod);if(r)ver(r.turnos[Number(b.dataset.movTurnoDetalle)].movs,'Movimientos del turno');});
+  const sinTurno=$('#movSinTurno',cont);if(sinTurno)sinTurno.onclick=()=>ver(d.sinTurno,'Movimientos sin turno asignado');
+}
+/* REV80_MOVIMIENTOS_BUSQUEDA_START */
+let temporizadorBusquedaMovimientos=null;
+function f80CancelarBusquedaMovimientos(){clearTimeout(temporizadorBusquedaMovimientos);temporizadorBusquedaMovimientos=null;}
+function f80BuscarMovimientos(e){
+  filtrosMovimientos.q=e.target.value;
+  f80CancelarBusquedaMovimientos();
+  if(movVista==='turnos'&&f79PuedeCompararTurnos()){
+    const control=e.target;
+    temporizadorBusquedaMovimientos=setTimeout(()=>{
+      temporizadorBusquedaMovimientos=null;
+      if(control.isConnected&&$('#qMovimientos')===control&&movVista==='turnos'&&f79PuedeCompararTurnos())pintarMovimientosActual();
+    },180);
+  }else pintarMovimientosActual();
+}
+/* REV80_MOVIMIENTOS_BUSQUEDA_END */
+function pintarMovimientosActual(){f80CancelarBusquedaMovimientos();if(movVista==='turnos'&&f79PuedeCompararTurnos())pintarMovimientosTurnos();else pintarMovimientosDia();}
 
 function rangoDiaMovimientos(fecha){
   const dia=/^\d{4}-\d{2}-\d{2}$/.test(String(fecha||''))?fecha:hoy();
@@ -9355,28 +9636,39 @@ function verDetalleMovimientos(prodId,rango){
   modal({titulo:'Movimientos — '+(p?p.nombre:'Producto'),ancho:true,cuerpo:movs.length?`<table class="mtable"><thead><tr><th>Quién / cuándo</th><th>Tipo</th><th>Motivo</th><th class="r">Cantidad</th></tr></thead><tbody>${movs.map(x=>`<tr><td><b>${esc(responsableMovimiento(x))}</b><br><span class="hint">${fFH(x.fecha)}</span></td><td>${esc(x.tipo||'Movimiento')}</td><td>${esc(x.motivo||'—')}</td><td class="r num">${Number(x.cant)>0?'+':''}${fmtCant(p,Number(x.cant)||0)}</td></tr>`).join('')}</tbody></table>`:`<div class="empty">Sin movimientos individuales</div>`,pie:`<button class="btn ghost" data-cerrar>Cerrar</button>${p?`<button class="btn" id="movCorregir">Cargar conteo real</button>`:''}`,alAbrir:ov=>{const b=$('#movCorregir',ov);if(b)b.onclick=()=>{cerrarModal();formAjuste(prodId);};}});
 }
 function vMovimientos(m){
+  f80CancelarBusquedaMovimientos();
+  if(!f79PuedeCompararTurnos())movVista='periodo';
+  const opciones=f79OpcionesTurnos();
+  if(!opciones.some(t=>t.id===movTurnoA))movTurnoA=opciones[0]?.id||'';
+  if(!opciones.some(t=>t.id===movTurnoB))movTurnoB=opciones[1]?.id||'';
+  const selectTurno=(id,elegido)=>`<div style="flex:1;min-width:220px"><label class="f" for="${id}">${id==='movTurnoA'?'Primer turno':'Segundo turno'}</label><select class="inp" id="${id}"><option value="">Elegí un turno</option>${opciones.map(t=>`<option value="${esc(t.id)}" ${t.id===elegido?'selected':''}>${esc(t.responsable)} · ${fFH(t.desde)} → ${fFH(t.hasta)} · ${esc(t.estado)}</option>`).join('')}</select></div>`;
   m.innerHTML=`
   <div class="head">
     <div><h1>Movimientos de stock</h1><div class="sub">Auditá ingresos, ventas y ajustes, y corregí diferencias desde el mismo lugar.</div></div>
   </div>
+  ${f79PuedeCompararTurnos()?`<div class="cash-tabs" aria-label="Consulta de stock"><button type="button" class="cash-tab ${movVista==='periodo'?'active':''}" data-mov-vista="periodo">Por período</button><button type="button" class="cash-tab ${movVista==='turnos'?'active':''}" data-mov-vista="turnos">Comparar turnos</button></div>`:''}
   <div class="card" style="margin-bottom:16px"><div class="card-b">
     <div class="row" style="align-items:flex-end">
+      ${movVista==='turnos'?selectTurno('movTurnoA',movTurnoA)+selectTurno('movTurnoB',movTurnoB):`
       <div style="min-width:180px"><label class="f" for="movRango">Período</label><select class="inp" id="movRango"><option value="dia" ${movRango==='dia'?'selected':''}>Un día</option><option value="7" ${movRango==='7'?'selected':''}>Últimos 7 días</option><option value="30" ${movRango==='30'?'selected':''}>Últimos 30 días</option></select></div>
       <div style="min-width:180px"><label class="f" for="fechaMovimientos">Hasta</label><input type="date" class="inp" id="fechaMovimientos" value="${esc(fechaMovimientos)}" max="${hoy()}"></div>
+      `}
       <div style="flex:2;min-width:220px"><label class="f" for="qMovimientos">Buscar producto</label><input class="inp" id="qMovimientos" value="${esc(filtrosMovimientos.q)}" placeholder="Nombre o código…" autocomplete="off"></div>
       <div style="flex:1;min-width:180px"><label class="f" for="rubroMovimientos">Rubro</label><select class="inp" id="rubroMovimientos"><option value="">Todos los rubros</option>${rubros().map(r=>`<option value="${esc(r)}" ${filtrosMovimientos.rubro===r?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
     </div>
   </div></div>
-  <div class="nota-dash" style="margin-bottom:16px">La cuenta se lee de izquierda a derecha: stock inicial + ingresos − ventas ± ajustes = stock final. Tocá “Detalle” para ver hora, motivo y responsable disponible.</div>
+  <div class="nota-dash" style="margin-bottom:16px">${movVista==='turnos'?'Compará ingresos, ventas y ajustes de cada turno. El stock global incluye todas las cajas del comercio.':'La cuenta se lee de izquierda a derecha: stock inicial + ingresos − ventas ± ajustes = stock final. Tocá “Detalle” para ver hora, motivo y responsable disponible.'}</div>
   <div class="card">
-    <div class="card-h"><h2>Detalle del día</h2><span class="pill mute" id="cuentaMovimientos"></span></div>
+    <div class="card-h"><h2>${movVista==='turnos'?'Comparación de turnos':'Detalle del día'}</h2><span class="pill mute" id="cuentaMovimientos"></span></div>
     <div id="tablaMovimientos"></div>
   </div>`;
-  $('#fechaMovimientos').onchange=e=>{fechaMovimientos=e.target.value||hoy();pintarMovimientosDia();};
-  $('#movRango').onchange=e=>{movRango=e.target.value;pintarMovimientosDia();};
-  $('#qMovimientos').oninput=e=>{filtrosMovimientos.q=e.target.value;pintarMovimientosDia();};
-  $('#rubroMovimientos').onchange=e=>{filtrosMovimientos.rubro=e.target.value;pintarMovimientosDia();};
-  pintarMovimientosDia();
+  const fecha=$('#fechaMovimientos');if(fecha)fecha.onchange=e=>{fechaMovimientos=e.target.value||hoy();pintarMovimientosActual();};
+  const rango=$('#movRango');if(rango)rango.onchange=e=>{movRango=e.target.value;pintarMovimientosActual();};
+  $$('[data-mov-vista]',m).forEach(b=>b.onclick=()=>{movVista=b.dataset.movVista;vMovimientos(m);});
+  ['movTurnoA','movTurnoB'].forEach(id=>{const s=$('#'+id);if(s)s.onchange=()=>{if(id==='movTurnoA')movTurnoA=s.value;else movTurnoB=s.value;pintarMovimientosActual();};});
+  $('#qMovimientos').oninput=f80BuscarMovimientos;
+  $('#rubroMovimientos').onchange=e=>{filtrosMovimientos.rubro=e.target.value;pintarMovimientosActual();};
+  pintarMovimientosActual();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -9589,16 +9881,37 @@ function pintarDetalleResumen(d){
     }).join('')}</tbody></table>`;
 }
 
-function f6CierresResumenHtml(groups){
-  if(!groups.length)return '';
-  return `<div class="card" style="margin-bottom:20px"><div class="card-h"><h2>Cierres por turno</h2><span class="pill mute">Consolidado sólo de lectura</span></div>
-    <div class="card-b">${[...groups].reverse().map(group=>{
-      const total=f6ConsolidadoDia(group);
-      return `<div style="border:1px solid var(--line);border-radius:11px;padding:13px 14px;margin-bottom:12px">
-        <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><b>${fFecha(group.dia+'T12:00:00')}</b><div class="hint">${total.turnos} ${total.turnos===1?'turno cerrado':'turnos cerrados'}</div></div><div class="r"><span class="hint">Total del día</span><b class="num" style="display:block;font-size:18px">${$m(total.totalVendido)}</b><span class="hint">${total.cantidadVentas} ventas</span></div></div>
-        ${group.cierres.map((cierre,index)=>`<div class="row" style="justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)"><span><b>Turno ${index+1}</b> · ${fHora(cierre.hasta||cierre.closed_at_device)}</span><span class="num">${$m(cierre.total??cierre.total_ventas)} · Dif. ${(Number(cierre.diferenciaGeneral??cierre.diferencia_general)||0)>0?'+':''}${$m(Number(cierre.diferenciaGeneral??cierre.diferencia_general)||0)}</span></div>`).join('')}
-      </div>`;
-    }).join('')}</div></div>`;
+// REV76: el Resumen ya no lista los cierres turno por turno: están en Caja › Historial, con más detalle
+// (quién cerró, arqueo, turnos interrumpidos, ventas del turno). Queda una sola línea con las diferencias
+// de caja del período, calculadas igual que en ese historial: efectivo general (con el efectivo arrastrado
+// de turnos interrumpidos) y cigarrillos aparte. Lo que sobró y lo que faltó se suman por separado,
+// para que un faltante no quede tapado por un sobrante.
+function f76DiferenciasCaja(cierres){
+  let sobro=0,falto=0,turnos=0;
+  (Array.isArray(cierres)?cierres:[]).forEach(c=>{
+    if(!c)return;
+    const general=c.contadoGeneral!=null&&c.esperadoGeneral!=null
+      ?f69ResumenCierre(c).diferenciaAjustada
+      :Number(c.diferenciaGeneral??c.diferencia_general)||0;
+    let hay=false;
+    [general,c.diferenciaCigarros].forEach(v=>{
+      const centavos=Math.round((Number(v)||0)*100);
+      if(!centavos)return;
+      hay=true;
+      if(centavos>0)sobro+=centavos;else falto-=centavos;
+    });
+    if(hay)turnos++;
+  });
+  return {turnos,sobro:sobro/100,falto:falto/100};
+}
+function f76DiferenciasCajaHtml(cierres,puedeVerCaja){
+  const d=f76DiferenciasCaja(cierres);
+  if(!d.turnos)return '';
+  const partes=[d.sobro?`sobró <b class="num">${$m(d.sobro)}</b>`:'',d.falto?`faltó <b class="num">${$m(d.falto)}</b>`:''].filter(Boolean).join(' y ');
+  const texto=partes.charAt(0).toUpperCase()+partes.slice(1);
+  return `<div class="ux-banner${d.falto?' warn':''} resumen-diferencias-caja" role="status" style="margin-bottom:18px;align-items:center">
+    <div style="flex:1"><b>Diferencias de caja en el período:</b> ${texto} en ${d.turnos} ${d.turnos===1?'turno':'turnos'}.</div>
+    ${puedeVerCaja?'<button type="button" class="btn ghost sm" id="resVerCaja">Ver en Caja</button>':''}</div>`;
 }
 
 function vResumen(m){
@@ -9635,7 +9948,7 @@ function vResumen(m){
     <div class="card-b"><div class="hint" style="margin-bottom:10px">Son registros anteriores al seguimiento por turno. Se muestran sólo en Resumen y nunca se mezclan con la Caja abierta.</div>
     ${legacyResumen.map(g=>`<div class="row" style="justify-content:space-between;padding:7px 0;border-top:1px solid var(--line)"><span>${esc(g.label)}</span><b class="num">${g.ventas.length} ventas · ${g.pagos.length} pagos · ${g.egresos.length} egresos</b></div>`).join('')}</div></div>`:''}
 
-  ${f6CierresResumenHtml(cierresPorDia)}
+  ${esDuenio()?f76DiferenciasCajaHtml(cierresPorDia.flatMap(g=>g.cierres),vistaVisible(VISTAS.find(x=>x.id==='caja')||{id:'caja'},esDuenio())):''}
 
   ${!hayVentas?`<div class="card"><div class="empty"><b>No hubo ventas en este período</b>Elegí otro rango de fechas para ver los números.<div class="row" style="justify-content:center;margin-top:14px"><button type="button" class="btn ghost" data-resumen-atajo="ayer">Ver ayer</button><button type="button" class="btn" data-resumen-atajo="semana">Ver 7 días</button></div></div></div>`:`
 
@@ -9723,6 +10036,7 @@ function vResumen(m){
   if(ph) ph.onchange=()=>{hastaPers=ph.value;render();};
   if(!hayVentas) return;
   const irCostos=$('#resIrCostos');if(irCostos)irCostos.onclick=()=>ir('productos');
+  const verCaja=$('#resVerCaja');if(verCaja)verCaja.onclick=()=>{globalThis.__miCajaVista='historial';ir('caja');};
   $('#expProd').onclick=()=>exportarProductos(d);
   $('#qResumen').oninput=e=>{busResumen=e.target.value;pintarDetalleResumen(d);};
   pintarDetalleResumen(d);
@@ -9945,27 +10259,27 @@ function vSoporte(m){
 /* ═══════════════════════════════════════════════════════
    CONFIGURACIÓN
    ═══════════════════════════════════════════════════════ */
-const TXT_PERMISO={resumen:'Resumen',combos:'Combos',promociones:'Descuentos',caja:'Caja',movimientos:'Movimientos de stock',productos:'Productos',reponer:'Para pedir',fiado:'Fiado',vencimientos:'Vencimientos'};
+const TXT_PERMISO={resumen:'Resumen',combos:'Combos',promociones:'Descuentos',caja:'Caja',movimientos:'Movimientos de stock',productos:'Productos y facturas de compra',reponer:'Compras · Para pedir',fiado:'Fiado',vencimientos:'Vencimientos'};
 const DESC_PERMISO={
   resumen:'Ventas, ganancias y qué se vendió más.',
   combos:'Crear y editar combos de productos.',
   promociones:'Crear y editar promociones y descuentos.',
-  caja:'Cerrar turno, ver el arqueo y registrar egresos.',
+  caja:'Cerrar su turno, ver el arqueo y enviar el detalle por WhatsApp. El historial queda para los dueños.',
   movimientos:'Consultar el movimiento diario del stock.',
-  productos:'Cargar, editar y ajustar el stock.',
-  reponer:'Ver qué falta y armar el pedido.',
+  productos:'Cargar, editar, ajustar stock y cargar facturas desde Compras.',
+  reponer:'Acceder a Compras para consultar faltantes y armar pedidos. Cargar factura usa el permiso de Productos.',
   fiado:'Cuentas corrientes de clientes.',
   vencimientos:'Aviso de productos por vencer.'
 };
 const F5_PERMISO_EMPLEADO_UI=Object.freeze({
   ventas_registrar:['Vender','Registrar ventas del turno.'],
-  productos_editar:['Productos','Cargar, editar, ajustar stock y fotos.'],
-  reposicion_ver:['Para pedir','Consultar faltantes y preparar pedidos.'],
+  productos_editar:['Productos y compras','Cargar, editar, ajustar stock y fotos; cargar facturas de compra a mano o con el lector.'],
+  reposicion_ver:['Compras · Para pedir','Consultar faltantes y preparar pedidos. Para cargar facturas, habilitá también Productos y compras.'],
   vencimientos_ver:['Vencimientos','Consultar productos próximos a vencer.'],
   combos_editar:['Combos','Crear y editar combos.'],
   promociones_editar:['Descuentos','Crear y editar promociones.'],
   fiado_operar:['Fiado','Cobrar y consultar cuentas corrientes.'],
-  caja_operar:['Caja','Abrir, operar y cerrar sus turnos.'],
+  caja_operar:['Caja','Abrir, operar, cerrar y enviar su cierre por WhatsApp. Sin acceso al historial de cierres.'],
   movimientos_ver:['Movimientos de stock','Consultar entradas y salidas por día.'],
   resumen_ver:['Resumen','Consultar ventas y resultados.']
 });
@@ -11441,7 +11755,8 @@ function f32bMapCierre(row,extra={},base=db){
   const ids=(arr,campo,coleccion)=>(arr||[]).filter(x=>String(x.cierre_id)===String(row.id)).map(x=>resolverLink(coleccion,x[campo]));
   return {...(actual||{}),id,_v4id:row.id,_v4deviceId:ses.device_id||'',_v4userId:actorId,_v4cajaId:ses.caja_id||'',_v4cajaSesionId:row.caja_sesion_id||'',_v4sessionSegmentId:row.session_segment_id||'',_v4receivedAt:row.closed_at_server||'',_v4remote:true,
     responsableNombre:traspaso.responsable_nombre||actor.nombre_mostrado||(actual&&actual.responsableNombre)||'',responsableId:actorId,
-    desde:ses.opened_at_device||row.closed_at_device||row.closed_at_server,hasta:row.closed_at_device||row.closed_at_server,
+    desde:apertura.opened_at_device||(actual&&actual._v4sessionOpenedAt)||ses.opened_at_device||row.closed_at_device||row.closed_at_server,hasta:row.closed_at_device||row.closed_at_server,
+    _v4aperturaAproximada:!!row.session_segment_id&&!apertura.opened_at_device&&!(actual&&actual._v4sessionOpenedAt),
     cantVentas:Number(row.cant_ventas)||0,total:Number(row.total_ventas)||0,porForma:row.por_forma||{},cigTotal:Number(row.cig_total)||0,
     esperadoGeneral:Number(row.esperado_general)||0,contadoGeneral:Number(row.contado_general)||0,diferenciaGeneral:Number(row.diferencia_general)||0,
     esperadoCigarros:Number(row.esperado_cigarros)||0,contadoCigarros:Number(row.contado_cigarros)||0,diferenciaCigarros:Number(row.diferencia_cigarros)||0,
@@ -11539,7 +11854,7 @@ async function f32bFetchCierreExtras(rows){
   }
   let segmentos=[];
   if(segmentoIds.length){
-    const q=await sb.from('caja_sesion_segmentos').select('segment_id,apertura_diferencia_general,apertura_diferencia_cigarros,apertura_motivo,apertura_requiere_revision,rev52_meta_alerta')
+    const q=await sb.from('caja_sesion_segmentos').select('segment_id,opened_at_device,apertura_diferencia_general,apertura_diferencia_cigarros,apertura_motivo,apertura_requiere_revision,rev52_meta_alerta')
       .eq('comercio_id',f3Estado.comercioId).in('segment_id',segmentoIds);
     if(q.error)throw new Error(`F32B_PULL_APERTURAS:${q.error.message||q.error.code||'query'}`);
     segmentos=q.data||[];

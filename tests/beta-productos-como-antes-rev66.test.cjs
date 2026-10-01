@@ -20,8 +20,8 @@ test('REV66: Historial y Archivar vuelven a mostrar su texto en pantallas anchas
   assert.match(html, /#tabProd table\.product-selecting \.product-code\{display:none\}/);
 });
 
-test('identidad del paquete (REV75)', () => {
+test('identidad del paquete (REV77)', () => {
   const sw = fs.readFileSync(path.join(__dirname, '..', 'beta', 'sw.js'), 'utf8');
-  assert.match(html, /packageRevision:75,/);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev75/);
+  assert.match(html, /packageRevision:80,/);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev80/);
 });

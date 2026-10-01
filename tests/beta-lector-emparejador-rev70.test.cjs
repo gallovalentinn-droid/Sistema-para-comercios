@@ -284,7 +284,7 @@ test('REV70 la revisión muestra el estado, las opciones y el aviso de costo', (
   assert.match(ui, /\(otra presentación\)/);
   assert.match(ui, /La IA leyó \$\{r\.porBultoIa\}\. Revisá el bulto/);
   assert.match(ui, /r\.prodId=k\.id;r\.origen='manual';pintarRevision\(ov2\);/);
-  assert.match(ui, /r\.prodId=s\.value;r\.origen=s\.value\?'manual':'';pintarRevision\(ov2\);/);
+  assert.match(ui, /r\.prodId=s\.value;r\.origen=s\.value\?'manual':'';[^\n]*pintarRevision\(ov2\);/);
   assert.match(ui, /const opciones=db\.productos\.filter\(p=>!p\.archivadoAt\)/);
 });
 
@@ -312,12 +312,12 @@ test('REV71 migración: tabla con RLS, sin acceso anónimo ni TRUNCATE', () => {
   assert.doesNotMatch(columnas, /importe|monto|precio|costo|cantidad/i, 'la memoria no guarda importes ni cantidades');
 });
 
-test('identidad del paquete (REV75)', () => {
+test('identidad del paquete (REV77)', () => {
   const sw = fs.readFileSync(path.join(root, 'beta/sw.js'), 'utf8');
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'integrity-manifest.json'), 'utf8'));
-  assert.match(html, /packageRevision:75,/);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev75/);
-  assert.equal(manifest.packageRevision, 75);
+  assert.match(html, /packageRevision:80,/);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev80/);
+  assert.equal(manifest.packageRevision, 80);
   assert.ok(manifest.files['REV71-ALIAS-FACTURA.sql']);
   assert.equal(manifest.files['REV70-ALIAS-FACTURA.sql'], undefined);
 });

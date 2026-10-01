@@ -14,6 +14,8 @@ const INVOICE_SCHEMA = Object.freeze({
     nroComprobante: { type: 'string' },
     total: { type: 'number' },
     descuentoGlobal: { type: 'number' },
+    saldoAnterior: { type: 'number' },
+    pagosACuenta: { type: 'number' },
     items: {
       type: 'array',
       items: {
@@ -31,7 +33,7 @@ const INVOICE_SCHEMA = Object.freeze({
       },
     },
   },
-  required: ['proveedor', 'nroComprobante', 'total', 'descuentoGlobal', 'items'],
+  required: ['proveedor', 'nroComprobante', 'total', 'descuentoGlobal', 'saldoAnterior', 'pagosACuenta', 'items'],
 });
 
 const INVOICE_PROMPT = `Leé esta factura o remito de compra para un comercio argentino.
@@ -40,11 +42,14 @@ Para cada fila de producto:
 - producto: descripción impresa, tal cual figura, con sus abreviaturas;
 - codigo: código de artículo del proveedor impreso en esa fila (columna código, art. o cód.), o "" si no hay;
 - descripcion: la misma descripción escrita completa y legible (marca, producto, variedad y presentación, por ejemplo "Lata Speed Unlimited 473 ml"). Expandí solo abreviaturas evidentes; si no estás seguro, repetí la descripción impresa;
-- cantidad: cantidad facturada de cajas, packs o unidades;
+- cantidad: cantidad facturada de cajas, packs o unidades, tal como está impresa (si dice 0, devolvé 0);
 - unidadesPorBulto: unidades sueltas por caja o pack; usá 1 si se compra suelto o el dato no figura;
 - precioUnit: precio de cada caja, pack o unidad de la columna cantidad, antes del descuento, no el subtotal de la fila;
 - descuento: importe monetario total bonificado específicamente en esa fila, o 0;
 - descuentoGlobal: descuento general aplicado fuera de las filas (por pago, promoción o total de la factura), o 0. No lo repitas en descuento de cada fila.
+- saldoAnterior: deuda o saldo anterior que el total incluye y que no es mercadería de esta compra (por ejemplo una fila «DEUDA» o «SALDO ANTERIOR»), o 0.
+- pagosACuenta: pagos, anticipos o entregas a cuenta ya restados del total visible del ticket, o 0. Informalos aparte: no son descuentos del precio de la mercadería. total conserva el importe final visible, sin volver a sumar ni restar esos ajustes.
+No pongas en items las filas de deuda, saldo anterior, pagos o entregas a cuenta: no son productos.
 Usá números sin símbolos de moneda ni separadores de miles. Si la imagen no es una factura legible, devolvé items vacío. La persona revisará todos los valores antes de cargarlos.`;
 
 function isRecord(value) {
@@ -209,11 +214,18 @@ export function extractGeminiInvoice(response) {
     });
   }
 
+  // REV77: el saldo anterior es informativo; si falta o viene mal, no invalida la lectura.
+  const saldoAnterior = typeof parsed.saldoAnterior === 'number' && Number.isFinite(parsed.saldoAnterior)
+    && parsed.saldoAnterior >= 0 && parsed.saldoAnterior <= 1_000_000_000_000 ? parsed.saldoAnterior : 0;
+  const pagosACuenta = typeof parsed.pagosACuenta === 'number' && Number.isFinite(parsed.pagosACuenta)
+    && parsed.pagosACuenta >= 0 && parsed.pagosACuenta <= 1_000_000_000_000 ? parsed.pagosACuenta : 0;
   return {
     proveedor: boundedText(parsed.proveedor, 160),
     nroComprobante: boundedText(parsed.nroComprobante, 80),
     total: boundedNumber(parsed.total, 1_000_000_000_000),
     descuentoGlobal,
+    saldoAnterior,
+    pagosACuenta,
     items,
   };
 }

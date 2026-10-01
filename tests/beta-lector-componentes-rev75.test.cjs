@@ -12,7 +12,7 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'beta/index.html'), 'utf8').replace(/\r\n/g, '\n');
 const ctx = vm.createContext({});
 vm.runInContext(html.slice(html.indexOf('/* REV70_EMPAREJADOR_START */'), html.indexOf('/* REV70_EMPAREJADOR_END */')), ctx);
-const evaluador = path.join(root, 'entregables/evaluacion-emparejador-REV75');
+const evaluador = path.join(root, 'entregables/evaluacion-emparejador-REV77');
 const {correr, explica, mutaciones} = require(path.join(evaluador, 'mutaciones.cjs'));
 const trasplantes = require(path.join(evaluador, 'trasplantes.cjs'));
 

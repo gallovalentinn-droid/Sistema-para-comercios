@@ -198,7 +198,7 @@ test('las listas operativas muestran la foto compartida del producto', () => {
     ['búsqueda de stock', sliceBetween(source, 'function resumenStockBusquedaHtml(', '\nfunction verVentasTurno('), /celdaProductoConFoto\(r\.producto,/],
     ['movimientos de stock', sliceBetween(source, 'function pintarMovimientosDia(){', '\nfunction vMovimientos('), /celdaProductoConFoto\(r\.producto,/],
     ['vencimientos', sliceBetween(source, 'function tablaVence(l,{vencidos=false}={}){', '\nfunction wireVence('), /celdaProductoConFoto\(p,/],
-    ['resumen de ventas', sliceBetween(source, 'function pintarDetalleResumen(d){', '\nfunction f6CierresResumenHtml('), /celdaProductoConFoto\(pr,/],
+    ['resumen de ventas', sliceBetween(source, 'function pintarDetalleResumen(d){', '\nfunction f76DiferenciasCaja('), /celdaProductoConFoto\(pr,/],
   ];
 
   casos.forEach(([nombre, bloque, patron]) => {

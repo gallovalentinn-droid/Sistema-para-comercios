@@ -88,6 +88,7 @@ test('REV69 ofrece ventas del turno interrumpido y advierte si faltan en el disp
   const code = piece('function verVentasTurnoInterrumpido(', '\nfunction verVentasTurno(');
   let dialog;
   const context = vm.createContext({
+    esDuenio: () => true,
     f69Estado: { items: [{ segmentId: 's1', cantVentas: 2, total: 8000, desde: '2026-09-29T12:14:00Z', hasta: '2026-09-29T13:54:00Z' }] },
     db: { ventas: [{ _v4sessionSegmentId: 's1', fecha: '2026-09-29T13:00:00Z', total: 3000 }] },
     modal: x => { dialog = x; },
@@ -104,6 +105,7 @@ test('REV69 encuentra una venta local por su ID remoto aunque falte el segmento 
   const code = piece('function verVentasTurnoInterrumpido(', '\nfunction verVentasTurno(');
   let dialog;
   const context = vm.createContext({
+    esDuenio: () => true,
     f69Estado: { items: [{ segmentId: 's1', ventaV4Ids: ['v1'], cantVentas: 1, total: 3000, desde: '2026-09-29T12:14:00Z', hasta: '2026-09-29T13:54:00Z' }] },
     db: { ventas: [{ _v4id: 'v1', fecha: '2026-09-29T13:00:00Z', total: 3000 }] },
     modal: x => { dialog = x; },
@@ -126,8 +128,8 @@ test('REV69 migración exige origen único y no crea cierres ficticios', () => {
   assert.doesNotMatch(sql, /update\s+public\.cierres_caja/i);
 });
 
-test('HTML y service worker alineados en la revisión actual (REV75)', () => {
+test('HTML y service worker alineados en la revisión actual (REV77)', () => {
   const sw = fs.readFileSync(path.join(__dirname, '..', 'beta', 'sw.js'), 'utf8');
-  assert.match(html, /packageRevision:75,/);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev75/);
+  assert.match(html, /packageRevision:80,/);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev80/);
 });

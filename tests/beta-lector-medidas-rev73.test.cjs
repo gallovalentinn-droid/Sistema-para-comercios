@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'beta/index.html'), 'utf8').replace(/\r\n/g, '\n');
 const ctx = vm.createContext({});
 vm.runInContext(html.slice(html.indexOf('/* REV70_EMPAREJADOR_START */'), html.indexOf('/* REV70_EMPAREJADOR_END */')), ctx);
-const {correr, datos} = require(path.join(root, 'entregables/evaluacion-emparejador-REV75/mutaciones.cjs'));
+const {correr, datos} = require(path.join(root, 'entregables/evaluacion-emparejador-REV77/mutaciones.cjs'));
 
 let n = 0;
 const P = nombre => ({id: `p${++n}`, nombre, costo: 1000});
