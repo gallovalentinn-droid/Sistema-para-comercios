@@ -243,6 +243,12 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .invoice-ai-icon svg{width:30px;height:30px}
 .invoice-ai-card h4{margin:0 0 6px;font-size:20px;letter-spacing:-.015em}
 .invoice-ai-card p{max-width:470px;margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+.invoice-ai-error{margin:14px 0;padding:16px;border:1px solid #E5B2AA;border-radius:12px;background:#FFF5F3;color:#7A271A;overflow-wrap:anywhere}
+.invoice-ai-error[hidden]{display:none}
+.invoice-ai-error p{margin:8px 0;line-height:1.5}
+.invoice-ai-error details{margin-top:12px;font-size:13px}
+.invoice-ai-error summary{cursor:pointer}
+.invoice-ai-error pre{white-space:pre-wrap;font:inherit}
 .invoice-ai-choose{margin-top:19px;box-shadow:0 9px 20px rgba(24,87,214,.23)}
 .invoice-manual-toggle{width:100%;margin:18px 0 0;padding:8px;border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer}
 .invoice-manual-toggle:hover{color:var(--primary-d)}
@@ -765,6 +771,12 @@ body.offline .app{padding-top:34px}
 .invoice-manual-content .scan input{min-width:0}
 .qty input,.tik-l2 .um,.dto-resumen b,.tik-tot b,.vuelto b,.margen-box>b,.leyenda-item .pct{font-family:var(--sans);font-variant-numeric:tabular-nums}
 .mov-turnos-table td{vertical-align:top;min-width:250px}.mov-turno-label{display:none}
+.mov81-table{table-layout:fixed;min-width:760px}.mov81-table th:nth-child(1){width:25%}.mov81-table th:nth-child(2),.mov81-table th:nth-child(4){width:24%}.mov81-table th:nth-child(3){width:13%}.mov81-table th:nth-child(5){width:14%}
+.mov81-table th .hint{white-space:normal;display:block;text-transform:none;letter-spacing:0;font-weight:400;margin-top:5px;line-height:1.5}.mov81-table td{vertical-align:middle;white-space:normal;overflow-wrap:anywhere}.mov81-fila{cursor:pointer}.mov81-fila:hover,.mov81-fila.abierta{background:var(--bg)}
+.mov81-saldo{display:inline-block;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}.mov81-saldo>span{color:var(--muted);font-weight:400;margin:0 4px}.mov81-delta{display:inline-block;font-size:12px;border-radius:7px;padding:2px 7px;margin:5px 0 0 7px;font-weight:600;font-variant-numeric:tabular-nums}.mov81-delta.neg{background:#fbe9e7;color:#a12620}.mov81-delta.pos{background:#e2f4ec;color:#09643e}.mov81-delta.cero{background:#eef1f6;color:#586274}.mov81-avisos{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.mov81-avisos:empty{display:none}.mov81-avisos .pill{font-size:11px}
+.mov81-accion .btn{white-space:normal;min-height:40px}.mov81-mobile-label{display:none}.mov81-detalle[hidden]{display:none!important}.mov81-detalle>td{padding:0 14px 16px!important;background:var(--bg)}.mov81-det-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding-top:14px}.mov81-det-card{border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:14px;min-width:0}.mov81-det-card h3{font-size:14px;margin:0 0 12px}.mov81-det-card h3 .hint{display:block;font-weight:400;margin-top:4px}.mov81-det-card h4{font-size:13px;margin:18px 0 5px}.mov81-cuenta{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:14px}.mov81-paso{border:1px solid var(--line);border-radius:9px;padding:6px 9px;text-align:center;min-width:64px}.mov81-paso span{display:block;font-size:11px;color:var(--muted)}.mov81-paso b{font-size:16px;font-variant-numeric:tabular-nums}.mov81-fin{border-color:var(--ink)}.mov81-mov{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13px}.mov81-mov:last-child{border-bottom:0}.mov81-mov strong{font-variant-numeric:tabular-nums;white-space:nowrap}.mov81-mov b{font-weight:600}.mov81-aviso{font-size:13px;color:#805000;line-height:1.5;margin-top:10px}.mov81-global{padding:12px 16px;margin:0;background:#fdf1d7}.mov81-gap{margin-top:14px}.mov81-sin-turno{padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px}.mov81-sin-turno summary{cursor:pointer;color:#805000;min-height:24px}.mov81-filters .mov81-check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;font-size:14px;text-transform:none;letter-spacing:0;cursor:pointer}.mov81-check input{width:18px;height:18px;accent-color:var(--primary)}.mov81-entre{font-variant-numeric:tabular-nums}.mov81-table button:focus-visible,.mov81-sin-turno summary:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+@media(max-width:1000px){.mov81-table th:nth-child(1){width:24%}.mov81-table th:nth-child(2),.mov81-table th:nth-child(4){width:23%}.mov81-table th:nth-child(3){width:14%}.mov81-table th:nth-child(5){width:16%}.mov81-delta{margin-left:0;display:table}}
+@media(max-width:760px){.mov81-scroll{overflow:visible}.mov81-table{display:block;min-width:0!important;table-layout:auto}.mov81-table thead{display:none}.mov81-table tbody,.mov81-table tr,.mov81-table td{display:block;width:auto!important;min-width:0!important}.mov81-table td{display:block!important;text-align:left!important}.mov81-table td::before{display:none!important}.mov81-fila{padding:12px 0;border-bottom:1px solid var(--line)}.mov81-fila td{padding:5px 16px!important;border:0!important}.mov81-fila td:first-child{padding-bottom:9px!important}.mov81-fila td:last-child{padding-top:9px!important}.mov81-table .mov-turno-label,.mov81-mobile-label{display:block;color:var(--muted);font-size:12px;margin:0 0 3px}.mov81-delta{display:inline-block;margin:0 0 0 8px}.mov81-accion .btn{min-height:44px;width:100%}.mov81-detalle>td{padding:0 12px 14px!important;border:0!important}.mov81-det-grid{grid-template-columns:1fr;gap:12px}.mov81-det-card{padding:12px}.mov81-filters .row>div{min-width:0!important;flex-basis:100%!important}.mov81-filters .inp{width:100%}}
 @media(max-width:650px){.mov-turnos-table{min-width:0!important}.mov-turnos-table td{display:block!important;min-width:0;width:auto}.mov-turnos-table td::before{display:none!important}.mov-turnos-table td+td{border-top:1px solid var(--line);padding-top:14px}.mov-turno-label{display:block;margin-bottom:10px}.mov-turnos-table td .hint{margin-top:8px}}
 </style>
 </head>
@@ -837,7 +849,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:80,
+  packageRevision:82,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -6589,6 +6601,7 @@ function panelIngreso(reset=true,modo='ia',{desdeRevision=false,volverFoto=false
         <span class="btn invoice-ai-choose">Elegir foto</span>
         <input type="file" id="facFoto" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" hidden>
       </label>
+      <div class="invoice-ai-error" id="facError" role="alert" hidden></div>
       <button type="button" class="invoice-manual-toggle" id="facManualToggle" aria-expanded="${mostrarManual?'true':'false'}">¿Preferís cargar los productos a mano? <span aria-hidden="true">›</span></button>`:''}
       <div class="invoice-manual-content" id="facManualContent" ${mostrarManual?'':'hidden'}>
         <p class="invoice-manual-help">Escaneá o buscá cada producto. Cargá lo que pagaste en total o el costo por unidad; con uno alcanza y el otro se calcula solo.</p>
@@ -7292,6 +7305,74 @@ function f6RegistrarUsoIa(usage){
   return normalizado;
 }
 
+// REV82_DIAGNOSTICO_INICIO
+function f82DescribirFalloFactura(error={}){
+  const messages={
+    IMAGEN_DEMASIADO_GRANDE:'La foto supera los 8 MB. Elegí una imagen más liviana.',
+    FORMATO_IMAGEN_NO_COMPATIBLE:'El formato de la foto no es compatible. Usá JPEG, PNG, WebP, HEIC o HEIF.',
+    DATOS_INVALIDOS:'La imagen no pudo enviarse con los datos necesarios. Volvé a elegirla.',
+    COMERCIO_NO_DISPONIBLE:'No se pudo identificar el comercio. Volvé a entrar antes de leer la factura.',
+    SESION_REQUERIDA:'Necesitás iniciar sesión para leer la factura.',
+    SESION_INVALIDA:'La sesión no es válida o venció. Volvé a entrar.',
+    SIN_PERMISO:'Tu usuario no tiene permiso para leer facturas.',
+    LICENCIA_NO_OPERABLE:'La licencia del comercio no permite usar el lector en este momento.',
+    ORIGEN_NO_PERMITIDO:'El lector no permite solicitudes desde esta dirección de la aplicación.',
+    IA_NO_CONFIGURADA:'El lector no tiene completa su configuración. Hay que revisarla antes de probar de nuevo.',
+    IA_AUTENTICACION_NO_DISPONIBLE:'No se pudo verificar la sesión en el servidor.',
+    IA_RESERVA_NO_DISPONIBLE:'No se pudo comprobar o reservar una lectura para este comercio.',
+    IA_CONEXION_NAVEGADOR:'No se pudo conectar con el lector desde este dispositivo. Revisá la conexión.',
+    IA_CONEXION_PROVEEDOR:'El servidor no pudo completar la conexión con Google.',
+    IA_TIEMPO_AGOTADO:'Se agotó el tiempo de espera de la lectura (90 segundos).',
+    IA_RESPUESTA_INVALIDA:'Google respondió, pero la respuesta no tiene un formato válido para leerla.',
+    IA_SOLICITUD_RECHAZADA:'Google rechazó la solicitud del lector. Hay que revisar su configuración y el formato enviado.',
+    IA_TELEMETRIA_NO_REGISTRADA:'La lectura llegó, pero no se pudo registrar su resultado en el servidor.',
+    IA_REVISION_NO_DISPONIBLE:'La lectura llegó, pero no se pudo abrir la revisión de productos.',
+    FACTURA_SIN_PRODUCTOS:'Google terminó la lectura, pero no encontró productos en la foto. Revisá que el comprobante esté completo y legible.',
+    FACTURA_NO_RECONOCIDA:'La respuesta de Google no pasó los controles de la factura.',
+    IA_AGOTADA_TEMPORALMENTE:'Google rechazó la lectura por un límite de uso; no informó qué límite se alcanzó.',
+    LIMITE_IA_MENSUAL:'Llegaste al límite mensual de lecturas para este comercio.',
+    IA_NO_DISPONIBLE:'El servicio de lectura no está disponible en este momento.'
+  };
+  const categories={AUTHENTICATION:'Google rechazó la autorización del lector. Hay que revisar su configuración.',PROVIDER_TIMEOUT:'Google agotó su propio tiempo de procesamiento de la lectura.',RESOURCE_NOT_FOUND:'Google no encontró el recurso solicitado por el lector. Hay que revisar la dirección y la configuración.',RATE_LIMIT:'Google recibió demasiadas solicitudes y rechazó esta lectura por un límite de frecuencia.',DAILY_QUOTA:'Google informó que se alcanzó su cupo diario de lecturas.',QUOTA_EXCEEDED:'Google informó que se alcanzó una cuota de uso, sin precisar si es por minuto o por día.',UNAVAILABLE:'Google no pudo atender la lectura porque su servicio está temporalmente saturado o no disponible.',INTERNAL:'Google tuvo un error interno al procesar la lectura.',API_KEY_INVALID:'Google rechazó la autorización del lector. Hay que revisar su configuración.',API_DISABLED:'La API de Google no está habilitada para el lector.',MODEL_NOT_FOUND:'Google no encontró el modelo configurado para el lector.',BILLING_REQUIRED:'Google requiere revisar la facturación de su servicio.',PERMISSION_DENIED:'Google rechazó los permisos del lector.',INVALID_ARGUMENT:'Google rechazó el formato o los parámetros enviados por el lector.',FIELD_THINKING_LEVEL:'Google rechazó la configuración de razonamiento del lector.',FIELD_RESPONSE_FORMAT:'Google rechazó el formato de respuesta solicitado.',FIELD_IMAGE:'Google rechazó los datos o el formato de la imagen.',UNKNOWN:''};
+  const stages={configuration:'Configuración',authentication:'Sesión',reservation:'Reserva de lectura',provider:'Solicitud a Google',response:'Respuesta de Google',validation:'Validación de factura',telemetry:'Registro de resultado',browser:'Envío desde el dispositivo',revision:'Revisión de productos'};
+  const fields={producto:'nombre del producto',cantidad:'cantidad',unidadesPorBulto:'unidades por bulto',precioUnit:'precio unitario',descuento:'descuento de la fila',descuentoGlobal:'descuento general',proveedor:'proveedor',nroComprobante:'número de comprobante',total:'total',items:'lista de productos',response:'respuesta'};
+  const reasons={EXPECTED_TEXT:'no es un texto válido',TOO_LONG:'es demasiado largo',EXPECTED_NUMBER:'no es un número válido',BELOW_MINIMUM:'es menor que el mínimo permitido',ABOVE_MAXIMUM:'supera el máximo permitido',EXPECTED_INTEGER:'debe ser un número entero',EMPTY_TEXT:'está vacío',INVALID_JSON:'el contenido no tiene formato válido',TOO_MANY_ROWS:'hay más de 200 filas',EXPECTED_ROWS:'falta una lista válida de productos',EXPECTED_ROW:'la fila no tiene un formato válido',EXCEEDS_ITEMS_TOTAL:'supera el importe de los productos',F6_GEMINI_INCOMPLETE:'Google devolvió una lectura incompleta',F6_GEMINI_OUTPUT_MISSING:'Google no devolvió el contenido de la lectura',F6_GEMINI_OUTPUT_INVALID:'los datos no pasaron los controles',UNKNOWN:'motivo adicional no informado'};
+  const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+  const d=error.diagnostic&&typeof error.diagnostic==='object'?error.diagnostic:{};
+  const code=own(messages,error.code)?error.code:'IA_NO_DISPONIBLE';
+  const category=own(categories,d.providerCategory)?d.providerCategory:'';
+  const stage=own(stages,d.stage)?d.stage:'';
+  const field=own(fields,d.field)?d.field:'',reason=own(reasons,d.reason)?d.reason:'';
+  const row=Number.isInteger(d.row)&&d.row>=1&&d.row<=200?d.row:0;
+  let message=messages[code];
+  if(stage==='provider'&&categories[category])message=categories[category];
+  // Compatibilidad con respuestas sin etapa de servidores anteriores.
+  if(code==='IA_AGOTADA_TEMPORALMENTE'&&categories[category])message=categories[category];
+  if(code==='LIMITE_IA_MENSUAL'&&Number.isSafeInteger(error.limite)&&error.limite>0)message=`Llegaste al límite mensual de ${error.limite} lecturas para este comercio.`;
+  if(code==='FACTURA_NO_RECONOCIDA'&&reason){
+    message=field?`La lectura llegó, pero ${row?`en la fila ${row}, `:''}${fields[field]} ${reasons[reason]}.`:`${reasons[reason]}.`;
+  }
+  const detail=[`Código: ${code}`];
+  if(stage)detail.push(`Paso: ${stages[stage]}`);
+  if(category)detail.push(`Motivo de Google: ${category}`);
+  if(Number.isInteger(d.providerStatus)&&d.providerStatus>=400&&d.providerStatus<=599)detail.push(`Respuesta de Google: ${d.providerStatus}`);
+  if(Number.isInteger(error.status)&&error.status>=400&&error.status<=599)detail.push(`Respuesta del lector: ${error.status}`);
+  if(field)detail.push(`Campo: ${fields[field]}`);if(row)detail.push(`Fila: ${row}`);if(reason)detail.push(`Motivo: ${reasons[reason]}`);
+  if(Number.isInteger(d.retryAfterSeconds)&&d.retryAfterSeconds>0&&d.retryAfterSeconds<=86400)detail.push(`Google indicó una espera de ${d.retryAfterSeconds} segundos antes de otra solicitud.`);
+  if(typeof d.requestId==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(d.requestId))detail.push(`Referencia: ${d.requestId}`);
+  return {message,detail:detail.join('\n')};
+}
+// REV82_DIAGNOSTICO_FIN
+function f82MostrarFalloFactura(ov,error){
+  const result=f82DescribirFalloFactura(error),box=$('#facError',ov);
+  if(box){
+    box.hidden=false;
+    box.innerHTML=`<strong>No se pudo completar la lectura</strong><p>${esc(result.message)}</p><p>No se cargó ningún producto. Podés cargar la factura a mano abajo.</p><details><summary>Detalle del error</summary><pre>${esc(result.detail)}</pre><button type="button" class="btn ghost" id="facCopiarError">Copiar detalle</button></details>`;
+    $('#facCopiarError',box).onclick=async()=>{try{await navigator.clipboard.writeText(result.message+'\n'+result.detail);aviso('Detalle copiado');}catch(_){aviso('No se pudo copiar. Podés seleccionar el detalle visible.','bad');}};
+    box.scrollIntoView({block:'nearest'});
+  }
+  aviso(result.message,'bad');mostrarCargaManualFactura(ov,{focus:false});
+}
 async function leerFacturaFoto(file,ov){
   const label=$('#facFotoLabel',ov);
   const estado=$('.invoice-ai-choose',label);
@@ -7300,15 +7381,17 @@ async function leerFacturaFoto(file,ov){
   label.setAttribute('aria-busy','true');
   label.style.pointerEvents='none';
   label.style.opacity='.7';
+  const errorBox=$('#facError',ov);if(errorBox){errorBox.hidden=true;errorBox.textContent='';}
+  const requestId=crypto.randomUUID();let stage='browser';
   try{
-    if(!(sb&&sesion)) throw new Error('La lectura automática requiere Supabase configurado');
-    if(file.size>8*1024*1024) throw new Error('La imagen supera 8 MB');
+    if(!(sb&&sesion)) throw new Error('SESION_REQUERIDA');
+    if(file.size>8*1024*1024) throw new Error('IMAGEN_DEMASIADO_GRANDE');
     const mime=String(file.type||'').toLowerCase();
     if(!['image/jpeg','image/png','image/webp','image/heic','image/heif'].includes(mime)) throw new Error('FORMATO_IMAGEN_NO_COMPATIBLE');
     if(!f3Estado.comercioId) throw new Error('COMERCIO_NO_DISPONIBLE');
     const b64=await fileABase64(file);
     const {data,error}=await sb.functions.invoke('leer-factura',{
-      body:{comercioId:f3Estado.comercioId,requestId:crypto.randomUUID(),imageBase64:b64,mediaType:mime}
+      body:{comercioId:f3Estado.comercioId,requestId,imageBase64:b64,mediaType:mime}
     });
     if(error){
       let detalle=null;
@@ -7317,32 +7400,24 @@ async function leerFacturaFoto(file,ov){
         if(contexto&&typeof contexto.clone==='function') detalle=await contexto.clone().json();
         else if(contexto&&typeof contexto.json==='function') detalle=await contexto.json();
       }catch(_e){}
-      const falla=new Error(String(detalle&&detalle.code||error.message||'IA_NO_DISPONIBLE'));
-      falla.code=String(detalle&&detalle.code||'');
+      const status=Number(error.context&&error.context.status||0);
+      const fallback=status===401?'SESION_INVALIDA':status===403?'SIN_PERMISO':status?'IA_NO_DISPONIBLE':'IA_CONEXION_NAVEGADOR';
+      const falla=new Error('LECTURA_FALLIDA');
+      falla.code=typeof (detalle&&detalle.code)==='string'?detalle.code:fallback;
       falla.limite=Number(detalle&&detalle.limite||0);
+      falla.status=status;falla.diagnostic=detalle&&detalle.diagnostic||{stage:'browser',requestId};
       throw falla;
     }
     f6RegistrarUsoIa(data&&data.iaUsage);
-    if(!data||!data.items||!data.items.length){ aviso('No pude reconocer productos en esa foto','bad'); mostrarCargaManualFactura(ov,{focus:false}); return; }
+    if(!data||!data.items||!data.items.length){f82MostrarFalloFactura(ov,{code:'FACTURA_SIN_PRODUCTOS',diagnostic:{stage:'validation',requestId}});return;}
+    stage='revision';
     if(estado)estado.textContent='Buscando tus productos…';
     const memoria=await rev70SincronizarMemoria(f3Estado.comercioId);
     abrirRevisionFactura(data,{memoria});
   }catch(e){
-    console.error(e);
-    const code=String(e&&e.code||e&&e.message||'');
-    const msg=code.includes('8 MB')||code.includes('IMAGEN_DEMASIADO_GRANDE')
-      ?'La foto es demasiado pesada. Usá una imagen de menos de 8 MB.'
-      :code.includes('FORMATO_IMAGEN_NO_COMPATIBLE')
-      ?'El formato de la imagen no es compatible. Usá JPEG, PNG, WebP, HEIC o HEIF.'
-      :code.includes('LIMITE_IA_MENSUAL')
-      ?`Llegaste al límite mensual${e&&e.limite?` de ${e.limite} lecturas`:''} para este comercio. Podés cargar esta factura a mano o volver a probar el mes próximo.`
-      :code.includes('IA_TIEMPO_AGOTADO')
-      ?'La lectura tardó más de lo esperado. No se cargó ningún producto; volvé a intentar con la misma foto.'
-      :code.includes('FACTURA_NO_RECONOCIDA')
-      ?'No pude reconocer esa factura. Probá con una foto más nítida o cargala a mano.'
-      :'No pude leer la factura automáticamente. Cargala a mano abajo.';
-    aviso(msg,'bad');
-    mostrarCargaManualFactura(ov,{focus:false});
+    const failure={code:e&&e.code||stage==='revision'&&'IA_REVISION_NO_DISPONIBLE'||e&&e.message,limite:e&&e.limite,status:e&&e.status,diagnostic:e&&e.diagnostic||{stage,requestId}};
+    console.error('F6_IA_CLIENT_ERROR',f82DescribirFalloFactura(failure).detail);
+    f82MostrarFalloFactura(ov,failure);
   }finally{
     if(document.body.contains(label)){
       if(estado)estado.textContent=original;
@@ -9537,19 +9612,97 @@ function f79PuedeCompararTurnos(){return esDuenio();}
 function f79OpcionesTurnos(){
   return f79TurnosStock(db.cierres,f3Estado&&f3Estado.session,f69Estado.comercioId===String(f3Estado.comercioId||'')?f69Estado.items:[]);
 }
+/* REV81_COMPARACION_START */
+let movSoloAvisos=false;
+function f81HorarioTurno(t){
+  const desde=new Date(t.desde),hasta=new Date(t.hasta);
+  const dia=d=>d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+  const hora=d=>d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});
+  return dia(desde)===dia(hasta)?`${dia(desde)} · ${hora(desde)} a ${hora(hasta)}`:`${dia(desde)} ${hora(desde)} → ${dia(hasta)} ${hora(hasta)}`;
+}
+function f81CompararStock({turnos=[],movimientos=[],soloAvisos=false,...input}){
+  const elegidos=[...turnos].sort((a,b)=>Date.parse(a.desde)-Date.parse(b.desde)||Date.parse(a.hasta)-Date.parse(b.hasta)||String(a.id).localeCompare(String(b.id)));
+  const d=f79CompararStockTurnos({...input,turnos:elegidos,movimientos});
+  const fin=Date.parse(elegidos[0]?.hasta),ini=Date.parse(elegidos[1]?.desde),superpuestos=fin>ini,sinIntervalo=fin===ini;
+  const indice=new Map(),rangos=elegidos.map(t=>({id:String(t.id),ini:Date.parse(t.desde),fin:Date.parse(t.hasta)}));
+  for(const m of movimientos){
+    if(!m)continue;
+    const id=m.prodId,fecha=Date.parse(m.fecha),turno=f6ClaveTurno(m);
+    if(!Number.isFinite(fecha))continue;
+    if(!indice.has(id))indice.set(id,{entre:[],externos:rangos.map(()=>[])});
+    const grupo=indice.get(id);
+    if(fecha>fin&&fecha<ini)grupo.entre.push(m);
+    rangos.forEach((t,i)=>{if(turno!==t.id&&fecha>=t.ini&&fecha<=t.fin)grupo.externos[i].push(m);});
+  }
+  const round=n=>Math.round((n+Number.EPSILON)*1000000)/1000000;
+  const filas=d.filas.map(r=>{
+    const grupo=indice.get(r.producto.id)||{entre:[],externos:rangos.map(()=>[])};
+    const turnos=r.turnos.map((t,i)=>{
+      const cuenta={ingresos:0,vendidas:0,ajustes:0};
+      t.movs.forEach(m=>{const fecha=Date.parse(m.fecha);if(fecha<rangos[i].ini||fecha>rangos[i].fin||!Number.isFinite(fecha))return;
+        const cant=Number(m.cant)||0;if(m.tipo==='ingreso')cuenta.ingresos+=cant;else if(m.tipo==='venta')cuenta.vendidas-=cant;else cuenta.ajustes+=cant;});
+      Object.keys(cuenta).forEach(k=>cuenta[k]=round(cuenta[k]));
+      return {...t,cuenta,externosMovs:grupo.externos[i]};
+    });
+    const avisos=[];
+    if(turnos.some(t=>(t.inicio!=null&&t.inicio<0)||(t.final!=null&&t.final<0)))avisos.push('Stock en negativo');
+    if(turnos.some(t=>t.inicio==null||t.final==null))avisos.push('Stock no disponible');
+    if(turnos.some(t=>t.externosMovs.length))avisos.push('Otra caja o sin turno');
+    if(turnos.some(t=>t.fueraDeHorario))avisos.push('Revisar fechas');
+    if(turnos.some(t=>t.tardios))avisos.push('Sincronizado después');
+    return {...r,turnos,avisos,entre:{movs:grupo.entre,neto:round(grupo.entre.reduce((n,m)=>n+(Number(m.cant)||0),0))}};
+  });
+  return {...d,elegidos,superpuestos,sinIntervalo,cantidadAvisos:filas.filter(r=>r.avisos.length).length,filas:soloAvisos?filas.filter(r=>r.avisos.length):filas};
+}
+/* REV81_COMPARACION_END */
+function f81DetalleProducto(r,elegidos){
+  const numero=n=>fmtCant(r.producto,n),signo=n=>`${n>0?'+':''}${numero(n)}`;
+  const movimientos=(lista,t)=>lista.length?`<div class="mov81-lista">${[...lista].sort((a,b)=>(Date.parse(a.fecha)||0)-(Date.parse(b.fecha)||0)).map(m=>{
+    const fecha=Date.parse(m.fecha),fuera=t&&(!Number.isFinite(fecha)||fecha<Date.parse(t.desde)||fecha>Date.parse(t.hasta));
+    return `<div class="mov81-mov"><div><b>${Number.isFinite(fecha)?fFH(m.fecha):'Fecha no disponible'} · ${esc(m.tipo==='anulacion'?'Devolución / anulación':m.tipo||'Movimiento')}</b><div class="hint">${esc(m.actorNombre||m.empleadoNombre||'Responsable no disponible')}${m.motivo?' · '+esc(m.motivo):''}${fuera?' · Fuera de horario; no incluido en esta cuenta':''}</div></div><strong>${signo(Number(m.cant)||0)}</strong></div>`;
+  }).join('')}</div>`:'<div class="hint">Sin movimientos de este producto.</div>';
+  const paso=(label,n,fin=false)=>`<div class="mov81-paso ${fin?'mov81-fin':''}"><span>${label}</span><b>${n==null?'No disponible':numero(n)}</b></div>`;
+  return `<div class="mov81-det-grid">${r.turnos.map((t,i)=>{
+    const disponible=t.inicio!=null&&t.final!=null;
+    const c=t.cuenta;
+    return `<section class="mov81-det-card"><h3>${i?'Turno posterior':'Turno anterior'} · ${esc(elegidos[i].responsable)}<span class="hint">${f81HorarioTurno(elegidos[i])} · ${esc(elegidos[i].estado)}</span></h3>
+      ${disponible?`<div class="mov81-cuenta" aria-label="Cuenta del stock global">${paso('Al abrir',t.inicio)}${c.vendidas?'<span>−</span>'+paso('Vendidas',c.vendidas):''}${c.ingresos?'<span>+</span>'+paso('Ingresos',c.ingresos):''}${c.ajustes?'<span>'+(c.ajustes<0?'−':'+')+'</span>'+paso('Ajustes',Math.abs(c.ajustes)):''}${t.externosMovs.length?'<span>'+(t.externos<0?'−':'+')+'</span>'+paso('Otra caja / sin turno',Math.abs(t.externos)):''}<span>=</span>${paso(elegidos[i].estado?.startsWith('Abierto')?'Hasta ahora':'Al cerrar',t.final,true)}</div>`:
+      `<div class="mov81-aviso">No se puede completar la cuenta del stock: faltan datos históricos o sincronizar ventas, o la apertura es aproximada.</div><div class="hint">Movimientos registrados del turno: ingresos ${numero(t.ingresos)} · vendidas ${numero(t.vendidas)} · ajustes ${signo(t.ajustes)}.</div>`}
+      ${movimientos(t.movs,elegidos[i])}
+      ${t.externosMovs.length?`<h4>Otra caja o sin turno durante estas horas</h4><div class="hint">Estos movimientos también cambian el stock del comercio.</div>${movimientos(t.externosMovs)}`:''}
+      ${t.fueraDeHorario?'<p class="mov81-aviso">Hay movimientos atribuidos al turno con fechas fuera de su horario. Se conservan en el detalle, pero la cuenta de arriba usa las fechas registradas.</p>':''}
+      ${t.tardios?'<p class="hint">Hay operaciones que se sincronizaron después del cierre.</p>':''}
+      ${(t.inicio!=null&&t.inicio<0)||(t.final!=null&&t.final<0)?'<p class="mov81-aviso">El stock registrado es negativo. Revisá compras, ajustes y movimientos pendientes de sincronizar.</p>':''}
+    </section>`;
+  }).join('')}</div>${r.entre.movs.length?`<section class="mov81-det-card mov81-gap"><h3>Entre turnos · ${signo(r.entre.neto)} neto</h3>${movimientos(r.entre.movs)}${r.turnos.some(t=>t.final==null||t.inicio==null)?'<p class="hint">Sólo se muestran los movimientos disponibles; pueden faltar datos.</p>':''}</section>`:''}`;
+}
 function pintarMovimientosTurnos(){
   if(!f79PuedeCompararTurnos())return;
   const cont=$('#tablaMovimientos'),cuenta=$('#cuentaMovimientos'),opciones=f79OpcionesTurnos();
   if(!cont||!cuenta)return;
   const elegidos=[opciones.find(t=>t.id===movTurnoA),opciones.find(t=>t.id===movTurnoB)];
   if(elegidos.some(t=>!t)||movTurnoA===movTurnoB){cuenta.textContent='Elegí dos turnos distintos';cont.innerHTML='<div class="empty"><b>Elegí dos turnos para comparar</b>Podés comparar turnos del mismo día o de fechas distintas.</div>';return;}
-  const d=f79CompararStockTurnos({productos:db.productos,movimientos:db.movs,ventas:db.ventas,turnos:elegidos,...filtrosMovimientos});
-  cuenta.textContent=`${d.filas.length} productos`;
-  const resumen=(r,t)=>`<div>Ingresos: <b>${fmtCant(r.producto,t.ingresos)}</b> · Vendidas: <b>${fmtCant(r.producto,t.vendidas)}</b></div><div>Ajustes: <b>${fmtCant(r.producto,t.ajustes)}</b> · Variación del turno: <b>${fmtCant(r.producto,t.neto)}</b></div><div class="hint">Stock global reconstruido: ${t.inicio==null?'No disponible':fmtCant(r.producto,t.inicio)} → ${t.final==null?'No disponible':fmtCant(r.producto,t.final)}<br>Otros turnos o sin asignar durante esas horas: ${fmtCant(r.producto,t.externos)}</div>${t.tardios?'<span class="pill info">Sincronizado después del cierre</span>':''}${t.fueraDeHorario?'<span class="pill warn">Revisar fecha de movimientos</span>':''}`;
-  cont.innerHTML=`<div class="notice" style="margin:14px">Los movimientos se agrupan por el turno registrado. El stock reconstruido es de todo el comercio; puede cambiar por otros turnos simultáneos y por operaciones entre turnos. No representa un conteo físico. Se calcula con los datos disponibles en este dispositivo.${d.incompletos.length?'<br><b>Detalle incompleto:</b> hay ventas del cierre cuyo detalle o movimiento de stock falta sincronizar. Los importes disponibles pueden cambiar; el stock global de ambos turnos no se muestra mientras falten esos datos.':''} ${d.sinTurno.length?`<br><b>${d.sinTurno.length} movimientos sin turno asignado</b> no se atribuyen a ninguno. <button type="button" class="btn ghost sm" id="movSinTurno">Verlos</button>`:''}</div>${d.filas.length?`<div class="table-scroll" role="region" tabindex="0" aria-label="Comparación de stock entre turnos"><table class="mtable mov-turnos-table"><thead><tr><th>Producto</th>${elegidos.map(t=>`<th>${esc(t.responsable)}<br><span class="hint">${fFH(t.desde)} → ${fFH(t.hasta)}<br>${esc(t.estado)}</span></th>`).join('')}</tr></thead><tbody>${d.filas.map(r=>`<tr><td><b>${esc(r.producto.nombre)}</b>${r.producto.ausente?'<div class="hint">Falta el producto en este dispositivo</div>':''}</td>${r.turnos.map((t,i)=>`<td><div class="mov-turno-label"><b>${esc(elegidos[i].responsable)}</b><br><span class="hint">${fFH(elegidos[i].desde)} → ${fFH(elegidos[i].hasta)} · ${esc(elegidos[i].estado)}</span></div>${resumen(r,t)}<button class="btn ghost sm" data-mov-turno-detalle="${i}" data-prod="${esc(r.producto.id)}">Detalle</button></td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay movimientos disponibles para los productos y turnos elegidos.</div>'}`;
-  const ver=(movs,titulo)=>{if(!f79PuedeCompararTurnos())return;modal({titulo,ancho:true,cuerpo:movs.length?`<div class="table-scroll"><table class="mtable"><thead><tr><th>Producto / responsable</th><th>Fecha</th><th>Tipo / motivo</th><th class="r">Cantidad</th></tr></thead><tbody>${[...movs].sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))).map(m=>`<tr><td>${esc(prod(m.prodId)?.nombre||'Producto no disponible')}<br>${esc(responsableMovimiento(m))}</td><td>${fFH(m.fecha)}</td><td>${esc(m.tipo)}<br>${esc(m.motivo||'')}</td><td>${fmtCant(prod(m.prodId),Number(m.cant)||0)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Sin movimientos registrados en este turno.</div>',pie:'<button class="btn ghost" data-cerrar>Cerrar</button>'});};
-  $$('[data-mov-turno-detalle]',cont).forEach(b=>b.onclick=()=>{const r=d.filas.find(r=>r.producto.id===b.dataset.prod);if(r)ver(r.turnos[Number(b.dataset.movTurnoDetalle)].movs,'Movimientos del turno');});
-  const sinTurno=$('#movSinTurno',cont);if(sinTurno)sinTurno.onclick=()=>ver(d.sinTurno,'Movimientos sin turno asignado');
+  const d=f81CompararStock({productos:db.productos,movimientos:db.movs,ventas:db.ventas,turnos:elegidos,soloAvisos:movSoloAvisos,...filtrosMovimientos});
+  movTurnoA=d.elegidos[0].id;movTurnoB=d.elegidos[1].id;
+  const sa=$('#movTurnoA'),sb=$('#movTurnoB');if(sa)sa.value=movTurnoA;if(sb)sb.value=movTurnoB;
+  cuenta.textContent=`${d.filas.length} productos${d.cantidadAvisos?' · '+d.cantidadAvisos+' con avisos':''}`;
+  const saldo=(r,t)=>{const disponible=t.inicio!=null&&t.final!=null,delta=disponible?Math.round((t.final-t.inicio)*1e6)/1e6:null;
+    return `<div class="mov81-saldo">${t.inicio==null?'—':fmtCant(r.producto,t.inicio)} <span>→</span> ${t.final==null?'—':fmtCant(r.producto,t.final)}</div>${disponible?`<span class="mov81-delta ${delta<0?'neg':delta>0?'pos':'cero'}">${delta?(delta>0?'+':'')+fmtCant(r.producto,delta):'sin cambios'}</span>`:'<span class="hint">Stock no disponible</span>'}`;};
+  const entre=r=>d.superpuestos?'<span class="hint">Turnos superpuestos</span>':d.sinIntervalo?'<span class="hint">Sin intervalo</span>':r.entre.movs.length?`<b class="mov81-entre">${r.entre.neto>0?'+':''}${fmtCant(r.producto,r.entre.neto)}</b><div class="hint">${r.entre.movs.length===1?esc(r.entre.movs[0].tipo):r.entre.movs.length+' movimientos · neto'}</div>`:'<span class="hint">Sin movimientos</span>';
+  cont.innerHTML=`${d.incompletos.length?'<div class="mov81-aviso mov81-global">Falta sincronizar el detalle de ventas de un cierre. El stock de ambos turnos queda no disponible hasta completarlo.</div>':''}${d.sinTurno.length?`<details class="mov81-sin-turno"><summary>${d.sinTurno.length} ${d.sinTurno.length===1?'movimiento':'movimientos'} sin turno asignado</summary><div data-mov-sin-turno-lista></div></details>`:''}
+    ${d.filas.length?`<div class="table-scroll mov81-scroll"><table class="mtable mov81-table"><thead><tr><th>Producto</th><th>Turno anterior<span class="hint">${esc(d.elegidos[0].responsable)}<br>${f81HorarioTurno(d.elegidos[0])} · ${esc(d.elegidos[0].estado)}</span></th><th>Entre turnos<span class="hint">Movimientos registrados</span></th><th>Turno posterior<span class="hint">${esc(d.elegidos[1].responsable)}<br>${f81HorarioTurno(d.elegidos[1])} · ${esc(d.elegidos[1].estado)}</span></th><th><span class="sr-only">Detalle</span></th></tr></thead><tbody>${d.filas.map((r,n)=>`<tr class="mov81-fila" data-mov-producto="${esc(r.producto.id)}"><td><b>${esc(r.producto.nombre)}</b><div class="mov81-avisos">${r.avisos.map(a=>`<span class="pill ${a==='Stock en negativo'?'bad':'warn'}">${esc(a)}</span>`).join('')}</div></td><td><div class="mov-turno-label">Turno anterior · ${esc(d.elegidos[0].responsable)}</div>${saldo(r,r.turnos[0])}</td><td><div class="mov81-mobile-label">Entre turnos</div>${entre(r)}</td><td><div class="mov-turno-label">Turno posterior · ${esc(d.elegidos[1].responsable)}</div>${saldo(r,r.turnos[1])}</td><td class="mov81-accion"><button type="button" class="btn ghost sm" data-mov-expandir="${n}" aria-expanded="false" aria-controls="mov81-det-${n}" aria-label="Ver detalle de ${esc(r.producto.nombre)}">Ver detalle <span aria-hidden="true">⌄</span></button></td></tr><tr class="mov81-detalle" id="mov81-det-${n}" hidden><td colspan="5"></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">${movSoloAvisos?'No hay productos con avisos para esta búsqueda y estos turnos.':'No hay movimientos disponibles para los productos y turnos elegidos.'}</div>`}`;
+  $$('[data-mov-expandir]',cont).forEach(b=>{
+    const abrir=()=>{if(!f79PuedeCompararTurnos())return;const n=Number(b.dataset.movExpandir),detalle=$('#mov81-det-'+n,cont),abierto=b.getAttribute('aria-expanded')==='true';
+      if(!abierto&&!detalle.firstElementChild.innerHTML)detalle.firstElementChild.innerHTML=f81DetalleProducto(d.filas[n],d.elegidos);
+      detalle.hidden=abierto;b.setAttribute('aria-expanded',String(!abierto));b.setAttribute('aria-label',`${abierto?'Ver':'Ocultar'} detalle de ${d.filas[n].producto.nombre}`);b.innerHTML=abierto?'Ver detalle <span aria-hidden="true">⌄</span>':'Ocultar detalle <span aria-hidden="true">⌃</span>';b.closest('tr').classList.toggle('abierta',!abierto);
+    };
+    b.onclick=e=>{e.stopPropagation();abrir();};b.closest('tr').onclick=e=>{if(!e.target.closest('button,a,input,select,summary'))abrir();};
+  });
+  const sinTurno=$('.mov81-sin-turno',cont);if(sinTurno)sinTurno.ontoggle=()=>{
+    if(!sinTurno.open||!f79PuedeCompararTurnos())return;
+    const lista=$('[data-mov-sin-turno-lista]',sinTurno);if(lista.innerHTML)return;
+    lista.innerHTML='<p class="hint">Se incluyen en el stock por su fecha, pero no se atribuyen a ningún turno.</p>'+d.sinTurno.map(m=>`<div class="mov81-mov"><div>${esc(prod(m.prodId)?.nombre||'Producto no disponible')} · ${fFH(m.fecha)} · ${esc(m.tipo)}</div><b>${fmtCant(prod(m.prodId),Number(m.cant)||0)}</b></div>`).join('');
+  };
 }
 /* REV80_MOVIMIENTOS_BUSQUEDA_START */
 let temporizadorBusquedaMovimientos=null;
@@ -9641,13 +9794,13 @@ function vMovimientos(m){
   const opciones=f79OpcionesTurnos();
   if(!opciones.some(t=>t.id===movTurnoA))movTurnoA=opciones[0]?.id||'';
   if(!opciones.some(t=>t.id===movTurnoB))movTurnoB=opciones[1]?.id||'';
-  const selectTurno=(id,elegido)=>`<div style="flex:1;min-width:220px"><label class="f" for="${id}">${id==='movTurnoA'?'Primer turno':'Segundo turno'}</label><select class="inp" id="${id}"><option value="">Elegí un turno</option>${opciones.map(t=>`<option value="${esc(t.id)}" ${t.id===elegido?'selected':''}>${esc(t.responsable)} · ${fFH(t.desde)} → ${fFH(t.hasta)} · ${esc(t.estado)}</option>`).join('')}</select></div>`;
+  const selectTurno=(id,elegido)=>`<div style="flex:1;min-width:220px"><label class="f" for="${id}">${id==='movTurnoA'?'Turno anterior':'Turno posterior'}</label><select class="inp" id="${id}"><option value="">Elegí un turno</option>${opciones.map(t=>`<option value="${esc(t.id)}" ${t.id===elegido?'selected':''}>${f81HorarioTurno(t)} · ${esc(t.responsable)} · ${esc(t.estado)}</option>`).join('')}</select></div>`;
   m.innerHTML=`
   <div class="head">
-    <div><h1>Movimientos de stock</h1><div class="sub">Auditá ingresos, ventas y ajustes, y corregí diferencias desde el mismo lugar.</div></div>
+    <div><h1>Movimientos de stock</h1><div class="sub">${movVista==='turnos'?'Con cuánto empezó y terminó cada turno. Tocá un producto para ver el detalle.':'Auditá ingresos, ventas y ajustes, y corregí diferencias desde el mismo lugar.'}</div></div>
   </div>
   ${f79PuedeCompararTurnos()?`<div class="cash-tabs" aria-label="Consulta de stock"><button type="button" class="cash-tab ${movVista==='periodo'?'active':''}" data-mov-vista="periodo">Por período</button><button type="button" class="cash-tab ${movVista==='turnos'?'active':''}" data-mov-vista="turnos">Comparar turnos</button></div>`:''}
-  <div class="card" style="margin-bottom:16px"><div class="card-b">
+  <div class="card ${movVista==='turnos'?'mov81-filters':''}" style="margin-bottom:16px"><div class="card-b">
     <div class="row" style="align-items:flex-end">
       ${movVista==='turnos'?selectTurno('movTurnoA',movTurnoA)+selectTurno('movTurnoB',movTurnoB):`
       <div style="min-width:180px"><label class="f" for="movRango">Período</label><select class="inp" id="movRango"><option value="dia" ${movRango==='dia'?'selected':''}>Un día</option><option value="7" ${movRango==='7'?'selected':''}>Últimos 7 días</option><option value="30" ${movRango==='30'?'selected':''}>Últimos 30 días</option></select></div>
@@ -9655,9 +9808,10 @@ function vMovimientos(m){
       `}
       <div style="flex:2;min-width:220px"><label class="f" for="qMovimientos">Buscar producto</label><input class="inp" id="qMovimientos" value="${esc(filtrosMovimientos.q)}" placeholder="Nombre o código…" autocomplete="off"></div>
       <div style="flex:1;min-width:180px"><label class="f" for="rubroMovimientos">Rubro</label><select class="inp" id="rubroMovimientos"><option value="">Todos los rubros</option>${rubros().map(r=>`<option value="${esc(r)}" ${filtrosMovimientos.rubro===r?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
+      ${movVista==='turnos'?`<label class="mov81-check" for="movSoloAvisos"><input type="checkbox" id="movSoloAvisos" ${typeof movSoloAvisos!=='undefined'&&movSoloAvisos?'checked':''}> Sólo con avisos</label>`:''}
     </div>
   </div></div>
-  <div class="nota-dash" style="margin-bottom:16px">${movVista==='turnos'?'Compará ingresos, ventas y ajustes de cada turno. El stock global incluye todas las cajas del comercio.':'La cuenta se lee de izquierda a derecha: stock inicial + ingresos − ventas ± ajustes = stock final. Tocá “Detalle” para ver hora, motivo y responsable disponible.'}</div>
+  <div class="nota-dash" style="margin-bottom:16px">${movVista==='turnos'?'Cada turno muestra <b>stock al abrir → al cerrar</b>. Es el stock registrado de todo el comercio, no un conteo físico.':'La cuenta se lee de izquierda a derecha: stock inicial + ingresos − ventas ± ajustes = stock final. Tocá “Detalle” para ver hora, motivo y responsable disponible.'}</div>
   <div class="card">
     <div class="card-h"><h2>${movVista==='turnos'?'Comparación de turnos':'Detalle del día'}</h2><span class="pill mute" id="cuentaMovimientos"></span></div>
     <div id="tablaMovimientos"></div>
@@ -9668,6 +9822,7 @@ function vMovimientos(m){
   ['movTurnoA','movTurnoB'].forEach(id=>{const s=$('#'+id);if(s)s.onchange=()=>{if(id==='movTurnoA')movTurnoA=s.value;else movTurnoB=s.value;pintarMovimientosActual();};});
   $('#qMovimientos').oninput=f80BuscarMovimientos;
   $('#rubroMovimientos').onchange=e=>{filtrosMovimientos.rubro=e.target.value;pintarMovimientosActual();};
+  const avisos=$('#movSoloAvisos');if(avisos)avisos.onchange=e=>{movSoloAvisos=e.target.checked;pintarMovimientosActual();};
   pintarMovimientosActual();
 }
 

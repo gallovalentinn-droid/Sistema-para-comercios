@@ -87,9 +87,16 @@ export function validateInvoiceImageRequest(value) {
 }
 
 export function classifyGeminiProviderError(value) {
+  let provider;
+  try { provider = JSON.parse(String(value ?? '')).error; } catch (_) {}
+  const code = String(provider?.code ?? provider?.status ?? '').toLowerCase();
+  const known = {rate_limit_exceeded:'RATE_LIMIT',too_many_requests:'RATE_LIMIT',quota_exceeded:'DAILY_QUOTA',service_unavailable:'UNAVAILABLE',unavailable:'UNAVAILABLE',internal:'INTERNAL',internal_error:'INTERNAL',resource_exhausted:'QUOTA_EXCEEDED',invalid_argument:'INVALID_ARGUMENT',model_not_found:'MODEL_NOT_FOUND',not_found:'RESOURCE_NOT_FOUND',authentication:'AUTHENTICATION',deadline_exceeded:'PROVIDER_TIMEOUT',authentication_error:'API_KEY_INVALID',payment_required:'BILLING_REQUIRED',permission_denied:'PERMISSION_DENIED'};
+  if (Object.prototype.hasOwnProperty.call(known, code)) return known[code];
   const text = String(value ?? '').toLowerCase();
   if (/api[_ ]key[_ ]invalid|api key not valid|invalid api key/.test(text)) return 'API_KEY_INVALID';
   if (/service[_ ]disabled|api has not been used|generativelanguage[^\n]{0,160}disabled/.test(text)) return 'API_DISABLED';
+  const statusCode = String(provider?.status ?? '').toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(known, statusCode)) return known[statusCode];
   // REV70: el 503 de modelo saturado ya no se registra como UNKNOWN.
   if (/"unavailable"|overloaded|high demand|try again later/.test(text)) return 'UNAVAILABLE';
   if (/"internal"|internal error/.test(text)) return 'INTERNAL';
@@ -105,7 +112,25 @@ export function classifyGeminiProviderError(value) {
 }
 
 export function safeGeminiErrorMessage(error) {
-  return (error instanceof Error ? error.message : 'unknown').slice(0, 200);
+  const code = error instanceof Error ? error.message : '';
+  return ['F6_GEMINI_OUTPUT_INVALID','F6_GEMINI_INCOMPLETE','F6_GEMINI_OUTPUT_MISSING'].includes(code) ? code : 'UNKNOWN';
+}
+
+// Sólo categorías conocidas y metadatos: nunca se devuelve el mensaje crudo de Google.
+export function geminiProviderDiagnostic(text, status, retryAfter) {
+  let category = classifyGeminiProviderError(text);
+  if (category === 'UNKNOWN' && status === 503) category = 'UNAVAILABLE';
+  if (category === 'UNKNOWN' && status === 500) category = 'INTERNAL';
+  const diagnostic = {providerStatus: status, providerCategory: category};
+  const seconds = typeof retryAfter === 'string' && /^\d{1,6}$/.test(retryAfter) ? Number(retryAfter) : 0;
+  if (seconds > 0 && seconds <= 86400) diagnostic.retryAfterSeconds = seconds;
+  return diagnostic;
+}
+
+function invalidOutput(field, reason, row) {
+  const error = new Error('F6_GEMINI_OUTPUT_INVALID');
+  error.diagnostic = {field, reason, ...(row ? {row} : {})};
+  return error;
 }
 
 export function buildGeminiInvoiceRequest({ imageBase64, mediaType, model = F6_INVOICE_MODEL }) {
@@ -128,10 +153,10 @@ export function buildGeminiInvoiceRequest({ imageBase64, mediaType, model = F6_I
   };
 }
 
-function boundedText(value, maximum) {
-  if (typeof value !== 'string') throw new Error('F6_GEMINI_OUTPUT_INVALID');
+function boundedText(value, maximum, field) {
+  if (typeof value !== 'string') throw invalidOutput(field, 'EXPECTED_TEXT');
   const result = value.trim();
-  if (result.length > maximum) throw new Error('F6_GEMINI_OUTPUT_INVALID');
+  if (result.length > maximum) throw invalidOutput(field, 'TOO_LONG');
   return result;
 }
 
@@ -146,11 +171,11 @@ function optionalText(value, maximum) {
   return typeof value === 'string' ? value.trim().slice(0, maximum) : '';
 }
 
-function boundedNumber(value, maximum, { integer = false, minimum = 0 } = {}) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
-    throw new Error('F6_GEMINI_OUTPUT_INVALID');
-  }
-  if (integer && !Number.isInteger(value)) throw new Error('F6_GEMINI_OUTPUT_INVALID');
+function boundedNumber(value, maximum, { integer = false, minimum = 0, field } = {}) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) throw invalidOutput(field, 'EXPECTED_NUMBER');
+  if (value < minimum) throw invalidOutput(field, 'BELOW_MINIMUM');
+  if (value > maximum) throw invalidOutput(field, 'ABOVE_MAXIMUM');
+  if (integer && !Number.isInteger(value)) throw invalidOutput(field, 'EXPECTED_INTEGER');
   return value;
 }
 
@@ -176,30 +201,35 @@ export function extractGeminiInvoice(response) {
     parsed = JSON.parse(modelOutputText(response));
   } catch (error) {
     if (error instanceof Error && error.message.startsWith('F6_GEMINI_')) throw error;
-    throw new Error('F6_GEMINI_OUTPUT_INVALID');
+    throw invalidOutput('response', 'INVALID_JSON');
   }
   if (!isRecord(parsed) || !Array.isArray(parsed.items) || parsed.items.length > 200) {
-    throw new Error('F6_GEMINI_OUTPUT_INVALID');
+    throw invalidOutput('items', Array.isArray(parsed?.items) ? 'TOO_MANY_ROWS' : 'EXPECTED_ROWS');
   }
-  const items = parsed.items.map((item) => {
-    if (!isRecord(item)) throw new Error('F6_GEMINI_OUTPUT_INVALID');
-    const producto = boundedText(item.producto, 200);
-    if (!producto) throw new Error('F6_GEMINI_OUTPUT_INVALID');
+  const items = parsed.items.map((item, index) => {
+    try {
+    if (!isRecord(item)) throw invalidOutput('items', 'EXPECTED_ROW');
+    const producto = boundedText(item.producto, 200, 'producto');
+    if (!producto) throw invalidOutput('producto', 'EMPTY_TEXT');
     return {
       producto,
       codigo: optionalCode(item.codigo),
       descripcion: optionalText(item.descripcion, 200),
-      cantidad: boundedNumber(item.cantidad, 1_000_000),
-      unidadesPorBulto: boundedNumber(item.unidadesPorBulto, 1_000_000, { integer: true, minimum: 1 }),
-      precioUnit: boundedNumber(item.precioUnit, 1_000_000_000),
-      descuento: boundedNumber(item.descuento, 1_000_000_000_000),
+      cantidad: boundedNumber(item.cantidad, 1_000_000, {field:'cantidad'}),
+      unidadesPorBulto: boundedNumber(item.unidadesPorBulto, 1_000_000, { integer: true, minimum: 1, field:'unidadesPorBulto' }),
+      precioUnit: boundedNumber(item.precioUnit, 1_000_000_000, {field:'precioUnit'}),
+      descuento: boundedNumber(item.descuento, 1_000_000_000_000, {field:'descuento'}),
     };
+    } catch (error) {
+      if (error.diagnostic) error.diagnostic.row = index + 1;
+      throw error;
+    }
   });
-  const descuentoGlobal = boundedNumber(parsed.descuentoGlobal, 1_000_000_000_000);
+  const descuentoGlobal = boundedNumber(parsed.descuentoGlobal, 1_000_000_000_000, {field:'descuentoGlobal'});
   if (descuentoGlobal > 0) {
     const bases = items.map((item) => Math.max(0, item.cantidad * item.precioUnit - item.descuento));
     const totalBase = bases.reduce((sum, value) => sum + value, 0);
-    if (totalBase <= 0 || descuentoGlobal > totalBase + 0.005) throw new Error('F6_GEMINI_OUTPUT_INVALID');
+    if (totalBase <= 0 || descuentoGlobal > totalBase + 0.005) throw invalidOutput('descuentoGlobal', 'EXCEEDS_ITEMS_TOTAL');
 
     let descuentoRestante = Math.round(descuentoGlobal * 100);
     let baseRestante = totalBase;
@@ -220,9 +250,9 @@ export function extractGeminiInvoice(response) {
   const pagosACuenta = typeof parsed.pagosACuenta === 'number' && Number.isFinite(parsed.pagosACuenta)
     && parsed.pagosACuenta >= 0 && parsed.pagosACuenta <= 1_000_000_000_000 ? parsed.pagosACuenta : 0;
   return {
-    proveedor: boundedText(parsed.proveedor, 160),
-    nroComprobante: boundedText(parsed.nroComprobante, 80),
-    total: boundedNumber(parsed.total, 1_000_000_000_000),
+    proveedor: boundedText(parsed.proveedor, 160, 'proveedor'),
+    nroComprobante: boundedText(parsed.nroComprobante, 80, 'nroComprobante'),
+    total: boundedNumber(parsed.total, 1_000_000_000_000, {field:'total'}),
     descuentoGlobal,
     saldoAnterior,
     pagosACuenta,

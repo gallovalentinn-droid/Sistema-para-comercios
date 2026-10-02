@@ -113,6 +113,8 @@ function searchHarness() {
   const start = html.indexOf('function vMovimientos(m){'), end = html.indexOf('\n/* ═', start);
   const debounceStart = html.indexOf('/* REV80_MOVIMIENTOS_BUSQUEDA_START */'), debounceEnd = html.indexOf('/* REV80_MOVIMIENTOS_BUSQUEDA_END */');
   if (debounceStart >= 0) vm.runInContext(html.slice(debounceStart, debounceEnd), ctx);
+  const uxStart = html.indexOf('/* REV81_COMPARACION_START */'), uxEnd = html.indexOf('/* REV81_COMPARACION_END */');
+  if (uxStart >= 0) vm.runInContext(html.slice(uxStart, uxEnd), ctx);
   vm.runInContext(html.slice(start, end), ctx);
   ctx.vMovimientos(host);
   return {ctx, paints, type: value => {elements.qMovimientos.value = value; elements.qMovimientos.oninput({target: elements.qMovimientos});},

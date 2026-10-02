@@ -1,14 +1,14 @@
 {
   "version": "6.0.0-f6-rc2",
-  "packageRevision": 80,
+  "packageRevision": 82,
   "algorithm": "sha256",
-  "generatedAt": "2026-10-01",
+  "generatedAt": "2026-10-02",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "d7f668e4aa31a89db4ce5b5e879002ca9fdf0233b1d996c84f2e71fb3309673f",
+    "beta/index.html": "f6f1177001193dc62810714b3bcd2f67f0601e35b5021a8ecedd5623ef71d195",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "52932d1f5090d254e797c25b0aec6e798e166d56a6b0cd23e1067eeb09813c8f",
+    "beta/sw.js": "dd55a0633e871496c706b13749862f51b98481c92e6aa4671ff0bdf033e162ef",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -26,8 +26,8 @@
     "REV61-PERMISO-CONFIG.sql": "55c596e236728162bebdcf1bc2ed83a5789895c95716ddb319192846e2bad095",
     "REV69-TURNOS-INTERRUMPIDOS.sql": "d6e8214fe4ac34df33ab143e2fd966ac5158b491a52f4dd88996b724525a4706",
     "REV71-ALIAS-FACTURA.sql": "91068789a4dc38600bc3aee31b8202adfc30a0d4114b1b5c5e06386e902041cf",
-    "supabase/functions/leer-factura/index.ts": "42cbce5bef9d815c923a7efe8cd87602f9725aad426e6e5d7385a6103f8d41a2",
-    "supabase/functions/_shared/f6-invoice-reader.mjs": "d9696958c4ed337ac0b2cd2113934681a089c0da778dcec21e8d306715302e13",
+    "supabase/functions/leer-factura/index.ts": "8ef08119ae699dc93ae5748e3af4135f9fcd056513bd6664fab70369cc29b38c",
+    "supabase/functions/_shared/f6-invoice-reader.mjs": "577d8d2ba2f3bfda109ee5ba86e6be37eeb903b42ccb97896775c5fb9649a114",
     "supabase/functions/_shared/f5-auth-core.mjs": "1b9bac90205dab22c89e01d9c0e1a5e94151fdd1804b0d91f69c108abd6b4e99"
   }
 }

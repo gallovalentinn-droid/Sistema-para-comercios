@@ -1,6 +1,24 @@
 # MiComercio.ar — contexto de continuidad
 
-Actualizado: 2026-10-01 (America/Argentina/Buenos_Aires)
+Actualizado: 2026-10-02 (America/Argentina/Buenos_Aires)
+
+## Diagnóstico del lector IA — 02/10/2026
+
+El usuario informa rechazos frecuentes y pide revisar posibles causas. Investigación sólo lectura: leer-factura sigue ACTIVE v19/JWT y sus tres archivos coinciden exactamente con supabase/functions/. En la ventana 01/10 18:51:17 UTC a 02/10 18:51:17 UTC, logs de ejecución muestran 24 errores Google 503 UNAVAILABLE y 38 Google 429 UNKNOWN; no se observaron errores de procesamiento/telemetría en ese conjunto. La fuente HTTP presenta 37 respuestas 429, 23 respuestas 503 y 5 respuestas 200; no coincide fila a fila con ejecución y no se usa para sumar solicitudes. Comercio principal: 66 reservas de octubre, 5 resultados, límite 100 y 34 restantes al consultar. Otro comercio: 2/1/100/98. El 429 es del proveedor; el cupo mensual de la aplicación no está agotado.
+
+En código: mensajes genéricos ocultan IA_NO_DISPONIBLE/IA_AGOTADA_TEMPORALMENTE; sin reintentos acotados; reserva previa consume cupo aun con fallo; clasificación no distingue códigos actuales de límite por minuto y cuota diaria. Localmente: 27/27 pruebas focales y reproducciones sintéticas de rechazo completo por una fila inválida (negativa, bulto cero, números como texto, campo faltante o descuento global excesivo). Esta validación es un posible fallo adicional, no la causa observada en los registros recientes.
+
+Informe: `entregables/INFORME-DIAGNOSTICO-LECTOR-2026-10-02.md`; reproducción sin red: `entregables/diagnostico-lector-2026-10-02/reproducir-validacion.cjs`. No se cambió ni desplegó el lector ni el cupo, no se invocó Gemini para el diagnóstico. Se preserva REV81 local. Para una corrección posterior, priorizar mensajes/diagnóstico y recuperación transitoria con una reserva por acción; revisar aparte cupo de fallos y filas inválidas. Un modelo alternativo exige también adaptar el contrato de telemetría que hoy acepta sólo gemini-3.8-flash.
+
+## Comparar turnos — REV81 local, 02/10/2026
+
+El usuario pidió acercar la sección al boceto `boceto-comparar-turnos.html` y aprobó el diseño, con la cuenta completa únicamente dentro del detalle. Se modificó la copia canónica local sobre el commit 3c4be33: resumen al abrir → al cerrar con delta, orden cronológico automático, movimientos entre turnos, filtro sólo con avisos, detalles por producto desplegables con teclado y tarjetas móviles. Se conservan búsqueda/rubro, autoridad de dueño/administrador y vista por período de empleados.
+
+El cálculo REV79/80 no se altera. La cuenta del detalle usa movimientos dentro del horario y separa otras cajas/sin turno; los movimientos propios fuera de horario conservan su atribución y se identifican sin sumarlos a esa cuenta. Los turnos superpuestos no inventan un intervalo. Los datos incompletos/stock sin base/aperturas aproximadas continúan sin presentar saldos falsos. Cuando falta el actor, se muestra Responsable no disponible, incluso para operaciones remotas.
+
+Verificado en código: identidad HTML, service worker y manifiesto REV81, 25 archivos de integridad. Verificado localmente: 423/423 pruebas Windows, navegador sintético sin backend a 1366/390 px (resumen contraído, apertura por fila/teclado, filtro, búsqueda, responsable remoto, datos intactos y empleado); revisión independiente con su único hallazgo corregido. Benchmark local con 850 productos, 120 turnos disponibles y 100.000 movimientos: dibujo síncrono 288,6 ms, 11 pulsaciones 0,5 ms y una actualización diferida; una muestra, no medición de producción.
+
+Evidencia: `entregables/comparar-turnos-REV81/`, informe `entregables/DETALLE-CAMBIOS-REV81-2026-10-02.md`, recorrido `tests/browser-stock-rev81.cjs`. Cambios aún sin publicar; no se modificó Supabase ni se repitió este diseño en la beta pública. La publicación REV80 siguiente permanece como registro de lo efectivamente publicado. Las pruebas con dispositivos físicos y operaciones reales siguen pendientes.
 
 ## Publicación REV80 verificada — 01/10/2026
 

@@ -4,6 +4,15 @@ const vm = require('node:vm');
 const candidatePath = path.resolve(__dirname, '../beta/index.html');
 const patchPath = path.resolve(__dirname, '../entregables/respuesta-revision-REV79/stock-patch.json');
 function baselineHtml(html, {includeUI = false} = {}) {
+  // REV81 rediseña la vista. El benchmark histórico conserva la UI REV80
+  // antes de revertir su parche a REV79; no depende de otra carpeta de entrega.
+  if (includeUI && html.includes('/* REV81_COMPARACION_START */')) {
+    const ui = JSON.parse(fs.readFileSync(path.join(__dirname, 'stock-ui-rev80-baseline.json'), 'utf8'));
+    const start = html.indexOf('function f79PuedeCompararTurnos(){'), end = html.indexOf('function rangoDiaMovimientos(', start);
+    html = html.slice(0, start) + ui.ui + html.slice(end);
+    const viewStart = html.indexOf('function vMovimientos(m){'), viewEnd = html.indexOf('\n/* ═', viewStart);
+    html = html.slice(0, viewStart) + ui.view + html.slice(viewEnd);
+  }
   const patches = JSON.parse(fs.readFileSync(patchPath, 'utf8'));
   const chosen = includeUI ? patches : patches.filter(p => p.old.startsWith('function f79CompararStockTurnos('));
   if (!includeUI && chosen.length !== 1) throw new Error('Expected one bundled comparator baseline');

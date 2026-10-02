@@ -38,7 +38,7 @@ async function browserBench(browser, html) {
       const start=performance.now();vMovimientos($('#main'));
       const synchronous=performance.now()-start;
       await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);
-      return {synchronousMs:synchronous,withLayoutMs:performance.now()-start,rows:$('#tablaMovimientos tbody').rows.length};
+      return {synchronousMs:synchronous,withLayoutMs:performance.now()-start,rows:document.querySelectorAll('[data-mov-producto]').length||$('#tablaMovimientos tbody').rows.length};
     }));
   }
   // Each key dispatches the actual production oninput handler. The optimized
@@ -51,7 +51,7 @@ async function browserBench(browser, html) {
     const handlers=performance.now()-start,callsBeforeDelay=paintCalls-firstPaint;
     await new Promise(r=>setTimeout(r,250));
     await new Promise(requestAnimationFrame);
-    return {keys:11,handlersMs:handlers,paintCallsSynchronous:callsBeforeDelay,paintCallsTotal:paintCalls-firstPaint,totalWithDebounceMs:performance.now()-start,query:input.value,rows:$('#tablaMovimientos tbody').rows.length};
+    return {keys:11,handlersMs:handlers,paintCallsSynchronous:callsBeforeDelay,paintCallsTotal:paintCalls-firstPaint,totalWithDebounceMs:performance.now()-start,query:input.value,rows:document.querySelectorAll('[data-mov-producto]').length||$('#tablaMovimientos tbody').rows.length};
   });
   await page.close();
   return {initial,search};
@@ -84,7 +84,7 @@ async function browserBench(browser, html) {
   }finally{await browser.close();}
   const med = xs => [...xs].sort((a,b)=>a-b)[Math.floor(xs.length/2)];
   report.improvement={nodeComparator:report.results.before.nodeComparatorMs/report.results.after.nodeComparatorMs,chromeInitialMedian:med(report.results.before.initial.map(r=>r.synchronousMs))/med(report.results.after.initial.map(r=>r.synchronousMs)),searchHandlers:report.results.before.search.handlersMs/report.results.after.search.handlersMs};
-  const output=path.resolve(__dirname,'../entregables/respuesta-revision-REV79/stock-performance-rev80-benchmark.json');
+  const output=process.env.BENCH_OUTPUT||path.resolve(__dirname,'../entregables/respuesta-revision-REV79/stock-performance-rev80-benchmark.json');
   fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
   console.log(`Full results: ${output}`);
 })().catch(error=>{console.error(error);process.exitCode=1;});
