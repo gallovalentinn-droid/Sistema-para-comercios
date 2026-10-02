@@ -5,7 +5,7 @@ process.env.PW ||= 'C:/Users/valen/.cache/codex-runtimes/codex-primary-runtime/d
 process.env.CHROME ||= 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const {openShadow}=require('./browser-fixture/shadow.cjs');
 (async()=>{
- const h=await openShadow({height:900});
+ const h=await openShadow({height:900,publicUrl:process.env.PUBLIC_BETA||null});
  try{
   const p=h.page;
   await p.evaluate(()=>{
@@ -54,9 +54,9 @@ const {openShadow}=require('./browser-fixture/shadow.cjs');
    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
    await p.locator('[data-mov-producto="z"] [data-mov-expandir]').click();
    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'el detalle tampoco desborda');
-   await p.screenshot({path:path.resolve(__dirname,`../entregables/comparar-turnos-REV81/detalle-${width}.png`),fullPage:true});
+   await p.screenshot({path:path.resolve(__dirname,`../entregables/comparar-turnos-REV81/${process.env.PUBLIC_BETA?'publico-':''}detalle-${width}.png`),fullPage:true});
    await p.locator('[data-mov-producto="z"] [data-mov-expandir]').click();
-   await p.screenshot({path:path.resolve(__dirname,`../entregables/comparar-turnos-REV81/resumen-${width}.png`),fullPage:true});
+   await p.screenshot({path:path.resolve(__dirname,`../entregables/comparar-turnos-REV81/${process.env.PUBLIC_BETA?'publico-':''}resumen-${width}.png`),fullPage:true});
   }
   assert.equal(await p.evaluate(()=>JSON.stringify({productos:db.productos,movs:db.movs,cierres:db.cierres})===window.__stockBefore),true);
   await p.selectOption('#movTurnoB','a');assert.match(await p.locator('#tablaMovimientos').innerText(),/dos turnos/);

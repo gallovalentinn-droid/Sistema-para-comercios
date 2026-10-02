@@ -2,6 +2,16 @@
 
 Actualizado: 2026-10-02 (America/Argentina/Buenos_Aires)
 
+## REV82 publicada — diagnóstico del lector y Comparar turnos, 02/10/2026
+
+El usuario priorizó identificar la causa: mostrar bien por qué falla el lector. Se publicó diagnóstico visible, sin reintentos nuevos ni cambios de cupo/modelo/validación. Incluye el diseño de Comparar turnos REV81 ya aprobado. Aviso persistente con detalle/copiar, etapa y referencia requestId; diferencia errores de Google, límite por frecuencia/cuota diaria/cuota ambigua y cupo mensual del comercio, conexión/timeout, configuración/sesión, reserva/registro, respuesta incompleta/mal formada y fila/campo inválidos. Se muestran sólo categorías conocidas; no cuerpos de error, fotos, productos, credenciales ni errores SQL completos.
+
+Verificado en código/localmente: 434/434 pruebas Windows, 25 archivos de integridad, navegador del lector a 1366/390 px y regresión de Comparar turnos. Revisión independiente: dos confusiones de Auth/códigos Google corregidas y 11/11 pruebas focales aprobadas. Las reglas de validación estricta, reserva previa y una llamada al proveedor por intento permanecen iguales. Los errores siguen consumiendo cupo según el contrato vigente.
+
+Verificado público: leer-factura ACTIVE v20, JWT habilitado y sus tres archivos idénticos a los locales, tras comparar v19 con la base antes de desplegar. Web publicada por commit 53e932875050e45399bd18843178267dfdf857d6, GitHub Pages run 37054355419 exitoso; HTML y service worker públicos coinciden con el manifiesto REV82. OPTIONS 204 y POST sin sesión 401. Recorridos de lector y stock sobre el HTML público a 1366/390 px, con sesión/datos/respuestas sintéticos y escrituras externas bloqueadas: aprobados. No se confirmó una compra ni se consumió Gemini. No se aplicaron migraciones ni se cambiaron datos operativos. La actualización documental posterior conserva los mismos artefactos.
+
+Informe: entregables/DETALLE-CAMBIOS-REV82-2026-10-02.md; capturas locales/públicas en entregables/lector-diagnostico-REV82 y entregables/comparar-turnos-REV81. Sigue pendiente capturar el siguiente intento real contra Gemini y correlacionar su referencia con los registros: se mejoró el diagnóstico, no se afirma haber resuelto la disponibilidad/cuotas de Google. Las entradas inferiores de REV81 local y diagnóstico v19 son antecedentes históricos, reemplazados por este estado para la publicación.
+
 ## Diagnóstico del lector IA — 02/10/2026
 
 El usuario informa rechazos frecuentes y pide revisar posibles causas. Investigación sólo lectura: leer-factura sigue ACTIVE v19/JWT y sus tres archivos coinciden exactamente con supabase/functions/. En la ventana 01/10 18:51:17 UTC a 02/10 18:51:17 UTC, logs de ejecución muestran 24 errores Google 503 UNAVAILABLE y 38 Google 429 UNKNOWN; no se observaron errores de procesamiento/telemetría en ese conjunto. La fuente HTTP presenta 37 respuestas 429, 23 respuestas 503 y 5 respuestas 200; no coincide fila a fila con ejecución y no se usa para sumar solicitudes. Comercio principal: 66 reservas de octubre, 5 resultados, límite 100 y 34 restantes al consultar. Otro comercio: 2/1/100/98. El 429 es del proveedor; el cupo mensual de la aplicación no está agotado.

@@ -1,5 +1,7 @@
 # MiComercio — Comparar turnos REV81 (02/10/2026)
 
+Actualización: este diseño quedó integrado y publicado con REV82 el 02/10/2026. El recorrido sobre la beta pública, con datos sintéticos a 1366/390 px, también pasó. Los apartados inferiores describen la preparación local original. Estado vigente en `DETALLE-CAMBIOS-REV82-2026-10-02.md`.
+
 Base: REV80 publicada, commit 3c4be33. Diseño basado en el boceto aportado por el usuario y su aprobación: la cuenta completa debe verse sólo dentro del detalle.
 
 ## Presentación

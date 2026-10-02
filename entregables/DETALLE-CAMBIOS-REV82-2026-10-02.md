@@ -23,6 +23,12 @@ Evidencia: `entregables/lector-diagnostico-REV82/`; recorridos `tests/browser-le
 
 ## Publicación
 
-Pendiente al preparar este documento. La versión activa previa de leer-factura es v19 con JWT habilitado y corresponde a la base REV80. La comprobación pública y el resultado del próximo intento real deben registrarse por separado. Este cambio mejora el diagnóstico: no confirma que los rechazos de Google estén resueltos.
+Publicada el 02/10/2026. Se comparó el lector previo v19 con la base REV80; los tres archivos coinciden. El despliegue v20 está ACTIVE, JWT habilitado y sus tres archivos coinciden exactamente con la fuente local. No se aplicaron migraciones ni se escribieron datos operativos.
+
+Web: commit `53e932875050e45399bd18843178267dfdf857d6`, GitHub Pages run `37054355419`, completed/success. HTML público SHA-256 `f6f1177001193dc62810714b3bcd2f67f0601e35b5021a8ecedd5623ef71d195`; service worker `dd55a0633e871496c706b13749862f51b98481c92e6aa4671ff0bdf033e162ef`, ambos iguales al manifiesto REV82.
+
+Comprobación pública: OPTIONS 204 y POST sin sesión 401; lector y Comparar turnos a 1366/390 px sobre el HTML público con sesión, datos y fallos sintéticos. Se bloqueó todo acceso de negocio al backend; sin lecturas de Gemini ni confirmación de facturas. Capturas con prefijo `publico-`. Para repetir los recorridos públicos, configurar `PUBLIC_BETA=https://micomercio.ar/beta/` al ejecutar sus scripts. Esto comprueba la interfaz publicada, no el resultado de una factura real contra Google.
+
+La causa del siguiente fallo real sigue pendiente: el aviso permite copiar su referencia para relacionarlo con los registros. Este cambio mejora el diagnóstico; no confirma que los rechazos de Google estén resueltos. La actualización documental posterior conserva los mismos artefactos publicados.
 
 Referencias del contrato: [Errores Interactions de Google](https://ai.google.dev/gemini-api/docs/api-errors), [manejo de errores de Edge Functions](https://supabase.com/docs/guides/functions/error-handling).
