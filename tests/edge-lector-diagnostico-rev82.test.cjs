@@ -7,15 +7,21 @@ const modulo=()=>import(pathToFileURL(path.join(root,'supabase/functions/_shared
 const id='00000000-0000-4000-8000-000000000001';
 const invoice={proveedor:'Privado',nroComprobante:'123',total:100,descuentoGlobal:0,items:[{producto:'Privado',cantidad:1,unidadesPorBulto:1,precioUnit:100,descuento:0}]};
 const output=(data=invoice)=>({status:'completed',steps:[{type:'model_output',content:[{type:'text',text:JSON.stringify(data)}]}]});
-async function run({status=503,body={error:{code:'service_unavailable',message:'PRIVATE SECRET INVOICE'}},throws,telemetryError=false,reservationError=false,claimsError=null}={}){
- const m=await modulo();let handler,calls=0;const logs=[],rpcs=[];
- const client={auth:{getClaims:async()=>claimsError?{data:null,error:claimsError}:{data:{claims:{sub:id}}}},rpc:async(name)=>{rpcs.push(name);return name.includes('reservar')?{data:{ok:!reservationError}}:{data:{ok:!telemetryError}};}};
- const context={...m,Error,Response,Request,TextEncoder,TextDecoder,AbortController,setTimeout,clearTimeout,Set,console:{error:(...x)=>logs.push(x)},jsonResponse:(b,s,h)=>new Response(JSON.stringify(b),{status:s,headers:h}),createClient:()=>client,Deno:{env:{get:n=>n==='F6_ALLOWED_ORIGINS'?'https://micomercio.ar':'synthetic'},serve:h=>handler=h},fetch:async()=>{calls++;if(throws)throw throws;return new Response(typeof body==='string'?body:JSON.stringify(body),{status,headers:{'content-type':'application/json','retry-after':'12'}});}};
+async function run({status=503,body={error:{code:'service_unavailable',message:'PRIVATE SECRET INVOICE'}},throws,telemetryError=false,reservationError=false,claimsError=null,openai=false,responses}={}){
+ const m=await modulo(), providers=await import(pathToFileURL(path.join(root,'supabase/functions/_shared/f6-invoice-providers.mjs')).href);let handler,calls=0;const logs=[],rpcs=[];
+ const rpcParams=[];const client={auth:{getClaims:async()=>claimsError?{data:null,error:claimsError}:{data:{claims:{sub:id}}}},rpc:async(name,params)=>{rpcs.push(name);rpcParams.push(params);return name.includes('reservar')?{data:{ok:!reservationError}}:{data:{ok:!telemetryError}};}};
+ const context={...m,...providers,Error,Response,Request,TextEncoder,TextDecoder,AbortController,setTimeout,clearTimeout,Set,console:{error:(...x)=>logs.push(x)},jsonResponse:(b,s,h)=>new Response(JSON.stringify(b),{status:s,headers:h}),createClient:()=>client,Deno:{env:{get:n=>n==='OPENAI_API_KEY'?(openai?'synthetic':''):n==='F6_ALLOWED_ORIGINS'?'https://micomercio.ar':'synthetic'},serve:h=>handler=h},fetch:async()=>{calls++;if(throws)throw throws;if(responses)return responses[calls-1];return new Response(typeof body==='string'?body:JSON.stringify(body),{status,headers:{'content-type':'application/json','retry-after':'12'}});}};
  let source=fs.readFileSync(path.join(root,'supabase/functions/leer-factura/index.ts'),'utf8').replace(/^import[\s\S]*?from\s+"[^"]+";\s*/gm,'');
  vm.runInNewContext(stripTypeScriptTypes(source),context);
  const response=await handler(new Request('https://example.test/leer-factura',{method:'POST',headers:{authorization:'Bearer synthetic',origin:'https://micomercio.ar'},body:JSON.stringify({comercioId:id,requestId:id,imageBase64:'AAAA',mediaType:'image/png'})}));
- return {status:response.status,data:await response.json(),logs,calls,rpcs};
+ return {status:response.status,data:await response.json(),logs,calls,rpcs,rpcParams};
 }
+test('REV83 endpoint reserva una lectura aunque haya respaldo y registra el modelo efectivo',async()=>{
+ const r=await run({openai:true,responses:[new Response(JSON.stringify({error:{code:'server_error',message:'PRIVATE'}}),{status:503}),new Response(JSON.stringify(output()),{status:200})]});
+ assert.equal(r.status,200);assert.equal(r.calls,2);assert.deepEqual(r.rpcs,['f6_service_reservar_lectura_factura','f6_service_registrar_resultado_lectura_factura']);assert.equal(r.rpcParams[1].p_model,'gemini-3.8-flash');assert.equal(r.data.iaProvider,'gemini');assert.equal(r.data.iaFallbackUsed,true);assert.doesNotMatch(JSON.stringify(r.logs),/PRIVATE/);
+ const result={status:'completed',output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify({...invoice,saldoAnterior:0,pagosACuenta:0,items:[{...invoice.items[0],codigo:'',descripcion:'',subtotal:100,impuestoFila:0}]})}]}]};
+ const gpt=await run({openai:true,responses:[new Response(JSON.stringify(result),{status:200})]});assert.equal(gpt.status,200);assert.equal(gpt.calls,1);assert.equal(gpt.rpcParams[1].p_model,'gpt-6-luna');assert.equal(gpt.data.iaProvider,'openai');assert.equal(gpt.data.iaFallbackUsed,false);
+});
 test('REV82 Google rate limit, daily quota and ambiguous 429 have distinct safe diagnostics',async()=>{
  for(const [code,category] of [['rate_limit_exceeded','RATE_LIMIT'],['quota_exceeded','DAILY_QUOTA'],['RESOURCE_EXHAUSTED','QUOTA_EXCEEDED'],['unknown-secret','UNKNOWN']]){
   const r=await run({status:429,body:{error:{code,message:'PRIVATE SECRET INVOICE'}}});

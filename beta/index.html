@@ -849,7 +849,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:82,
+  packageRevision:83,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -7339,6 +7339,15 @@ function f82DescribirFalloFactura(error={}){
   const reasons={EXPECTED_TEXT:'no es un texto válido',TOO_LONG:'es demasiado largo',EXPECTED_NUMBER:'no es un número válido',BELOW_MINIMUM:'es menor que el mínimo permitido',ABOVE_MAXIMUM:'supera el máximo permitido',EXPECTED_INTEGER:'debe ser un número entero',EMPTY_TEXT:'está vacío',INVALID_JSON:'el contenido no tiene formato válido',TOO_MANY_ROWS:'hay más de 200 filas',EXPECTED_ROWS:'falta una lista válida de productos',EXPECTED_ROW:'la fila no tiene un formato válido',EXCEEDS_ITEMS_TOTAL:'supera el importe de los productos',F6_GEMINI_INCOMPLETE:'Google devolvió una lectura incompleta',F6_GEMINI_OUTPUT_MISSING:'Google no devolvió el contenido de la lectura',F6_GEMINI_OUTPUT_INVALID:'los datos no pasaron los controles',UNKNOWN:'motivo adicional no informado'};
   const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
   const d=error.diagnostic&&typeof error.diagnostic==='object'?error.diagnostic:{};
+  messages.IA_SALDO_AGOTADO='OpenAI informó que no hay saldo o créditos disponibles para leer la factura.';
+  fields.subtotal='subtotal de la fila';fields.impuestoFila='impuesto de la fila';
+  reasons.ROW_AMOUNT_MISMATCH='no coincide con la cantidad, el precio, el descuento y el impuesto leídos';
+  reasons.EXPECTED_VISIBLE_AMOUNT_OR_NULL='no tiene un importe visible válido';
+  reasons.F6_OPENAI_INCOMPLETE='OpenAI devolvió una lectura incompleta';
+  reasons.F6_OPENAI_OUTPUT_MISSING='OpenAI no devolvió el contenido de la lectura';
+  reasons.F6_OPENAI_OUTPUT_INVALID='los datos no pasaron los controles';
+  reasons.F6_OPENAI_REFUSAL='OpenAI no pudo completar esta lectura';
+  const providerName=d.provider==='openai'?'OpenAI':'Google';
   const code=own(messages,error.code)?error.code:'IA_NO_DISPONIBLE';
   const category=own(categories,d.providerCategory)?d.providerCategory:'';
   const stage=own(stages,d.stage)?d.stage:'';
@@ -7360,7 +7369,7 @@ function f82DescribirFalloFactura(error={}){
   if(field)detail.push(`Campo: ${fields[field]}`);if(row)detail.push(`Fila: ${row}`);if(reason)detail.push(`Motivo: ${reasons[reason]}`);
   if(Number.isInteger(d.retryAfterSeconds)&&d.retryAfterSeconds>0&&d.retryAfterSeconds<=86400)detail.push(`Google indicó una espera de ${d.retryAfterSeconds} segundos antes de otra solicitud.`);
   if(typeof d.requestId==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(d.requestId))detail.push(`Referencia: ${d.requestId}`);
-  return {message,detail:detail.join('\n')};
+  return {message:message.replaceAll('Google',providerName),detail:detail.join('\n').replaceAll('Google',providerName)};
 }
 // REV82_DIAGNOSTICO_FIN
 function f82MostrarFalloFactura(ov,error){
@@ -7373,6 +7382,24 @@ function f82MostrarFalloFactura(ov,error){
   }
   aviso(result.message,'bad');mostrarCargaManualFactura(ov,{focus:false});
 }
+// REV83_SECTORES_INICIO
+async function f83SectoresFactura(imageBase64,mediaType){
+  try{
+    const img=new Image();img.src=`data:${mediaType};base64,${imageBase64}`;await img.decode();
+    const w=img.naturalWidth,h=img.naturalHeight;
+    if(!w||!h)return [];
+    const parts=[0,.35,.70].map(start=>{
+      const y=Math.floor(h*start),height=Math.min(Math.ceil(h*.45),h-y);
+      const canvas=document.createElement('canvas'),scale=Math.min(2,2048/w,2048/height);
+      canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(height*scale));
+      canvas.getContext('2d').drawImage(img,0,y,w,height,0,0,canvas.width,canvas.height);
+      return {mediaType:'image/png',imageBase64:canvas.toDataURL('image/png').split(',')[1]};
+    });
+    // Los sectores amplían la misma página; nunca reemplazan la imagen original.
+    return parts.reduce((n,p)=>n+p.imageBase64.length*3/4,0)<=8*1024*1024?parts:[];
+  }catch(_){return [];}
+}
+// REV83_SECTORES_FIN
 async function leerFacturaFoto(file,ov){
   const label=$('#facFotoLabel',ov);
   const estado=$('.invoice-ai-choose',label);
@@ -7390,8 +7417,9 @@ async function leerFacturaFoto(file,ov){
     if(!['image/jpeg','image/png','image/webp','image/heic','image/heif'].includes(mime)) throw new Error('FORMATO_IMAGEN_NO_COMPATIBLE');
     if(!f3Estado.comercioId) throw new Error('COMERCIO_NO_DISPONIBLE');
     const b64=await fileABase64(file);
+    const imageParts=await f83SectoresFactura(b64,mime);
     const {data,error}=await sb.functions.invoke('leer-factura',{
-      body:{comercioId:f3Estado.comercioId,requestId,imageBase64:b64,mediaType:mime}
+      body:{comercioId:f3Estado.comercioId,requestId,imageBase64:b64,mediaType:mime,imageParts}
     });
     if(error){
       let detalle=null;
@@ -7409,7 +7437,7 @@ async function leerFacturaFoto(file,ov){
       throw falla;
     }
     f6RegistrarUsoIa(data&&data.iaUsage);
-    if(!data||!data.items||!data.items.length){f82MostrarFalloFactura(ov,{code:'FACTURA_SIN_PRODUCTOS',diagnostic:{stage:'validation',requestId}});return;}
+    if(!data||!data.items||!data.items.length){f82MostrarFalloFactura(ov,{code:'FACTURA_SIN_PRODUCTOS',diagnostic:{stage:'validation',requestId,provider:data&&data.iaProvider}});return;}
     stage='revision';
     if(estado)estado.textContent='Buscando tus productos…';
     const memoria=await rev70SincronizarMemoria(f3Estado.comercioId);

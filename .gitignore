@@ -1,0 +1,3 @@
+# Local credentials for the invoice reader trial.
+/.env.local
+/.env.local.*.tmp

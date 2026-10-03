@@ -1,14 +1,14 @@
 {
   "version": "6.0.0-f6-rc2",
-  "packageRevision": 82,
+  "packageRevision": 83,
   "algorithm": "sha256",
-  "generatedAt": "2026-10-02",
+  "generatedAt": "2026-10-03",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "f6f1177001193dc62810714b3bcd2f67f0601e35b5021a8ecedd5623ef71d195",
+    "beta/index.html": "16432e21bf045dfd3211a830d63e503e4c22f937ba11a9c4c828ffff020647b2",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "dd55a0633e871496c706b13749862f51b98481c92e6aa4671ff0bdf033e162ef",
+    "beta/sw.js": "22600c331eee1038f158ffbe2dbf45276e8fc9421c2f41a3aac2d329680cbc3c",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -26,8 +26,11 @@
     "REV61-PERMISO-CONFIG.sql": "55c596e236728162bebdcf1bc2ed83a5789895c95716ddb319192846e2bad095",
     "REV69-TURNOS-INTERRUMPIDOS.sql": "d6e8214fe4ac34df33ab143e2fd966ac5158b491a52f4dd88996b724525a4706",
     "REV71-ALIAS-FACTURA.sql": "91068789a4dc38600bc3aee31b8202adfc30a0d4114b1b5c5e06386e902041cf",
-    "supabase/functions/leer-factura/index.ts": "8ef08119ae699dc93ae5748e3af4135f9fcd056513bd6664fab70369cc29b38c",
-    "supabase/functions/_shared/f6-invoice-reader.mjs": "577d8d2ba2f3bfda109ee5ba86e6be37eeb903b42ccb97896775c5fb9649a114",
-    "supabase/functions/_shared/f5-auth-core.mjs": "1b9bac90205dab22c89e01d9c0e1a5e94151fdd1804b0d91f69c108abd6b4e99"
+    "supabase/functions/leer-factura/index.ts": "68f777537e9229d2b658d0f796d829112602fcd62082efb6cbd29c4679348c00",
+    "supabase/functions/_shared/f6-invoice-reader.mjs": "9aa34a26c3aac1d5382da12b3985d22c65d695462387aaafc1323b182ab1d283",
+    "supabase/functions/_shared/f5-auth-core.mjs": "1b9bac90205dab22c89e01d9c0e1a5e94151fdd1804b0d91f69c108abd6b4e99",
+    "REV83-LECTOR-DOBLE.sql": "5926cb60a7065a8c671302ba3bbd1a5fe737d6d25d81c7c01aa4c0687173e4ec",
+    "supabase/functions/_shared/f6-openai-invoice-reader.mjs": "a62d1889c0daa074d40972c43579170b1473e24e123547ded85bb90b529eb1ea",
+    "supabase/functions/_shared/f6-invoice-providers.mjs": "903aa4072d4b2ed12e20d338ed38dba27a12edb62ca6847480bcc2895cff51fc"
   }
 }

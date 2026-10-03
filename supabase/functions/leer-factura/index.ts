@@ -1,19 +1,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2.111.0";
-
 import { jsonResponse } from "../_shared/f5-auth-core.mjs";
-import {
-  F6_INVOICE_MODEL,
-  F6_INVOICE_PROVIDER_TIMEOUT_MS,
-  buildGeminiInvoiceRequest,
-  buildInvoiceTelemetry,
-  geminiProviderDiagnostic,
-  extractGeminiInvoice,
-  extractGeminiUsage,
-  safeGeminiErrorMessage,
-  validateInvoiceImageRequest,
-} from "../_shared/f6-invoice-reader.mjs";
+import { buildInvoiceTelemetry, validateInvoiceImageRequest } from "../_shared/f6-invoice-reader.mjs";
+import { readInvoiceWithProviders } from "../_shared/f6-invoice-providers.mjs";
 
-const BODY_LIMIT_BYTES = 12 * 1024 * 1024;
+const BODY_LIMIT_BYTES = 24 * 1024 * 1024;
 
 function envFirst(...names: string[]): string {
   for (const name of names) {
@@ -29,6 +19,7 @@ function configuredKeys() {
     publishableKey: envFirst("SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY"),
     secretKey: envFirst("SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"),
     geminiApiKey: Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
+    openaiApiKey: Deno.env.get("OPENAI_API_KEY")?.trim() ?? "",
   };
 }
 
@@ -92,11 +83,6 @@ async function readJsonBody(request: Request): Promise<unknown> {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
-function geminiFailureStatus(status: number): { status: number; code: string } {
-  if (status === 429) return { status: 429, code: "IA_AGOTADA_TEMPORALMENTE" };
-  if (status === 400 || status === 422) return { status: 502, code: "IA_SOLICITUD_RECHAZADA" };
-  return { status: 503, code: "IA_NO_DISPONIBLE" };
-}
 
 Deno.serve(async (request: Request) => {
   const origin = request.headers.get("origin")?.trim() ?? "";
@@ -128,8 +114,8 @@ Deno.serve(async (request: Request) => {
     return respond(origin, {code, diagnostic}, status);
   };
 
-  const { url, publishableKey, secretKey, geminiApiKey } = configuredKeys();
-  if (!url || !publishableKey || !secretKey || !geminiApiKey) {
+  const { url, publishableKey, secretKey, geminiApiKey, openaiApiKey } = configuredKeys();
+  if (!url || !publishableKey || !secretKey || (!geminiApiKey && !openaiApiKey)) {
     return fail("IA_NO_CONFIGURADA", 503, "configuration");
   }
 
@@ -178,38 +164,11 @@ Deno.serve(async (request: Request) => {
     }, limited ? 429 : 503);
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), F6_INVOICE_PROVIDER_TIMEOUT_MS);
   let stage = "provider";
   try {
-    const providerResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-goog-api-key": geminiApiKey,
-      },
-      body: JSON.stringify(buildGeminiInvoiceRequest({
-        imageBase64: input.imageBase64,
-        mediaType: input.mediaType,
-        model: F6_INVOICE_MODEL,
-      })),
-      signal: controller.signal,
-    });
-    if (!providerResponse.ok) {
-      const providerErrorText = await providerResponse.text();
-      const diagnostic = {...diagnosticAt(stage), ...geminiProviderDiagnostic(providerErrorText, providerResponse.status, providerResponse.headers.get("retry-after"))};
-      console.error("F6_GEMINI_PROVIDER_ERROR", JSON.stringify({
-        ...diagnostic,
-      }));
-      const failure = geminiFailureStatus(providerResponse.status);
-      return respond(origin, { code: failure.code, diagnostic }, failure.status);
-    }
-    stage = "response";
-    const providerBody = await providerResponse.json();
-    stage = "validation";
-    const invoice = extractGeminiInvoice(providerBody);
-    const iaUsage = extractGeminiUsage(providerBody);
-    const telemetry = buildInvoiceTelemetry({ invoice, usage: iaUsage });
+    const result = await readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,fetchImpl:fetch});
+    const {invoice,iaUsage} = result;
+    const telemetry = buildInvoiceTelemetry({invoice,usage:iaUsage,model:result.model});
     stage = "telemetry";
     const { data: telemetryResult, error: telemetryError } = await serviceClient.rpc(
       "f6_service_registrar_resultado_lectura_factura",
@@ -229,18 +188,12 @@ Deno.serve(async (request: Request) => {
       }));
       return fail("IA_TELEMETRIA_NO_REGISTRADA", 503, stage);
     }
-    return respond(origin, { ...invoice, iaUsage });
+    return respond(origin, { ...invoice, iaUsage, iaProvider:result.provider, iaFallbackUsed:result.fallbackUsed });
   } catch (error) {
-    const code = error instanceof Error && error.name === "AbortError"
-      ? "IA_TIEMPO_AGOTADO"
-      : stage === "provider" ? "IA_CONEXION_PROVEEDOR"
-      : stage === "response" ? "IA_RESPUESTA_INVALIDA"
-      : stage === "telemetry" ? "IA_TELEMETRIA_NO_REGISTRADA" : "FACTURA_NO_RECONOCIDA";
-    const diagnostic = {...diagnosticAt(stage), reason: safeGeminiErrorMessage(error),
-      ...(stage === "validation" && error instanceof Error && 'diagnostic' in error ? error.diagnostic as object : {})};
-    console.error("F6_GEMINI_PROCESSING_ERROR", JSON.stringify({code, ...diagnostic}));
-    return respond(origin, { code, diagnostic }, code === "IA_TIEMPO_AGOTADO" ? 504 : stage === "validation" ? 422 : 503);
-  } finally {
-    clearTimeout(timeout);
+    const failure = error as {code?:string; status?:number; diagnostic?:object};
+    const code = failure.code ?? (stage === "telemetry" ? "IA_TELEMETRIA_NO_REGISTRADA" : "IA_NO_DISPONIBLE");
+    const diagnostic = {...diagnosticAt(stage),...(failure.diagnostic ?? {})};
+    console.error("F6_IA_PROCESSING_ERROR", JSON.stringify({code,...diagnostic}));
+    return respond(origin,{code,diagnostic},failure.status ?? 503);
   }
 });

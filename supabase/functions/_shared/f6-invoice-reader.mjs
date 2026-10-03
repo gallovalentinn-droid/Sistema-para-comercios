@@ -73,7 +73,9 @@ function decodedBase64Bytes(value) {
 }
 
 export function validateInvoiceImageRequest(value) {
-  if (!exactKeys(value, ['comercioId', 'requestId', 'imageBase64', 'mediaType'])
+  const keys = ['comercioId', 'requestId', 'imageBase64', 'mediaType'];
+  if (isRecord(value) && Object.prototype.hasOwnProperty.call(value, 'imageParts')) keys.push('imageParts');
+  if (!exactKeys(value, keys)
     || typeof value.comercioId !== 'string' || !UUID_RE.test(value.comercioId)
     || typeof value.requestId !== 'string' || !UUID_RE.test(value.requestId)
     || typeof value.mediaType !== 'string' || !IMAGE_TYPES.has(value.mediaType)
@@ -83,6 +85,18 @@ export function validateInvoiceImageRequest(value) {
   const imageBytes = decodedBase64Bytes(value.imageBase64);
   if (imageBytes < 1) return { ok: false, code: 'DATOS_INVALIDOS' };
   if (imageBytes > F6_INVOICE_MAX_BYTES) return { ok: false, code: 'IMAGEN_DEMASIADO_GRANDE' };
+  if (keys.includes('imageParts')) {
+    if (!Array.isArray(value.imageParts) || value.imageParts.length > 3) return { ok: false, code: 'DATOS_INVALIDOS' };
+    let partBytes = 0;
+    for (const part of value.imageParts) {
+      if (!exactKeys(part, ['imageBase64', 'mediaType']) || !['image/png', 'image/jpeg', 'image/webp'].includes(part.mediaType)
+        || typeof part.imageBase64 !== 'string') return { ok: false, code: 'DATOS_INVALIDOS' };
+      const bytes = decodedBase64Bytes(part.imageBase64);
+      if (bytes < 1) return { ok: false, code: 'DATOS_INVALIDOS' };
+      partBytes += bytes;
+      if (partBytes > F6_INVOICE_MAX_BYTES) return { ok: false, code: 'IMAGEN_DEMASIADO_GRANDE' };
+    }
+  }
   return { ok: true, ...value, imageBytes };
 }
 

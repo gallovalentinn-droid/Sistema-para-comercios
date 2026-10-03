@@ -1,6 +1,44 @@
 # MiComercio.ar — contexto de continuidad
 
-Actualizado: 2026-10-02 (America/Argentina/Buenos_Aires)
+Actualizado: 2026-10-03 (America/Argentina/Buenos_Aires)
+
+## REV83 — publicación del lector doble en curso, 03/10/2026
+
+El usuario autorizó aplicar la corrección GPT a la beta y entregar el ZIP completo. Ya integrado: GPT-6 Luna principal para JPEG/PNG/WebP y Gemini 3.8 Flash de respaldo transitorio; HEIC/HEIF por Gemini. Una reserva de cupo, hasta dos llamadas secuenciales y plazo conjunto 90 segundos. Sectores ampliados superpuestos desde Canvas en beta; identidad y caché REV83. 429 desconocidos, saldo agotado, credenciales inválidas y validación no activan respaldo. Sin OpenAI configurado, conserva Gemini.
+
+Verificado en código: revisión independiente; hallazgo sobre error.type insuficiente corregido con pruebas rojas/verdes. Local: 459/459, integridad de 28 archivos y navegador 1366/390 con la foto real, preparación de tres sectores y revisión simulada sin escrituras. Servidor público: migración rev83_lector_doble aplicada, modelos admitidos y permisos de RPC conservados; prueba transaccional sin datos. leer-factura ACTIVE v21, JWT habilitado, cinco archivos idénticos. Web pública/ZIP y secreto OpenAI están pendientes de completar; el usuario recibió ayuda para configurarlo sin mostrar la clave. Informe: entregables/publicacion-REV83-2026-10-03/INFORME.md. Las entradas inferiores son historial, no estado actual.
+
+## Lector GPT corregido localmente — 03/10/2026
+
+El usuario pidió corregir GPT y darle las instrucciones para funcionar con las reglas de Gemini. Nuevo adaptador `supabase/functions/_shared/f6-openai-invoice-reader.mjs`: reutiliza prompt/esquema/validación Gemini, agrega instrucciones para columnas, variedades, packs, ceros y totales parciales; evidencia de subtotal e impuesto de fila para cotejar importes antes del descuento global; normaliza presentaciones explícitas sin confundir códigos entre paréntesis y conserva lo impreso si la expansión introduce otro alfabeto. Mantiene el contrato final de la factura. Incluye normalización de usage OpenAI, sin sumar dos veces razonamiento.
+
+Las instrucciones solas aún fallaban; se comprobó lectura con imagen completa y tres sectores ampliados superpuestos, medium/high, sin reintentos. Dos lecturas por sectores: 38/38 códigos, cantidades, precios, descuentos y unidades por presentación contra referencia manual; Fantoche blanco y Lipo correctos. No se puntuaron exhaustivamente todas las descripciones. Última llamada mediante arnés guardado: HTTP 200, validación aprobada, 41,891 segundos, costo Standard calculado US$0,003649175. El total final sigue ausente en esta página 1/2; no se inventó. Una muestra, sin garantía de precisión o disponibilidad general.
+
+Verificado en código y localmente: 446/446 pruebas, 12 focales con fallos previos observados; revisión independiente y tres hallazgos reproducidos/corregidos, relectura sin importantes restantes. Una suite inicialmente restringida tuvo una falla de localhost por EACCES; ejecución autorizada pasó. `entregables/prueba-openai-2026-10-03/probar-lector.cjs` conserva el arnés reproducible; prepara sectores mediante Canvas, no guarda la foto y hace una sola llamada. `--prepare-only` no consume API. El adaptador por sí solo no prepara sectores: recibe imageParts del llamador.
+
+No activado ni desplegado en la beta pública; Gemini y sus archivos actuales, HTML y service worker no se modificaron. No se consumió cupo del comercio ni se hicieron compras/stock/Gemini. Pendiente integrar proveedores, preparar sectores en el flujo real y adaptar telemetría/configuración segura; luego verificar públicamente. Informe: entregables/prueba-openai-2026-10-03/CORRECCION-LECTOR.md. Las entradas siguientes conservan el historial de pruebas anteriores.
+
+## Prueba real de GPT-6 Luna con una foto — 03/10/2026
+
+El usuario adjuntó una factura Honre S.A., página 1/2, y pidió probarla. Dos llamadas reales a GPT-6 Luna, store:false, imagen high y razonamiento low. Con el texto actual: 38/38 renglones, códigos, cantidades, precios y descuentos cotejados; unidades por presentación incorrectas en 13 filas. Con aclaraciones generales: packs corregidos, pero precios y descuentos desplazados en dos filas. Ambas confundieron Fantoche blanco con chocolate y pasaron el validador actual. No se puntuaron exhaustivamente todos los nombres. Total:0 porque el total final no se ve en esta página.
+
+Tiempos observados: 26,174 y 29,553 segundos. Costo conjunto calculado desde usage y tarifas Standard: US$0,0042496, incluida escritura de caché informada por la API. Una muestra, sin garantía de disponibilidad o precisión general. Verificado localmente: respuestas reales, referencia manual y comparación por filas. Verificado en código: el lector sigue con Gemini. No se probó en la beta pública, no se consumió Gemini, no hubo compras ni despliegues y no se ejecutó la suite completa porque no se cambió código de aplicación ni se declara una corrección. Informe y evidencia: entregables/prueba-openai-2026-10-03/INFORME.md. Pendientes: segunda página y más muestras; comprobar packs, variedades y correspondencia de celdas antes de integrar proveedores.
+
+## Acceso a OpenAI habilitado — 03/10/2026
+
+El usuario autorizó probar GPT-6 Luna como posible principal y Gemini como respaldo, y crear una clave mediante el flujo seguro. Confirmó destino local `.env.local` y vencimiento de 30 días. La credencial se guardó únicamente en ese archivo aprobado, sin mostrarla; `.gitignore` excluye el archivo y los temporales de escritura. No incluir credenciales en documentación, paquetes ni commits.
+
+Verificado localmente: escritura segura y exclusión de Git. La llamada mínima inicial a OpenAI Responses, con `gpt-6-luna`, `store:false` y sin factura, respondió HTTP 429, `error.code:credit_balance_exhausted` y `error.type:insufficient_quota`. La primera ejecución no llegó al proveedor por restricción de red; la ejecución autorizada fuera de esa restricción obtuvo el error de saldo. No se reintentó hasta que el usuario avisó haber cargado créditos.
+
+Tras ese aviso, una nueva llamada mínima real respondió HTTP 200, `status:completed`, modelo `gpt-6-luna` y el texto esperado `OK`: 11 tokens de entrada y 5 de salida, sin razonamiento, 2.568 ms. Esto comprueba acceso para una generación mínima; no se consultó el saldo exacto ni se probó visión o extracción de facturas.
+
+Verificado en código: el lector continúa usando Gemini; no se implementó ni desplegó el cambio de proveedores. No se repitió el escenario en la beta pública y no se afirma mejor disponibilidad ni precisión de GPT. La primera foto real se probó después, con los resultados y pendientes de la entrada superior. No se ejecutó de nuevo la suite completa porque no se cambió código de la aplicación ni se declara una corrección.
+
+## Intento real del lector correlacionado — 02/10/2026
+
+El usuario compartió el diagnóstico de la referencia `51d2e57b-c276-436a-9406-440d5e8e41fa`. Consulta de sólo lectura de registros de producción: evento `F6_GEMINI_PROVIDER_ERROR` a las 2026-10-03 00:31:57.124 UTC (02/10/2026 21:31:57.124 en Argentina), etapa `provider`, HTTP 503, categoría `UNAVAILABLE` y `retryAfterSeconds:30`. Coincide con el aviso compartido; este intento falló en Google antes de obtener una lectura para validar. No prueba recuperación posterior ni permite distinguir sobrecarga de otra indisponibilidad interna del proveedor.
+
+Verificado en código: una solicitud a Google por intento y reserva de cupo previa; el aviso de espera no ejecuta un reintento automático. Verificado localmente: 11/11 pruebas focales de diagnóstico REV82 aprobadas. Verificado en el entorno público: correlación de la referencia con el evento real de Google; no se repitió una lectura ni se consumió Gemini durante la investigación. No se cambió código ni se desplegó nada. Quedan pendientes la recuperación transitoria y la revisión del contrato del cupo; este diagnóstico no constituye una corrección de la disponibilidad de Google.
 
 ## REV82 publicada — diagnóstico del lector y Comparar turnos, 02/10/2026
 
@@ -10,7 +48,7 @@ Verificado en código/localmente: 434/434 pruebas Windows, 25 archivos de integr
 
 Verificado público: leer-factura ACTIVE v20, JWT habilitado y sus tres archivos idénticos a los locales, tras comparar v19 con la base antes de desplegar. Web publicada por commit 53e932875050e45399bd18843178267dfdf857d6, GitHub Pages run 37054355419 exitoso; HTML y service worker públicos coinciden con el manifiesto REV82. OPTIONS 204 y POST sin sesión 401. Recorridos de lector y stock sobre el HTML público a 1366/390 px, con sesión/datos/respuestas sintéticos y escrituras externas bloqueadas: aprobados. No se confirmó una compra ni se consumió Gemini. No se aplicaron migraciones ni se cambiaron datos operativos. La actualización documental posterior conserva los mismos artefactos.
 
-Informe: entregables/DETALLE-CAMBIOS-REV82-2026-10-02.md; capturas locales/públicas en entregables/lector-diagnostico-REV82 y entregables/comparar-turnos-REV81. Sigue pendiente capturar el siguiente intento real contra Gemini y correlacionar su referencia con los registros: se mejoró el diagnóstico, no se afirma haber resuelto la disponibilidad/cuotas de Google. Las entradas inferiores de REV81 local y diagnóstico v19 son antecedentes históricos, reemplazados por este estado para la publicación.
+Informe: entregables/DETALLE-CAMBIOS-REV82-2026-10-02.md; capturas locales/públicas en entregables/lector-diagnostico-REV82 y entregables/comparar-turnos-REV81. El siguiente intento real quedó correlacionado en la entrada superior: se mejoró el diagnóstico, no se afirma haber resuelto la disponibilidad/cuotas de Google. Las entradas inferiores de REV81 local y diagnóstico v19 son antecedentes históricos, reemplazados por este estado para la publicación.
 
 ## Diagnóstico del lector IA — 02/10/2026
 
