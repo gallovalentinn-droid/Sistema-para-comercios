@@ -1,6 +1,6 @@
 # Publicación REV83 — lector GPT y respaldo Gemini
 
-Estado en preparación final de publicación web, 03/10/2026.
+Beta REV83 publicada, 03/10/2026. GPT se selecciona cuando OPENAI_API_KEY está configurada; mientras tanto se conserva Gemini.
 
 ## Verificado en código
 
@@ -20,4 +20,10 @@ Migración `rev83_lector_doble` aplicada. La telemetría admite ambos modelos; p
 
 Edge Function `leer-factura` v21 ACTIVE, JWT requerido; sus cinco archivos coinciden exactamente con la fuente local. Falta confirmar OPENAI_API_KEY en los secretos privados del servidor y realizar una lectura autenticada por la beta.
 
-Publicación web y ZIP: pendientes de completar en esta tarea.
+Beta pública https://micomercio.ar/beta/ verificada: GitHub Pages run 37144385820 completado con éxito, commit d5308f022387a101047a34bee32a51b9d6bfa598. HTML SHA-256 16432e21bf045dfd3211a830d63e503e4c22f937ba11a9c4c828ffff020647b2; service worker SHA-256 22600c331eee1038f158ffbe2dbf45276e8fc9421c2f41a3aac2d329680cbc3c. Ambos idénticos a la fuente local.
+
+Recorrido repetido sobre el HTML público en 1366/390 con respuestas simuladas: sectores de la foto, diagnóstico OpenAI, resultado Gemini y revisión de factura; cero escrituras. No equivale a una llamada autenticada real al lector. CORS permitido de micomercio.ar: HTTP 204; POST sin JWT: HTTP 401.
+
+## Entrega
+
+ZIP: entregables/MiComercio-Sistema-Completo-REV83-2026-10-03.zip. Contiene fuente del sistema y actualizaciones SQL, pruebas e instrucciones; excluye secretos, datos de comercios, fotografías privadas, archivos Git y paquetes históricos. Archivo de hashes SHA-256 dentro del ZIP y comprobación de integridad de la extracción. Conserva el servidor existente; no incluye una copia de la base de producción.

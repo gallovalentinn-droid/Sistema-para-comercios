@@ -24,19 +24,27 @@
 ### Task 1: Orquestación y telemetría
 **Files:** `_shared/f6-invoice-providers.mjs`, `leer-factura/index.ts`, `_shared/f6-invoice-reader.mjs`, `REV83-LECTOR-DOBLE.sql`, `tests/edge-lector-proveedores-rev83.test.cjs`.
 **Interface:** `readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,fetchImpl,now,totalTimeoutMs,primaryTimeoutMs})` devuelve `{invoice,iaUsage,model,provider,fallbackUsed}` o error seguro `{code,status,diagnostic}`. Validación admite imageParts opcional, hasta 3 PNG/JPEG/WebP y 8 MB adicionales en total. La RPC acepta exactamente Gemini 3.8 Flash y GPT 6 Luna conservando permisos.
-- [ ] Agregar pruebas de principal, respaldo por 503/conexión/timeout/429 temporal, exclusión de saldo/credenciales/validación, agotamiento del plazo y límites de sectores; observar rojo.
-- [ ] Implementar el módulo y conectar una sola reserva y telemetría del modelo real; observar verde y regresiones anteriores.
-- [ ] Preparar migración idempotente que amplía solo la lista de modelos preservando autorización y cupos.
+- [x] Agregar pruebas de principal, respaldo por 503/conexión/timeout/429 temporal, exclusión de saldo/credenciales/validación, agotamiento del plazo y límites de sectores; observar rojo.
+- [x] Implementar el módulo y conectar una sola reserva y telemetría del modelo real; observar verde y regresiones anteriores.
+- [x] Preparar migración idempotente que amplía solo la lista de modelos preservando autorización y cupos.
 
 ### Task 2: Beta y pruebas
 **Files:** `beta/index.html`, `beta/sw.js`, `integrity-manifest.json`, pruebas correspondientes y navegador REV83.
 **Interface:** `f83SectoresFactura(imageBase64,mediaType)` devuelve tres sectores superpuestos, máximo 2048 px por dimensión, hasta escala 2, o [] si no decodifica o excede el presupuesto. Mensajes usan proveedor de la respuesta, sin texto externo.
-- [ ] Probar sectores de foto válida, imagen no decodificable, diagnóstico OpenAI/Gemini y revisión sin escrituras; observar rojo.
-- [ ] Integrar sectores, mensajes y REV83; actualizar hashes.
-- [ ] Ejecutar todas las pruebas locales, navegador escritorio/móvil e integridad. Revisión independiente antes de publicar.
+- [x] Probar sectores de foto válida, imagen no decodificable, diagnóstico OpenAI/Gemini y revisión sin escrituras; observar rojo.
+- [x] Integrar sectores, mensajes y REV83; actualizar hashes.
+- [x] Ejecutar todas las pruebas locales, navegador escritorio/móvil e integridad. Revisión independiente antes de publicar.
 
 ### Task 3: Publicación y entrega
 **Files:** contexto, informe de publicación y ZIP limpio en entregables.
 - [ ] Verificar secreto privado del servidor (usuario configurándolo), aplicar migración y desplegar función con JWT.
-- [ ] Publicar beta, confirmar versión/hashes, repetir flujo público y registrar límites de verificación real.
+- [x] Publicar beta, confirmar versión/hashes, repetir flujo público y registrar límites de verificación real.
 - [ ] ZIP de archivos versionados y nuevos archivos necesarios, sin secretos, fotos privadas ni entregables históricos. Verificar contenido/hash e integridad extraída.
+
+## Registro de ejecución
+
+- Implementación directa en el checkout existente por pedido explícito de aplicar en beta. Archivos ajenos sin incorporar.
+- 459/459 pruebas y 28 hashes; escenarios 1366/390 locales y públicos aprobados.
+- Revisión independiente detectó saldo por error.type. Pruebas de saldo/429 desconocido/credenciales RED→GREEN y suite completa verde.
+- Migración y Edge v21 publicadas, permisos conservados; cinco archivos desplegados idénticos. Pages 37144385820 success.
+- La configuración privada de OPENAI_API_KEY depende del usuario: conector no dispone de gestión de secretos; asistido con enlace y portapapeles. Lectura autenticada pública pendiente.
