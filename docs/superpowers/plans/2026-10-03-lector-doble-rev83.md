@@ -37,7 +37,7 @@
 
 ### Task 3: Publicación y entrega
 **Files:** contexto, informe de publicación y ZIP limpio en entregables.
-- [ ] Verificar secreto privado del servidor (usuario configurándolo), aplicar migración y desplegar función con JWT.
+- [x] Verificar secreto privado del servidor, aplicar migración y desplegar función con JWT.
 - [x] Publicar beta, confirmar versión/hashes, repetir flujo público y registrar límites de verificación real.
 - [x] ZIP de archivos versionados y nuevos archivos necesarios, sin secretos, fotos privadas ni entregables históricos. Verificar contenido/hash e integridad extraída.
 
@@ -47,5 +47,6 @@
 - 459/459 pruebas y 28 hashes; escenarios 1366/390 locales y públicos aprobados.
 - Revisión independiente detectó saldo por error.type. Pruebas de saldo/429 desconocido/credenciales RED→GREEN y suite completa verde.
 - Migración y Edge v21 publicadas, permisos conservados; cinco archivos desplegados idénticos. Pages 37144385820 success.
-- La configuración privada de OPENAI_API_KEY depende del usuario: conector no dispone de gestión de secretos; asistido con enlace y portapapeles. Lectura autenticada pública pendiente.
+- OPENAI_API_KEY guardada mediante la interfaz de Supabase, con autorización del usuario. Valor extraído de la copia pegada y verificado por SHA-256 contra la clave local probada, sin mostrarlo. Lectura autenticada pública posterior aprobada, detallada al final.
 - ZIP verificado: 228 archivos sin credenciales, comparación SHA-256 de cada archivo e integridad 28/28; suite extraída 459/459.
+- Lectura autenticada real posterior: GPT confirmado por telemetría, 38/38 códigos/cantidades/precios/descuentos/packs de la foto original correctos en revisión, sin confirmar compra. Hubo un rechazo previo ROW_AMOUNT_MISMATCH en fila 1; no se conserva su respuesta y no se afirma corrección definitiva. Código sin cambios durante este diagnóstico.
