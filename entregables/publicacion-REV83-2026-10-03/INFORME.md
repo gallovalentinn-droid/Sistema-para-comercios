@@ -27,3 +27,5 @@ Recorrido repetido sobre el HTML público en 1366/390 con respuestas simuladas: 
 ## Entrega
 
 ZIP: entregables/MiComercio-Sistema-Completo-REV83-2026-10-03.zip. Contiene fuente del sistema y actualizaciones SQL, pruebas e instrucciones; excluye secretos, datos de comercios, fotografías privadas, archivos Git y paquetes históricos. Archivo de hashes SHA-256 dentro del ZIP y comprobación de integridad de la extracción. Conserva el servidor existente; no incluye una copia de la base de producción.
+
+Verificación del paquete completada: 228 archivos, cada archivo idéntico a la fuente por SHA-256; integridad 28/28 y 459/459 pruebas repetidas desde la extracción independiente. El primer armado omitía archivos de evaluación usados por las pruebas; se incluyeron los recursos versionados y el paquete final pasó toda la suite.

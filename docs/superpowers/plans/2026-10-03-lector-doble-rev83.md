@@ -39,7 +39,7 @@
 **Files:** contexto, informe de publicación y ZIP limpio en entregables.
 - [ ] Verificar secreto privado del servidor (usuario configurándolo), aplicar migración y desplegar función con JWT.
 - [x] Publicar beta, confirmar versión/hashes, repetir flujo público y registrar límites de verificación real.
-- [ ] ZIP de archivos versionados y nuevos archivos necesarios, sin secretos, fotos privadas ni entregables históricos. Verificar contenido/hash e integridad extraída.
+- [x] ZIP de archivos versionados y nuevos archivos necesarios, sin secretos, fotos privadas ni entregables históricos. Verificar contenido/hash e integridad extraída.
 
 ## Registro de ejecución
 
@@ -48,3 +48,4 @@
 - Revisión independiente detectó saldo por error.type. Pruebas de saldo/429 desconocido/credenciales RED→GREEN y suite completa verde.
 - Migración y Edge v21 publicadas, permisos conservados; cinco archivos desplegados idénticos. Pages 37144385820 success.
 - La configuración privada de OPENAI_API_KEY depende del usuario: conector no dispone de gestión de secretos; asistido con enlace y portapapeles. Lectura autenticada pública pendiente.
+- ZIP verificado: 228 archivos sin credenciales, comparación SHA-256 de cada archivo e integridad 28/28; suite extraída 459/459.
