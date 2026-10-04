@@ -7333,7 +7333,8 @@ function rev70PrepararFilas(parsed,productos,mem){
 // refDe(fila) devuelve el identificador estable del producto elegido (o '' para no recordar la fila).
 function rev70RecordarRevision(mem,filas,proveedor,refDe){
   (filas||[]).forEach(r=>{
-    if(!r||!r.prodId||!(r.cantidad>0)||r.excluida||rev84EstadoRevision(r).pending)return;
+    if(!r||!r.prodId||!(r.cantidad>0))return;
+    if(r.excluida||rev84EstadoRevision(r).pending)return;
     const ref=refDe?refDe(r):(r.prodId==='__nuevo__'?'':r.prodId);
     if(ref)rev70Recordar(mem,{proveedor,texto:r.original,codigo:r.codigo,ref,upb:r.porBulto,modoStock:r._rev84?r.modoStock:null,packDetectado:r._rev84?r.packDetectado:null});
   });
