@@ -35,6 +35,7 @@
     "REV84-LECTOR-MEMORIA.sql": "44ca468e4ce851d0ba1559641d0d7da63d3ac19d1ba6b0d47caf8386f4804c4d",
     "REV84-LECTOR-CUPO.sql": "eb0f6bc52a5b3988ccd78c65b0b547efc9207c3ddec16e61bae76f1ec5bb7e2a",
     "supabase/functions/_shared/f6-invoice-review.mjs": "1387913d9cc164382893ddb2f2a52356a155bbcd65e5a6e2943e5e03093b0540",
-    "tools/actualizar-integridad.cjs": "4ad9f94beddb506e3ce8b72b73bfefdf09313a3345acdaca3e93bde910f970f5"
+    "tools/actualizar-integridad.cjs": "4ad9f94beddb506e3ce8b72b73bfefdf09313a3345acdaca3e93bde910f970f5",
+    "LEEME-REV84.md": "de63b120dd0b56a25a95cadec612ccdc545f8cef011e8146f3a7d9e2295818bc"
   }
 }

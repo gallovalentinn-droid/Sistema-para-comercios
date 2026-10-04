@@ -355,3 +355,10 @@ Entrega: `entregables/MiComercio-Sistema-Completo-REV78-2026-10-01.zip`, SHA-256
 Verificado localmente: 358/358 pruebas, nueve escenarios financieros y tres identidades aproximadas en navegador, recorridos heredados REV77/76/54, integridad de 25 archivos y contenido del ZIP idéntico a los 230 archivos de la copia probada. Catálogo autorizado: 47/50 y 41/45 automáticos correctos, cero incorrectos; 23 contraejemplos sin elección errónea; 6.298 mutaciones sin fallos según su oráculo. No se incluye el catálogo privado.
 
 No integrado ni publicado; no se modificó Supabase. La beta pública no fue verificada de nuevo en esta tarea. Siguen pendientes Gemini real, facturas nuevas y dos dispositivos, además de los cambios de empleados, WhatsApp y comparación por turno para integrar después. Los dos problemas heredados de descuento global sobre deuda y Ver en Caja sin ventas quedan expresamente pendientes. Antes de desplegar, comparar backend contra lo realmente publicado.
+
+
+## Preparación local del lector — REV84 (2026-10-04)
+
+Rama codex/lector-rev84, base eb468b0. L1–L9 preparados localmente: stock explícito, control compartido de importes, costo final con impuestos, continuidad GPT/Gemini, reservas e intentos separados y sectores JPEG sin cambiar el original. Documentación vigente: LEEME-REV84.md e informe entregables/INFORME-REV84-2026-10-04.md. Plan y decisiones en docs/superpowers/plans/2026-10-03-lector-facturas-rev84.md.
+
+479/479 pruebas Node; SQL real local idempotente y concurrente; navegadores escritorio/celular y compatibilidad/reversión comprobados. Revisión final e integridad del ZIP se consignan en el informe de entrega. Sin llamadas pagas ni escrituras públicas. Lectura pública comprobada el 04/10: web REV83, función leer-factura versión 23 ACTIVE con JWT. Pendientes autorizaciones independientes de memoria/cupo y cuatro lecturas comparativas más una pública. El despliegue puede funcionar sin estas migraciones, pero debe declarar las limitaciones; no presentar L5 como activo sin SQL. La reversión deja la migración y registros y puede reducir cupo disponible. No compensar automáticamente.

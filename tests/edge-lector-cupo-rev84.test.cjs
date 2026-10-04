@@ -24,6 +24,10 @@ test('REV84 entrega factura válida aunque fallen registro y cierre, sin devolve
 test('REV84 reserva dos plazas para principal/respaldo, una para HEIC o proveedor único',async()=>{
  const r=await run({openai:true,responses:[new Response('{}',{status:503}),new Response(JSON.stringify(body))],rpcImpl:base});assert.equal(r.status,200);assert.equal(r.rpcParams.find(p=>p.p_max_attempts).p_max_attempts,2);assert.equal(r.rpcs.filter(n=>n.includes('iniciar_intento')).length,2);assert.equal(r.rpcs.filter(n=>n.includes('reservar')).length,1);
  const single=await run({status:200,body,rpcImpl:base});assert.equal(single.rpcParams.find(p=>p.p_max_attempts).p_max_attempts,1);
+ const heic=await run({openai:true,status:200,body,mediaType:'image/heic',rpcImpl:base});assert.equal(heic.rpcParams.find(p=>p.p_max_attempts).p_max_attempts,1);assert.equal(heic.data.iaProvider,'gemini');
  const hook=await run({rpcImpl:n=>n.includes('iniciar_intento')?{error:{code:'PRIVATE'}}:base(n)});assert.equal(hook.calls,0);assert.equal(hook.status,503);assert.ok(hook.rpcs.some(n=>n.includes('finalizar')));
  const empty=await run({status:200,body:{...body,steps:[{type:'model_output',content:[{type:'text',text:JSON.stringify({...invoice,items:[]})}]}]},rpcImpl:base});assert.equal(empty.status,422);assert.ok(!empty.rpcs.some(n=>n.includes('registrar_resultado')));assert.ok(empty.rpcs.some(n=>n.includes('finalizar')));
+});
+test('REV84 cliente nuevo contra servidor REV83 durante reversión falla antes de reserva y AI',async()=>{
+ const path=require('node:path');const r=await run({serverSource:path.join(__dirname,'edge-fixture/leer-factura-rev83.ts'),readerModule:path.join(__dirname,'edge-fixture/reader-rev83.mjs'),status:200,body});assert.equal(r.status,400);assert.equal(r.data.code,'DATOS_INVALIDOS');assert.equal(r.calls,0);assert.equal(r.rpcs.length,0);
 });
