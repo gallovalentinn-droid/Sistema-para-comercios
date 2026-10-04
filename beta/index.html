@@ -7372,7 +7372,7 @@ function f82DescribirFalloFactura(error={}){
     IA_RESERVA_NO_DISPONIBLE:'No se pudo comprobar o reservar una lectura para este comercio.',
     IA_CONEXION_NAVEGADOR:'No se pudo conectar con el lector desde este dispositivo. Revisá la conexión.',
     IA_CONEXION_PROVEEDOR:'El servidor no pudo completar la conexión con Google.',
-    IA_TIEMPO_AGOTADO:'Se agotó el tiempo de espera de la lectura (90 segundos).',
+    IA_TIEMPO_AGOTADO:'Se agotó el tiempo de espera de la lectura.',
     IA_RESPUESTA_INVALIDA:'Google respondió, pero la respuesta no tiene un formato válido para leerla.',
     IA_SOLICITUD_RECHAZADA:'Google rechazó la solicitud del lector. Hay que revisar su configuración y el formato enviado.',
     IA_TELEMETRIA_NO_REGISTRADA:'La lectura llegó, pero no se pudo registrar su resultado en el servidor.',
@@ -7390,6 +7390,11 @@ function f82DescribirFalloFactura(error={}){
   const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
   const d=error.diagnostic&&typeof error.diagnostic==='object'?error.diagnostic:{};
   messages.IA_SALDO_AGOTADO='OpenAI informó que no hay saldo o créditos disponibles para leer la factura.';
+  messages.CLIENTE_REQUIERE_ACTUALIZACION='Hay una versión nueva del lector. Actualizá la página antes de volver a leer.';
+  messages.LECTURA_EN_CURSO='Esta lectura sigue en curso. Esperá su respuesta antes de iniciar otra.';
+  messages.LECTURA_NO_RECUPERABLE='Esta solicitud ya terminó y su respuesta no está disponible. Podés iniciar una lectura nueva.';
+  messages.IA_LIMITE_FRECUENCIA='Hubo muchas lecturas seguidas. Esperá unos minutos antes de iniciar otra.';
+  messages.IA_LECTURAS_EN_CURSO='Ya hay dos lecturas en curso para este comercio. Esperá a que terminen.';
   fields.subtotal='subtotal de la fila';fields.impuestoFila='impuesto de la fila';
   reasons.ROW_AMOUNT_MISMATCH='no coincide con la cantidad, el precio, el descuento y el impuesto leídos';
   reasons.EXPECTED_VISIBLE_AMOUNT_OR_NULL='no tiene un importe visible válido';
@@ -7428,6 +7433,12 @@ function f82MostrarFalloFactura(ov,error){
     box.hidden=false;
     box.innerHTML=`<strong>No se pudo completar la lectura</strong><p>${esc(result.message)}</p><p>No se cargó ningún producto. Podés cargar la factura a mano abajo.</p><details><summary>Detalle del error</summary><pre>${esc(result.detail)}</pre><button type="button" class="btn ghost" id="facCopiarError">Copiar detalle</button></details>`;
     $('#facCopiarError',box).onclick=async()=>{try{await navigator.clipboard.writeText(result.message+'\n'+result.detail);aviso('Detalle copiado');}catch(_){aviso('No se pudo copiar. Podés seleccionar el detalle visible.','bad');}};
+    if(ov._rev84Response||ov._rev84File){
+      const retry=document.createElement('button');retry.type='button';retry.className='btn';retry.id='facReintentar';retry.textContent=ov._rev84Response?'Volver a revisar la lectura':'Reintentar lectura';
+      retry.onclick=async()=>{retry.disabled=true;try{if(ov._rev84Response)await rev84RevisarRespuesta(ov);else await leerFacturaFoto(ov._rev84File,ov);}catch(_){retry.disabled=false;aviso('No se pudo abrir la revisión. La lectura sigue disponible mientras esta pantalla esté abierta.','bad');}};
+      box.appendChild(retry);
+      if(!ov._rev84Response){const note=document.createElement('p');note.textContent='Reintentar inicia una lectura nueva y vuelve a consultar a la IA.';box.appendChild(note);}
+    }
     box.scrollIntoView({block:'nearest'});
   }
   aviso(result.message,'bad');mostrarCargaManualFactura(ov,{focus:false});
@@ -7450,7 +7461,14 @@ async function f83SectoresFactura(imageBase64,mediaType){
   }catch(_){return [];}
 }
 // REV83_SECTORES_FIN
+async function rev84RevisarRespuesta(ov){
+  const data=ov._rev84Response;if(!data)return;
+  const memoria=await rev70SincronizarMemoria(f3Estado.comercioId);
+  abrirRevisionFactura(data,{memoria});
+}
 async function leerFacturaFoto(file,ov){
+  if(ov._rev84Reading)return;
+  ov._rev84Reading=true;ov._rev84File=file;ov._rev84Response=null;
   const label=$('#facFotoLabel',ov);
   const estado=$('.invoice-ai-choose',label);
   const original=estado?estado.textContent:'';
@@ -7459,7 +7477,9 @@ async function leerFacturaFoto(file,ov){
   label.style.pointerEvents='none';
   label.style.opacity='.7';
   const errorBox=$('#facError',ov);if(errorBox){errorBox.hidden=true;errorBox.textContent='';}
-  const requestId=crypto.randomUUID();let stage='browser';
+  const requestId=crypto.randomUUID();let stage='browser',timeout;
+  const progress=setTimeout(()=>{if(estado)estado.textContent='La lectura sigue en curso…';},20_000);
+  const controller=new AbortController();
   try{
     if(!(sb&&sesion)) throw new Error('SESION_REQUERIDA');
     if(file.size>8*1024*1024) throw new Error('IMAGEN_DEMASIADO_GRANDE');
@@ -7468,9 +7488,9 @@ async function leerFacturaFoto(file,ov){
     if(!f3Estado.comercioId) throw new Error('COMERCIO_NO_DISPONIBLE');
     const b64=await fileABase64(file);
     const imageParts=await f83SectoresFactura(b64,mime);
-    const {data,error}=await sb.functions.invoke('leer-factura',{
-      body:{comercioId:f3Estado.comercioId,requestId,imageBase64:b64,mediaType:mime,imageParts}
-    });
+    const {data,error}=await Promise.race([sb.functions.invoke('leer-factura',{
+      body:{comercioId:f3Estado.comercioId,requestId,imageBase64:b64,mediaType:mime,imageParts,readerContract:'f6-invoice-review-v1'},signal:controller.signal
+    }),new Promise((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(Object.assign(new Error('IA_TIEMPO_AGOTADO'),{code:'IA_TIEMPO_AGOTADO'}));},160_000);})]);
     if(error){
       let detalle=null;
       try{
@@ -7486,17 +7506,19 @@ async function leerFacturaFoto(file,ov){
       falla.status=status;falla.diagnostic=detalle&&detalle.diagnostic||{stage:'browser',requestId};
       throw falla;
     }
-    f6RegistrarUsoIa(data&&data.iaUsage);
+    if(data&&data.code)throw Object.assign(new Error('LECTURA_FALLIDA'),{code:data.code,diagnostic:data.diagnostic,limite:data.limite});
     if(!data||!data.items||!data.items.length){f82MostrarFalloFactura(ov,{code:'FACTURA_SIN_PRODUCTOS',diagnostic:{stage:'validation',requestId,provider:data&&data.iaProvider}});return;}
+    ov._rev84Response=data;
+    f6RegistrarUsoIa(data&&data.iaUsage);
     stage='revision';
     if(estado)estado.textContent='Buscando tus productos…';
-    const memoria=await rev70SincronizarMemoria(f3Estado.comercioId);
-    abrirRevisionFactura(data,{memoria});
+    await rev84RevisarRespuesta(ov);
   }catch(e){
     const failure={code:e&&e.code||stage==='revision'&&'IA_REVISION_NO_DISPONIBLE'||e&&e.message,limite:e&&e.limite,status:e&&e.status,diagnostic:e&&e.diagnostic||{stage,requestId}};
     console.error('F6_IA_CLIENT_ERROR',f82DescribirFalloFactura(failure).detail);
     f82MostrarFalloFactura(ov,failure);
   }finally{
+    clearTimeout(timeout);clearTimeout(progress);ov._rev84Reading=false;
     if(document.body.contains(label)){
       if(estado)estado.textContent=original;
       label.removeAttribute('aria-busy');

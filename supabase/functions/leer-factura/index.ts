@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.111.0";
 import { jsonResponse } from "../_shared/f5-auth-core.mjs";
 import { buildInvoiceTelemetry, validateInvoiceImageRequest } from "../_shared/f6-invoice-reader.mjs";
-import { readInvoiceWithProviders } from "../_shared/f6-invoice-providers.mjs";
+import { readInvoiceWithProviders, invoiceStep } from "../_shared/f6-invoice-providers.mjs";
 
 const BODY_LIMIT_BYTES = 24 * 1024 * 1024;
 
@@ -85,6 +85,8 @@ async function readJsonBody(request: Request): Promise<unknown> {
 
 
 Deno.serve(async (request: Request) => {
+  const arrived = Date.now(), deadline = arrived + 145_000;
+  const admissionTime = () => Math.max(1,Math.min(10_000-(Date.now()-arrived),deadline-Date.now()));
   const origin = request.headers.get("origin")?.trim() ?? "";
   if (origin && !allowedOrigins().has(origin)) {
     return jsonResponse({ code: "ORIGEN_NO_PERMITIDO" }, 403);
@@ -96,7 +98,7 @@ Deno.serve(async (request: Request) => {
 
   let rawInput: unknown;
   try {
-    rawInput = await readJsonBody(request);
+    rawInput = await invoiceStep(readJsonBody(request),admissionTime());
   } catch (error) {
     const tooLarge = error instanceof Error && error.message === "F6_BODY_TOO_LARGE";
     return respond(origin, { code: tooLarge ? "IMAGEN_DEMASIADO_GRANDE" : "DATOS_INVALIDOS" }, tooLarge ? 413 : 400);
@@ -126,7 +128,7 @@ Deno.serve(async (request: Request) => {
     auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
   });
   let claims;
-  try { claims = await userClient.auth.getClaims(token); }
+  try { claims = await invoiceStep(userClient.auth.getClaims(token),admissionTime()); }
   catch (_) { return fail("IA_AUTENTICACION_NO_DISPONIBLE", 503, "authentication"); }
   const { data: claimsData, error: claimsError } = claims;
   const actorUserId = claimsData?.claims?.sub ?? null;
@@ -134,19 +136,20 @@ Deno.serve(async (request: Request) => {
     return fail("IA_AUTENTICACION_NO_DISPONIBLE", 503, "authentication");
   }
   if (claimsError || !isUuid(actorUserId)) return fail("SESION_INVALIDA", 401, "authentication");
+  if (input.readerContract !== "f6-invoice-review-v1") return fail("CLIENTE_REQUIERE_ACTUALIZACION",426,"client");
 
   const serviceClient = createClient(url, secretKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   let reserved;
-  try { reserved = await serviceClient.rpc(
+  try { reserved = await invoiceStep(serviceClient.rpc(
     "f6_service_reservar_lectura_factura",
     {
       p_actor_user_id: actorUserId,
       p_comercio_id: input.comercioId,
       p_request_id: input.requestId,
     },
-  ); } catch (_) { return fail("IA_RESERVA_NO_DISPONIBLE", 503, "reservation"); }
+  ),admissionTime()); } catch (_) { return fail("IA_RESERVA_NO_DISPONIBLE", 503, "reservation"); }
   const { data: reservation, error: reservationError } = reserved;
   if (reservationError) {
     const detail = String(reservationError.message ?? "");
@@ -166,7 +169,7 @@ Deno.serve(async (request: Request) => {
 
   let stage = "provider";
   try {
-    const result = await readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,fetchImpl:fetch});
+    const result = await readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,fetchImpl:fetch,totalTimeoutMs:Math.max(1,Math.min(135_000,deadline-Date.now()-5_000))});
     const {invoice,iaUsage} = result;
     const telemetry = buildInvoiceTelemetry({invoice,usage:iaUsage,model:result.model});
     stage = "telemetry";

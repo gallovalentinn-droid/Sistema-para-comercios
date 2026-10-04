@@ -76,11 +76,13 @@ function decodedBase64Bytes(value) {
 export function validateInvoiceImageRequest(value) {
   const keys = ['comercioId', 'requestId', 'imageBase64', 'mediaType'];
   if (isRecord(value) && Object.prototype.hasOwnProperty.call(value, 'imageParts')) keys.push('imageParts');
+  if (isRecord(value) && Object.prototype.hasOwnProperty.call(value, 'readerContract')) keys.push('readerContract');
   if (!exactKeys(value, keys)
     || typeof value.comercioId !== 'string' || !UUID_RE.test(value.comercioId)
     || typeof value.requestId !== 'string' || !UUID_RE.test(value.requestId)
     || typeof value.mediaType !== 'string' || !IMAGE_TYPES.has(value.mediaType)
-    || typeof value.imageBase64 !== 'string') {
+    || typeof value.imageBase64 !== 'string'
+    || (keys.includes('readerContract') && (typeof value.readerContract !== 'string' || value.readerContract.length>80))) {
     return { ok: false, code: 'DATOS_INVALIDOS' };
   }
   const imageBytes = decodedBase64Bytes(value.imageBase64);

@@ -7,15 +7,22 @@ const modulo=()=>import(pathToFileURL(path.join(root,'supabase/functions/_shared
 const id='00000000-0000-4000-8000-000000000001';
 const invoice={proveedor:'Privado',nroComprobante:'123',total:100,descuentoGlobal:0,items:[{producto:'Privado',cantidad:1,unidadesPorBulto:1,precioUnit:100,descuento:0}]};
 const output=(data=invoice)=>({status:'completed',steps:[{type:'model_output',content:[{type:'text',text:JSON.stringify(data)}]}]});
-async function run({status=503,body={error:{code:'service_unavailable',message:'PRIVATE SECRET INVOICE'}},throws,telemetryError=false,reservationError=false,claimsError=null,openai=false,responses}={}){
+async function run({status=503,body={error:{code:'service_unavailable',message:'PRIVATE SECRET INVOICE'}},throws,telemetryError=false,reservationError=false,claimsError=null,openai=false,responses,readerContract='f6-invoice-review-v1',rpcImpl}={}){
  const m=await modulo(), providers=await import(pathToFileURL(path.join(root,'supabase/functions/_shared/f6-invoice-providers.mjs')).href);let handler,calls=0;const logs=[],rpcs=[];
- const rpcParams=[];const client={auth:{getClaims:async()=>claimsError?{data:null,error:claimsError}:{data:{claims:{sub:id}}}},rpc:async(name,params)=>{rpcs.push(name);rpcParams.push(params);return name.includes('reservar')?{data:{ok:!reservationError}}:{data:{ok:!telemetryError}};}};
+ const rpcParams=[];const client={auth:{getClaims:async()=>claimsError?{data:null,error:claimsError}:{data:{claims:{sub:id}}}},rpc:async(name,params)=>{rpcs.push(name);rpcParams.push(params);if(rpcImpl)return rpcImpl(name,params);if(name.includes('capacidades'))return {error:{code:'PGRST202',message:'Could not find public.f6_service_capacidades_lector_factura_rev84'}};return name.includes('reservar')?{data:{ok:!reservationError}}:{data:{ok:!telemetryError}};}};
  const context={...m,...providers,Error,Response,Request,TextEncoder,TextDecoder,AbortController,setTimeout,clearTimeout,Set,console:{error:(...x)=>logs.push(x)},jsonResponse:(b,s,h)=>new Response(JSON.stringify(b),{status:s,headers:h}),createClient:()=>client,Deno:{env:{get:n=>n==='OPENAI_API_KEY'?(openai?'synthetic':''):n==='F6_ALLOWED_ORIGINS'?'https://micomercio.ar':'synthetic'},serve:h=>handler=h},fetch:async()=>{calls++;if(throws)throw throws;if(responses)return responses[calls-1];return new Response(typeof body==='string'?body:JSON.stringify(body),{status,headers:{'content-type':'application/json','retry-after':'12'}});}};
  let source=fs.readFileSync(path.join(root,'supabase/functions/leer-factura/index.ts'),'utf8').replace(/^import[\s\S]*?from\s+"[^"]+";\s*/gm,'');
  vm.runInNewContext(stripTypeScriptTypes(source),context);
- const response=await handler(new Request('https://example.test/leer-factura',{method:'POST',headers:{authorization:'Bearer synthetic',origin:'https://micomercio.ar'},body:JSON.stringify({comercioId:id,requestId:id,imageBase64:'AAAA',mediaType:'image/png'})}));
+ const response=await handler(new Request('https://example.test/leer-factura',{method:'POST',headers:{authorization:'Bearer synthetic',origin:'https://micomercio.ar'},body:JSON.stringify({comercioId:id,requestId:id,imageBase64:'AAAA',mediaType:'image/png',...(readerContract?{readerContract}:{})})}));
  return {status:response.status,data:await response.json(),logs,calls,rpcs,rpcParams};
 }
+module.exports={run};
+
+test('REV84 cliente viejo se rechaza antes de reservar o llamar, incluso con pack o impuesto',async()=>{
+ for(const row of [{...invoice.items[0],producto:'X8U'},{...invoice.items[0],impuestoFila:21}]){
+  const r=await run({readerContract:null,status:200,body:output({...invoice,items:[row]})});assert.equal(r.status,426);assert.equal(r.data.code,'CLIENTE_REQUIERE_ACTUALIZACION');assert.equal(r.rpcs.length,0);assert.equal(r.calls,0);
+ }
+});
 test('REV83 endpoint reserva una lectura aunque haya respaldo y registra el modelo efectivo',async()=>{
  const r=await run({openai:true,responses:[new Response(JSON.stringify({error:{code:'server_error',message:'PRIVATE'}}),{status:503}),new Response(JSON.stringify(output()),{status:200})]});
  assert.equal(r.status,200);assert.equal(r.calls,2);assert.deepEqual(r.rpcs,['f6_service_reservar_lectura_factura','f6_service_registrar_resultado_lectura_factura']);assert.equal(r.rpcParams[1].p_model,'gemini-3.8-flash');assert.equal(r.data.iaProvider,'gemini');assert.equal(r.data.iaFallbackUsed,true);assert.doesNotMatch(JSON.stringify(r.logs),/PRIVATE/);
@@ -51,7 +58,7 @@ test('REV82 invalid invoice row identifies its field and row without product dat
  assert.doesNotMatch(JSON.stringify([r.data,r.logs]),/Privado/);
 });
 test('REV82 valid invoices preserve success and strict validation',async()=>{
- const r=await run({status:200,body:output()});assert.equal(r.status,200);assert.deepEqual(r.data.items[0],{...invoice.items[0],codigo:'',descripcion:''});assert.equal(r.calls,1);
+ const r=await run({status:200,body:output()});assert.equal(r.status,200);assert.deepEqual(r.data.items[0],{...invoice.items[0],codigo:'',descripcion:'',descuentoFila:0,descuentoGlobalAsignado:0,impuestoFila:0,subtotal:null,packDetectado:null,revisionImporte:{status:'missing',expected:100,difference:null,tolerance:.02}});assert.equal(r.calls,1);
  const m=await modulo();assert.throws(()=>m.extractGeminiInvoice(output({...invoice,items:[{...invoice.items[0],unidadesPorBulto:0}]})),e=>e.message==='F6_GEMINI_OUTPUT_INVALID'&&e.diagnostic?.field==='unidadesPorBulto');
  assert.equal(m.safeGeminiErrorMessage(new Error('PRIVATE')), 'UNKNOWN');
 });

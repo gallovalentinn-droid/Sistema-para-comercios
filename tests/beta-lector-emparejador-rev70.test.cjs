@@ -255,7 +255,7 @@ test('REV70 sincroniza la memoria: sube lo pendiente, trae la nube y sigue sin c
 });
 
 test('REV70 la lectura con IA consulta la memoria antes de abrir la revisión y la guarda al cargar', () => {
-  const lector = section('async function leerFacturaFoto(file,ov){', 'let revisionFactura=[];');
+  const lector = section('async function rev84RevisarRespuesta(ov){', 'let revisionFactura=[];');
   assert.match(lector, /const memoria=await rev70SincronizarMemoria\(f3Estado\.comercioId\);\n\s*abrirRevisionFactura\(data,\{memoria\}\);/);
   const revision = section('function abrirRevisionFactura(', 'function rev70EstadoFila(');
   assert.match(revision, /revisionFactura=rev70PrepararFilas\(parsed,db\.productos,memoria\|\|rev70LeerMemoria\(comercioRev\)\)/);
