@@ -22,6 +22,22 @@ test('REV84 otra cantidad queda explícita y los límites manuales no se aceptan
  const c=context();assert.equal(typeof c.rev84ElegirStock,'function');const r=row();c.rev84ElegirStock(r,2);assert.equal(r.modoStock,'manual');assert.equal(c.rev84CostoFila(r).unidades,4);
  for(const n of [0,-1,1.5,1001,NaN])assert.equal(c.rev84ElegirStock(r,n),false);
 });
+test('REV84 corrección recalcula descuento general en centavos y bloquea reparto imposible',()=>{
+ const c=context(),rows=[row({cantidad:1,costoU:10,subtotal:10,packDetectado:null,descuentoGlobalAsignado:50,descuentoGlobalTotal:100}),row({cantidad:1,costoU:100,subtotal:100,packDetectado:null,descuentoGlobalAsignado:50,descuentoGlobalTotal:100})];
+ assert.equal(c.rev84PuedeCargar(rows).ok,true);assert.equal(rows.reduce((s,r)=>s+c.rev84CostoFila(r).importeCentavos,0),1000);
+ rows[0].descuentoGlobalTotal=120;rows[1].descuentoGlobalTotal=120;assert.equal(c.rev84PuedeCargar(rows).ok,false);
+});
+test('REV84 presentación ambigua requiere decisión',()=>{
+ const c=context();assert.equal(c.rev84PuedeCargar([row({packDetectado:null,packAmbiguo:true})]).ok,false);
+});
+test('REV84 avisos explican memoria no disponible o solo local',()=>{
+ const c=context();
+ assert.equal(typeof c.rev84AvisoMemoria,'function');assert.match(c.rev84AvisoMemoria({decisionAvailable:false}),/no.*record|volver.*eleg/i);
+ assert.match(c.rev84AvisoMemoria({syncStatus:'local'}),/dispositivo|local/i);
+});
+test('REV84 reintento explica consumo mensual del modo anterior aun si falla',()=>{
+ const c=context();assert.equal(typeof c.rev84AvisoReintento,'function');assert.match(c.rev84AvisoReintento({_rev84QuotaMode:'legacy-rev83'}),/lectura mensual.*falla|falla.*lectura mensual/i);
+});
 test('REV84 memoria sin columnas conserva producto pero pregunta otra vez y no reaplica la elección de caché',async()=>{
  const html=fs.readFileSync('beta/index.html','utf8'),store=new Map(),sent=[];
  const missing={code:'PGRST204',message:'modo_stock column missing'};
@@ -33,4 +49,17 @@ test('REV84 memoria sin columnas conserva producto pero pregunta otra vez y no r
  const r=c.rev70PrepararFilas({proveedor:'Proveedor',items:[{producto:'X8U',cantidad:2,precioUnit:100,unidadesPorBulto:8,subtotal:200,impuestoFila:0,revisionImporte:{status:'ok'},packDetectado:8}]},[{id:'p',nombre:'Producto'}],synced)[0];
  assert.equal(r.prodId,'p');assert.equal(r.modoStock,undefined);assert.equal(c.rev84PuedeCargar([r]).ok,false);
  assert.equal(sent.length,2);assert.equal(sent[1][0].modo_stock,undefined);
+});
+test('REV84 reutiliza decisión propia, permite corregirla y pregunta ante otro proveedor/producto/pack o memoria vieja',()=>{
+ const html=fs.readFileSync('beta/index.html','utf8'),c={numFactura:Number,detectarBulto:()=>1,localStorage:{getItem:()=>null,setItem(){}},navigator:{onLine:false}};
+ vm.createContext(c);vm.runInContext(html.slice(html.indexOf('/* REV70_EMPAREJADOR_START */'),html.indexOf('/* REV70_MEMORIA_END */')),c);
+ const mem=c.rev70MemoriaVacia(),products=[{id:'p',nombre:'Pañales X8U'},{id:'q',nombre:'Otro producto'}];
+ const prepare=(proveedor='Proveedor',packDetectado=8)=>c.rev70PrepararFilas({proveedor,items:[{producto:'Pañales X8U',codigo:'001',cantidad:2,precioUnit:100,unidadesPorBulto:8,subtotal:200,impuestoFila:0,revisionImporte:{status:'ok'},packDetectado}]},products,mem)[0];
+ c.rev70Recordar(mem,{proveedor:'Proveedor',texto:'Pañales X8U',codigo:'001',ref:'p',upb:8,modoStock:'unidad',packDetectado:8});
+ let r=prepare();assert.equal(r.modoStock,'unidad');assert.equal(c.rev84PuedeCargar([r]).ok,true);
+ c.rev70Recordar(mem,{proveedor:'Proveedor',texto:'Pañales X8U',codigo:'001',ref:'p',upb:2,modoStock:'manual',packDetectado:8});
+ r=prepare();assert.equal(r.modoStock,'manual');assert.equal(r.porBulto,2);assert.equal(c.rev84CostoFila(r).unidades,4);
+ for(const r of [prepare('Otro proveedor'),prepare('Proveedor',12)])assert.equal(c.rev84PuedeCargar([r]).ok,false);
+ r=prepare();r.prodId='q';assert.equal(c.rev84PuedeCargar([r]).ok,false);
+ c.rev70Recordar(mem,{proveedor:'Proveedor',texto:'Pañales X8U',codigo:'001',ref:'p',upb:8});r=prepare();assert.equal(c.rev84PuedeCargar([r]).ok,false);
 });

@@ -7168,7 +7168,7 @@ function rev70PuedeNube(){
 // Sube lo pendiente y trae lo de la nube. Si no hay conexión o tarda, sigue con la copia local.
 async function rev70SincronizarMemoria(cid,{timeoutMs=3500}={}){
   const local=rev70LeerMemoria(cid);
-  if(!cid||!rev70PuedeNube())return local;
+  if(!cid||!rev70PuedeNube()){local.syncStatus='local';return local;}
   const subidas=new Set();
   const ejecutar=async(extendida)=>{
     const pend=Object.entries(local.filas).filter(([,f])=>f&&f.pend);
@@ -7183,7 +7183,7 @@ async function rev70SincronizarMemoria(cid,{timeoutMs=3500}={}){
     const {data,error}=await sb.from(REV70_ALIAS_TABLA)
       .select('proveedor_clave,texto_clave,producto_ref,unidades_por_bulto,usos'+(extendida?',modo_stock,pack_detectado':'')).eq('comercio_id',cid).limit(5000);
     if(error)throw error;
-    const nube=rev70MemoriaVacia();nube.decisionAvailable=extendida;
+    const nube=rev70MemoriaVacia();nube.decisionAvailable=extendida;nube.syncStatus=extendida?'synced':'legacy';
     (data||[]).forEach(r=>{nube.filas[`${r.proveedor_clave}|${r.texto_clave}`]={pv:r.proveedor_clave,tx:r.texto_clave,
       ref:r.producto_ref,upb:Number(r.unidades_por_bulto)||1,usos:Number(r.usos)||1,
       ...(extendida?{modoStock:r.modo_stock||null,packDetectado:r.pack_detectado??null}: {})};});
@@ -7205,7 +7205,7 @@ async function rev70SincronizarMemoria(cid,{timeoutMs=3500}={}){
     rev70GuardarMemoria(cid,nube);
     return nube;
   }catch(e){
-    console.warn('REV70_MEMORIA_SIN_NUBE',String(e&&(e.code||e.message)||e).slice(0,120));
+    console.warn('REV70_MEMORIA_SIN_NUBE',{reason:'UNAVAILABLE'});local.syncStatus='local';
     return local;
   }finally{clearTimeout(reloj);}
 }
@@ -7278,10 +7278,31 @@ function rev84ElegirStock(r,n){
 function rev84EstadoRevision(r){
   if(!r._rev84||r.excluida||!(r.cantidad>0)||(r.noMercaderia&&!r.prodId))return {pending:false};
   const importe=rev84ControlImporte(r);
-  const stock=!!r.packDetectado&&(!r.modoStock||r.stockProducto!==r.prodId||r.stockPack!==r.packDetectado);
-  return {pending:!r.prodId||stock||importe.status==='mismatch'||(importe.status==='missing'&&!r.importeConfirmado),stock,importe};
+  const stock=!!(r.packDetectado||r.packAmbiguo)&&(!r.modoStock||r.stockProducto!==r.prodId||r.stockPack!==r.packDetectado);
+  return {pending:!r.prodId||stock||r.descuentoGlobalInvalido||importe.status==='mismatch'||(importe.status==='missing'&&!r.importeConfirmado),stock,importe};
 }
-function rev84PuedeCargar(filas){const pendingCount=(filas||[]).filter(r=>rev84EstadoRevision(r).pending).length;return {ok:pendingCount===0,pendingCount};}
+function rev84RepartirDescuento(filas){
+  const rows=(filas||[]).filter(r=>r._rev84),global=rows[0]&&rows[0].descuentoGlobalTotal;
+  if(typeof global!=='number')return;
+  const bases=rows.map(r=>Math.round(rev84Redondear(Math.max(0,r.subtotal==null?rev84ControlImporte(r).expected:r.subtotal),2)*100));
+  let base=bases.reduce((s,n)=>s+n,0),left=Math.round(rev84Redondear(global,2)*100);
+  const invalid=left>base;
+  rows.forEach((r,i)=>{
+    r.descuentoGlobalInvalido=invalid;
+    const amount=invalid||base<=0?0:i===rows.length-1?left:Math.min(left,bases[i],Math.round(left*bases[i]/base));
+    r.descuentoGlobalAsignado=amount/100;left-=amount;base-=bases[i];
+  });
+}
+function rev84PuedeCargar(filas){rev84RepartirDescuento(filas);const pendingCount=(filas||[]).filter(r=>rev84EstadoRevision(r).pending).length;return {ok:pendingCount===0,pendingCount};}
+function rev84AvisoMemoria(mem){
+  if(mem&&mem.decisionAvailable===false)return '<div class="notice warn">No se pudo recordar cómo contás el stock en el servidor. Volveremos a preguntar en cada lectura.</div>';
+  if(mem&&mem.syncStatus==='local')return '<div class="notice warn">La elección queda en este dispositivo. No se pudo confirmar que esté guardada en el servidor.</div>';
+  return '';
+}
+function rev84AvisoReintento(ov){
+  if(ov._rev84QuotaMode==='legacy-rev83')return 'Reintentar inicia otra llamada y consume otra lectura mensual, aun si falla, porque está activo el cupo anterior.';
+  return 'Reintentar inicia otra llamada a la IA y puede consumir otra lectura mensual.';
+}
 function rev84CostoFila(r){
   const unidades=r.cantidad*Math.max(1,r.porBulto||1);
   const esperado=r.cantidad*r.costoU-(r.descuento||0)+(r.impuestoFila||0);
@@ -7290,20 +7311,21 @@ function rev84CostoFila(r){
   return {unidades,importeCentavos:Math.round(importeCentavos),costoUnitario:unidades>0?rev84Redondear(importeCentavos/100/unidades,4):0};
 }
 // REV84_REVISION_FIN
-function rev84PrepararEvidencia(r,it,recordado,mem){
+function rev84PrepararEvidencia(r,it,recordado,mem,descuentoGlobalTotal){
   if(!Object.prototype.hasOwnProperty.call(it,'revisionImporte'))return r;
   Object.assign(r,{_rev84:true,subtotal:it.subtotal??null,impuestoFila:it.impuestoFila||0,
-    descuento:it.descuentoFila||0,descuentoGlobalAsignado:it.descuentoGlobalAsignado||0,packDetectado:it.packDetectado??null});
-  if(r.packDetectado){
+    descuento:it.descuentoFila||0,descuentoGlobalAsignado:it.descuentoGlobalAsignado||0,packDetectado:it.packDetectado??null,packAmbiguo:!!it.packAmbiguo,descuentoGlobalTotal});
+  if(r.packDetectado||r.packAmbiguo){
     r.porBulto=1;
     if(mem&&mem.decisionAvailable!==false&&recordado&&recordado.via!=='otro-proveedor'
-      &&recordado.modoStock&&recordado.packDetectado===r.packDetectado)rev84ElegirStock(r,recordado.upb);
+      &&r.packDetectado&&recordado.modoStock&&recordado.packDetectado===r.packDetectado)rev84ElegirStock(r,recordado.upb);
   }
   return r;
 }
 function rev70PrepararFilas(parsed,productos,mem){
   const indice=rev70Indice(productos);
   const proveedor=String(parsed&&parsed.proveedor||'');
+  const descuentoGlobalTotal=Math.max(0,numFactura(parsed&&parsed.descuentoGlobal)-((parsed&&parsed.items)||[]).filter(i=>rev77NoEsMercaderia(i.producto)||rev77NoEsMercaderia(i.descripcion)||!(i.cantidad>0)).reduce((s,i)=>s+(i.descuentoGlobalAsignado||0),0));
   return ((parsed&&parsed.items)||[]).map(it=>{
     const original=String(it.producto||'').trim()||'(sin nombre)';
     const codigo=String(it.codigo||'').trim().slice(0,40),descripcion=String(it.descripcion||'').trim().slice(0,200);
@@ -7327,7 +7349,7 @@ function rev70PrepararFilas(parsed,productos,mem){
       prodId:recordado?recordado.producto.id:(auto.producto?auto.producto.id:''),
       origen:recordado?'memoria':(auto.producto?'auto':''),
       estado:recordado?'recordado':auto.estado,
-      candidatos:recordado?[]:auto.candidatos.map(c=>({id:c.producto.id,nombre:c.producto.nombre,otroTamano:!!c.incompatible,soloDescripcion:!!c.soloDescripcion}))},it,recordado,mem);
+      candidatos:recordado?[]:auto.candidatos.map(c=>({id:c.producto.id,nombre:c.producto.nombre,otroTamano:!!c.incompatible,soloDescripcion:!!c.soloDescripcion}))},it,recordado,mem,descuentoGlobalTotal);
   });
 }
 // refDe(fila) devuelve el identificador estable del producto elegido (o '' para no recordar la fila).
@@ -7437,7 +7459,7 @@ function f82MostrarFalloFactura(ov,error){
       const retry=document.createElement('button');retry.type='button';retry.className='btn';retry.id='facReintentar';retry.textContent=ov._rev84Response?'Volver a revisar la lectura':'Reintentar lectura';
       retry.onclick=async()=>{retry.disabled=true;try{if(ov._rev84Response)await rev84RevisarRespuesta(ov);else await leerFacturaFoto(ov._rev84File,ov);}catch(_){retry.disabled=false;aviso('No se pudo abrir la revisión. La lectura sigue disponible mientras esta pantalla esté abierta.','bad');}};
       box.appendChild(retry);
-      if(!ov._rev84Response){const note=document.createElement('p');note.textContent='Reintentar inicia una lectura nueva y vuelve a consultar a la IA.';box.appendChild(note);}
+      if(!ov._rev84Response){const note=document.createElement('p');note.textContent=rev84AvisoReintento(ov);box.appendChild(note);}
     }
     box.scrollIntoView({block:'nearest'});
   }
@@ -7492,6 +7514,7 @@ async function leerFacturaFoto(file,ov){
     const {data,error}=await Promise.race([sb.functions.invoke('leer-factura',{
       body:{comercioId:f3Estado.comercioId,requestId,imageBase64:b64,mediaType:mime,imageParts,readerContract:'f6-invoice-review-v1'},signal:controller.signal
     }),new Promise((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(Object.assign(new Error('IA_TIEMPO_AGOTADO'),{code:'IA_TIEMPO_AGOTADO'}));},160_000);})]);
+    if(data&&data.iaQuotaMode)ov._rev84QuotaMode=data.iaQuotaMode;
     if(error){
       let detalle=null;
       try{
@@ -7499,6 +7522,7 @@ async function leerFacturaFoto(file,ov){
         if(contexto&&typeof contexto.clone==='function') detalle=await contexto.clone().json();
         else if(contexto&&typeof contexto.json==='function') detalle=await contexto.json();
       }catch(_e){}
+      if(detalle&&detalle.iaQuotaMode)ov._rev84QuotaMode=detalle.iaQuotaMode;
       const status=Number(error.context&&error.context.status||0);
       const fallback=status===401?'SESION_INVALIDA':status===403?'SIN_PERMISO':status?'IA_NO_DISPONIBLE':'IA_CONEXION_NAVEGADOR';
       const falla=new Error('LECTURA_FALLIDA');
@@ -7559,17 +7583,24 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
   // REV70: primero lo que el comercio ya emparejó con este proveedor; después el emparejador nuevo.
   const comercioRev=typeof f3Estado!=='undefined'&&f3Estado?f3Estado.comercioId:'';
   if(!conservarFilas)revisionFactura=rev70PrepararFilas(parsed,db.productos,memoria||rev70LeerMemoria(comercioRev));
+  facturaIA.memoria=memoria||rev70LeerMemoria(comercioRev);
   modal({titulo:'Revisá lo que leímos de la factura', ancho:true,
     cuerpo:`
       ${pasosFacturaIA('revisar')}
+      ${rev84AvisoMemoria(facturaIA.memoria)}
       <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Así entendimos la foto. <b>"Unid. por bulto"</b> es cuántas unidades sueltas trae cada caja o pack (dejalo en 1 si se compran sueltas). El <b>descuento</b> es el total bonificado de esa fila, y se reparte entre las unidades. Revisá todo antes de confirmar.</p>
       <div id="rev78TicketResumen" style="margin:0 0 14px"></div>
-      ${numFactura(parsed.descuentoGlobal)>0?`<div class="notice" style="margin:0 0 14px"><b>Descuento general leído: ${$m(numFactura(parsed.descuentoGlobal))}</b><br><span style="color:var(--muted)">Ya está distribuido entre los productos para calcular correctamente su costo.</span></div>`:''}
+      ${numFactura(parsed.descuentoGlobal)>0?`<div class="notice" style="margin:0 0 14px"><label>Descuento general leído<input class="inp num" id="rev84DescuentoGeneral" value="${String(numFactura(parsed.descuentoGlobal)).replace('.',',')}"></label><span style="color:var(--muted)">Se reparte entre los productos y se recalcula cuando corregís sus importes.</span></div>`:''}
       <div id="revTabla"></div>`,
     pie:`<button class="btn ghost invoice-back" id="volverFotoFac" type="button">← Volver a la foto</button><button class="btn ghost" data-cerrar>Descartar</button><button class="btn verde" id="okRev">Cargar a la factura</button>`,
     alAbrir:ov2=>{
       const ventanaRev=$('.mod',ov2);ventanaRev&&ventanaRev.classList.add('invoice-wide');
       const volverFoto=$('#volverFotoFac',ov2);if(volverFoto)volverFoto.onclick=volverAFotoFactura;
+      const general=$('#rev84DescuentoGeneral',ov2);if(general)general.onchange=()=>{
+        parsed.descuentoGlobal=Math.max(0,num(general.value));
+        const fijo=(parsed.items||[]).filter(i=>rev77NoEsMercaderia(i.producto)||rev77NoEsMercaderia(i.descripcion)||!(i.cantidad>0)).reduce((s,i)=>s+(i.descuentoGlobalAsignado||0),0);
+        revisionFactura.filter(r=>r._rev84).forEach(r=>r.descuentoGlobalTotal=Math.max(0,parsed.descuentoGlobal-fijo));pintarRevision(ov2);
+      };
       pintarRevision(ov2);
       $('#okRev',ov2).onclick=()=>{
         if(!rev84PuedeCargar(revisionFactura).ok){aviso('Faltan filas por resolver.','bad');return;}
@@ -7591,14 +7622,13 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
             pid=nuevo.id; r.refCreado=nuevo.id; creados++;
           }
           if(!pid){ saltados++; return; }
-          const y=remito.find(l=>l.prodId===pid);
+          const y=remito.find(l=>l.prodId===pid&&(!r._rev84||costoLinea(l,productoEnFactura(pid))!==null));
           if(y){
             const totalAnterior=r._rev84?costoLinea(y,productoEnFactura(pid))*unidadesLinea(y):0;
-            y.cant+=unidades;
-            if(r._rev84){y.costoU=String(rev84Redondear((totalAnterior+netoTotal)/y.cant,4));y.totalL=(totalAnterior+netoTotal).toFixed(2);y.rev84Importe={cant:y.cant,costoU:y.costoU,centavos:Math.round((totalAnterior+netoTotal)*100)};}
-            else{if(costoUnitario>0)y.costoU=String(costoUnitario);recomputeLinea(y);}
+            if(r._rev84){y.cant=unidadesLinea(y)+unidades;y.porBulto=1;y.descuento=0;y.costoU=rev84Redondear((totalAnterior+netoTotal)/y.cant,4);y.totalL=(totalAnterior+netoTotal).toFixed(2);y.rev84Importe={cant:y.cant,costoU:y.costoU,centavos:Math.round((totalAnterior+netoTotal)*100)};}
+            else{y.cant+=unidades;if(costoUnitario>0)y.costoU=String(costoUnitario);recomputeLinea(y);}
           }else{
-            const l={prodId:pid,cant:unidades,porBulto:1,costoU:costoUnitario>0?String(costoUnitario):'',totalL:netoTotal.toFixed(2),descuento:0,precio:''};
+            const l={prodId:pid,cant:unidades,porBulto:1,costoU:r._rev84?costoUnitario:costoUnitario>0?String(costoUnitario):'',totalL:netoTotal.toFixed(2),descuento:0,precio:''};
             if(r._rev84)l.rev84Importe={cant:unidades,costoU:l.costoU,centavos:Math.round(netoTotal*100)};
             else recomputeLinea(l);remito.push(l);
           }
@@ -7620,7 +7650,7 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
           rev70RecordarRevision(mem,revisionFactura,parsed.proveedor,
             r=>r.prodId==='__nuevo__'?(r.refCreado||''):(rev70RefProducto(prod(r.prodId))||r.prodId));
           rev70GuardarMemoria(comercioRev,mem);
-          rev70SincronizarMemoria(comercioRev).catch(()=>{});
+          rev70SincronizarMemoria(comercioRev).then(mem=>{if(rev84AvisoMemoria(mem))aviso(mem.decisionAvailable===false?'No se pudo recordar cómo contás el stock. Volveremos a preguntar.':'La elección quedó en este dispositivo; no se confirmó su guardado en el servidor.','bad');}).catch(()=>{});
         }
         cerrarModal();
         panelIngreso(false,'manual',{desdeRevision:true});
@@ -7633,6 +7663,7 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
 function rev70EstadoFila(r){
   if(r.excluida)return {clase:'',texto:'Excluida: no se carga'};
   const revision=r._rev84?rev84EstadoRevision(r):{};
+  if(r.descuentoGlobalInvalido)return {clase:'warn',texto:'El descuento general no cuadra'};
   if(revision.pending)return {clase:'warn',texto:revision.importe&&revision.importe.status==='mismatch'?'El importe no cuadra':'Falta resolver'};
   // REV77: lo que no se va a cargar lo dice antes que nada.
   if(r.noMercaderia&&!r.prodId)return {clase:'',texto:'No es mercadería: no se carga'};
@@ -7666,7 +7697,7 @@ function pintarRevision(ov2){
   const totalRevision=evidencia.reduce((n,r)=>n+rev84CostoFila(r).importeCentavos,0)/100;
   const totalImpreso=facturaIA&&numFactura(facturaIA.parsed.total);
   const avisoImportes=evidencia.length?`<div class="notice ${evidencia.every(r=>rev84ControlImporte(r).status!=='ok')?'warn':''}">${evidencia.every(r=>rev84ControlImporte(r).status!=='ok')?'<b>Ningún importe coincide: revisá la foto</b><br>':''}Costo final con impuestos: ${$m(totalRevision)}. ${totalImpreso>0?`Total impreso: ${$m(totalImpreso)} · diferencia: ${$m(Math.abs(totalRevision-totalImpreso))}`:'El total final no está visible.'}</div>`:'';
-  c.innerHTML=`${avisoImportes}<p class="rev70-resumen">${resumen}</p><table class="mtable invoice-lines"><thead><tr><th>Leído en la factura</th><th style="width:240px">Emparejado con</th><th class="r" style="width:80px">Cantidad</th><th class="r" style="width:95px">Unid. x bulto</th><th class="r" style="width:110px">Precio unit.</th><th class="r" style="width:110px">Descuento</th><th class="r">Se carga</th></tr></thead><tbody>
+  c.innerHTML=`${revisionFactura.some(r=>r.descuentoGlobalInvalido)?'<div class="notice warn">El descuento general supera el importe de las filas. Corregí los importes o el descuento antes de cargar.</div>':''}${avisoImportes}<p class="rev70-resumen">${resumen}</p><table class="mtable invoice-lines"><thead><tr><th>Leído en la factura</th><th style="width:240px">Emparejado con</th><th class="r" style="width:80px">Cantidad</th><th class="r" style="width:95px">Unid. x bulto</th><th class="r" style="width:110px">Precio unit.</th><th class="r" style="width:110px">Descuento</th><th class="r">Se carga</th></tr></thead><tbody>
     ${revisionFactura.map((r,ix)=>{
       const upb=Math.max(1,r.porBulto||1);
       const unidades=r.cantidad*upb;
@@ -7681,8 +7712,8 @@ function pintarRevision(ov2){
       // REV71: si el bulto recordado no coincide con el leído, se avisa para revisarlo (no queda en una nota gris).
       const bultoIa=r.origen==='memoria'&&r.porBultoIa&&r.porBultoIa!==upb?`<br><span class="pill warn rev70-costo">La IA leyó ${r.porBultoIa}. Revisá el bulto</span>`:'';
       const control=rev84ControlImporte(r);
-      const desglose=r._rev84?`<div style="margin-top:10px"><label>Impuesto de la fila<input class="inp num" data-rev-impuesto="${ix}" value="${r.impuestoFila||0}"></label><label>Subtotal impreso<input class="inp num" data-rev-subtotal="${ix}" value="${r.subtotal??''}" placeholder="No visible"></label><small>${control.status==='missing'?'Sin subtotal para comparar':`Calculado: ${$m(control.expected)} · diferencia: ${$m(control.difference)}`}${r.descuentoGlobalAsignado?` · descuento general asignado: ${$m(r.descuentoGlobalAsignado)}`:''}</small>${control.status==='missing'?`<label><input type="checkbox" data-rev-confirmar="${ix}" ${r.importeConfirmado?'checked':''}> Confirmé los importes disponibles</label>`:''}<label><input type="checkbox" data-rev-excluir="${ix}" ${r.excluida?'checked':''}> Excluir esta fila</label></div>`:'';
-      const eleccion=r._rev84&&r.packDetectado?`<div style="margin-top:10px"><b>¿Lo contás por pack o por unidad?</b><br>${[[1,'pack'],[r.packDetectado,'unidad']].map(([n,modo])=>{const vista=rev84CostoFila({...r,porBulto:n});return `<button type="button" class="btn ghost sm" data-rev-stock="${ix}:${n}" aria-pressed="${r.modoStock===modo&&r.stockProducto===r.prodId}">Por ${modo}: entran ${vista.unidades} a ${vista.costoUnitario.toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:4})}</button>`;}).join('')}<br><small>${r.modoStock==='manual'?`Otra cantidad: ${r.porBulto} por presentación`:'Para otra cantidad, editá unidades por bulto y confirmá.'}</small><button type="button" class="btn ghost sm" data-rev-manual="${ix}">Confirmar otra cantidad</button></div>`:'';
+      const desglose=r._rev84?`<div style="margin-top:10px"><label>Impuesto de la fila<input class="inp num" data-rev-impuesto="${ix}" value="${String(r.impuestoFila||0).replace('.',',')}"></label><label>Subtotal impreso<input class="inp num" data-rev-subtotal="${ix}" value="${String(r.subtotal??'').replace('.',',')}" placeholder="No visible"></label><small>${control.status==='missing'?'Sin subtotal para comparar':`Calculado: ${$m(control.expected)} · diferencia: ${$m(control.difference)}`}${r.descuentoGlobalAsignado?` · descuento general asignado: ${$m(r.descuentoGlobalAsignado)}`:''}</small>${control.status==='missing'?`<label><input type="checkbox" data-rev-confirmar="${ix}" ${r.importeConfirmado?'checked':''}> Confirmé los importes disponibles</label>`:''}<label><input type="checkbox" data-rev-excluir="${ix}" ${r.excluida?'checked':''}> Excluir esta fila</label></div>`:'';
+      const eleccion=r._rev84&&(r.packDetectado||r.packAmbiguo)?`<div style="margin-top:10px"><b>${r.packAmbiguo?'La presentación es ambigua. Indicá cuántas unidades contás por presentación.':'¿Lo contás por pack o por unidad?'}</b><br>${(r.packDetectado?[[1,'pack'],[r.packDetectado,'unidad']]:[[1,'pack']]).map(([n,modo])=>{const vista=rev84CostoFila({...r,porBulto:n});return `<button type="button" class="btn ghost sm" data-rev-stock="${ix}:${n}" aria-pressed="${r.modoStock===modo&&r.stockProducto===r.prodId}">Por ${modo}: entran ${vista.unidades} a ${vista.costoUnitario.toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:4})}</button>`;}).join('')}<br><small>${r.modoStock==='manual'?`Otra cantidad: ${r.porBulto} por presentación`:'Para otra cantidad, editá unidades por bulto y confirmá.'}</small><button type="button" class="btn ghost sm" data-rev-manual="${ix}">Confirmar otra cantidad</button></div>`:'';
       return `<tr>
       <td data-label="Leído en la factura"><b>${esc(r.original)}</b>${cod}${extra}<br><span class="pill ${est.clase}">${est.texto}</span>${cands}${eleccion}${desglose}</td>
       <td data-label="Emparejado con"><select class="inp" data-rev-prod="${ix}">
@@ -7692,7 +7723,7 @@ function pintarRevision(ov2){
         </select></td>
       <td data-label="Cantidad" class="r"><input class="inp num" data-rev-cant="${ix}" value="${r.cantidad}"></td>
       <td data-label="Unid. x bulto" class="r"><input class="inp num" data-rev-bulto="${ix}" value="${upb}">${bultoIa}</td>
-      <td data-label="Precio unit." class="r"><input class="inp num" data-rev-costo="${ix}" value="${r.costoU}"></td>
+      <td data-label="Precio unit." class="r"><input class="inp num" data-rev-costo="${ix}" value="${r._rev84?String(r.costoU).replace('.',','):r.costoU}"></td>
       <td data-label="Descuento" class="r"><input class="inp num" data-rev-dto="${ix}" value="${r.descuento||0}"></td>
       <td data-label="Se carga" class="r"><b class="num">${unidades}</b> unidades<br><span style="font-size:12px;color:var(--muted)">a ${r._rev84?'$'+Number(costoU).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:4}):$m(costoU)} c/u${r.descuento>0?` <span class="pill ok">con dto.</span>`:''}</span>${r.prodId&&r.prodId!=='__nuevo__'?rev70AvisoCosto(r,prod(r.prodId),costoU):''}</td>
     </tr>`;}).join('')}</tbody></table>`;
@@ -7704,7 +7735,7 @@ function pintarRevision(ov2){
   $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>{const r=revisionFactura[s.dataset.revProd];r.prodId=s.value;r.origen=s.value?'manual':'';r.noMercaderia=!s.value&&!!r.noMercaderiaIa;if(r._rev84){r.excluida=!s.value;r.modoStock=null;r.porBulto=1;}pintarRevision(ov2);});
   $$('[data-rev-cand]',c).forEach(b=>b.onclick=()=>{const [ix,j]=b.dataset.revCand.split(':').map(Number);const r=revisionFactura[ix],k=r&&r.candidatos[j];if(!k)return;r.prodId=k.id;r.origen='manual';pintarRevision(ov2);});
   $$('[data-rev-cant]',c).forEach(i=>i.onchange=()=>{const l=revisionFactura[i.dataset.revCant],p=prod(l.prodId);l.importeConfirmado=false;l.cantidad=Math.max(0,p&&p.unidad==='kg'?numCantidad(i.value):num(i.value));pintarRevision(ov2);});
-  $$('[data-rev-bulto]',c).forEach(i=>i.onchange=()=>{const r=revisionFactura[i.dataset.revBulto];r.porBulto=Math.max(1,Math.floor(num(i.value))||1);if(r._rev84&&r.packDetectado)r.modoStock=null;pintarRevision(ov2);});
+  $$('[data-rev-bulto]',c).forEach(i=>i.onchange=()=>{const r=revisionFactura[i.dataset.revBulto];r.porBulto=Math.max(1,Math.floor(num(i.value))||1);if(r._rev84&&(r.packDetectado||r.packAmbiguo))r.modoStock=null;pintarRevision(ov2);});
   $$('[data-rev-costo]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revCosto].importeConfirmado=false;revisionFactura[i.dataset.revCosto].costoU=Math.max(0,num(i.value));pintarRevision(ov2);});
   $$('[data-rev-dto]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revDto].importeConfirmado=false;revisionFactura[i.dataset.revDto].descuento=Math.abs(num(i.value));pintarRevision(ov2);});
 }
@@ -7741,7 +7772,7 @@ function pintarRemito(){
       <td data-label="Producto">${celdaProductoConFoto(p,`<b>${esc(p.nombre)}</b>${kg?' <span class="pill info">kg</span>':''}<br><span style="font-size:12px;color:var(--muted)">stock ${fmtCant(p,p.stock)} → <b>${fmtCant(p,p.stock+un)}</b> · costo actual ${$m(p.costo)}${kg?'/kg':''}</span>`)}</td>
       <td data-label="Cantidad" class="r"><div class="qty"><button data-rm="${ix}" aria-label="Restar">–</button><input class="num" data-rc="${ix}" value="${l.cant}"><button data-ra="${ix}" aria-label="Sumar">+</button></div>${kg?'<div style="font-size:11px;color:var(--muted);margin-top:3px">kg</div>':''}</td>
       <td data-label="Unid. x bulto" class="r"><input class="inp num" data-rbulto="${ix}" value="${upb}" ${kg?'disabled':''}></td>
-      <td data-label="Precio unit." class="r"><input class="inp num" data-rcostou="${ix}" placeholder="${nfM.format(p.costo*upb)}" value="${l.costoU}"></td>
+      <td data-label="Precio unit." class="r"><input class="inp num" data-rcostou="${ix}" placeholder="${nfM.format(p.costo*upb)}" value="${typeof l.costoU==='number'?String(l.costoU).replace('.',','):l.costoU}"></td>
       <td data-label="Descuento" class="r"><input class="inp num" data-rdto="${ix}" placeholder="0" value="${l.descuento||''}"></td>
       <td data-label="Venta nueva" class="r"><input class="inp num" data-rprecio="${ix}" placeholder="${productosFacturaPendientes.includes(p)?'Obligatorio':nfM.format(p.precio)}" value="${l.precio}" ${productosFacturaPendientes.includes(p)?'aria-required="true"':''}>${productosFacturaPendientes.includes(p)?'<small class="hint">Precio obligatorio</small>':''}</td>
       <td data-label="Se carga" class="r"><b class="num">${fmtCant(p,un)}</b>${cu!==null?`<br><span style="font-size:12px;color:var(--muted)">a ${$m(cu)} c/u</span><br>${pillVariacion(p.costo,cu)}`:''}</td>

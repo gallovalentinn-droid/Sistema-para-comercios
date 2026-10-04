@@ -31,3 +31,8 @@ test('REV84 reserva dos plazas para principal/respaldo, una para HEIC o proveedo
 test('REV84 cliente nuevo contra servidor REV83 durante reversión falla antes de reserva y AI',async()=>{
  const path=require('node:path');const r=await run({serverSource:path.join(__dirname,'edge-fixture/leer-factura-rev83.ts'),readerModule:path.join(__dirname,'edge-fixture/reader-rev83.mjs'),status:200,body});assert.equal(r.status,400);assert.equal(r.data.code,'DATOS_INVALIDOS');assert.equal(r.calls,0);assert.equal(r.rpcs.length,0);
 });
+test('REV84 respaldo exitoso y discordancia emiten diagnóstico administrativo sin factura',async()=>{
+ const mismatch={...invoice,items:[{...invoice.items[0],subtotal:99,producto:'PRIVATE_PRODUCT'}]},response={...body,steps:[{type:'model_output',content:[{type:'text',text:JSON.stringify(mismatch)}]}]};
+ const r=await run({openai:true,responses:[new Response(JSON.stringify({error:{code:'invalid_api_key',message:'PRIVATE_SECRET'}}),{status:401}),new Response(JSON.stringify(response))],rpcImpl:base});assert.equal(r.status,200);
+ assert.ok(r.logs.some(x=>x[0]==='F6_IA_FALLBACK'));assert.ok(r.logs.some(x=>x[0]==='F6_IA_ROW_REVIEW'));const log=JSON.stringify(r.logs);assert.match(log,/API_KEY_INVALID/);assert.match(log,/ROW_AMOUNT_MISMATCH/);assert.doesNotMatch(log,/PRIVATE|precioUnit|subtotal":99|Producto/);
+});

@@ -261,7 +261,7 @@ test('REV70 la lectura con IA consulta la memoria antes de abrir la revisión y 
   assert.match(revision, /revisionFactura=rev70PrepararFilas\(parsed,db\.productos,memoria\|\|rev70LeerMemoria\(comercioRev\)\)/);
   assert.match(revision, /pid=nuevo\.id; r\.refCreado=nuevo\.id; creados\+\+;/);
   assert.match(revision, /rev70RecordarRevision\(mem,revisionFactura,parsed\.proveedor,/);
-  assert.match(revision, /rev70SincronizarMemoria\(comercioRev\)\.catch\(\(\)=>\{\}\);/);
+  assert.match(revision, /rev70SincronizarMemoria\(comercioRev\)\.then\(mem=>/);
   assert.doesNotMatch(revision, /coincidenciaProducto\(/, 'la revisión ya no usa el emparejador viejo');
 });
 

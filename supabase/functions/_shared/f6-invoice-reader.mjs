@@ -1,4 +1,4 @@
-import {checkInvoiceRow,detectInvoicePack,INVOICE_REVIEW_RULES} from './f6-invoice-review.mjs';
+import {checkInvoiceRow,invoicePackEvidence,INVOICE_REVIEW_RULES} from './f6-invoice-review.mjs';
 export const F6_INVOICE_MAX_BYTES = 8 * 1024 * 1024;
 export const F6_INVOICE_MODEL = 'gemini-3.8-flash';
 export const F6_INVOICE_PROVIDER_TIMEOUT_MS = 90_000;
@@ -249,7 +249,8 @@ export function extractGeminiInvoice(response,{reviewMode=false}={}) {
       result.subtotal=item.subtotal==null?null:boundedNumber(item.subtotal,1e12,{field:'subtotal'});
       result.descuentoFila=result.descuento;
       result.descuentoGlobalAsignado=0;
-      result.packDetectado=detectInvoicePack(result.producto);
+      const pack=invoicePackEvidence(result.producto);result.packDetectado=pack.count;
+      if(pack.ambiguous)result.packAmbiguo=true;
       result.revisionImporte=checkInvoiceRow(result);
     }
     return result;
@@ -260,13 +261,15 @@ export function extractGeminiInvoice(response,{reviewMode=false}={}) {
   });
   const descuentoGlobal = boundedNumber(parsed.descuentoGlobal, 1_000_000_000_000, {field:'descuentoGlobal'});
   if (descuentoGlobal > 0) {
-    const bases = items.map((item) => Math.max(0, item.cantidad * item.precioUnit - item.descuento+(reviewMode?item.impuestoFila:0)));
+    const bases = items.map((item) => Math.max(0,reviewMode&&item.subtotal!==null?item.subtotal:item.cantidad * item.precioUnit - item.descuento+(reviewMode?item.impuestoFila:0)));
     const totalBase = bases.reduce((sum, value) => sum + value, 0);
-    if (totalBase <= 0 || descuentoGlobal > totalBase + 0.005) throw invalidOutput('descuentoGlobal', 'EXCEEDS_ITEMS_TOTAL');
+    const impossible=totalBase<=0||descuentoGlobal>totalBase+0.005;
+    if(impossible&&!reviewMode)throw invalidOutput('descuentoGlobal','EXCEEDS_ITEMS_TOTAL');
 
     let descuentoRestante = Math.round(descuentoGlobal * 100);
     let baseRestante = totalBase;
     items.forEach((item, index) => {
+      if(impossible)return; // Human review can correct the base; never discard an uncertain invoice.
       const base = bases[index];
       const asignado = index === items.length - 1
         ? descuentoRestante

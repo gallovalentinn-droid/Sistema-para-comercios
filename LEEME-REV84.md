@@ -26,7 +26,7 @@ Solo los tres sectores se codifican en JPEG calidad 0,9. El original conserva ex
 ## Pruebas reproducibles
 
 - Con Node: `node --test tests/*.test.cjs` y `node tools/verificar-integridad.cjs`. En PowerShell se pueden expandir los archivos con `Get-ChildItem` y pasarlos a Node.
-- Navegador: `tests/browser-lector-revision-rev84.cjs`, `tests/browser-lector-reintento-rev84.cjs`, `tests/browser-lector-compatibilidad-rev84.cjs`; requieren Playwright (`PW`) y Chrome (`CHROME`). Toda IA y escritura externa se simula. `INVOICE_IMAGE` permite verificar una foto local sin enviarla a proveedores.
+- Navegador: `tests/browser-lector-revision-rev84.cjs`, `tests/browser-lector-reintento-rev84.cjs`, `tests/browser-lector-compatibilidad-rev84.cjs` y `tests/browser-lector-costos-rev84.cjs`; requieren Playwright (`PW`) y Chrome (`CHROME`). Toda IA y escritura externa se simula. `TEST_WIDTH=390` ejecuta los costos en ancho móvil. `INVOICE_IMAGE` permite verificar una foto local sin enviarla a proveedores.
 - SQL: `node tests/sql-lector-rev84.cjs --cupo`, con PostgreSQL portátil (`REV84_PG_BIN`) y módulo `pg` (`REV84_PG_MODULE`). Usa solo localhost y crea/elimina una base temporal propia. La fixture no se ejecuta en producción. En Windows se verificó PostgreSQL 18.4 con `pg` 8.16.3. El ZIP no incluye el runtime temporal.
 
 ## Publicación y reversión

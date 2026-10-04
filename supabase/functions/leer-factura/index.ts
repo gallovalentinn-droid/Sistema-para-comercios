@@ -205,6 +205,10 @@ Deno.serve(async (request: Request) => {
       }}:{}),
     });
     const {invoice,iaUsage} = result;
+    if(result.fallbackDiagnostic)console.error("F6_IA_FALLBACK",JSON.stringify({...diagnosticAt("provider"),...result.fallbackDiagnostic}));
+    invoice.items.forEach((row: {revisionImporte?:{status:string}},index:number)=>{
+      if(row.revisionImporte?.status==="mismatch")console.error("F6_IA_ROW_REVIEW",JSON.stringify({...diagnosticAt("validation"),provider:result.provider,row:index+1,field:"subtotal",reason:"ROW_AMOUNT_MISMATCH"}));
+    });
     if(!invoice.items.length)throw Object.assign(new Error("FACTURA_SIN_PRODUCTOS"),{code:"FACTURA_SIN_PRODUCTOS",status:422,diagnostic:{stage:"validation",provider:result.provider}});
     stage = "telemetry";
     let accountingStatus="confirmed";
@@ -238,6 +242,6 @@ Deno.serve(async (request: Request) => {
     const code = failure.code ?? (stage === "telemetry" ? "IA_TELEMETRIA_NO_REGISTRADA" : "IA_NO_DISPONIBLE");
     const diagnostic = {...diagnosticAt(stage),...(failure.diagnostic ?? {})};
     console.error("F6_IA_PROCESSING_ERROR", JSON.stringify({code,...diagnostic}));
-    return respond(origin,{code,diagnostic},failure.status ?? 503);
+    return respond(origin,{code,diagnostic,iaQuotaMode:quotaMode},failure.status ?? 503);
   }
 });

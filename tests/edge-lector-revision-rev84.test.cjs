@@ -36,3 +36,17 @@ test('REV84 tolerancia firme en 198/200 y packs excluyen pesos, códigos y ambig
    assert.equal(fn(encode(doc([row({producto})])),{reviewMode:true}).items[0].packDetectado,want);
  }
 });
+test('REV84 impuesto omitido y porcentaje mal convertido quedan marcados por ambos proveedores',async()=>{
+ const m=await load();for(const [fn,encode] of [[m.gem.extractGeminiInvoice,gem],[m.gpt.extractOpenAIInvoice,gpt]]){
+  for(const extra of [{subtotal:121,impuestoFila:0},{cantidad:2,precioUnit:100,descuento:5,subtotal:190}]){
+   const item=fn(encode(doc([row(extra)])),{reviewMode:true}).items[0];assert.equal(item.revisionImporte.status,'mismatch');
+  }
+ }
+});
+test('REV84 pack explícito sin U y ambiguo no autorizan conversión; base subleída no descarta revisión',async()=>{
+ const m=await load();for(const [fn,encode] of [[m.gem.extractGeminiInvoice,gem],[m.gpt.extractOpenAIInvoice,gpt]]){
+  assert.equal(fn(encode(doc([row({producto:'Alfajor PACK X 12'})])),{reviewMode:true}).items[0].packDetectado,12);
+  assert.equal(fn(encode(doc([row({producto:'X8U X12U'})])),{reviewMode:true}).items[0].packAmbiguo,true);
+  const result=fn(encode({...doc([row({precioUnit:1,subtotal:100})]),descuentoGlobal:10}),{reviewMode:true});assert.equal(result.items[0].revisionImporte.status,'mismatch');
+ }
+});
