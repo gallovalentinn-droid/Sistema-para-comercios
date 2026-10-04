@@ -227,7 +227,7 @@ test('REV70 sincroniza la memoria: sube lo pendiente, trae la nube y sigue sin c
   assert.deepEqual(llamadas.filter(l => l[0] === 'from').map(l => l[1]), ['factura_alias_producto', 'factura_alias_producto']);
   const up = llamadas.find(l => l[0] === 'upsert');
   assert.equal(up[2].onConflict, 'comercio_id,proveedor_clave,texto_clave');
-  assert.deepEqual(JSON.parse(JSON.stringify(up[1])), [{comercio_id: 'c1', proveedor_clave: 'limon', texto_clave: 'speed 473', producto_ref: 'p12', unidades_por_bulto: 6, usos: 1}]);
+  assert.deepEqual(JSON.parse(JSON.stringify(up[1])), [{comercio_id: 'c1', proveedor_clave: 'limon', texto_clave: 'speed 473', producto_ref: 'p12', unidades_por_bulto: 6, usos: 1,modo_stock:null,pack_detectado:null}]);
   assert.equal(r.filas['limon|fernet branca 750cc'].usos, 3);
   assert.equal(r.filas['limon|speed 473'].pend, undefined, 'lo subido deja de estar pendiente');
   assert.ok(ctx.rev70LeerMemoria(cid).sincronizado);
