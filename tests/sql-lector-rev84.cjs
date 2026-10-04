@@ -19,7 +19,9 @@ const sql=file=>fs.readFileSync(path.join(root,file),'utf8');
   await c.query(sql('REV84-LECTOR-MEMORIA.sql'));await c.query(sql('REV84-LECTOR-MEMORIA.sql'));await c.query(sql('supabase/tests/rev84/lector-memoria.sql'));
   console.log('MEMORIA SQL: idempotencia, legacy, guardado y RLS aprobados');
   if(process.argv.includes('--cupo')){
+   const definition=await c.query("select oid::regprocedure::text signature,pg_get_functiondef(oid) definition from pg_proc where proname in ('f6_service_reservar_lectura_factura','f6_service_registrar_resultado_lectura_factura') order by proname");
    await c.query(sql('REV84-LECTOR-CUPO.sql'));await c.query(sql('REV84-LECTOR-CUPO.sql'));await c.query(sql('supabase/tests/rev84/lector-cupo.sql'));
+   require('node:assert/strict').deepEqual((await c.query("select oid::regprocedure::text signature,pg_get_functiondef(oid) definition from pg_proc where proname in ('f6_service_reservar_lectura_factura','f6_service_registrar_resultado_lectura_factura') order by proname")).rows,definition.rows,'legacy RPC definitions unchanged');
    await require('./sql-lector-cupo-concurrency.cjs')({queryClient,database,c});console.log('CUPO SQL: controles y concurrencia aprobados');
   }
  }finally{

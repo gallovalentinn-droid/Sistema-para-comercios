@@ -141,40 +141,77 @@ Deno.serve(async (request: Request) => {
   const serviceClient = createClient(url, secretKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  const identity={p_actor_user_id:actorUserId,p_comercio_id:input.comercioId,p_request_id:input.requestId};
+  const reservationFailure=(error: {message?:string})=>{
+    const detail=String(error?.message??"");
+    if(detail.includes("F6_IA_FORBIDDEN"))return fail("SIN_PERMISO",403,"reservation");
+    if(detail.includes("F6_IA_LICENSE_INACTIVE"))return fail("LICENCIA_NO_OPERABLE",403,"reservation");
+    return fail("IA_RESERVA_NO_DISPONIBLE",503,"reservation");
+  };
+  const capabilityName="f6_service_capacidades_lector_factura_rev84";
+  let quotaMode="rev84";
+  try {
+    const probe=await invoiceStep(serviceClient.rpc(capabilityName,{p_actor_user_id:actorUserId,p_comercio_id:input.comercioId}),admissionTime());
+    if(probe.error){
+      const missing=["PGRST202","42883"].includes(probe.error.code)&&String(probe.error.message??"").includes(capabilityName);
+      if(!missing)return reservationFailure(probe.error);
+      quotaMode="legacy-rev83";
+      console.error("F6_IA_LEGACY_QUOTA",JSON.stringify(diagnosticAt("reservation")));
+    }else if(probe.data?.contract!=="f6-reader-quota-rev84")return fail("IA_RESERVA_NO_DISPONIBLE",503,"reservation");
+  }catch(_){return fail("IA_RESERVA_NO_DISPONIBLE",503,"reservation");}
+  const modern=quotaMode==="rev84";
+  const maxAttempts=openaiApiKey&&geminiApiKey&&["image/jpeg","image/png","image/webp"].includes(input.mediaType)?2:1;
   let reserved;
   try { reserved = await invoiceStep(serviceClient.rpc(
-    "f6_service_reservar_lectura_factura",
-    {
-      p_actor_user_id: actorUserId,
-      p_comercio_id: input.comercioId,
-      p_request_id: input.requestId,
-    },
+    modern?"f6_service_reservar_lectura_factura_rev84":"f6_service_reservar_lectura_factura",
+    {...identity,...(modern?{p_max_attempts:maxAttempts}:{})},
   ),admissionTime()); } catch (_) { return fail("IA_RESERVA_NO_DISPONIBLE", 503, "reservation"); }
   const { data: reservation, error: reservationError } = reserved;
-  if (reservationError) {
-    const detail = String(reservationError.message ?? "");
-    if (detail.includes("F6_IA_FORBIDDEN")) return fail("SIN_PERMISO", 403, "reservation");
-    if (detail.includes("F6_IA_LICENSE_INACTIVE")) return fail("LICENCIA_NO_OPERABLE", 403, "reservation");
-    return fail("IA_RESERVA_NO_DISPONIBLE", 503, "reservation");
+  if (reservationError) return reservationFailure(reservationError);
+  if(reservation?.replayed===true){
+    const running=modern&&reservation.code==="LECTURA_EN_CURSO";
+    return respond(origin,{code:running?"LECTURA_EN_CURSO":"LECTURA_NO_RECUPERABLE",diagnostic:{...diagnosticAt("reservation"),...(running?{retryAfterSeconds:5}:{})},iaQuotaMode:quotaMode},running?202:409);
   }
   if (reservation?.ok !== true) {
     const limited = reservation?.code === "LIMITE_IA_MENSUAL";
+    const capacity=["IA_LIMITE_FRECUENCIA","IA_LECTURAS_EN_CURSO"].includes(reservation?.code);
     return respond(origin, {
-      code: limited ? "LIMITE_IA_MENSUAL" : "IA_RESERVA_NO_DISPONIBLE",
-      diagnostic: diagnosticAt("reservation"),
+      code: limited||capacity ? reservation.code : "IA_RESERVA_NO_DISPONIBLE",
+      diagnostic: {...diagnosticAt("reservation"),...(capacity?{retryAfterSeconds:Number(reservation.retryAfterSeconds??1)}:{})},
       limite: Number(reservation?.limite ?? 0),
       usados: Number(reservation?.usados ?? 0),
-    }, limited ? 429 : 503);
+      iaQuotaMode:quotaMode,
+    }, limited||capacity ? 429 : 503);
   }
+  if(reservation.monthlyCallsWarning)console.error("F6_IA_MONTHLY_CALL_WARNING",JSON.stringify(diagnosticAt("reservation")));
+  const finalize=async()=>{
+    if(!modern)return true;
+    try{
+      const closed=await invoiceStep(serviceClient.rpc("f6_service_finalizar_lectura_factura_rev84",identity),Math.max(1,Math.min(2_000,deadline-Date.now())));
+      if(closed.error||closed.data?.ok!==true)throw new Error("F6_CLOSE_FAILED");
+      return true;
+    }catch(_){console.error("F6_IA_CLOSE_PENDING",JSON.stringify(diagnosticAt("telemetry")));return false;}
+  };
 
   let stage = "provider";
   try {
-    const result = await readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,fetchImpl:fetch,totalTimeoutMs:Math.max(1,Math.min(135_000,deadline-Date.now()-5_000))});
+    if(deadline-Date.now()<=5_000)throw Object.assign(new Error("IA_TIEMPO_AGOTADO"),{code:"IA_TIEMPO_AGOTADO",status:504});
+    const result = await readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,fetchImpl:fetch,totalTimeoutMs:Math.min(135_000,deadline-Date.now()-5_000),
+      ...(modern?{beforeAttempt:async({provider,attempt}: {provider:string;attempt:number})=>{
+        let admitted;
+        try{admitted=await invoiceStep(serviceClient.rpc("f6_service_iniciar_intento_lectura_factura_rev84",{...identity,p_provider:provider,p_attempt:attempt}),Math.max(1,Math.min(2_000,deadline-Date.now()-5_000)));}
+        catch(_){throw Object.assign(new Error("IA_RESERVA_NO_DISPONIBLE"),{code:"IA_RESERVA_NO_DISPONIBLE",status:503,diagnostic:diagnosticAt("reservation")});}
+        if(admitted.error||admitted.data?.ok!==true)throw Object.assign(new Error("IA_RESERVA_NO_DISPONIBLE"),{code:"IA_RESERVA_NO_DISPONIBLE",status:503,diagnostic:diagnosticAt("reservation")});
+      }}:{}),
+    });
     const {invoice,iaUsage} = result;
-    const telemetry = buildInvoiceTelemetry({invoice,usage:iaUsage,model:result.model});
+    if(!invoice.items.length)throw Object.assign(new Error("FACTURA_SIN_PRODUCTOS"),{code:"FACTURA_SIN_PRODUCTOS",status:422,diagnostic:{stage:"validation",provider:result.provider}});
     stage = "telemetry";
-    const { data: telemetryResult, error: telemetryError } = await serviceClient.rpc(
-      "f6_service_registrar_resultado_lectura_factura",
+    let accountingStatus="confirmed";
+    try{
+      const telemetry = buildInvoiceTelemetry({invoice,usage:iaUsage,model:result.model});
+      const { data: telemetryResult, error: telemetryError } = await invoiceStep(serviceClient.rpc(
+      modern?"f6_service_registrar_resultado_lectura_factura_rev84":"f6_service_registrar_resultado_lectura_factura",
       {
         p_actor_user_id: actorUserId,
         p_comercio_id: input.comercioId,
@@ -184,15 +221,19 @@ Deno.serve(async (request: Request) => {
         p_recognized_fields: telemetry.recognizedFields,
         p_recognized_items: telemetry.recognizedItems,
       },
-    );
+    ),Math.max(1,Math.min(2_000,deadline-Date.now())));
     if (telemetryError || telemetryResult?.ok !== true) {
-      console.error("F6_IA_TELEMETRY_ERROR", JSON.stringify({
-        ...diagnosticAt(stage), hasDatabaseError: !!telemetryError,
-      }));
-      return fail("IA_TELEMETRIA_NO_REGISTRADA", 503, stage);
+      throw new Error("F6_TELEMETRY_PENDING");
     }
-    return respond(origin, { ...invoice, iaUsage, iaProvider:result.provider, iaFallbackUsed:result.fallbackUsed });
+    }catch(_){accountingStatus="pending";console.error("F6_IA_TELEMETRY_PENDING",JSON.stringify(diagnosticAt(stage)));}
+    const closed=await finalize();
+    return respond(origin, { ...invoice, iaUsage, iaProvider:result.provider, iaFallbackUsed:result.fallbackUsed,
+      ...(result.fallbackDiagnostic?{iaFallbackDiagnostic:result.fallbackDiagnostic}:{}),
+      iaQuotaMode:quotaMode,iaAccountingStatus:accountingStatus,...(accountingStatus==="pending"?{iaAccountingDiagnostic:diagnosticAt("telemetry")}:{ }),
+      ...(closed?{}:{iaClosureStatus:"pending"}),
+    });
   } catch (error) {
+    await finalize();
     const failure = error as {code?:string; status?:number; diagnostic?:object};
     const code = failure.code ?? (stage === "telemetry" ? "IA_TELEMETRIA_NO_REGISTRADA" : "IA_NO_DISPONIBLE");
     const diagnostic = {...diagnosticAt(stage),...(failure.diagnostic ?? {})};

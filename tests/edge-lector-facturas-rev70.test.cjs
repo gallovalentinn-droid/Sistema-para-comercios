@@ -73,7 +73,7 @@ test('REV70 el 503 de modelo saturado tiene su propia categoría', async () => {
 
 test('REV70 la función devuelve al navegador los campos nuevos sin cambios en index.ts', () => {
   const index = fs.readFileSync(path.join(root, 'supabase/functions/leer-factura/index.ts'), 'utf8');
-  assert.match(index, /return respond\(origin, \{ \.\.\.invoice, iaUsage, iaProvider:result.provider, iaFallbackUsed:result.fallbackUsed \}\);/);
+  assert.match(index, /return respond\(origin, \{ \.\.\.invoice, iaUsage, iaProvider:result.provider, iaFallbackUsed:result.fallbackUsed,/);
   assert.match(index, /f6_service_reservar_lectura_factura/);
   assert.doesNotMatch(index, /AIza[0-9A-Za-z_-]{20,}/);
 });

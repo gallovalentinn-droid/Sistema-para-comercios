@@ -86,6 +86,7 @@ export async function readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,
   const started = now(), reviewMode=input.readerContract==='f6-invoice-review-v1';
   let fallbackDiagnostic;
   for (let index = 0; index < providers.length; index++) {
+    if(now()-started>=totalTimeoutMs)throw failure('IA_TIEMPO_AGOTADO',504,{stage:'provider',provider:providers[index].provider,fallbackUsed:index>0});
     if (beforeAttempt) await beforeAttempt({provider:providers[index].provider,attempt:index+1});
     const remaining = totalTimeoutMs - (now()-started);
     if (remaining <= 0) throw failure('IA_TIEMPO_AGOTADO',504,{stage:'provider',provider:providers[index].provider,fallbackUsed:index>0});

@@ -1,7 +1,9 @@
 -- SOLO base local aislada. Dependencias mínimas para ejecutar las RPC reales copiadas.
-create role anon;
-create role authenticated;
-create role service_role bypassrls;
+do $$begin
+if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if;
+if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
+if not exists(select 1 from pg_roles where rolname='service_role') then create role service_role bypassrls; end if;
+end$$;
 create schema private;
 create schema auth;
 create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
