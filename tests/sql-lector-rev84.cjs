@@ -11,6 +11,7 @@ const sql=file=>fs.readFileSync(path.join(root,file),'utf8');
 (async()=>{
  let c,admin,database,started=false;
  try{
+  fs.mkdirSync(scratch,{recursive:true});
   if(!fs.existsSync(path.join(data,'PG_VERSION')))cmd('initdb',['-D',data,'-U','postgres','-A','trust','--encoding=UTF8','--locale=C']);
   cmd('pg_ctl',['start','-D',data,'-l',log,'-o',`-h 127.0.0.1 -p ${port}`,'-w']);started=true;
   admin=await queryClient('postgres');database='rev84_'+crypto.randomBytes(6).toString('hex');await admin.query(`create database ${database}`);c=await queryClient(database);
