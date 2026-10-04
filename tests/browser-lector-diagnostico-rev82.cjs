@@ -3,7 +3,7 @@ process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
 const {openShadow}=require('./browser-fixture/shadow.cjs');const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 (async()=>{for(const width of [1366,390]){
  const h=await openShadow({width,publicUrl:process.env.PUBLIC_BETA||null});try{const p=h.page;
- assert.equal(await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision),82);
+ assert.ok(await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision>=82));
  await p.evaluate(()=>{window.__readerCalls=0;sb.functions.invoke=async()=>{window.__readerCalls++;return {error:{message:'PRIVATE',context:new Response(JSON.stringify({code:'IA_AGOTADA_TEMPORALMENTE',diagnostic:{stage:'provider',providerCategory:'RATE_LIMIT',providerStatus:429,requestId:'00000000-0000-4000-8000-000000000001'}}),{status:429})}};};panelIngreso(true,'ia');});
  await p.setInputFiles('#facFoto',{name:'factura.png',mimeType:'image/png',buffer:Buffer.from('synthetic image')});
  await p.locator('#facError').waitFor({state:'visible'});assert.match(await p.locator('#facError').innerText(),/Google.*demasiadas solicitudes/);

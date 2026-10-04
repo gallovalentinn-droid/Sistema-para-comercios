@@ -14,6 +14,14 @@ const {openShadow}=require('./browser-fixture/shadow.cjs'),assert=require('node:
  await p.fill('[data-rev-impuesto="0"]','0');await p.locator('[data-rev-impuesto="0"]').dispatchEvent('change');assert.equal(await p.locator('#okRev').isDisabled(),true);
  await p.fill('[data-rev-impuesto="0"]','42');await p.locator('[data-rev-impuesto="0"]').dispatchEvent('change');
  assert.equal(await p.locator('#okRev').isEnabled(),true);
+ assert.match(await p.locator('[data-label="Se carga"]').innerText(),/15,125/);
+ await p.fill('[data-rev-subtotal="0"]','');await p.locator('[data-rev-subtotal="0"]').dispatchEvent('change');assert.equal(await p.locator('#okRev').isDisabled(),true);
+ for(const [attr,newValue,oldValue] of [['cant','3','2'],['costo','101','100'],['dto','1','0']]){
+  await p.check('[data-rev-confirmar="0"]');assert.equal(await p.locator('#okRev').isEnabled(),true);
+  await p.fill(`[data-rev-${attr}="0"]`,newValue);await p.locator(`[data-rev-${attr}="0"]`).dispatchEvent('change');assert.equal(await p.locator('#okRev').isDisabled(),true);
+  await p.fill(`[data-rev-${attr}="0"]`,oldValue);await p.locator(`[data-rev-${attr}="0"]`).dispatchEvent('change');
+ }
+ await p.fill('[data-rev-subtotal="0"]','242');await p.locator('[data-rev-subtotal="0"]').dispatchEvent('change');
  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  await p.click('#okRev');const line=await p.evaluate(()=>remito[0]);assert.equal(line.cant,16);assert.equal(Number(line.costoU),15.125);assert.equal(line.totalL,'242.00');
  assert.equal(await p.evaluate(()=>costoLinea(remito[0],db.productos.find(p=>p.id==='rev84p'))*16),242);

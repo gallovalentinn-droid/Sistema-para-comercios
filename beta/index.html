@@ -849,7 +849,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:83,
+  packageRevision:84,
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -7454,11 +7454,12 @@ async function f83SectoresFactura(imageBase64,mediaType){
       const canvas=document.createElement('canvas'),scale=Math.min(2,2048/w,2048/height);
       canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(height*scale));
       canvas.getContext('2d').drawImage(img,0,y,w,height,0,0,canvas.width,canvas.height);
-      return {mediaType:'image/png',imageBase64:canvas.toDataURL('image/png').split(',')[1]};
+      return {mediaType:'image/jpeg',imageBase64:canvas.toDataURL('image/jpeg',0.9).split(',')[1]};
     });
     // Los sectores amplían la misma página; nunca reemplazan la imagen original.
-    return parts.reduce((n,p)=>n+p.imageBase64.length*3/4,0)<=8*1024*1024?parts:[];
-  }catch(_){return [];}
+    if(parts.reduce((n,p)=>n+p.imageBase64.length*3/4,0)>8*1024*1024){console.warn('F6_IA_SECTORS_OMITTED',{reason:'SIZE_LIMIT'});return [];}
+    return parts;
+  }catch(_){console.warn('F6_IA_SECTORS_OMITTED',{reason:'DECODE_UNAVAILABLE'});return [];}
 }
 // REV83_SECTORES_FIN
 async function rev84RevisarRespuesta(ov){
@@ -7693,7 +7694,7 @@ function pintarRevision(ov2){
       <td data-label="Unid. x bulto" class="r"><input class="inp num" data-rev-bulto="${ix}" value="${upb}">${bultoIa}</td>
       <td data-label="Precio unit." class="r"><input class="inp num" data-rev-costo="${ix}" value="${r.costoU}"></td>
       <td data-label="Descuento" class="r"><input class="inp num" data-rev-dto="${ix}" value="${r.descuento||0}"></td>
-      <td data-label="Se carga" class="r"><b class="num">${unidades}</b> unidades<br><span style="font-size:12px;color:var(--muted)">a ${$m(costoU)} c/u${r.descuento>0?` <span class="pill ok">con dto.</span>`:''}</span>${r.prodId&&r.prodId!=='__nuevo__'?rev70AvisoCosto(r,prod(r.prodId),costoU):''}</td>
+      <td data-label="Se carga" class="r"><b class="num">${unidades}</b> unidades<br><span style="font-size:12px;color:var(--muted)">a ${r._rev84?'$'+Number(costoU).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:4}):$m(costoU)} c/u${r.descuento>0?` <span class="pill ok">con dto.</span>`:''}</span>${r.prodId&&r.prodId!=='__nuevo__'?rev70AvisoCosto(r,prod(r.prodId),costoU):''}</td>
     </tr>`;}).join('')}</tbody></table>`;
   $$('[data-rev-stock]',c).forEach(b=>b.onclick=()=>{const [ix,n]=b.dataset.revStock.split(':').map(Number);rev84ElegirStock(revisionFactura[ix],n);pintarRevision(ov2);});
   $$('[data-rev-manual]',c).forEach(b=>b.onclick=()=>{const r=revisionFactura[b.dataset.revManual];if(!rev84ElegirStock(r,r.porBulto))aviso('Usá una cantidad entera entre 1 y 1000.','bad');pintarRevision(ov2);});
@@ -7702,10 +7703,10 @@ function pintarRevision(ov2){
   $$('[data-rev-excluir]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revExcluir].excluida=i.checked;pintarRevision(ov2);});
   $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>{const r=revisionFactura[s.dataset.revProd];r.prodId=s.value;r.origen=s.value?'manual':'';r.noMercaderia=!s.value&&!!r.noMercaderiaIa;if(r._rev84){r.excluida=!s.value;r.modoStock=null;r.porBulto=1;}pintarRevision(ov2);});
   $$('[data-rev-cand]',c).forEach(b=>b.onclick=()=>{const [ix,j]=b.dataset.revCand.split(':').map(Number);const r=revisionFactura[ix],k=r&&r.candidatos[j];if(!k)return;r.prodId=k.id;r.origen='manual';pintarRevision(ov2);});
-  $$('[data-rev-cant]',c).forEach(i=>i.onchange=()=>{const l=revisionFactura[i.dataset.revCant],p=prod(l.prodId);l.cantidad=Math.max(0,p&&p.unidad==='kg'?numCantidad(i.value):num(i.value));pintarRevision(ov2);});
+  $$('[data-rev-cant]',c).forEach(i=>i.onchange=()=>{const l=revisionFactura[i.dataset.revCant],p=prod(l.prodId);l.importeConfirmado=false;l.cantidad=Math.max(0,p&&p.unidad==='kg'?numCantidad(i.value):num(i.value));pintarRevision(ov2);});
   $$('[data-rev-bulto]',c).forEach(i=>i.onchange=()=>{const r=revisionFactura[i.dataset.revBulto];r.porBulto=Math.max(1,Math.floor(num(i.value))||1);if(r._rev84&&r.packDetectado)r.modoStock=null;pintarRevision(ov2);});
-  $$('[data-rev-costo]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revCosto].costoU=Math.max(0,num(i.value));pintarRevision(ov2);});
-  $$('[data-rev-dto]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revDto].descuento=Math.abs(num(i.value));pintarRevision(ov2);});
+  $$('[data-rev-costo]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revCosto].importeConfirmado=false;revisionFactura[i.dataset.revCosto].costoU=Math.max(0,num(i.value));pintarRevision(ov2);});
+  $$('[data-rev-dto]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revDto].importeConfirmado=false;revisionFactura[i.dataset.revDto].descuento=Math.abs(num(i.value));pintarRevision(ov2);});
 }
 function recomputeLinea(l){
   delete l.rev84Importe;

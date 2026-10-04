@@ -19,6 +19,7 @@ for (const [relative, expected] of Object.entries(manifest.files || {})) {
 }
 
 const secretPatterns = [
+  ['OpenAI API key', /\bsk-(?:proj-)?[A-Za-z0-9_-]{24,}\b/g],
   ['Supabase secret key', /\bsb_secret_[A-Za-z0-9._-]{12,}\b/g],
   ['service role key', /\bservice[_-]?role\b\s*[:=]\s*['"][^'"]{16,}['"]/gi],
   ['private key', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g],

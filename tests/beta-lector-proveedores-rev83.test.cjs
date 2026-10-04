@@ -11,9 +11,9 @@ test('REV83 diagnóstico identifica OpenAI, saldo y validación de importe sin t
 function sectors(extra){const match=html.match(/\/\/ REV83_SECTORES_INICIO([\s\S]*?)\/\/ REV83_SECTORES_FIN/);assert.ok(match,'preparación de sectores en beta');const c={...extra};vm.runInNewContext(match[1],c);return c.f83SectoresFactura;}
 test('REV83 tres sectores superpuestos preservan bordes y acotan resolución',async()=>{
  const crops=[],canvases=[];class Image{naturalWidth=900;naturalHeight=1600;async decode(){}}
- const f=sectors({Image,document:{createElement:()=>{const canvas={getContext:()=>({drawImage:(...a)=>crops.push(a.slice(1))}),toDataURL:()=> 'data:image/png;base64,AAAA'};canvases.push(canvas);return canvas;}}});
+ const f=sectors({Image,document:{createElement:()=>{const canvas={getContext:()=>({drawImage:(...a)=>crops.push(a.slice(1))}),toDataURL:(type,quality)=>{assert.equal(type,'image/jpeg');assert.equal(quality,.9);return 'data:image/jpeg;base64,AAAA'}};canvases.push(canvas);return canvas;}}});
  const parts=await f('AAAA','image/jpeg');assert.equal(parts.length,3);assert.deepEqual(crops.map(a=>[a[1],a[3]]),[[0,720],[560,720],[1120,480]]);assert.ok(canvases.every(c=>c.width<=2048&&c.height<=2048));
- assert.equal(parts[0].mediaType,'image/png');assert.equal(parts[0].imageBase64,'AAAA');
+ assert.equal(parts[0].mediaType,'image/jpeg');assert.equal(parts[0].imageBase64,'AAAA');
 });
 test('REV83 sectores que no decodifican o exceden presupuesto permiten enviar original',async()=>{
  const bad=sectors({Image:class{async decode(){throw new Error('unsupported')}}});assert.equal((await bad('AAAA','image/heic')).length,0);

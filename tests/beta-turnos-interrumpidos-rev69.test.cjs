@@ -130,6 +130,6 @@ test('REV69 migración exige origen único y no crea cierres ficticios', () => {
 
 test('HTML y service worker alineados en la revisión actual (REV77)', () => {
   const sw = fs.readFileSync(path.join(__dirname, '..', 'beta', 'sw.js'), 'utf8');
-  assert.match(html, /packageRevision:83,/);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev83/);
+  assert.match(html, /packageRevision:84,/);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev84/);
 });
