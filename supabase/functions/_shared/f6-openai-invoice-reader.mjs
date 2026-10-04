@@ -63,7 +63,7 @@ function presentationUnits(producto) {
   return unique.length === 1 ? unique[0] : null;
 }
 
-export function extractOpenAIInvoice(response) {
+export function extractOpenAIInvoice(response,{reviewMode=false}={}) {
   if (!response || response.status !== 'completed') throw new Error('F6_OPENAI_INCOMPLETE');
   const content = (Array.isArray(response.output) ? response.output : [])
     .filter(m=>m?.type === 'message' && m.role === 'assistant')
@@ -77,7 +77,7 @@ export function extractOpenAIInvoice(response) {
   let invoice;
   try {
     // Keep the same limits, financial adjustments and discount allocation as Gemini.
-    invoice = extractGeminiInvoice({status:'completed',steps:[{type:'model_output',content:[{type:'text',text:texts[0].text}]}]});
+    invoice = extractGeminiInvoice({status:'completed',steps:[{type:'model_output',content:[{type:'text',text:texts[0].text}]}]},{reviewMode});
   } catch (e) {
     throw invalid(e.diagnostic?.field ?? 'response',e.diagnostic?.reason ?? 'INVALID_INVOICE',e.diagnostic?.row);
   }
@@ -93,10 +93,10 @@ export function extractOpenAIInvoice(response) {
       // Compare BEFORE distributing the general discount; allow printed-price rounding.
       const expected = row.cantidad * row.precioUnit - row.descuento + tax;
       const tolerance = Math.max(0.02,Math.abs(row.cantidad)*0.005+0.005);
-      if (Math.abs(expected-subtotal) > tolerance + 1e-7) throw invalid('subtotal','ROW_AMOUNT_MISMATCH',index+1);
+      if (!reviewMode && Math.abs(expected-subtotal) > tolerance + 1e-7) throw invalid('subtotal','ROW_AMOUNT_MISMATCH',index+1);
     }
     const units = presentationUnits(invoice.items[index].producto);
-    if (units !== null) invoice.items[index].unidadesPorBulto = units;
+    if (!reviewMode && units !== null) invoice.items[index].unidadesPorBulto = units;
     const foreignLetter = /(?!\p{Script=Latin})\p{L}/u;
     const item = invoice.items[index];
     if (!foreignLetter.test(item.producto) && foreignLetter.test(item.descripcion)) item.descripcion = item.producto;

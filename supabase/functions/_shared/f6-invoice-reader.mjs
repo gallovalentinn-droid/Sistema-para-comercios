@@ -1,3 +1,4 @@
+import {checkInvoiceRow,detectInvoicePack,INVOICE_REVIEW_RULES} from './f6-invoice-review.mjs';
 export const F6_INVOICE_MAX_BYTES = 8 * 1024 * 1024;
 export const F6_INVOICE_MODEL = 'gemini-3.8-flash';
 export const F6_INVOICE_PROVIDER_TIMEOUT_MS = 90_000;
@@ -147,18 +148,25 @@ function invalidOutput(field, reason, row) {
   return error;
 }
 
-export function buildGeminiInvoiceRequest({ imageBase64, mediaType, model = F6_INVOICE_MODEL }) {
+export function buildGeminiInvoiceRequest({ imageBase64, mediaType, imageParts=[], reviewMode=false, model = F6_INVOICE_MODEL }) {
+  const schema=structuredClone(INVOICE_SCHEMA);
+  if(reviewMode){
+    schema.properties.items.items.properties.subtotal={type:['number','null']};
+    schema.properties.items.items.properties.impuestoFila={type:'number'};
+    schema.properties.items.items.required.push('subtotal','impuestoFila');
+  }
   return {
     model,
     store: false,
     input: [
-      { type: 'text', text: INVOICE_PROMPT },
+      { type: 'text', text: INVOICE_PROMPT+(reviewMode?INVOICE_REVIEW_RULES:'') },
       { type: 'image', data: imageBase64, mime_type: mediaType },
+      ...imageParts.map(p=>({type:'image',data:p.imageBase64,mime_type:p.mediaType})),
     ],
     response_format: {
       type: 'text',
       mime_type: 'application/json',
-      schema: INVOICE_SCHEMA,
+      schema,
     },
     generation_config: {
       max_output_tokens: F6_INVOICE_MAX_OUTPUT_TOKENS,
@@ -209,7 +217,7 @@ function modelOutputText(response) {
   throw new Error('F6_GEMINI_OUTPUT_MISSING');
 }
 
-export function extractGeminiInvoice(response) {
+export function extractGeminiInvoice(response,{reviewMode=false}={}) {
   let parsed;
   try {
     parsed = JSON.parse(modelOutputText(response));
@@ -225,7 +233,7 @@ export function extractGeminiInvoice(response) {
     if (!isRecord(item)) throw invalidOutput('items', 'EXPECTED_ROW');
     const producto = boundedText(item.producto, 200, 'producto');
     if (!producto) throw invalidOutput('producto', 'EMPTY_TEXT');
-    return {
+    const result={
       producto,
       codigo: optionalCode(item.codigo),
       descripcion: optionalText(item.descripcion, 200),
@@ -234,6 +242,15 @@ export function extractGeminiInvoice(response) {
       precioUnit: boundedNumber(item.precioUnit, 1_000_000_000, {field:'precioUnit'}),
       descuento: boundedNumber(item.descuento, 1_000_000_000_000, {field:'descuento'}),
     };
+    if(reviewMode){
+      result.impuestoFila=boundedNumber(item.impuestoFila===undefined?0:item.impuestoFila,1e12,{field:'impuestoFila'});
+      result.subtotal=item.subtotal==null?null:boundedNumber(item.subtotal,1e12,{field:'subtotal'});
+      result.descuentoFila=result.descuento;
+      result.descuentoGlobalAsignado=0;
+      result.packDetectado=detectInvoicePack(result.producto);
+      result.revisionImporte=checkInvoiceRow(result);
+    }
+    return result;
     } catch (error) {
       if (error.diagnostic) error.diagnostic.row = index + 1;
       throw error;
@@ -241,7 +258,7 @@ export function extractGeminiInvoice(response) {
   });
   const descuentoGlobal = boundedNumber(parsed.descuentoGlobal, 1_000_000_000_000, {field:'descuentoGlobal'});
   if (descuentoGlobal > 0) {
-    const bases = items.map((item) => Math.max(0, item.cantidad * item.precioUnit - item.descuento));
+    const bases = items.map((item) => Math.max(0, item.cantidad * item.precioUnit - item.descuento+(reviewMode?item.impuestoFila:0)));
     const totalBase = bases.reduce((sum, value) => sum + value, 0);
     if (totalBase <= 0 || descuentoGlobal > totalBase + 0.005) throw invalidOutput('descuentoGlobal', 'EXCEEDS_ITEMS_TOTAL');
 
@@ -253,6 +270,7 @@ export function extractGeminiInvoice(response) {
         ? descuentoRestante
         : Math.min(descuentoRestante, Math.round(descuentoRestante * base / baseRestante));
       item.descuento = Math.round((item.descuento + asignado / 100) * 100) / 100;
+      if(reviewMode)item.descuentoGlobalAsignado=asignado/100;
       descuentoRestante -= asignado;
       baseRestante -= base;
     });
