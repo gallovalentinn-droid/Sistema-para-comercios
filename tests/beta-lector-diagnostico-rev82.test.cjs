@@ -25,3 +25,7 @@ test('REV82 proveedor distingue autorización, su propio tiempo límite y recurs
  assert.match(msg('PROVIDER_TIMEOUT'),/Google agotó su propio tiempo/);assert.doesNotMatch(msg('PROVIDER_TIMEOUT'),/90 segundos/);
  assert.match(msg('RESOURCE_NOT_FOUND'),/Google no encontró el recurso/);assert.doesNotMatch(msg('RESOURCE_NOT_FOUND'),/modelo/);
 });
+test('REV84 subida vencida explica el envío de la foto sin culpar al JSON ni al proveedor',()=>{
+ const r=describe({code:'IA_TIEMPO_AGOTADO',status:408,diagnostic:{stage:'upload'}});
+ assert.match(r.message,/foto/);assert.match(r.detail,/Paso:.*foto/);assert.doesNotMatch(r.message,/Google|OpenAI|inválidos/);
+});

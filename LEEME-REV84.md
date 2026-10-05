@@ -15,7 +15,7 @@ Cada SQL necesita autorización expresa por separado. La función detecta la mig
 
 Hay un solo pase al respaldo y ninguna repetición automática del mismo proveedor. Las fallas de acceso, saldo, modelo, 429 y salida incompleta de GPT permiten respaldo; negativa explícita, JSON roto y valores inválidos no. Los importes discordantes se revisan sin otra llamada.
 
-Hasta 135 segundos de presupuesto de proveedores, 60 para el principal, con límite del servidor a 145 segundos desde el ingreso. Autenticación/reserva comparten diez segundos y se dejan cinco para registro/cierre. El cliente espera hasta 160 segundos y avisa cuando sigue leyendo. El presupuesto disponible depende del tiempo ya consumido.
+Hasta 135 segundos de presupuesto de proveedores, 60 para el principal, con límite del servidor a 145 segundos desde el ingreso. La recepción completa de la foto y su validación ocurren antes de empezar los diez segundos compartidos de autenticación/capacidad/reserva. La subida sigue contando dentro de los 145 segundos totales; no se suma otra espera ilimitada. Si vence durante el envío, responde 408 con `IA_TIEMPO_AGOTADO`, etapa `upload`, y cancela la lectura del cuerpo sin reservar cupo. Se dejan cinco segundos para registro/cierre. El cliente espera hasta 160 segundos, incluyendo su transferencia. Una subida lenta reduce el tiempo disponible a los proveedores y puede dejar menos de 60 segundos al respaldo.
 
 Una factura válida se entrega aun si fallan registro o cierre. `iaAccountingStatus:'pending'` indica que no se pudo confirmar el registro. Un commit confirmado cuyo retorno se pierde conserva su consumo; no hay devolución ciega. En compatibilidad REV83 la reserva sigue consumida.
 
@@ -25,8 +25,8 @@ Solo los tres sectores se codifican en JPEG calidad 0,9. El original conserva ex
 
 ## Pruebas reproducibles
 
-- Con Node: `node --test tests/*.test.cjs` y `node tools/verificar-integridad.cjs`. En PowerShell se pueden expandir los archivos con `Get-ChildItem` y pasarlos a Node.
-- Navegador: `tests/browser-lector-revision-rev84.cjs`, `tests/browser-lector-reintento-rev84.cjs`, `tests/browser-lector-compatibilidad-rev84.cjs` y `tests/browser-lector-costos-rev84.cjs`; requieren Playwright (`PW`) y Chrome (`CHROME`). Toda IA y escritura externa se simula. `TEST_WIDTH=390` ejecuta los costos en ancho móvil. `INVOICE_IMAGE` permite verificar una foto local sin enviarla a proveedores.
+- Con Node: `node --test tests/*.test.cjs` y `node tools/verificar-integridad.cjs`. En PowerShell se pueden expandir los archivos con `Get-ChildItem` y pasarlos a Node. La regresión de subida usa una imagen sintética de 5 MB y una espera real de 12 segundos, sin proveedores externos.
+- Navegador: `tests/browser-lector-revision-rev84.cjs`, `tests/browser-lector-reintento-rev84.cjs`, `tests/browser-lector-compatibilidad-rev84.cjs`, `tests/browser-lector-costos-rev84.cjs` y `tests/browser-lector-subida-rev84.cjs`; requieren Playwright (`PW`) y Chrome (`CHROME`). Toda IA y escritura externa se simula. `TEST_WIDTH=390` ejecuta los costos en ancho móvil. `INVOICE_IMAGE` permite verificar una foto local sin enviarla a proveedores.
 - SQL: `node tests/sql-lector-rev84.cjs --cupo`, con PostgreSQL portátil (`REV84_PG_BIN`) y módulo `pg` (`REV84_PG_MODULE`). Usa solo localhost y crea/elimina una base temporal propia. La fixture no se ejecuta en producción. En Windows se verificó PostgreSQL 18.4 con `pg` 8.16.3. El ZIP no incluye el runtime temporal.
 
 ## Publicación y reversión

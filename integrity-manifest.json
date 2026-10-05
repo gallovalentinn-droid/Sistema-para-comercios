@@ -6,7 +6,7 @@
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "042a6cbc76bcbbb6c083dcc9b29d1d8df6db59dc64ca33cf7d45b141d9d21807",
+    "beta/index.html": "79e6866b4e8e97f3ae92b2b3da25c972bb593edcc9dcc91ad311f02692beaf89",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
     "beta/sw.js": "4316cb52c4b8a6ae08dbe48ebff41634b592f9ec849595a56d2a5478d215d7d0",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
@@ -26,7 +26,7 @@
     "REV61-PERMISO-CONFIG.sql": "55c596e236728162bebdcf1bc2ed83a5789895c95716ddb319192846e2bad095",
     "REV69-TURNOS-INTERRUMPIDOS.sql": "d6e8214fe4ac34df33ab143e2fd966ac5158b491a52f4dd88996b724525a4706",
     "REV71-ALIAS-FACTURA.sql": "91068789a4dc38600bc3aee31b8202adfc30a0d4114b1b5c5e06386e902041cf",
-    "supabase/functions/leer-factura/index.ts": "ac330fabfa12383eb03a0a4ef2a5a760d83d8470c8d8c7ce04ddd5308c6e261a",
+    "supabase/functions/leer-factura/index.ts": "020adbc610e8990fbe4b1b7b9e28eb3d9940a0e9e128a9eaddcc0ae949db5842",
     "supabase/functions/_shared/f6-invoice-reader.mjs": "050f541162fea8bc2834cacb7f08d561c25260bc42c6e5e0cd381bfd9f31cc6a",
     "supabase/functions/_shared/f5-auth-core.mjs": "1b9bac90205dab22c89e01d9c0e1a5e94151fdd1804b0d91f69c108abd6b4e99",
     "REV83-LECTOR-DOBLE.sql": "5926cb60a7065a8c671302ba3bbd1a5fe737d6d25d81c7c01aa4c0687173e4ec",
@@ -36,6 +36,6 @@
     "REV84-LECTOR-CUPO.sql": "eb0f6bc52a5b3988ccd78c65b0b547efc9207c3ddec16e61bae76f1ec5bb7e2a",
     "supabase/functions/_shared/f6-invoice-review.mjs": "24a7b2d31c9f56dcd21579f56728170c8dc5532c82d706a6c7a4d0d2fad0bd9d",
     "tools/actualizar-integridad.cjs": "4ad9f94beddb506e3ce8b72b73bfefdf09313a3345acdaca3e93bde910f970f5",
-    "LEEME-REV84.md": "95ff5f6bfa2b812998822f08e2d42127f98922ba03033b61c39576786b00e4d0"
+    "LEEME-REV84.md": "fa8d3ed6cef7dcaec52ca9f7358adaedef5728ed6023e90b6e6a565f369349eb"
   }
 }

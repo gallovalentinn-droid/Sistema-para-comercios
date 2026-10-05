@@ -2,6 +2,12 @@
 
 Actualizado: 2026-10-03 (America/Argentina/Buenos_Aires)
 
+## Corrección local de subida lenta — REV84, 05/10/2026
+
+La revisión del usuario detectó que recibir la foto consumía los diez segundos de admisión. Reproducido antes del cambio: cuerpo tardío de 12 s devuelve 400 DATOS_INVALIDOS a los 10 s; con reloj controlado también se agota la sesión. Corregido localmente: recepción/validación antes de iniciar los diez segundos de sesión/capacidad/reserva, conservando 145 s totales y 160 s del cliente. El vencimiento del envío se cancela y responde 408 IA_TIEMPO_AGOTADO, etapa upload, con aviso sobre la foto. 492/492 pruebas locales, incluida imagen sintética de 5 MB y espera real de 12 s.
+
+Prueba de red real, sin despliegue: el lector público sigue ACTIVE v23/JWT y su fuente es REV83. Dos solicitudes de JSON deliberadamente inválido, una pequeña y otra de 5 MB enviada en 12,499 s, devolvieron DATOS_INVALIDOS, sin pasar a sesión/reserva/IA. Esto comprueba la transferencia, pero no demuestra si el gateway entrega el cuerpo completo al arrancar Deno; los registros disponibles no permitieron correlacionar el segundo tiempo de ejecución. Se preparó una función temporal de diagnóstico sin DB/IA ni persistencia y se solicitó autorización para publicarla separadamente. Esa medición y la corrección pública siguen pendientes. Las autorizaciones de memoria/cupo/lecturas pagas anteriores tampoco fueron respondidas. Informe actualizado: entregables/INFORME-SUBIDA-REV84-2026-10-05.md. El ZIP del 04/10 conserva su evidencia histórica; la actualización se entrega por separado.
+
 ## REV83 publicada — lector doble, 03/10/2026
 
 El usuario autorizó aplicar la corrección GPT a la beta y entregar el ZIP completo. Ya integrado: GPT-6 Luna principal para JPEG/PNG/WebP y Gemini 3.8 Flash de respaldo transitorio; HEIC/HEIF por Gemini. Una reserva de cupo, hasta dos llamadas secuenciales y plazo conjunto 90 segundos. Sectores ampliados superpuestos desde Canvas en beta; identidad y caché REV83. 429 desconocidos, saldo agotado, credenciales inválidas y validación no activan respaldo. Sin OpenAI configurado, conserva Gemini.

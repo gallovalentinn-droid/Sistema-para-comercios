@@ -56,7 +56,7 @@ function isUuid(value: unknown): value is string {
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-async function readJsonBody(request: Request): Promise<unknown> {
+async function readJsonBody(request: Request, deadline: number): Promise<unknown> {
   const declared = Number(request.headers.get("content-length") ?? 0);
   if (Number.isFinite(declared) && declared > BODY_LIMIT_BYTES) throw new Error("F6_BODY_TOO_LARGE");
   if (!request.body) throw new Error("F6_BODY_REQUIRED");
@@ -64,15 +64,22 @@ async function readJsonBody(request: Request): Promise<unknown> {
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > BODY_LIMIT_BYTES) {
-      await reader.cancel();
-      throw new Error("F6_BODY_TOO_LARGE");
+  try {
+    while (true) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) throw new Error("F6_BODY_TIMEOUT");
+      const { done, value } = await invoiceStep(reader.read(), remaining);
+      if (done) break;
+      total += value.byteLength;
+      if (total > BODY_LIMIT_BYTES) throw new Error("F6_BODY_TOO_LARGE");
+      chunks.push(value);
     }
-    chunks.push(value);
+  } catch (error) {
+    // Stop consuming an expired/oversized upload without delaying its response.
+    void reader.cancel().catch(() => {});
+    throw error;
+  } finally {
+    reader.releaseLock();
   }
   const bytes = new Uint8Array(total);
   let offset = 0;
@@ -86,7 +93,6 @@ async function readJsonBody(request: Request): Promise<unknown> {
 
 Deno.serve(async (request: Request) => {
   const arrived = Date.now(), deadline = arrived + 145_000;
-  const admissionTime = () => Math.max(1,Math.min(10_000-(Date.now()-arrived),deadline-Date.now()));
   const origin = request.headers.get("origin")?.trim() ?? "";
   if (origin && !allowedOrigins().has(origin)) {
     return jsonResponse({ code: "ORIGEN_NO_PERMITIDO" }, 403);
@@ -98,8 +104,10 @@ Deno.serve(async (request: Request) => {
 
   let rawInput: unknown;
   try {
-    rawInput = await invoiceStep(readJsonBody(request),admissionTime());
+    rawInput = await readJsonBody(request,deadline);
   } catch (error) {
+    const uploadExpired = error instanceof Error && ["F6_BODY_TIMEOUT","F6_STEP_TIMEOUT"].includes(error.message);
+    if (uploadExpired) return respond(origin,{code:"IA_TIEMPO_AGOTADO",diagnostic:{stage:"upload"}},408);
     const tooLarge = error instanceof Error && error.message === "F6_BODY_TOO_LARGE";
     return respond(origin, { code: tooLarge ? "IMAGEN_DEMASIADO_GRANDE" : "DATOS_INVALIDOS" }, tooLarge ? 413 : 400);
   }
@@ -108,6 +116,9 @@ Deno.serve(async (request: Request) => {
   if (!input.ok) {
     return respond(origin, { code: input.code }, input.code === "IMAGEN_DEMASIADO_GRANDE" ? 413 : 400);
   }
+  // Admission covers session/capacity/reservation; network upload has its own phase.
+  const admissionStarted = Date.now();
+  const admissionTime = () => Math.max(1,Math.min(10_000-(Date.now()-admissionStarted),deadline-Date.now()));
 
   const diagnosticAt = (stage: string) => ({ requestId: input.requestId, stage });
   const fail = (code: string, status: number, stage: string) => {
