@@ -1,6 +1,12 @@
 # MiComercio.ar — contexto de continuidad
 
-Actualizado: 2026-10-05 (America/Argentina/Buenos_Aires)
+Actualizado: 2026-10-06 (America/Argentina/Buenos_Aires)
+
+## REV85 — revisión simplificada del costo, 06/10/2026
+
+Por pedido del usuario se quitaron «Impuesto de la fila» y «Subtotal impreso» de la pantalla, junto con el desglose calculado por renglón. Se identifica el costo por unidad como «Costo final». Se conservan los cálculos internos de importes/impuestos/descuentos, las decisiones de stock y los bloqueos por diferencias; las filas sin importe comparable requieren confirmación. Una fila también puede excluirse para cargarla manualmente. Cambio de interfaz, sin SQL ni despliegue del lector. HTML/manifiesto REV85 edición 2026-10-06 y caché rev85.
+
+Verificado en código/local: cambio acotado, 507/507 pruebas completas e integridad de 33 archivos; navegador de revisión y doce casos r3 a 1366/390, seis casos de costos por ancho. Verificado públicamente: fuente d79dba75ab66c311295eb2317285bc54209139a7 en main; Pages 37407599021 success; HTML/SW/manifiesto idénticos. Revisión, doce casos r3 y vista del ejemplo aprobadas en ambos anchos, sin los dos campos y conservando costos. Datos/respuestas sintéticos y escrituras bloqueadas; no hubo IA paga ni compras/stock reales. Informe: entregables/revision-REV85-2026-10-06/. Las capturas del ejemplo se conservan solo localmente, excluidas de Git/publicación. ZIP REV84 conservado como entrega histórica. Las entradas inferiores son historial.
 
 ## REV84 r3 migrada y publicada — 05/10/2026
 
