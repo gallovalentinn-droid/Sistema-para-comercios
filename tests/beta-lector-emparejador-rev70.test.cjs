@@ -319,9 +319,9 @@ test('REV71 migración: tabla con RLS, sin acceso anónimo ni TRUNCATE', () => {
 test('identidad del paquete (REV77)', () => {
   const sw = fs.readFileSync(path.join(root, 'beta/sw.js'), 'utf8');
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'integrity-manifest.json'), 'utf8'));
-  assert.match(html, /packageRevision:86,/);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev86/);
-  assert.equal(manifest.packageRevision, 86);
+  assert.match(html, /packageRevision:87,/);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev87/);
+  assert.equal(manifest.packageRevision, 87);
   assert.ok(manifest.files['REV71-ALIAS-FACTURA.sql']);
   assert.equal(manifest.files['REV70-ALIAS-FACTURA.sql'], undefined);
 });

@@ -13,7 +13,7 @@ const {openShadow}=require('./browser-fixture/shadow.cjs'),assert=require('node:
  await p.evaluate(()=>document.querySelector('#okRev').onclick());assert.equal(await p.evaluate(()=>remito.length),0);
  await p.selectOption('[data-rev-prod="0"]','rev84p');
  await p.click('[data-rev-stock="0:8"]');assert.equal(await p.locator('#okRev').isEnabled(),true);
- await p.locator('[data-rev-precio="0"] summary').click();await p.fill('[data-rev-costo="0"]','101');await p.locator('[data-rev-costo="0"]').dispatchEvent('change');assert.equal(await p.locator('#okRev').isDisabled(),true);
+ await p.fill('[data-rev-costo="0"]','101');await p.locator('[data-rev-costo="0"]').dispatchEvent('change');assert.equal(await p.locator('#okRev').isDisabled(),true);
  await p.fill('[data-rev-costo="0"]','100');await p.locator('[data-rev-costo="0"]').dispatchEvent('change');
  assert.equal(await p.locator('#okRev').isEnabled(),true);
  assert.match(await p.locator('[data-label="Se carga"]').innerText(),/15,13/);

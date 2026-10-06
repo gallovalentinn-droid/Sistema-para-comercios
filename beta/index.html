@@ -849,7 +849,7 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:86,
+  packageRevision:87,
   packageEdition:'2026-10-06',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
@@ -7651,7 +7651,7 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
       ${pasosFacturaIA('revisar')}
       ${rev84AvisoMemoria(facturaIA.memoria)}
       ${rev84AvisoAdmin(parsed,f5RolActual())}
-      <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Así entendimos la foto. Revisá el producto, la presentación y el costo final. Usá <b>Cambiar</b> o <b>Editar costo</b> si necesitás corregir algo.</p>
+      <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Así entendimos la foto. Revisá el producto, las cantidades, la presentación y el costo final antes de cargar. Podés corregir los valores en sus columnas.</p>
       <div id="rev78TicketResumen" style="margin:0 0 14px"></div>
       ${numFactura(parsed.descuentoGlobal)>0?`<div class="notice" style="margin:0 0 14px"><label>Descuento general leído<input class="inp num" id="rev84DescuentoGeneral" value="${String(numFactura(parsed.descuentoGlobal)).replace('.',',')}"></label><span style="color:var(--muted)">Se reparte entre los productos y se recalcula cuando corregís sus importes.</span></div>`:''}
       <div id="revTabla"></div>`,
@@ -7762,7 +7762,7 @@ function pintarRevision(ov2){
   const totalRevision=evidencia.reduce((n,r)=>n+rev84CostoFila(r).importeCentavos,0)/100;
   const totalImpreso=facturaIA&&numFactura(facturaIA.parsed.total);
   const avisoImportes=evidencia.length?`<div class="notice ${evidencia.every(r=>rev84ControlImporte(r).status!=='ok')?'warn':''}">${evidencia.every(r=>rev84ControlImporte(r).status!=='ok')?'<b>Ningún importe coincide: revisá la foto</b><br>':''}Costo final con impuestos: ${$m(totalRevision)}. ${totalImpreso>0?`Total impreso: ${$m(totalImpreso)} · diferencia: ${$m(Math.abs(totalRevision-totalImpreso))}`:'El total final no está visible.'}</div>`:'';
-  c.innerHTML=`${revisionFactura.some(r=>r.descuentoGlobalInvalido)?'<div class="notice warn">El descuento general supera el importe de las filas. Corregí los importes o el descuento antes de cargar.</div>':''}${avisoImportes}<p class="rev70-resumen">${resumen}</p><table class="mtable invoice-lines"><thead><tr><th>Leído en la factura</th><th style="width:240px">Emparejado con</th><th class="r" style="width:80px">Cantidad</th><th style="width:190px">Presentación</th><th class="r">Se carga</th></tr></thead><tbody>
+  c.innerHTML=`${revisionFactura.some(r=>r.descuentoGlobalInvalido)?'<div class="notice warn">El descuento general supera el importe de las filas. Corregí los importes o el descuento antes de cargar.</div>':''}${avisoImportes}<p class="rev70-resumen">${resumen}</p><table class="mtable invoice-lines"><thead><tr><th>Leído en la factura</th><th style="width:240px">Emparejado con</th><th class="r" style="width:80px">Cantidad</th><th class="r" style="width:120px">Unid. x bulto</th><th class="r" style="width:110px">Precio unit.</th><th class="r" style="width:100px">Descuento</th><th class="r">Se carga</th></tr></thead><tbody>
     ${revisionFactura.map((r,ix)=>{
       const upb=Math.max(1,r.porBulto||1);
       const unidades=r.cantidad*upb;
@@ -7779,7 +7779,7 @@ function pintarRevision(ov2){
       const control=rev84ControlImporte(r);
       const desglose=r._rev84?`<div style="margin-top:10px">${control.status==='mismatch'?'<small>Revisá el precio, la cantidad y el descuento con la factura.</small>':''}${control.status==='missing'?`<label><input type="checkbox" data-rev-confirmar="${ix}" ${r.importeConfirmado?'checked':''}> Confirmé cuánto pago por este producto</label>`:''}<label><input type="checkbox" data-rev-excluir="${ix}" ${r.excluida?'checked':''}> Excluir esta fila</label></div>`:'';
       const presentacion=rev86Presentacion(r),stockPendiente=rev84EstadoRevision(r).stock;
-      const eleccion=`<details data-rev-presentacion="${ix}" ${r.presentacionAbierta||(stockPendiente&&r.prodId)?'open':''}><summary>${stockPendiente?'Elegí cómo cargar':'Cambiar'}</summary><div style="display:grid;gap:6px;margin-top:8px">${(r.packDetectado>1&&r.packDetectado<=144?[[1,'packs'],[r.packDetectado,'unidades']]:[[1,'tal como figura']]).map(([n,modo])=>`<button type="button" class="btn ghost sm" data-rev-stock="${ix}:${n}">Cargar ${r.cantidad*n} ${modo}</button>`).join('')}<label>Unidades por presentación<input class="inp num" data-rev-bulto="${ix}" value="${upb}"></label><button type="button" class="btn ghost sm" data-rev-manual="${ix}">Confirmar otra cantidad</button></div></details>`;
+      const eleccion=`<details data-rev-presentacion="${ix}" ${r.presentacionAbierta||(stockPendiente&&r.prodId)?'open':''}><summary>${stockPendiente?'Elegí cómo cargar':'Cambiar'}</summary><div style="display:grid;gap:6px;margin-top:8px">${(r.packDetectado>1&&r.packDetectado<=144?[[1,'packs'],[r.packDetectado,'unidades']]:[[1,'tal como figura']]).map(([n,modo])=>`<button type="button" class="btn ghost sm" data-rev-stock="${ix}:${n}">Cargar ${r.cantidad*n} ${modo}</button>`).join('')}<button type="button" class="btn ghost sm" data-rev-manual="${ix}">Confirmar otra cantidad</button></div></details>`;
       return `<tr>
       <td data-label="Leído en la factura"><b>${esc(r.original)}</b>${cod}${extra}<br><span class="pill ${est.clase}">${est.texto}</span>${cands}${desglose}</td>
       <td data-label="Emparejado con"><select class="inp" data-rev-prod="${ix}">
@@ -7788,10 +7788,11 @@ function pintarRevision(ov2){
           ${opciones.map(p=>`<option value="${p.id}" ${r.prodId===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}
         </select>${r._rev84&&!r.prodId&&!r.excluida?`<button class="btn ghost sm" type="button" data-rev-omitir="${ix}">No cargar esta fila</button>`:''}</td>
       <td data-label="Cantidad" class="r"><input class="inp num" data-rev-cant="${ix}" value="${r.cantidad}"><small>${presentacion.count>1?'packs':presentacion.count===1?'unidades':'presentaciones'}</small></td>
-      <td data-label="Presentación"><b>${presentacion.label}</b>${bultoIa}${eleccion}</td>
-      <td data-label="Se carga" class="r">${stockPendiente?'<b>Por confirmar</b>':`<b class="num">${unidades}</b> ${r.modoStock==='pack'&&presentacion.count>1?'packs':'unidades'}<br><b>Costo final: ${$m(costoU)} c/u</b>`}<details data-rev-precio="${ix}" ${r.costoAbierto?'open':''}><summary>Editar costo</summary><label>Precio de la factura<input class="inp num" data-rev-costo="${ix}" value="${r._rev84?String(r.costoU).replace('.',','):r.costoU}"></label><label>Descuento de la fila<input class="inp num" data-rev-dto="${ix}" value="${r.descuento||0}"></label></details>${r.prodId&&r.prodId!=='__nuevo__'&&!stockPendiente?rev70AvisoCosto(r,prod(r.prodId),costoU):''}</td>
+      <td data-label="Unid. x bulto" class="r"><b>${presentacion.label}</b><input class="inp num" data-rev-bulto="${ix}" value="${upb}">${bultoIa}${eleccion}</td>
+      <td data-label="Precio unit." class="r"><input class="inp num" data-rev-costo="${ix}" value="${r._rev84?String(r.costoU).replace('.',','):r.costoU}"></td>
+      <td data-label="Descuento" class="r"><input class="inp num" data-rev-dto="${ix}" value="${r.descuento||0}"></td>
+      <td data-label="Se carga" class="r">${stockPendiente?'<b>Por confirmar</b>':`<b class="num">${unidades}</b> ${r.modoStock==='pack'&&presentacion.count>1?'packs':'unidades'}<br><b>Costo final: ${$m(costoU)} c/u</b>`}${r.prodId&&r.prodId!=='__nuevo__'&&!stockPendiente?rev70AvisoCosto(r,prod(r.prodId),costoU):''}</td>
     </tr>`;}).join('')}</tbody></table>`;
-  $$('[data-rev-precio]',c).forEach(d=>d.ontoggle=()=>{revisionFactura[d.dataset.revPrecio].costoAbierto=d.open;});
   $$('[data-rev-presentacion]',c).forEach(d=>d.ontoggle=()=>{revisionFactura[d.dataset.revPresentacion].presentacionAbierta=d.open;});
   $$('[data-rev-stock]',c).forEach(b=>b.onclick=()=>{const [ix,n]=b.dataset.revStock.split(':').map(Number);const r=revisionFactura[ix];r.stockEditado=true;r.presentacionAbierta=false;rev84ElegirStock(r,n);pintarRevision(ov2);});
   $$('[data-rev-manual]',c).forEach(b=>b.onclick=()=>{const r=revisionFactura[b.dataset.revManual];r.stockEditado=true;r.presentacionAbierta=false;if(!rev84ElegirStock(r,r.porBulto))aviso('Usá una cantidad entera entre 1 y 1000.','bad');pintarRevision(ov2);});

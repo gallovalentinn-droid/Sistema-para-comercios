@@ -16,8 +16,8 @@ const {openShadow}=require('./browser-fixture/shadow.cjs');
  await p.evaluate(()=>f62ComprobarVersion());await p.locator('#f62VersionBanner').waitFor();assert.equal(await p.locator('#f62VersionBanner button').isDisabled(),true);
  await p.evaluate(()=>cerrarModal());assert.equal(await p.locator('#f62VersionBanner button').isEnabled(),true);
  fs.copyFileSync(path.join(root,'beta/index.html'),path.join(temp,'beta/index.html'));
- await Promise.all([p.waitForNavigation(),p.click('#f62VersionBanner button')]);await p.waitForFunction(()=>window.MiComercioBuild?.packageRevision===86);
- assert.equal(await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision),86);assert.equal(h.errors.filter(e=>e.startsWith('pageerror:')).length,0);
+ await Promise.all([p.waitForNavigation(),p.click('#f62VersionBanner button')]);await p.waitForFunction(()=>window.MiComercioBuild?.packageRevision===87);
+ assert.equal(await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision),87);assert.equal(h.errors.filter(e=>e.startsWith('pageerror:')).length,0);
  console.log(JSON.stringify({width,legacy426:'generic',manualAccessible:true,updateBlockedDuringModal:true,updatedRevision:await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision),externalAI:0}));
  }finally{await h.close()}
 }})().catch(e=>{console.error(e);process.exitCode=1});
