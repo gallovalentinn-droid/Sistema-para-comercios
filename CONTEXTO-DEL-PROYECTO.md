@@ -2,6 +2,12 @@
 
 Actualizado: 2026-10-03 (America/Argentina/Buenos_Aires)
 
+## Seguimiento de auditoría REV84 — segunda entrega, 05/10/2026
+
+Corregidos localmente los hallazgos del seguimiento: X6/X40 sin sufijo preguntan pack/unidad; X1U no pregunta opciones equivalentes; «No cargar esta fila» permite descarte expreso visible; aviso de respaldo/registro pendiente para dueño o administrador. Decisión del usuario: los precios impresos ya incluyen impuestos; el pie discrimina el neto sin impuestos y no se vuelve a sumar/repartir. Se reforzó el prompt compartido. Antes de reservar se requieren 80 s restantes del límite global: subidas de 100/141 s no gastan reserva ni llaman en ninguno de los modos; no se prometen 60 s al respaldo tras cualquier transferencia.
+
+Verificado localmente: 499/499 Node, integridad de 33 archivos, ocho recorridos del lector a 1366/390, costos 6/6 en cada ancho, SQL real local idempotente/concurrente/reversión sin cambios de migraciones. Informe vigente entregables/INFORME-AUDITORIA-REV84-2026-10-05-r2.md. La segunda entrega con sufijo r2 incorpora entregables/VERIFICACION-ZIP-REV84-2026-10-05-r2.json con evidencia de fuente; el registro externo HASH-ZIP-REV84-2026-10-05-r2.json registra el SHA-256 final y la extracción, sin referencia circular. El ZIP auditado d2bbb105…840f07d7 se conserva intacto. Consulta pública de solo lectura hoy: web REV83 y leer-factura ACTIVE v23/JWT. No se publicó ni se llamó a IA; siguen pendientes autorizaciones separadas de migraciones, lecturas pagas y medición temporal del gateway. No presentar H-02 como probado en la función pública REV84.
+
 ## Corrección local de subida lenta — REV84, 05/10/2026
 
 La revisión del usuario detectó que recibir la foto consumía los diez segundos de admisión. Reproducido antes del cambio: cuerpo tardío de 12 s devuelve 400 DATOS_INVALIDOS a los 10 s; con reloj controlado también se agota la sesión. Corregido localmente: recepción/validación antes de iniciar los diez segundos de sesión/capacidad/reserva, conservando 145 s totales y 160 s del cliente. El vencimiento del envío se cancela y responde 408 IA_TIEMPO_AGOTADO, etapa upload, con aviso sobre la foto. 492/492 pruebas locales, incluida imagen sintética de 5 MB y espera real de 12 s.

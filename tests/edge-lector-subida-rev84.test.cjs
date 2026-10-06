@@ -31,3 +31,16 @@ test('REV84 sesión y capacidad siguen compartiendo diez segundos, sin reservar 
  const r=await run({now:()=>time,claimsImpl:async()=>{time+=9000;return {data:{claims:{sub:id}}}},rpcImpl:async()=>{time+=2000;await delay(20);return {data:{contract:'f6-reader-quota-rev84'}}}});
  assert.equal(r.status,503);assert.equal(r.data.code,'IA_RESERVA_NO_DISPONIBLE');assert.equal(r.calls,0);assert.ok(!r.rpcs.some(n=>n.includes('reservar')));
 });
+for(const seconds of [100,141])test(`N-01 subida de ${seconds}s sin tiempo útil no reserva ni llama en ambos modos`,async()=>{
+ for(const modern of [false,true]){
+  let time=0;
+  const stream=new ReadableStream({pull(c){time=seconds*1000;c.enqueue(new TextEncoder().encode(text));c.close()}},{highWaterMark:0});
+  const r=await run({request:request(stream),now:()=>time,...(modern?{rpcImpl:async n=>n.includes('capacidades')?{data:{contract:'f6-reader-quota-rev84'}}:{data:{ok:true}}}:{}),status:200,body:output()});
+  assert.equal(r.status,408);assert.equal(r.data.diagnostic.stage,'upload');assert.equal(r.calls,0);assert.ok(!r.rpcs.some(n=>n.includes('reservar')));
+ }
+});
+test('N-01 vuelve a comprobar el tiempo útil después de autenticar, antes de reservar',async()=>{
+ let time=0;const stream=new ReadableStream({pull(c){time=63000;c.enqueue(new TextEncoder().encode(text));c.close()}},{highWaterMark:0});
+ const r=await run({request:request(stream),now:()=>time,claimsImpl:async()=>{time+=3000;return {data:{claims:{sub:id}}}},status:200,body:output()});
+ assert.equal(r.status,408);assert.equal(r.data.diagnostic.stage,'upload');assert.equal(r.calls,0);assert.ok(!r.rpcs.some(n=>n.includes('reservar')));
+});

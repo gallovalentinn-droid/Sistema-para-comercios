@@ -144,6 +144,7 @@ test('revisar una factura con un producto nuevo no cambia el catálogo hasta con
     db:{productos:[]}, remito:[], productosFacturaPendientes:[],
     remitoHeader:{proveedor:'',nroComprobante:'',total:''},
     coincidenciaProducto:()=>null, numFactura:value=>Number(value)||0,
+    f5RolActual:()=>'',
     detectarBulto:()=>1, $m:value=>String(value),
     modal:options=>{captured=options;},
     pintarRevision:()=>{}, $:selector=>selector==='#okRev'?button:null,

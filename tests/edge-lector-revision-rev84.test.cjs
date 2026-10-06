@@ -50,3 +50,18 @@ test('REV84 pack explícito sin U y ambiguo no autorizan conversión; base suble
   const result=fn(encode({...doc([row({precioUnit:1,subtotal:100})]),descuentoGlobal:10}),{reviewMode:true});assert.equal(result.items[0].revisionImporte.status,'mismatch');
  }
 });
+test('H-01 ambos lectores reconocen X6/X40 sin confundir peso o código con pack',async()=>{
+ const m=await load();for(const [fn,encode] of [[m.gem.extractGeminiInvoice,gem],[m.gpt.extractOpenAIInvoice,gpt]]){
+  for(const [producto,want] of [['GASEOSA COCA COLA 2.25L X6',6],['ALFAJOR X40',40],['X 6',6],['800G',null],['PRODUCTO X40 G',null],['PRODUCTO X6 ML',null],['PRODUCTO X2 L',null],['PRODUCTO AX40',null],['PRODUCTO (X40)',null]]){
+   const r=fn(encode(doc([row({producto,cantidad:2,precioUnit:9000,subtotal:18000,unidadesPorBulto:6})])),{reviewMode:true}).items[0];
+   assert.equal(r.packDetectado,want,producto);assert.equal(r.cantidad,2);assert.equal(r.precioUnit,9000);
+  }
+  assert.equal(fn(encode(doc([row({producto:'SALCHICHAS X6 X12'})])),{reviewMode:true}).items[0].packAmbiguo,true);
+ }
+});
+test('H-03 desglose al pie no suma de nuevo el IVA ya incluido en los precios',async()=>{
+ const m=await load(),d={...doc([row({producto:'Producto',precioUnit:121,subtotal:121,impuestoFila:0})]),total:121,netoSinImpuestos:100,ivaDiscriminado:21};
+ for(const [fn,encode] of [[m.gem.extractGeminiInvoice,gem],[m.gpt.extractOpenAIInvoice,gpt]]){
+  const r=fn(encode(d),{reviewMode:true});assert.equal(r.total,121);assert.equal(r.items[0].impuestoFila,0);assert.equal(r.items[0].subtotal,121);assert.equal(r.items[0].revisionImporte.status,'ok');
+ }
+});

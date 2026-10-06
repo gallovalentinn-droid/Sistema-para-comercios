@@ -10,6 +10,7 @@ function entorno() {
   const botones = {'#okRev': {}, '#volverFotoFac': {}};
   const ctx = vm.createContext({
     numFactura: v => Number(v) || 0, detectarBulto: () => 1, $m: v => '$' + v,
+    f5RolActual:()=>'',
     db: {productos: catalogo}, facturaIA: null, revisionFactura: [], remito: [],
     remitoHeader: {total: '', proveedor: '', nroComprobante: ''}, productosFacturaPendientes: [],
     copiaFactura: () => ({}), pasosFacturaIA: () => '', pintarRevision: () => {},

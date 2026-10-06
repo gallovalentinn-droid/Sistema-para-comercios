@@ -7278,7 +7278,7 @@ function rev84ElegirStock(r,n){
 function rev84EstadoRevision(r){
   if(!r._rev84||r.excluida||!(r.cantidad>0)||(r.noMercaderia&&!r.prodId))return {pending:false};
   const importe=rev84ControlImporte(r);
-  const stock=!!(r.packDetectado||r.packAmbiguo)&&(!r.modoStock||r.stockProducto!==r.prodId||r.stockPack!==r.packDetectado);
+  const stock=!!(r.packDetectado>1||r.packAmbiguo)&&(!r.modoStock||r.stockProducto!==r.prodId||r.stockPack!==r.packDetectado);
   return {pending:!r.prodId||stock||r.descuentoGlobalInvalido||importe.status==='mismatch'||(importe.status==='missing'&&!r.importeConfirmado),stock,importe};
 }
 function rev84RepartirDescuento(filas){
@@ -7303,6 +7303,18 @@ function rev84AvisoReintento(ov){
   if(ov._rev84QuotaMode==='legacy-rev83')return 'Reintentar inicia otra llamada y consume otra lectura mensual, aun si falla, porque está activo el cupo anterior.';
   return 'Reintentar inicia otra llamada a la IA y puede consumir otra lectura mensual.';
 }
+function rev84AvisoAdmin(parsed,rol){
+  if(!['duenio','admin'].includes(rol))return '';
+  const avisos=[],d=parsed.iaFallbackDiagnostic||{};
+  if(parsed.iaFallbackUsed){
+    const motivos={BILLING_REQUIRED:'falta de saldo o facturación',API_KEY_INVALID:'una clave inválida o vencida',PERMISSION_DENIED:'falta de acceso',UNAVAILABLE:'indisponibilidad temporal',RATE_LIMIT:'límite de solicitudes',MODEL_NOT_FOUND:'configuración del modelo'};
+    const motivo=motivos[d.providerCategory]||(d.providerStatus===404?'configuración del modelo':'un problema de acceso, conexión o respuesta');
+    avisos.push(`La lectura se realizó con Gemini porque OpenAI tuvo ${motivo}. Revisá la cuenta del proveedor si se repite.`);
+  }
+  if(parsed.iaAccountingStatus==='pending'||parsed.iaClosureStatus==='pending')avisos.push('La lectura está disponible, pero quedó pendiente confirmar su registro de uso. Revisá los registros de administración.');
+  const ref=[d.requestId,parsed.iaAccountingDiagnostic&&parsed.iaAccountingDiagnostic.requestId].find(v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v));
+  return avisos.length?`<div class="notice warn" data-rev-admin><b>Aviso para administración</b><br>${avisos.join('<br>')}${ref?`<br>Referencia: ${ref}`:''}</div>`:'';
+}
 function rev84CostoFila(r){
   const unidades=r.cantidad*Math.max(1,r.porBulto||1);
   const esperado=r.cantidad*r.costoU-(r.descuento||0)+(r.impuestoFila||0);
@@ -7318,7 +7330,7 @@ function rev84PrepararEvidencia(r,it,recordado,mem,descuentoGlobalTotal){
   if(r.packDetectado||r.packAmbiguo){
     r.porBulto=1;
     if(mem&&mem.decisionAvailable!==false&&recordado&&recordado.via!=='otro-proveedor'
-      &&r.packDetectado&&recordado.modoStock&&recordado.packDetectado===r.packDetectado)rev84ElegirStock(r,recordado.upb);
+      &&r.packDetectado>1&&recordado.modoStock&&recordado.packDetectado===r.packDetectado)rev84ElegirStock(r,recordado.upb);
   }
   return r;
 }
@@ -7589,6 +7601,7 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
     cuerpo:`
       ${pasosFacturaIA('revisar')}
       ${rev84AvisoMemoria(facturaIA.memoria)}
+      ${rev84AvisoAdmin(parsed,f5RolActual())}
       <p style="margin:0 0 14px;color:var(--muted);line-height:1.6">Así entendimos la foto. <b>"Unid. por bulto"</b> es cuántas unidades sueltas trae cada caja o pack (dejalo en 1 si se compran sueltas). El <b>descuento</b> es el total bonificado de esa fila, y se reparte entre las unidades. Revisá todo antes de confirmar.</p>
       <div id="rev78TicketResumen" style="margin:0 0 14px"></div>
       ${numFactura(parsed.descuentoGlobal)>0?`<div class="notice" style="margin:0 0 14px"><label>Descuento general leído<input class="inp num" id="rev84DescuentoGeneral" value="${String(numFactura(parsed.descuentoGlobal)).replace('.',',')}"></label><span style="color:var(--muted)">Se reparte entre los productos y se recalcula cuando corregís sus importes.</span></div>`:''}
@@ -7714,14 +7727,14 @@ function pintarRevision(ov2){
       const bultoIa=r.origen==='memoria'&&r.porBultoIa&&r.porBultoIa!==upb?`<br><span class="pill warn rev70-costo">La IA leyó ${r.porBultoIa}. Revisá el bulto</span>`:'';
       const control=rev84ControlImporte(r);
       const desglose=r._rev84?`<div style="margin-top:10px"><label>Impuesto de la fila<input class="inp num" data-rev-impuesto="${ix}" value="${String(r.impuestoFila||0).replace('.',',')}"></label><label>Subtotal impreso<input class="inp num" data-rev-subtotal="${ix}" value="${String(r.subtotal??'').replace('.',',')}" placeholder="No visible"></label><small>${control.status==='missing'?'Sin subtotal para comparar':`Calculado: ${$m(control.expected)} · diferencia: ${$m(control.difference)}`}${r.descuentoGlobalAsignado?` · descuento general asignado: ${$m(r.descuentoGlobalAsignado)}`:''}</small>${control.status==='missing'?`<label><input type="checkbox" data-rev-confirmar="${ix}" ${r.importeConfirmado?'checked':''}> Confirmé los importes disponibles</label>`:''}<label><input type="checkbox" data-rev-excluir="${ix}" ${r.excluida?'checked':''}> Excluir esta fila</label></div>`:'';
-      const eleccion=r._rev84&&(r.packDetectado||r.packAmbiguo)?`<div style="margin-top:10px"><b>${r.packAmbiguo?'La presentación es ambigua. Indicá cuántas unidades contás por presentación.':'¿Lo contás por pack o por unidad?'}</b><br>${(r.packDetectado?[[1,'pack'],[r.packDetectado,'unidad']]:[[1,'pack']]).map(([n,modo])=>{const vista=rev84CostoFila({...r,porBulto:n});return `<button type="button" class="btn ghost sm" data-rev-stock="${ix}:${n}" aria-pressed="${r.modoStock===modo&&r.stockProducto===r.prodId}">Por ${modo}: entran ${vista.unidades} a ${vista.costoUnitario.toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:4})}</button>`;}).join('')}<br><small>${r.modoStock==='manual'?`Otra cantidad: ${r.porBulto} por presentación`:'Para otra cantidad, editá unidades por bulto y confirmá.'}</small><button type="button" class="btn ghost sm" data-rev-manual="${ix}">Confirmar otra cantidad</button></div>`:'';
+      const eleccion=r._rev84&&(r.packDetectado>1||r.packAmbiguo)?`<div style="margin-top:10px"><b>${r.packAmbiguo?'La presentación es ambigua. Indicá cuántas unidades contás por presentación.':'¿Lo contás por pack o por unidad?'}</b><br>${(r.packDetectado?[[1,'pack'],[r.packDetectado,'unidad']]:[[1,'pack']]).map(([n,modo])=>{const vista=rev84CostoFila({...r,porBulto:n});return `<button type="button" class="btn ghost sm" data-rev-stock="${ix}:${n}" aria-pressed="${r.modoStock===modo&&r.stockProducto===r.prodId}">Por ${modo}: entran ${vista.unidades} a ${vista.costoUnitario.toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:4})}</button>`;}).join('')}<br><small>${r.modoStock==='manual'?`Otra cantidad: ${r.porBulto} por presentación`:'Para otra cantidad, editá unidades por bulto y confirmá.'}</small><button type="button" class="btn ghost sm" data-rev-manual="${ix}">Confirmar otra cantidad</button></div>`:'';
       return `<tr>
       <td data-label="Leído en la factura"><b>${esc(r.original)}</b>${cod}${extra}<br><span class="pill ${est.clase}">${est.texto}</span>${cands}${eleccion}${desglose}</td>
       <td data-label="Emparejado con"><select class="inp" data-rev-prod="${ix}">
-          <option value="">— No cargar esta fila —</option>
+          <option value="">${r._rev84&&!r.excluida?'— Elegí un producto o descartá la fila —':'— No cargar esta fila —'}</option>
           <option value="__nuevo__" ${r.prodId==='__nuevo__'?'selected':''}>+ Crear producto nuevo</option>
           ${opciones.map(p=>`<option value="${p.id}" ${r.prodId===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}
-        </select></td>
+        </select>${r._rev84&&!r.prodId&&!r.excluida?`<button class="btn ghost sm" type="button" data-rev-omitir="${ix}">No cargar esta fila</button>`:''}</td>
       <td data-label="Cantidad" class="r"><input class="inp num" data-rev-cant="${ix}" value="${r.cantidad}"></td>
       <td data-label="Unid. x bulto" class="r"><input class="inp num" data-rev-bulto="${ix}" value="${upb}">${bultoIa}</td>
       <td data-label="Precio unit." class="r"><input class="inp num" data-rev-costo="${ix}" value="${r._rev84?String(r.costoU).replace('.',','):r.costoU}"></td>
@@ -7733,8 +7746,9 @@ function pintarRevision(ov2){
   for(const [attr,field] of [['impuesto','impuestoFila'],['subtotal','subtotal']])$$(`[data-rev-${attr}]`,c).forEach(i=>i.onchange=()=>{const r=revisionFactura[i.dataset[attr==='impuesto'?'revImpuesto':'revSubtotal']];r[field]=field==='subtotal'&&i.value.trim()===''?null:Math.max(0,num(i.value));r.importeConfirmado=false;pintarRevision(ov2);});
   $$('[data-rev-confirmar]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revConfirmar].importeConfirmado=i.checked;pintarRevision(ov2);});
   $$('[data-rev-excluir]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revExcluir].excluida=i.checked;pintarRevision(ov2);});
+  $$('[data-rev-omitir]',c).forEach(b=>b.onclick=()=>{revisionFactura[b.dataset.revOmitir].excluida=true;pintarRevision(ov2);});
   $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>{const r=revisionFactura[s.dataset.revProd];r.prodId=s.value;r.origen=s.value?'manual':'';r.noMercaderia=!s.value&&!!r.noMercaderiaIa;if(r._rev84){r.excluida=!s.value;r.modoStock=null;r.porBulto=1;}pintarRevision(ov2);});
-  $$('[data-rev-cand]',c).forEach(b=>b.onclick=()=>{const [ix,j]=b.dataset.revCand.split(':').map(Number);const r=revisionFactura[ix],k=r&&r.candidatos[j];if(!k)return;r.prodId=k.id;r.origen='manual';pintarRevision(ov2);});
+  $$('[data-rev-cand]',c).forEach(b=>b.onclick=()=>{const [ix,j]=b.dataset.revCand.split(':').map(Number);const r=revisionFactura[ix],k=r&&r.candidatos[j];if(!k)return;r.prodId=k.id;r.excluida=false;r.origen='manual';pintarRevision(ov2);});
   $$('[data-rev-cant]',c).forEach(i=>i.onchange=()=>{const l=revisionFactura[i.dataset.revCant],p=prod(l.prodId);l.importeConfirmado=false;l.cantidad=Math.max(0,p&&p.unidad==='kg'?numCantidad(i.value):num(i.value));pintarRevision(ov2);});
   $$('[data-rev-bulto]',c).forEach(i=>i.onchange=()=>{const r=revisionFactura[i.dataset.revBulto];r.porBulto=Math.max(1,Math.floor(num(i.value))||1);if(r._rev84&&(r.packDetectado||r.packAmbiguo))r.modoStock=null;pintarRevision(ov2);});
   $$('[data-rev-costo]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revCosto].importeConfirmado=false;revisionFactura[i.dataset.revCosto].costoU=Math.max(0,num(i.value));pintarRevision(ov2);});

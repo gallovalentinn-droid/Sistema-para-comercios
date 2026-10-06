@@ -1,5 +1,7 @@
 # Lector de facturas REV84 — Implementation Plan
 
+Seguimiento del 05/10, segunda entrega: se corrigieron X6/X40 sin sufijo, X1U, descarte expreso visible, aviso administrativo y control de 80 s útiles antes de reserva. El usuario aclaró que el pie discrimina impuestos ya incluidos en los precios: no sumarlos/repartirlos otra vez. Ver entregables/INFORME-AUDITORIA-REV84-2026-10-05-r2.md y su registro interno de pruebas. Task 6 conserva pendientes públicos y autorizaciones separadas.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Implementación directa en esta sesión, conservando el método usado para REV83. No delegar sin autorización del usuario. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Preparar REV84 con L1–L9: revisión que bloquea errores de stock/costo, controles comunes de importes y continuidad ante fallas de OpenAI.

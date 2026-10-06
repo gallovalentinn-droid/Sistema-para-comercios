@@ -1,9 +1,10 @@
 {
-  "version": "6.0.0-f6-rc2",
-  "packageRevision": 84,
-  "algorithm": "sha256",
-  "generatedAt": "2026-10-04",
-  "files": {
+  "revision": 84,
+  "edition": "2026-10-05-r2",
+  "verifiedAtUTC": "2026-10-06T01:38:16.670927+00:00",
+  "scope": "Local source verification. Final archive/extraction verification and SHA-256 are recorded externally in HASH-ZIP-REV84-2026-10-05-r2.json; no self-referential archive hash.",
+  "archiveSha256": null,
+  "criticalFileHashes": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
     "beta/index.html": "7c51040f690db1f9ddeec64a96e6182f792f23389d5a463f6d964e6a9978fbdf",
@@ -37,5 +38,41 @@
     "supabase/functions/_shared/f6-invoice-review.mjs": "ec80794e38cad5a4579434707a82def607aabebac09fc4122e604c8ef13c176a",
     "tools/actualizar-integridad.cjs": "4ad9f94beddb506e3ce8b72b73bfefdf09313a3345acdaca3e93bde910f970f5",
     "LEEME-REV84.md": "1bb20fc3a7922e49eb0cfac8bbc3a307a4c95dac7e1a50312f0da625660d18c8"
-  }
+  },
+  "localVerification": {
+    "nodeTests": 499,
+    "passed": 499,
+    "failed": 0,
+    "integrityFiles": 33,
+    "browserScenarios": [
+      "audit follow-up",
+      "row review",
+      "manual retry",
+      "upload timeout",
+      "REV83 compatibility",
+      "costs 6/6",
+      "REV82 diagnosis",
+      "REV83 providers"
+    ],
+    "browserWidths": [
+      1366,
+      390
+    ],
+    "postgresql": "18.4, memory/quota idempotency, concurrency, rollback passed",
+    "externalAiCalls": 0,
+    "publicWrites": 0
+  },
+  "publicReadOnlyObservation": {
+    "date": "2026-10-05",
+    "webRevision": 83,
+    "functionVersion": 23,
+    "jwt": true
+  },
+  "pending": [
+    "deployment and public verification",
+    "separate memory migration approval",
+    "separate quota migration approval",
+    "four paid comparative local reads and one authenticated public read approval",
+    "temporary gateway upload timing diagnostic approval"
+  ]
 }

@@ -283,7 +283,7 @@ test('REV70 la revisión muestra el estado, las opciones y el aviso de costo', (
   assert.match(ui, /¿No es alguno de estos\?/);
   assert.match(ui, /\(otra presentación\)/);
   assert.match(ui, /La IA leyó \$\{r\.porBultoIa\}\. Revisá el bulto/);
-  assert.match(ui, /r\.prodId=k\.id;r\.origen='manual';pintarRevision\(ov2\);/);
+  assert.match(ui, /r\.prodId=k\.id;r\.excluida=false;r\.origen='manual';pintarRevision\(ov2\);/);
   assert.match(ui, /r\.prodId=s\.value;r\.origen=s\.value\?'manual':'';[^\n]*pintarRevision\(ov2\);/);
   assert.match(ui, /const opciones=db\.productos\.filter\(p=>!p\.archivadoAt\)/);
 });

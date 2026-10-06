@@ -30,6 +30,16 @@ test('REV84 corrección recalcula descuento general en centavos y bloquea repart
 test('REV84 presentación ambigua requiere decisión',()=>{
  const c=context();assert.equal(c.rev84PuedeCargar([row({packDetectado:null,packAmbiguo:true})]).ok,false);
 });
+test('H-06 pack de una unidad no bloquea por una elección equivalente',()=>{
+ const c=context(),r=row({packDetectado:1});assert.equal(c.rev84PuedeCargar([r]).ok,true);assert.equal(c.rev84CostoFila(r).unidades,2);
+});
+test('H-05 administración ve respaldo/registro pendiente; empleados y diagnósticos crudos no',()=>{
+ const c=context(),data={iaFallbackUsed:true,iaFallbackDiagnostic:{provider:'openai',providerCategory:'BILLING_REQUIRED',providerStatus:429,message:'PRIVATE SECRET',requestId:'00000000-0000-4000-8000-000000000001'}};
+ assert.equal(typeof c.rev84AvisoAdmin,'function');
+ const html=c.rev84AvisoAdmin(data,'duenio');assert.match(html,/Gemini/);assert.match(html,/saldo/i);assert.match(html,/00000000-0000-4000-8000-000000000001/);assert.doesNotMatch(html,/PRIVATE SECRET/);
+ assert.equal(c.rev84AvisoAdmin(data,'empleado'),'');assert.match(c.rev84AvisoAdmin({iaAccountingStatus:'pending'},'admin'),/registro/i);
+ assert.doesNotMatch(c.rev84AvisoAdmin({iaFallbackUsed:true,iaFallbackDiagnostic:{providerCategory:'<script>PRIVATE SECRET</script>',requestId:'<img>'}},'admin'),/PRIVATE|<script>|<img>/);
+});
 test('REV84 avisos explican memoria no disponible o solo local',()=>{
  const c=context();
  assert.equal(typeof c.rev84AvisoMemoria,'function');assert.match(c.rev84AvisoMemoria({decisionAvailable:false}),/no.*record|volver.*eleg/i);

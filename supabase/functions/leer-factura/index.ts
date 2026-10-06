@@ -116,6 +116,9 @@ Deno.serve(async (request: Request) => {
   if (!input.ok) {
     return respond(origin, { code: input.code }, input.code === "IMAGEN_DEMASIADO_GRANDE" ? 413 : 400);
   }
+  // Leave a full 60s primary attempt plus reservation/attempt/closing margins.
+  const usefulReadingTime = () => deadline-Date.now() >= 80_000;
+  if (!usefulReadingTime()) return respond(origin,{code:"IA_TIEMPO_AGOTADO",diagnostic:{stage:"upload",requestId:input.requestId}},408);
   // Admission covers session/capacity/reservation; network upload has its own phase.
   const admissionStarted = Date.now();
   const admissionTime = () => Math.max(1,Math.min(10_000-(Date.now()-admissionStarted),deadline-Date.now()));
@@ -172,6 +175,7 @@ Deno.serve(async (request: Request) => {
   }catch(_){return fail("IA_RESERVA_NO_DISPONIBLE",503,"reservation");}
   const modern=quotaMode==="rev84";
   const maxAttempts=openaiApiKey&&geminiApiKey&&["image/jpeg","image/png","image/webp"].includes(input.mediaType)?2:1;
+  if (!usefulReadingTime()) return fail("IA_TIEMPO_AGOTADO",408,"upload");
   let reserved;
   try { reserved = await invoiceStep(serviceClient.rpc(
     modern?"f6_service_reservar_lectura_factura_rev84":"f6_service_reservar_lectura_factura",
@@ -243,7 +247,7 @@ Deno.serve(async (request: Request) => {
     }catch(_){accountingStatus="pending";console.error("F6_IA_TELEMETRY_PENDING",JSON.stringify(diagnosticAt(stage)));}
     const closed=await finalize();
     return respond(origin, { ...invoice, iaUsage, iaProvider:result.provider, iaFallbackUsed:result.fallbackUsed,
-      ...(result.fallbackDiagnostic?{iaFallbackDiagnostic:result.fallbackDiagnostic}:{}),
+      ...(result.fallbackDiagnostic?{iaFallbackDiagnostic:{...result.fallbackDiagnostic,requestId:input.requestId}}:{}),
       iaQuotaMode:quotaMode,iaAccountingStatus:accountingStatus,...(accountingStatus==="pending"?{iaAccountingDiagnostic:diagnosticAt("telemetry")}:{ }),
       ...(closed?{}:{iaClosureStatus:"pending"}),
     });
