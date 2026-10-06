@@ -1,0 +1,26 @@
+[
+  {
+    "file": "beta/index.html",
+    "status": 200,
+    "sha256": "ca5e3aaeae261594b976349cef7933756929e7e39820e252fcf674bd64bc4a43",
+    "localSha256": "ca5e3aaeae261594b976349cef7933756929e7e39820e252fcf674bd64bc4a43",
+    "identical": true,
+    "checkedAt": "2026-10-06T13:26:31.7498467+00:00"
+  },
+  {
+    "file": "beta/sw.js",
+    "status": 200,
+    "sha256": "9707d78f6a81d918eceb491ae7e9cd1d22ff6fdd8b8492c3337d8eb33d971ebb",
+    "localSha256": "9707d78f6a81d918eceb491ae7e9cd1d22ff6fdd8b8492c3337d8eb33d971ebb",
+    "identical": true,
+    "checkedAt": "2026-10-06T13:26:32.0899708+00:00"
+  },
+  {
+    "file": "integrity-manifest.json",
+    "status": 200,
+    "sha256": "2b615bb374ef094427200da9c482e0ccbe5ffba081bc16be48fa47833259ba96",
+    "localSha256": "2b615bb374ef094427200da9c482e0ccbe5ffba081bc16be48fa47833259ba96",
+    "identical": true,
+    "checkedAt": "2026-10-06T13:26:32.4127455+00:00"
+  }
+]

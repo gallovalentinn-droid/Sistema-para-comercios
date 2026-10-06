@@ -2,6 +2,12 @@
 
 Actualizado: 2026-10-06 (America/Argentina/Buenos_Aires)
 
+## REV87 — regreso a todas las columnas, 06/10/2026
+
+El usuario prefirió el diseño original y pidió todas las columnas visibles manteniendo el funcionamiento actual. Restituidas siete columnas: leído, producto, cantidad, unidades por bulto, precio unitario, descuento y resultado de carga. Bulto/precio/descuento visibles y editables; conserva Pack xN/Unidad, costo final y opciones de stock. No reaparecen impuesto de fila/subtotal impreso. El bloque completo de identificación, memoria, conversión automática, cálculos y controles REV84/REV86 es idéntico a la base fb28fbe. Sin cambios SQL/función/modelo. Identidad HTML/manifiesto REV87 edición 2026-10-06 y caché rev87. Sustituye la descripción de controles plegados de REV86.
+
+Verificado en código: única revisión independiente sin hallazgos accionables. Verificado localmente: 513/513 pruebas e integridad de 33 archivos; navegador 1366/390 con siete columnas y controles visibles, autoconversión, decisiones manuales, bloqueo por importes, doce casos r3 y seis costos por ancho. Verificado públicamente: fuente 3bdff8461f5a7dad8b99c8df13ed080378b8c0e3 en main; Pages 37470641304 success; HTML/SW/manifiesto idénticos. Los mismos recorridos aprobados en beta pública en ambos anchos. Datos sintéticos, Supabase simulado y escrituras bloqueadas; sin IA paga ni compras/stock reales. Informe: entregables/revision-REV87-2026-10-06/INFORME.md. Capturas del usuario/catálogo real no publicados; ZIP REV84 histórico conservado. Las entradas inferiores son historial.
+
 ## REV86 — pack/unidad y revisión compacta, 06/10/2026
 
 Por pedido del usuario se identifica «Pack xN», «Unidad» o «Presentación a revisar», con cantidad impresa, cantidad a cargar y costo final destacado. Cinco columnas; controles plegados en «Cambiar» y «Editar costo», salvo stock pendiente con producto seleccionado. Conversión automática cuando texto explícito e IA coinciden y el catálogo identifica el mismo pack o un producto individual; ante dudas/contradicciones pide elección. Se comunicó este criterio tras una consulta opcional sin respuesta. La decisión manual vigente tiene prioridad. Actualiza la regla histórica de confirmación siempre en REV84 r3; no usar las entradas inferiores para describir el comportamiento actual. Un catálogo con indicios de multipack no interpretados tampoco se considera individual. Precio visible a dos decimales, precisión interna conservada. Sin SQL, función, prompt ni modelo nuevos; identidad/manifiesto REV86 edición 2026-10-06 y caché rev86.
