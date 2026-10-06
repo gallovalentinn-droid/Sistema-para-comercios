@@ -21,6 +21,6 @@ const {openShadow}=require('./browser-fixture/shadow.cjs'),assert=require('node:
  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  assert.equal(h.errors.filter(e=>e.startsWith('pageerror:')).length,0);
  const out=path.resolve(__dirname,'../entregables/publicacion-REV83-2026-10-03');fs.mkdirSync(out,{recursive:true});await p.screenshot({path:path.join(out,`${process.env.PUBLIC_BETA?'publico':'local'}-revision-${width}.png`)});
- console.log(JSON.stringify({revision:83,width,public:Boolean(process.env.PUBLIC_BETA),imageParts:input.parts,imagePartBytes:Math.round(input.bytes),calls:3,stockWrites:0,passed:true}));
+ console.log(JSON.stringify({revision:await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision),width,public:Boolean(process.env.PUBLIC_BETA),imageParts:input.parts,imagePartBytes:Math.round(input.bytes),calls:await p.evaluate(()=>window.__readerCalls),stockWrites:0,passed:true}));
  }finally{await h.close();}
 }})().catch(e=>{console.error(e);process.exitCode=1;});

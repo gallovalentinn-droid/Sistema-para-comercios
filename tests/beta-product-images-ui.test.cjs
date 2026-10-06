@@ -15,7 +15,8 @@ test('el cache offline corresponde a la identidad de build del HTML', () => {
   const build = vm.runInNewContext(`(${identity[1]})`);
   const cache = serviceWorker.match(/const CACHE='([^']+)'/);
   assert.ok(cache, 'falta la identidad del cache');
-  assert.equal(cache[1], `micomercio-beta-${build.version}-rev${build.packageRevision}`);
+  const editionSuffix=build.packageEdition?.match(/-(r\d+)$/)?.[1];
+  assert.equal(cache[1], `micomercio-beta-${build.version}-rev${build.packageRevision}${editionSuffix?'-'+editionSuffix:''}`);
 });
 
 function sliceBetween(source, start, end) {

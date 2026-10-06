@@ -9,9 +9,9 @@ export function checkInvoiceRow({cantidad,precioUnit,descuento=0,impuestoFila=0,
 export function invoicePackEvidence(producto) {
   const text=String(producto||'').replace(/\([^)]*\)/g,' ');
   const pattern=/X\s*(\d{1,6})\s*(?:UNIDADES|UNID|UNI|UN|U)(?![\p{L}\p{N}])|(?:^|\s)(\d{1,6})\s+(?:UNIDADES|UNID|UNI|UN|U)(?![\p{L}\p{N}])/giu;
-  const container=/(?:^|\s)(?:PACK|CAJA|BULTO|DISPLAY|BLISTER|TIRA)\s*(?:X|DE)?\s*(\d{1,6})(?!\d)\b(?!\s*(?:G|KG|GR|GRAMOS|ML|CC|LITROS)\b)/giu;
-  const bare=/(?:^|[\s./-])X\s*(\d{1,6})(?!\d)\b(?!\s*(?:G|KG|GR|GRAMOS|ML|CC|L|LITRO|LITROS)\b)/giu;
-  const counts=[...new Set([...text.matchAll(pattern)].map(m=>Number(m[1]??m[2])).concat([...text.matchAll(container),...text.matchAll(bare)].map(m=>Number(m[1]))).filter(n=>n>0))];
+  const container=/(?:^|\s)(?:PACK|CAJA|BULTO|DISPLAY|BLISTER|TIRA)\s*(?:X|DE)?\s*(\d{1,6})(?!\d|[.,]\s*\d)\b(?!\s*(?:G|KG|KGS|GR|GRS|GRAMO|GRAMOS|ML|CC|CM3|MG|L|LT|LTS|LITRO|LITROS|M|MTS)\b)/giu;
+  const bare=/(?:^|[\s./-])X\s*(\d{1,6})(?!\d|[.,]\s*\d)\b(?!\s*(?:G|KG|KGS|GR|GRS|GRAMO|GRAMOS|ML|CC|CM3|MG|L|LT|LTS|LITRO|LITROS|M|MTS)\b)/giu;
+  const counts=[...new Set([...text.matchAll(pattern)].map(m=>Number(m[1]??m[2])).concat([...text.matchAll(container),...text.matchAll(bare)].map(m=>Number(m[1]))).filter(n=>n>0&&n<=144))];
   return {count:counts.length===1?counts[0]:null,ambiguous:counts.length>1};
 }
 export function detectInvoicePack(producto){return invoicePackEvidence(producto).count;}

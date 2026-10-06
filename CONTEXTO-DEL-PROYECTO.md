@@ -2,6 +2,14 @@
 
 Actualizado: 2026-10-03 (America/Argentina/Buenos_Aires)
 
+## Seguimiento de auditoría REV84 — tercera entrega r3, 05/10/2026
+
+Pedido del usuario: corregir R-01 a R-04 y preparar r3 local. En la revisión REV84 todo bulto IA mayor que 1 exige decisión válida aun sin pack reconocible; antes de decidir se conserva cantidad sin multiplicar. Memoria ligada a proveedor/producto/pack, sin reaplicar conversiones antiguas. Desplegable y candidato conservan bulto e invalidan decisión al cambiar producto. Detector compartido excluye decimales y GRS/KGS/LT/LTS/CM3/MG/M/MTS; sugerencias hasta 144, valores mayores solo por confirmación manual. Filas sin producto dicen «Elegí cuál es»/«Sin coincidencia». HTML/manifiesto edición 2026-10-05-r3 y caché rev84-r3 alineados; SQL y adaptadores sin cambios, sí cambia su detector compartido.
+
+Verificado localmente: 507/507 Node, 33 archivos críticos, doce casos nuevos de navegador y ocho recorridos anteriores del lector en 1366/390, costos 6/6 por ancho, PostgreSQL 18.4 memoria/cupo idempotencia/RLS/concurrencia/reversión. Revisión independiente única sin hallazgos accionables restantes; se corrigió también la promoción de filas cero/financieras conservando su descuento asignado fijo para no volver a repartirlo. Informe vigente entregables/INFORME-AUDITORIA-REV84-2026-10-05-r3.md. El ZIP r2 SHA-256 035542bf…7829f1d se cotejó y conserva intacto. El registro interno r3 prueba fuente; HASH-ZIP-REV84-2026-10-05-r3.json externo registra archivo final y extracción sin referencia circular.
+
+Consulta pública de solo lectura del 05/10: web/cache REV83 HTTP 200 y leer-factura ACTIVE v23/JWT. Correcciones locales, no verificadas públicamente como r3. No se publicó, migró ni llamó a IA. Continúan pendientes autorizaciones separadas de migraciones, lecturas pagas y diagnóstico temporal del gateway. Las entradas inferiores son historial.
+
 ## Seguimiento de auditoría REV84 — segunda entrega, 05/10/2026
 
 Corregidos localmente los hallazgos del seguimiento: X6/X40 sin sufijo preguntan pack/unidad; X1U no pregunta opciones equivalentes; «No cargar esta fila» permite descarte expreso visible; aviso de respaldo/registro pendiente para dueño o administrador. Decisión del usuario: los precios impresos ya incluyen impuestos; el pie discrimina el neto sin impuestos y no se vuelve a sumar/repartir. Se reforzó el prompt compartido. Antes de reservar se requieren 80 s restantes del límite global: subidas de 100/141 s no gastan reserva ni llaman en ninguno de los modos; no se prometen 60 s al respaldo tras cualquier transferencia.

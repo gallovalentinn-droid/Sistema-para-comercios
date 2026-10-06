@@ -850,6 +850,7 @@ const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
   packageRevision:84,
+  packageEdition:'2026-10-05-r3',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -7275,14 +7276,21 @@ function rev84ElegirStock(r,n){
   r.porBulto=n;r.modoStock=n===1?'pack':n===r.packDetectado?'unidad':'manual';
   r.stockProducto=r.prodId;r.stockPack=r.packDetectado;return true;
 }
+function rev84RequiereStock(r){return !!(r._rev84&&(r.packDetectado>1||r.packAmbiguo||r.porBultoIa>1||r.porBulto>1));}
+function rev84ElegirProducto(r,id){
+  if(r._rev84){r.excluida=!id;if(r.prodId!==id)r.modoStock=null;}
+  r.prodId=id;r.origen=id?'manual':'';r.noMercaderia=!id&&!!r.noMercaderiaIa;
+}
 function rev84EstadoRevision(r){
   if(!r._rev84||r.excluida||!(r.cantidad>0)||(r.noMercaderia&&!r.prodId))return {pending:false};
   const importe=rev84ControlImporte(r);
-  const stock=!!(r.packDetectado>1||r.packAmbiguo)&&(!r.modoStock||r.stockProducto!==r.prodId||r.stockPack!==r.packDetectado);
+  const stock=rev84RequiereStock(r)&&(!r.modoStock||r.stockProducto!==r.prodId||r.stockPack!==r.packDetectado);
   return {pending:!r.prodId||stock||r.descuentoGlobalInvalido||importe.status==='mismatch'||(importe.status==='missing'&&!r.importeConfirmado),stock,importe};
 }
 function rev84RepartirDescuento(filas){
-  const rows=(filas||[]).filter(r=>r._rev84),global=rows[0]&&rows[0].descuentoGlobalTotal;
+  // Las filas inicialmente financieras/cero conservan su asignación previa;
+  // su parte ya fue restada del descuento a repartir entre mercadería.
+  const rows=(filas||[]).filter(r=>r._rev84&&!r.descuentoGlobalFijo),global=rows[0]&&rows[0].descuentoGlobalTotal;
   if(typeof global!=='number')return;
   const bases=rows.map(r=>Math.round(rev84Redondear(Math.max(0,r.subtotal==null?rev84ControlImporte(r).expected:r.subtotal),2)*100));
   let base=bases.reduce((s,n)=>s+n,0),left=Math.round(rev84Redondear(global,2)*100);
@@ -7327,7 +7335,14 @@ function rev84PrepararEvidencia(r,it,recordado,mem,descuentoGlobalTotal){
   if(!Object.prototype.hasOwnProperty.call(it,'revisionImporte'))return r;
   Object.assign(r,{_rev84:true,subtotal:it.subtotal??null,impuestoFila:it.impuestoFila||0,
     descuento:it.descuentoFila||0,descuentoGlobalAsignado:it.descuentoGlobalAsignado||0,packDetectado:it.packDetectado??null,packAmbiguo:!!it.packAmbiguo,descuentoGlobalTotal});
-  if(r.packDetectado||r.packAmbiguo){
+  // El texto y la IA son sugerencias: ninguno autoriza multiplicar stock.
+  if(r.packDetectado>144){r.packDetectado=null;r.packAmbiguo=true;}
+  if(!r.packAmbiguo&&!(r.packDetectado>1)&&r.porBultoIa>1){
+    if(r.porBultoIa<=144)r.packDetectado=r.porBultoIa;
+    else r.packAmbiguo=true;
+  }
+  if(!r.packDetectado&&r.porBulto>1&&!r.packAmbiguo)r.packAmbiguo=true;
+  if(r.packDetectado||rev84RequiereStock(r)){
     r.porBulto=1;
     if(mem&&mem.decisionAvailable!==false&&recordado&&recordado.via!=='otro-proveedor'
       &&r.packDetectado>1&&recordado.modoStock&&recordado.packDetectado===r.packDetectado)rev84ElegirStock(r,recordado.upb);
@@ -7346,11 +7361,11 @@ function rev70PrepararFilas(parsed,productos,mem){
     const noMercaderia=rev77NoEsMercaderia(original)||rev77NoEsMercaderia(descripcion);
     if(noMercaderia||!(cantidad>0)){
       const sugerido=noMercaderia?null:rev70Emparejar(original,indice,{proveedor,descripcion});
-      return {original,codigo,descripcion,cantidad,costoU:numFactura(it.precioUnit),descuento:Math.abs(numFactura(it.descuento)),
+      return rev84PrepararEvidencia({original,codigo,descripcion,cantidad,costoU:numFactura(it.precioUnit),descuento:Math.abs(numFactura(it.descuento)),
         porBulto:Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||1),porBultoIa:Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||1),
-        via:'',prodId:'',origen:'',estado:noMercaderia?'no-mercaderia':'cero',noMercaderia,noMercaderiaIa:noMercaderia,
+        via:'',prodId:'',origen:'',estado:noMercaderia?'no-mercaderia':'cero',noMercaderia,noMercaderiaIa:noMercaderia,descuentoGlobalFijo:true,
         noMercaderiaMontoIa:noMercaderia?Math.round(Math.max(0,cantidad*numFactura(it.precioUnit))*100):0,
-        candidatos:sugerido?sugerido.candidatos.map(c=>({id:c.producto.id,nombre:c.producto.nombre,otroTamano:!!c.incompatible,soloDescripcion:!!c.soloDescripcion})):[]};
+        candidatos:sugerido?sugerido.candidatos.map(c=>({id:c.producto.id,nombre:c.producto.nombre,otroTamano:!!c.incompatible,soloDescripcion:!!c.soloDescripcion})):[]},it,null,mem,descuentoGlobalTotal);
     }
     const recordado=rev70BuscarEnMemoria(mem,{proveedor,texto:original,codigo},productos);
     const auto=recordado?null:rev70Emparejar(original,indice,{proveedor,descripcion});
@@ -7677,6 +7692,7 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
 function rev70EstadoFila(r){
   if(r.excluida)return {clase:'',texto:'Excluida: no se carga'};
   const revision=r._rev84?rev84EstadoRevision(r):{};
+  if(r._rev84&&!r.prodId&&!r.noMercaderia&&r.cantidad>0)return {clase:'warn',texto:(r.candidatos||[]).length?'Elegí cuál es':'Sin coincidencia'};
   if(r.descuentoGlobalInvalido)return {clase:'warn',texto:'El descuento general no cuadra'};
   if(revision.pending)return {clase:'warn',texto:revision.importe&&revision.importe.status==='mismatch'?'El importe no cuadra':'Falta resolver'};
   // REV77: lo que no se va a cargar lo dice antes que nada.
@@ -7727,7 +7743,7 @@ function pintarRevision(ov2){
       const bultoIa=r.origen==='memoria'&&r.porBultoIa&&r.porBultoIa!==upb?`<br><span class="pill warn rev70-costo">La IA leyó ${r.porBultoIa}. Revisá el bulto</span>`:'';
       const control=rev84ControlImporte(r);
       const desglose=r._rev84?`<div style="margin-top:10px"><label>Impuesto de la fila<input class="inp num" data-rev-impuesto="${ix}" value="${String(r.impuestoFila||0).replace('.',',')}"></label><label>Subtotal impreso<input class="inp num" data-rev-subtotal="${ix}" value="${String(r.subtotal??'').replace('.',',')}" placeholder="No visible"></label><small>${control.status==='missing'?'Sin subtotal para comparar':`Calculado: ${$m(control.expected)} · diferencia: ${$m(control.difference)}`}${r.descuentoGlobalAsignado?` · descuento general asignado: ${$m(r.descuentoGlobalAsignado)}`:''}</small>${control.status==='missing'?`<label><input type="checkbox" data-rev-confirmar="${ix}" ${r.importeConfirmado?'checked':''}> Confirmé los importes disponibles</label>`:''}<label><input type="checkbox" data-rev-excluir="${ix}" ${r.excluida?'checked':''}> Excluir esta fila</label></div>`:'';
-      const eleccion=r._rev84&&(r.packDetectado>1||r.packAmbiguo)?`<div style="margin-top:10px"><b>${r.packAmbiguo?'La presentación es ambigua. Indicá cuántas unidades contás por presentación.':'¿Lo contás por pack o por unidad?'}</b><br>${(r.packDetectado?[[1,'pack'],[r.packDetectado,'unidad']]:[[1,'pack']]).map(([n,modo])=>{const vista=rev84CostoFila({...r,porBulto:n});return `<button type="button" class="btn ghost sm" data-rev-stock="${ix}:${n}" aria-pressed="${r.modoStock===modo&&r.stockProducto===r.prodId}">Por ${modo}: entran ${vista.unidades} a ${vista.costoUnitario.toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:4})}</button>`;}).join('')}<br><small>${r.modoStock==='manual'?`Otra cantidad: ${r.porBulto} por presentación`:'Para otra cantidad, editá unidades por bulto y confirmá.'}</small><button type="button" class="btn ghost sm" data-rev-manual="${ix}">Confirmar otra cantidad</button></div>`:'';
+      const eleccion=rev84RequiereStock(r)?`<div style="margin-top:10px"><b>${r.packAmbiguo?'La presentación es ambigua. Indicá cuántas unidades contás por presentación.':'¿Lo contás por pack o por unidad?'}</b><br>${(r.packDetectado>1&&r.packDetectado<=144?[[1,'pack'],[r.packDetectado,'unidad']]:[[1,'pack']]).map(([n,modo])=>{const vista=rev84CostoFila({...r,porBulto:n});return `<button type="button" class="btn ghost sm" data-rev-stock="${ix}:${n}" aria-pressed="${r.modoStock===modo&&r.stockProducto===r.prodId}">Por ${modo}: entran ${vista.unidades} a ${vista.costoUnitario.toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:4})}</button>`;}).join('')}<br><small>${r.modoStock==='manual'?`Otra cantidad: ${r.porBulto} por presentación`:'Para otra cantidad, editá unidades por bulto y confirmá.'}</small><button type="button" class="btn ghost sm" data-rev-manual="${ix}">Confirmar otra cantidad</button></div>`:'';
       return `<tr>
       <td data-label="Leído en la factura"><b>${esc(r.original)}</b>${cod}${extra}<br><span class="pill ${est.clase}">${est.texto}</span>${cands}${eleccion}${desglose}</td>
       <td data-label="Emparejado con"><select class="inp" data-rev-prod="${ix}">
@@ -7747,10 +7763,10 @@ function pintarRevision(ov2){
   $$('[data-rev-confirmar]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revConfirmar].importeConfirmado=i.checked;pintarRevision(ov2);});
   $$('[data-rev-excluir]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revExcluir].excluida=i.checked;pintarRevision(ov2);});
   $$('[data-rev-omitir]',c).forEach(b=>b.onclick=()=>{revisionFactura[b.dataset.revOmitir].excluida=true;pintarRevision(ov2);});
-  $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>{const r=revisionFactura[s.dataset.revProd];r.prodId=s.value;r.origen=s.value?'manual':'';r.noMercaderia=!s.value&&!!r.noMercaderiaIa;if(r._rev84){r.excluida=!s.value;r.modoStock=null;r.porBulto=1;}pintarRevision(ov2);});
-  $$('[data-rev-cand]',c).forEach(b=>b.onclick=()=>{const [ix,j]=b.dataset.revCand.split(':').map(Number);const r=revisionFactura[ix],k=r&&r.candidatos[j];if(!k)return;r.prodId=k.id;r.excluida=false;r.origen='manual';pintarRevision(ov2);});
+  $$('[data-rev-prod]',c).forEach(s=>s.onchange=()=>{rev84ElegirProducto(revisionFactura[s.dataset.revProd],s.value);pintarRevision(ov2);});
+  $$('[data-rev-cand]',c).forEach(b=>b.onclick=()=>{const [ix,j]=b.dataset.revCand.split(':').map(Number);const r=revisionFactura[ix],k=r&&r.candidatos[j];if(!k)return;rev84ElegirProducto(r,k.id);r.excluida=false;pintarRevision(ov2);});
   $$('[data-rev-cant]',c).forEach(i=>i.onchange=()=>{const l=revisionFactura[i.dataset.revCant],p=prod(l.prodId);l.importeConfirmado=false;l.cantidad=Math.max(0,p&&p.unidad==='kg'?numCantidad(i.value):num(i.value));pintarRevision(ov2);});
-  $$('[data-rev-bulto]',c).forEach(i=>i.onchange=()=>{const r=revisionFactura[i.dataset.revBulto];r.porBulto=Math.max(1,Math.floor(num(i.value))||1);if(r._rev84&&(r.packDetectado||r.packAmbiguo))r.modoStock=null;pintarRevision(ov2);});
+  $$('[data-rev-bulto]',c).forEach(i=>i.onchange=()=>{const r=revisionFactura[i.dataset.revBulto];r.porBulto=Math.max(1,Math.floor(num(i.value))||1);if(r._rev84)r.modoStock=null;pintarRevision(ov2);});
   $$('[data-rev-costo]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revCosto].importeConfirmado=false;revisionFactura[i.dataset.revCosto].costoU=Math.max(0,num(i.value));pintarRevision(ov2);});
   $$('[data-rev-dto]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revDto].importeConfirmado=false;revisionFactura[i.dataset.revDto].descuento=Math.abs(num(i.value));pintarRevision(ov2);});
 }

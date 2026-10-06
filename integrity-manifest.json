@@ -2,13 +2,13 @@
   "version": "6.0.0-f6-rc2",
   "packageRevision": 84,
   "algorithm": "sha256",
-  "generatedAt": "2026-10-04",
+  "generatedAt": "2026-10-05",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "7c51040f690db1f9ddeec64a96e6182f792f23389d5a463f6d964e6a9978fbdf",
+    "beta/index.html": "04395408071e63aa21c3eb5b7eb8448ad3b2a0de9e590f120141d6199b471618",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "4316cb52c4b8a6ae08dbe48ebff41634b592f9ec849595a56d2a5478d215d7d0",
+    "beta/sw.js": "32ddfd7137f4176d228dd96d75a5db8b19d09564d6a3c3647bd2ccf2c436f1e8",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -34,8 +34,9 @@
     "supabase/functions/_shared/f6-invoice-providers.mjs": "9baa9460c49ee3fd522274c931ad1f114693bc1972e0746ac844bdf6fdc94d8b",
     "REV84-LECTOR-MEMORIA.sql": "44ca468e4ce851d0ba1559641d0d7da63d3ac19d1ba6b0d47caf8386f4804c4d",
     "REV84-LECTOR-CUPO.sql": "eb0f6bc52a5b3988ccd78c65b0b547efc9207c3ddec16e61bae76f1ec5bb7e2a",
-    "supabase/functions/_shared/f6-invoice-review.mjs": "ec80794e38cad5a4579434707a82def607aabebac09fc4122e604c8ef13c176a",
-    "tools/actualizar-integridad.cjs": "4ad9f94beddb506e3ce8b72b73bfefdf09313a3345acdaca3e93bde910f970f5",
-    "LEEME-REV84.md": "1bb20fc3a7922e49eb0cfac8bbc3a307a4c95dac7e1a50312f0da625660d18c8"
-  }
+    "supabase/functions/_shared/f6-invoice-review.mjs": "c6bb73ff5600cce6c76290726d6fb787eb8bd208983e591d16600cd67887252e",
+    "tools/actualizar-integridad.cjs": "7cf51e77ed25a9c3f7a0f2261d2ba4681ad47f8c2f0601fc8a49fa0ac74cfee9",
+    "LEEME-REV84.md": "864e83b352e09d28e2dafea11b502b8e7ce976837e410f8436fe4a7993c310ca"
+  },
+  "packageEdition": "2026-10-05-r3"
 }

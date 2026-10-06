@@ -283,8 +283,12 @@ test('REV70 la revisión muestra el estado, las opciones y el aviso de costo', (
   assert.match(ui, /¿No es alguno de estos\?/);
   assert.match(ui, /\(otra presentación\)/);
   assert.match(ui, /La IA leyó \$\{r\.porBultoIa\}\. Revisá el bulto/);
-  assert.match(ui, /r\.prodId=k\.id;r\.excluida=false;r\.origen='manual';pintarRevision\(ov2\);/);
-  assert.match(ui, /r\.prodId=s\.value;r\.origen=s\.value\?'manual':'';[^\n]*pintarRevision\(ov2\);/);
+  vm.runInContext(section('function rev84ElegirProducto(', 'function rev84EstadoRevision('),ctx);
+  const chosen={_rev84:true,prodId:'p1',porBulto:6,modoStock:'unidad',excluida:true};
+  ctx.rev84ElegirProducto(chosen,'p2');
+  assert.equal(chosen.prodId,'p2');assert.equal(chosen.origen,'manual');assert.equal(chosen.porBulto,6);
+  assert.equal(chosen.excluida,false);assert.equal(chosen.modoStock,null);
+  ctx.rev84ElegirProducto(chosen,'');assert.equal(chosen.excluida,true);
   assert.match(ui, /const opciones=db\.productos\.filter\(p=>!p\.archivadoAt\)/);
 });
 
