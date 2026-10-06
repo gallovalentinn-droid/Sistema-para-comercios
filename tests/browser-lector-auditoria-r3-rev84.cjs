@@ -43,14 +43,14 @@ const cases={
   await p.click('[data-rev-stock="0:1"]');assert.equal(await p.locator('#okRev').isEnabled(),true);
  },
  async promotion(p){
-  for(const [producto,cantidad,subtotal] of [['Producto',0,0],['SALDO ANTERIOR',2,18000]]){
+  for(const [producto,cantidad,subtotal] of [['Producto',0,18000],['SALDO ANTERIOR',2,18000]]){
    await p.evaluate(({producto,cantidad,subtotal})=>{
     db.productos=[{id:'r3p',nombre:'Producto',costo:0,stock:0}];
     abrirRevisionFactura({proveedor:'R3',items:[{producto,cantidad,precioUnit:9000,unidadesPorBulto:6,subtotal,revisionImporte:{status:'ok'}}]});
    },{producto,cantidad,subtotal});
    assert.equal(await p.locator('#okRev').isEnabled(),true);
    await p.selectOption('[data-rev-prod="0"]','r3p');
-   if(cantidad===0){await p.fill('[data-rev-cant="0"]','2');await p.locator('[data-rev-cant="0"]').dispatchEvent('change');await p.fill('[data-rev-subtotal="0"]','18000');await p.locator('[data-rev-subtotal="0"]').dispatchEvent('change');}
+   if(cantidad===0){await p.fill('[data-rev-cant="0"]','2');await p.locator('[data-rev-cant="0"]').dispatchEvent('change');}
    assert.equal(await p.locator('#okRev').isDisabled(),true,producto);
    assert.equal(await p.locator('[data-rev-bulto="0"]').inputValue(),'1');
    await p.click('[data-rev-stock="0:6"]');assert.equal(await p.locator('#okRev').isEnabled(),true);

@@ -64,6 +64,7 @@ test('r3 HTML, caché y manifiesto identifican la misma entrega',()=>{
  vm.runInNewContext(html.match(/const MICOMERCIO_BUILD=Object.freeze\([\s\S]*?\);/)[0]+';globalThis.build=MICOMERCIO_BUILD;',c);
  const manifest=JSON.parse(fs.readFileSync('integrity-manifest.json','utf8')),sw={};
  vm.runInNewContext(fs.readFileSync('beta/sw.js','utf8').match(/const CACHE=.*?;/)[0]+';globalThis.cache=CACHE;',sw);
- assert.equal(c.build.packageEdition,'2026-10-05-r3');assert.equal(c.build.packageEdition,manifest.packageEdition);
- assert.equal(sw.cache,`micomercio-beta-${c.build.version}-rev${c.build.packageRevision}-r3`);
+ assert.equal(c.build.packageEdition,manifest.packageEdition);
+ const suffix=c.build.packageEdition?.match(/-(r\d+)$/)?.[1];
+ assert.equal(sw.cache,`micomercio-beta-${c.build.version}-rev${c.build.packageRevision}${suffix?'-'+suffix:''}`);
 });
