@@ -1,6 +1,16 @@
 # MiComercio.ar — contexto de continuidad
 
-Actualizado: 2026-10-03 (America/Argentina/Buenos_Aires)
+Actualizado: 2026-10-05 (America/Argentina/Buenos_Aires)
+
+## REV84 r3 migrada y publicada — 05/10/2026
+
+El usuario aprobó la r3 y pidió «migra todos los cambios y publica». Aplicadas únicamente las dos migraciones pendientes: rev84_lector_memoria (20261006024823) y rev84_lector_cupo (20261006024829). Las migraciones históricas ya estaban instaladas. Se conservaron copias exactas anteriores de función/web/SW/manifiesto, sin lecturas recientes antes de desplegar. Publicación inmediata por pedido explícito, a las 23:49 de Argentina; reemplaza la ventana tentativa de 00:30–01:00.
+
+Fuente de aplicación publicada: 15b9f926f97af662c14ce2d15c395183ae96d6aa, avance directo desde eb468b0; main local y remoto alineados al integrar. leer-factura ACTIVE v24/JWT, seis archivos iguales a la fuente, activa a las 23:49:01; main enviado a las 23:49:08. Pages 37405988996 success. HTML/SW/manifiesto públicos idénticos a las 23:50:17, dentro de los cinco minutos; REV84 edición 2026-10-05-r3, caché rev84-r3.
+
+Verificado en código/local: revisión independiente cerrada; 507/507 pruebas repetidas antes de publicación, integridad de 33 archivos y ausencia de secretos privados. Verificado públicamente: doce casos r3, seis pruebas de costos por ancho y seis recorridos adicionales del lector a 1366/390, con respuestas de IA simuladas y escrituras externas bloqueadas. CORS 204 y sin JWT 401; RPC de capacidades REV84 consultada sin reservar. Memoria tiene ambas columnas nuevas; cinco RPC de servicio no ejecutables por anon/authenticated; tabla privada con RLS y acceso cliente revocado; huellas y permisos de cuatro RPC anteriores sin cambios. Sin advertencias nuevas de seguridad: únicamente una observación informativa por la tabla privada con RLS y sin políticas cliente, acorde al diseño de servicio.
+
+Informe: entregables/publicacion-REV84-r3-2026-10-05/INFORME.md; evidencia VERIFICACION.json y web-hashes.json. ZIP r3 conservado intacto, SHA-256 f733dcfe40d59463564e603e7792239801ce97ac4958614535b29d764428bf0a. No se realizaron llamadas pagas de IA ni escrituras de stock/compras. La precisión con lectura autenticada real, comparativa PNG/JPEG y diagnóstico temporal del gateway siguen pendientes de sus autorizaciones separadas. Publicación completa; no presentar esas pruebas pendientes como verificadas. Las entradas inferiores son historial.
 
 ## Seguimiento de auditoría REV84 — tercera entrega r3, 05/10/2026
 
