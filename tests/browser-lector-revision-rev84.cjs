@@ -13,10 +13,10 @@ const {openShadow}=require('./browser-fixture/shadow.cjs'),assert=require('node:
  await p.evaluate(()=>document.querySelector('#okRev').onclick());assert.equal(await p.evaluate(()=>remito.length),0);
  await p.selectOption('[data-rev-prod="0"]','rev84p');
  await p.click('[data-rev-stock="0:8"]');assert.equal(await p.locator('#okRev').isEnabled(),true);
- await p.fill('[data-rev-costo="0"]','101');await p.locator('[data-rev-costo="0"]').dispatchEvent('change');assert.equal(await p.locator('#okRev').isDisabled(),true);
+ await p.locator('[data-rev-precio="0"] summary').click();await p.fill('[data-rev-costo="0"]','101');await p.locator('[data-rev-costo="0"]').dispatchEvent('change');assert.equal(await p.locator('#okRev').isDisabled(),true);
  await p.fill('[data-rev-costo="0"]','100');await p.locator('[data-rev-costo="0"]').dispatchEvent('change');
  assert.equal(await p.locator('#okRev').isEnabled(),true);
- assert.match(await p.locator('[data-label="Se carga"]').innerText(),/15,125/);
+ assert.match(await p.locator('[data-label="Se carga"]').innerText(),/15,13/);
  await p.evaluate(()=>{revisionFactura[0].subtotal=null;revisionFactura[0].importeConfirmado=false;pintarRevision(document.querySelector('.ov'));});assert.equal(await p.locator('#okRev').isDisabled(),true);
  for(const [attr,newValue,oldValue] of [['cant','3','2'],['costo','101','100'],['dto','1','0']]){
   await p.check('[data-rev-confirmar="0"]');assert.equal(await p.locator('#okRev').isEnabled(),true);

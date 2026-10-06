@@ -10,15 +10,15 @@ const {openShadow}=require('./browser-fixture/shadow.cjs'),assert=require('node:
    {producto:'Producto desconocido',cantidad:1,precioUnit:121,unidadesPorBulto:1,descuento:0,subtotal:121,impuestoFila:0,packDetectado:null,revisionImporte:{status:'ok'}}]});
  });
  assert.equal(await p.locator('#okRev').isDisabled(),true);
- assert.match(await p.locator('[data-label="Se carga"]').first().innerText(),/2.*unidades/s);
+ assert.match(await p.locator('[data-label="Se carga"]').first().innerText(),/2.*packs/s);
  assert.match(await p.locator('[data-rev-admin]').innerText(),/Gemini/);
- await p.selectOption('[data-rev-prod="0"]','auditp');await p.click('[data-rev-stock="0:6"]');
+ await p.selectOption('[data-rev-prod="0"]','auditp');await p.locator('[data-rev-presentacion="0"] summary').click();await p.click('[data-rev-stock="0:6"]');
  assert.equal(await p.locator('#okRev').isDisabled(),true);
  await p.getByRole('button',{name:'No cargar esta fila',exact:true}).click();
  assert.equal(await p.locator('#okRev').isEnabled(),true);
  await p.click('#okRev');assert.deepEqual(await p.evaluate(()=>remito.map(r=>({cant:r.cant,costo:r.costoU,total:r.totalL}))),[{cant:12,costo:1500,total:'18000.00'}]);
  await p.evaluate(()=>abrirRevisionFactura({proveedor:'Prueba',total:121,items:[{producto:'Unidad X1U',cantidad:1,precioUnit:121,unidadesPorBulto:1,descuento:0,subtotal:121,impuestoFila:0,packDetectado:1,revisionImporte:{status:'ok'}}]}));
- await p.selectOption('[data-rev-prod="0"]','auditp');assert.equal(await p.locator('[data-rev-stock]').count(),0);assert.equal(await p.locator('#okRev').isEnabled(),true);
+ await p.selectOption('[data-rev-prod="0"]','auditp');assert.equal(await p.locator('[data-rev-presentacion="0"]').getAttribute('open'),null);assert.equal(await p.locator('#okRev').isEnabled(),true);
  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  assert.equal(h.errors.filter(e=>e.startsWith('pageerror:')).length,0);
  console.log(JSON.stringify({width,barePack:true,explicitDiscard:true,singlePack:true,adminFallback:true}));

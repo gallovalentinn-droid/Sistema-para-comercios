@@ -4,7 +4,7 @@ process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
 const {openShadow}=require('./browser-fixture/shadow.cjs'),assert=require('node:assert/strict'),crypto=require('node:crypto'),fs=require('node:fs');
 (async()=>{for(const width of [1366,390])for(const mode of ['legacy-rev83','rev84']){
  const h=await openShadow({width});try{const p=h.page;
- assert.equal(await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision),84);
+ assert.equal(await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision),86);
  const image=process.env.INVOICE_IMAGE?{name:'factura.jpeg',mimeType:'image/jpeg',buffer:fs.readFileSync(process.env.INVOICE_IMAGE)}:{name:'factura.png',mimeType:'image/png',buffer:Buffer.from(await p.evaluate(()=>{const c=document.createElement('canvas');c.width=900;c.height=1600;const g=c.getContext('2d');g.fillStyle='white';g.fillRect(0,0,900,1600);g.fillStyle='black';g.font='24px sans-serif';for(let i=0;i<38;i++)g.fillText(`Fila ${i+1}  2  100,00  200,00`,35,250+i*23);return c.toDataURL('image/png').split(',')[1]}),'base64')};
  await p.evaluate(mode=>{window.__ids=[];window.__stock=JSON.stringify(db.productos);window.__mode=mode;
  sb.functions.invoke=async(name,{body})=>{__ids.push(body.requestId);window.__input=body;if(__ids.length===1)return {error:{context:new Response(JSON.stringify({code:'IA_NO_DISPONIBLE',iaQuotaMode:mode,diagnostic:{provider:'openai',stage:'provider'}}),{status:503})}};

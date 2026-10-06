@@ -1,0 +1,22 @@
+process.env.PW||='C:/Users/valen/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright';process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
+const {openShadow}=require('./browser-fixture/shadow.cjs'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+(async()=>{for(const width of [1366,390]){const h=await openShadow({width,publicUrl:process.env.PUBLIC_BETA||null});try{const p=h.page;
+ await p.evaluate(()=>{db.productos=[{id:'bottle',nombre:'Botella Cerveza 710ml',unidad:'unidad',costo:50,stock:0},{id:'pack',nombre:'Cerveza Pack x12 710ml',unidad:'unidad',costo:600,stock:0}];abrirRevisionFactura({proveedor:'Prueba',total:1200,items:[{producto:'CERVEZA X12 710',cantidad:2,precioUnit:600,unidadesPorBulto:12,subtotal:1200,impuestoFila:0,revisionImporte:{status:'ok'},packDetectado:12}]});});
+ await p.selectOption('[data-rev-prod="0"]','bottle');assert.equal(await p.locator('#okRev').isEnabled(),true);
+ assert.match(await p.locator('[data-label="Presentación"]').innerText(),/Pack x12/);
+ assert.match(await p.locator('[data-label="Se carga"]').innerText(),/24 unidades.*50,00/s);
+ assert.equal(await p.locator('[data-rev-presentacion="0"]').getAttribute('open'),null);
+ assert.equal(await p.locator('[data-rev-costo="0"]').isVisible(),false);
+ if(process.env.REV86_QA){fs.mkdirSync(process.env.REV86_QA,{recursive:true});await p.locator('.mod').screenshot({path:path.join(process.env.REV86_QA,`${process.env.PUBLIC_BETA?'publica':'local'}-${width}.png`)});}
+ await p.selectOption('[data-rev-prod="0"]','pack');assert.equal(await p.locator('#okRev').isEnabled(),true);assert.match(await p.locator('[data-label="Se carga"]').innerText(),/2 packs.*600,00/s);
+ await p.locator('[data-rev-presentacion="0"] summary').click();await p.click('[data-rev-stock="0:12"]');assert.match(await p.locator('[data-label="Se carga"]').innerText(),/24 unidades/);
+ assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(h.errors.filter(e=>e.startsWith('pageerror:')).length,0);
+ await p.click('#okRev');assert.deepEqual(await p.evaluate(()=>remito.map(l=>({cantidad:l.cant,costo:l.costoU,total:l.totalL}))),[{cantidad:24,costo:50,total:'1200.00'}]);
+ await p.evaluate(()=>{db.productos=[{id:'mixed',nombre:'Cerveza 6X710ml',unidad:'unidad',costo:0,stock:0}];abrirRevisionFactura({proveedor:'Prueba',total:1200,items:[{producto:'CERVEZA X12 710',cantidad:2,precioUnit:600,unidadesPorBulto:12,subtotal:1200,revisionImporte:{status:'ok'},packDetectado:12}]});});
+ await p.selectOption('[data-rev-prod="0"]','mixed');assert.equal(await p.locator('#okRev').isDisabled(),true);assert.match(await p.locator('[data-label="Se carga"]').innerText(),/^Por confirmar/);
+ await p.click('[data-rev-stock="0:1"]');assert.equal(await p.locator('#okRev').isEnabled(),true);
+ await p.evaluate(()=>abrirRevisionFactura({proveedor:'Prueba',total:100,items:[{producto:'Botella Cerveza 710ml',cantidad:2,precioUnit:50,unidadesPorBulto:1,subtotal:100,revisionImporte:{status:'ok'}}]}));
+ await p.selectOption('[data-rev-prod="0"]','mixed');assert.match(await p.locator('[data-label="Presentación"]').innerText(),/^Unidad/);assert.equal(await p.locator('[data-rev-presentacion="0"]').getAttribute('open'),null);
+ assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(h.errors.filter(e=>e.startsWith('pageerror:')).length,0);
+ console.log(JSON.stringify({width,packIdentified:true,automaticStock:true,manualOverride:true,costPreserved:true}));
+ }finally{await h.close()}}})().catch(e=>{console.error(e);process.exitCode=1});

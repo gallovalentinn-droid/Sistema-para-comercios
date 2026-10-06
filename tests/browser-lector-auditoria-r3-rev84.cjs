@@ -28,7 +28,7 @@ const cases={
     abrirRevisionFactura({proveedor:'R3',total:18000,items:[{producto:texto,cantidad:2,precioUnit:9000,unidadesPorBulto:n,subtotal:18000,impuestoFila:0,revisionImporte:{status:'ok'},packDetectado:null}]});
    },{texto,n});
    assert.equal(await p.locator('#okRev').isDisabled(),true,texto);
-   assert.match(await p.locator('[data-label="Se carga"]').innerText(),/^2 unidades/,texto);
+   assert.match(await p.locator('[data-label="Se carga"]').innerText(),/^Por confirmar/,texto);
    await p.selectOption('[data-rev-prod="0"]','r3p');await p.click(`[data-rev-stock="0:${n}"]`);assert.equal(await p.locator('#okRev').isEnabled(),true);
    await p.click('#okRev');assert.deepEqual(await p.evaluate(()=>remito.map(r=>({cant:r.cant,total:r.totalL}))),[{cant:2*n,total:'18000.00'}]);
   }
@@ -38,7 +38,7 @@ const cases={
    db.productos=[{id:'r3p',nombre:'Producto',costo:0,stock:0},{id:'r3q',nombre:'Otro producto',costo:0,stock:0}];
    abrirRevisionFactura({proveedor:'R3',total:18000,items:[{producto:'Producto',cantidad:2,precioUnit:9000,unidadesPorBulto:6,subtotal:18000,revisionImporte:{status:'ok'}}]});
   });
-  await p.click('[data-rev-stock="0:6"]');await p.selectOption('[data-rev-prod="0"]','r3q');
+  await p.selectOption('[data-rev-prod="0"]','r3p');await p.click('[data-rev-stock="0:6"]');await p.selectOption('[data-rev-prod="0"]','r3q');
   assert.equal(await p.locator('[data-rev-bulto="0"]').inputValue(),'6');assert.equal(await p.locator('#okRev').isDisabled(),true);
   await p.click('[data-rev-stock="0:1"]');assert.equal(await p.locator('#okRev').isEnabled(),true);
  },
