@@ -1,6 +1,0 @@
-Pruebas de navegador de REV54 (lector de facturas)
-Requisitos: Node 22 y Playwright con Chromium (PW=ruta del paquete playwright, CHROME=ruta del ejecutable).
-Ejecutar desde esta carpeta con REV apuntando a la raíz del sistema, por ejemplo REV=../..
-  W=1366 node t40_factura.cjs   -> 18 productos con nombres largos: mide ventana, columna del producto y desborde (W=1024 / W=390 para otros anchos)
-  node t42_volver.cjs           -> recorrido completo con «Volver a la foto» y «Volver a revisar», sin duplicar productos
-No usan Supabase: la red externa se bloquea y la biblioteca se reemplaza por un stub.
