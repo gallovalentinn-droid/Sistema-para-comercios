@@ -1,6 +1,14 @@
 # MiComercio.ar — contexto de continuidad
 
-Actualizado: 2026-10-06 (America/Argentina/Buenos_Aires)
+Actualizado: 2026-10-07 (America/Argentina/Buenos_Aires)
+
+## REV88 — confirmación consistente de Caja, 07/10/2026
+
+Por un incidente de cierre y acumulación de turnos se revisó Supabase en modo de solo lectura. La evidencia privada del comercio está en `.superpowers/caja-rev88/INCIDENTE.md`, excluida de Git. El cierre histórico acumulado existe y sus referencias coinciden; no se conservó el error local exacto para probar el desencadenante. No se modificaron conteos, retiros, fondos ni atribuciones históricas. Su conciliación requiere horarios y arqueos reales; la consulta al usuario sigue pendiente. No afirmar que la reparación histórica está completa ni presentar su diferencia como una pérdida física de dinero.
+
+Reproducidos y corregidos: excepción al preparar operación después de agregar cierre al historial; confirmación vieja capaz de cerrar otra sesión con importes anteriores; doble confirmación; movimientos/fondos/modelo cambiados durante revisión; apertura demorada capaz de reutilizar un turno recuperado. Se prepara la operación antes de insertar el cierre, valida segmento y arqueo al pulsar y confirmar, y conserva cualquier turno ya abierto. Sin SQL ni cambio de lector. HTML/manifiesto REV88 edición 2026-10-07, caché rev88.
+
+Verificado en código: única revisión independiente, hallazgo de modelo efectivo reproducido y corregido con regresión. Local: 521/521 pruebas, integridad de 33 archivos y seis escenarios de Caja en 1366/390, con tres turnos/operaciones persistidos. Público: fuente 9fa4f33923841754f20ab5115cfc2d25086f205f en main, Pages 37566462632 success, HTML/SW/manifiesto HTTP 200 e idénticos; mismos escenarios aprobados en ambos anchos. Datos sintéticos, Supabase simulado y escrituras externas bloqueadas: no reemplaza la repetición real desde el dispositivo afectado, que no estaba disponible en el navegador conectado. Informe sin datos privados: entregables/revision-REV88-2026-10-07/INFORME.md. Las entradas inferiores son historial.
 
 ## REV87 — regreso a todas las columnas, 06/10/2026
 
