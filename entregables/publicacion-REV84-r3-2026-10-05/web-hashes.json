@@ -1,0 +1,17 @@
+[
+  {
+    "archivo": "beta/index.html",
+    "sha256": "04395408071e63aa21c3eb5b7eb8448ad3b2a0de9e590f120141d6199b471618",
+    "igualFuente": true
+  },
+  {
+    "archivo": "beta/sw.js",
+    "sha256": "32ddfd7137f4176d228dd96d75a5db8b19d09564d6a3c3647bd2ccf2c436f1e8",
+    "igualFuente": true
+  },
+  {
+    "archivo": "integrity-manifest.json",
+    "sha256": "459ccf33bd77fcc9bfe3f43822684ad58188771ad9071677c32170b32c1008e3",
+    "igualFuente": true
+  }
+]

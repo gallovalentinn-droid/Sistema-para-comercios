@@ -1,0 +1,12 @@
+{"width":1366,"case":"selection","passed":true}
+{"width":1366,"case":"labels","passed":true}
+{"width":1366,"case":"models","passed":true}
+{"width":1366,"case":"changeAfterDecision","passed":true}
+{"width":1366,"case":"promotion","passed":true}
+{"width":1366,"case":"largeModel","passed":true}
+{"width":390,"case":"selection","passed":true}
+{"width":390,"case":"labels","passed":true}
+{"width":390,"case":"models","passed":true}
+{"width":390,"case":"changeAfterDecision","passed":true}
+{"width":390,"case":"promotion","passed":true}
+{"width":390,"case":"largeModel","passed":true}
