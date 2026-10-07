@@ -849,8 +849,8 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:87,
-  packageEdition:'2026-10-06',
+  packageRevision:88,
+  packageEdition:'2026-10-07',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -4311,7 +4311,7 @@ const totalTicket=()=>Math.max(0,Math.round((subtotalTicket()-descuentoPromoAuto
 let rev31ReabrirTrasCierre=false;
 function vAbrirTurnoRev31(m){
   const sesionAnterior=f3Estado&&f3Estado.session;
-  if(sesionAnterior&&sesionAnterior.estado==='abierta'&&!sesionAnterior.rev31AperturaExplicita){
+  if(sesionAnterior&&sesionAnterior.estado==='abierta'){
     m.innerHTML='<div class="head"><div><h1>Vender</h1><div class="sub">Hay una caja abierta con movimientos anteriores.</div></div></div><div class="card"><div class="card-b"><h2>Cerrá la caja antes de abrir un turno nuevo</h2><p>Así las ventas anteriores conservan su fondo y el turno nuevo comienza con sus propios importes.</p><button type="button" class="btn" id="rev31IrCaja">Ir a Caja</button></div></div>';
     $('#rev31IrCaja',m).onclick=()=>{globalThis.__miCajaVista='cierre';ir('caja');};
     return;
@@ -4411,7 +4411,7 @@ function vAbrirTurnoRev31(m){
         }
       }
       const anterior=f3Estado&&f3Estado.session;
-      if(anterior&&anterior.estado==='abierta'&&!anterior.rev31AperturaExplicita){aviso('Cerrá la caja abierta antes de comenzar un turno nuevo.','bad');return;}
+      if(anterior&&anterior.estado==='abierta'){aviso('Ya hay un turno abierto. Cerralo antes de comenzar otro.','bad');render();return;}
       const s=f3AsegurarSesionLocal();if(!s)throw new Error('SIN_SESION');
       s.fondoGeneral=fondo;s.fondoCigarros=moduloCigarros?fondoCigarros:0;s.abiertoPor=responsable;s.abiertoPorId=String(miembro&&miembro.user_id||'');s.rev31AperturaExplicita=true;
       s.aperturaCierreId=contexto.cierreId;s.aperturaEsperadoGeneral=esperado.general;
@@ -8660,6 +8660,28 @@ function f6EvaluarCierreTurno(session,cierres,authority){
   const canOpenNext=!!(authority&&authority.writable===true);
   return {ok:true,code:'F6_TURNO_CERRABLE',turnoKey:key,activeSessionAfterClose:null,authority,canOpenNext};
 }
+function f88HuellaArqueo(session,turno){
+  if(!session||!turno)return '';
+  const ids=rows=>(rows||[]).map(r=>String(r.id)).sort();
+  return JSON.stringify({turno:f6ClaveTurno(session),desde:turno.desde,
+    fondoGeneral:session.fondoGeneral,fondoCigarros:session.fondoCigarros,
+    cajaSeparadaCigarros:f56CajaSeparadaEnSesion(session,db.config),
+    separaCigarrillosAlCierre:f57ModoCaja(db.config)==='unica_separa_cigarrillos',
+    ventas:ids(turno.ventas),pagos:ids(turno.pagos),egresos:ids(turno.egresos),
+    total:turno.total,porForma:Object.entries(turno.porForma||{}).sort(([a],[b])=>a.localeCompare(b)),
+    cigTotal:turno.cigTotal,cigEfectivo:turno.cigEfectivo,cigCobradoTotal:turno.cigCobradoTotal,
+    genEfectivo:turno.genEfectivo,cobEfectivo:turno.cobEfectivo,costo:turno.costo,
+    egrGeneral:turno.egrGeneral,egrCigarros:turno.egrCigarros,egrOtros:turno.egrOtros});
+}
+function f88ValidarArqueoActual(session,huella){
+  const actual=f3Estado&&f3Estado.session;
+  if(!actual||f6ClaveTurno(actual)!==f6ClaveTurno(session)||
+     !f6EvaluarCierreTurno(actual,db.cierres,f5EstadoBloqueo().authority).ok)
+    return 'El turno cambió o ya está cerrado. Volvé a Caja para revisar el turno actual.';
+  if(f88HuellaArqueo(actual,turnoActual(f5SesionIds(actual).effectiveId))!==huella)
+    return 'Los movimientos o el fondo cambiaron mientras revisabas. Volvé a contar la caja antes de cerrar.';
+  return '';
+}
 /* F6_TURNOS_CORE_END */
 
 /* ═══════════════════════════════════════════════════════
@@ -9371,6 +9393,7 @@ function vCaja(m){
     $('#abrirTurnoCaja').onclick=()=>ir('vender');
     return;
   }
+  const huellaArqueo=f88HuellaArqueo(activeSession,t);
   const moduloCigarros=f56CajaSeparadaEnSesion(activeSession,db.config);
   const separaCigarrillosAlCierre=!moduloCigarros&&f57ModoCaja(db.config)==='unica_separa_cigarrillos';
   const sugerenciaCigarrillos=Math.max(0,Number(t.cigCobradoTotal)||0);
@@ -9709,6 +9732,8 @@ function vCaja(m){
       ()=>{db.egresos=db.egresos.filter(x=>x.id!==e.id);guardar(f3OperacionReversionEgreso(e));render();aviso('Egreso eliminado');},'Eliminar');
   });
   $('#cerrarCaja').onclick=()=>{
+    const cambio=f3Activo()?f88ValidarArqueoActual(activeSession,huellaArqueo):'';
+    if(cambio){render();aviso(cambio,'bad');return;}
     const responsableCierreNombre=$('#responsableCierreCaja').value.trim();
     if(!responsableCierreNombre){aviso('Indicá quién cierra la caja.','bad');$('#responsableCierreCaja').focus();return;}
     if(!conteosCajaCompletos()){
@@ -9739,6 +9764,8 @@ function vCaja(m){
     confirmar('Cerrar la caja',
       `Vendiste <b>${$m(t.total)}</b> en ${t.ventas.length} ${t.ventas.length===1?'venta':'ventas'}${t.egresos.length?` y registraste <b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b> en egresos`:''}.<br><br>${partes.join('<br>')}`,
       async()=>{
+        const cambio=f3Activo()?f88ValidarArqueoActual(activeSession,huellaArqueo):'';
+        if(cambio){render();aviso(cambio,'bad');return;}
         const nuevoCierre={id:uid(),desde:t.desde,hasta:new Date().toISOString(),
           cantVentas:t.ventas.length,total:t.total,porForma:t.porForma,cigTotal:t.cigTotal,cigPorForma:f79CigarrillosPorFormaTurno(t),
           esperadoGeneral:espGeneral,contadoGeneral,diferenciaGeneral:dG,
@@ -9754,9 +9781,16 @@ function vCaja(m){
           responsableId:String((f5Estado().membership||{}).user_id||(sesion&&sesion.user&&sesion.user.id)||''),
           responsableNombre:responsableCierreNombre,
           ventaIds:t.ventas.map(v=>v.id),pagoIds:t.pagos.map(p=>p.id),egresoIds:t.egresos.map(e=>e.id)};
-        f5EstamparSesionLocal(nuevoCierre,f3Estado.session);
+        let opCierre;
+        try{
+          f5ExigirEscritura('cerrar_turno');
+          f5EstamparSesionLocal(nuevoCierre,activeSession);
+          opCierre=f3OperacionCierre(nuevoCierre);
+          if(f3Activo()&&!opCierre)throw new Error('F88_CIERRE_SIN_OPERACION');
+        }catch(error){
+          aviso('No se pudo preparar el cierre. El turno sigue abierto. Revisá tu acceso y reintentá.','bad');return;
+        }
         db.cierres.push(nuevoCierre);
-        const opCierre=f3OperacionCierre(nuevoCierre);
         f3MarcarSesionLocalCierrePendiente(nuevoCierre,opCierre,{general:destino.quedaGeneral,cigarros:destino.quedaCigarros});
         // El cierre y su snapshot viajan en la operación. La autoridad/lease permanece;
         // sólo se libera la sesión activa para poder abrir el turno siguiente.

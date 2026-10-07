@@ -110,7 +110,8 @@ function load() {
     'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'responsableCierre',
     'montoDiferenciaCaja', 'motivoCierrePendiente', 'motivoDiferenciaCaja', 'estadoDiferenciaCaja', 'f69ResumenCierre', 'f52CalcularDestinoCierre',
     'f56ValidarApartadoCigarrillos', 'f57DesgloseRetiroCigarrillos', 'f56CajaSeparadaEnSesion', 'f57ModoCaja', 'f56EsperadoCajaUnica',
-    'esEgresoOperativo', 'f59DesgloseCajaActual', 'f59MovimientosCajaActual', 'f59TiempoAbiertoCaja', 'vCaja',
+    'esEgresoOperativo', 'f59DesgloseCajaActual', 'f59MovimientosCajaActual', 'f59TiempoAbiertoCaja',
+    'f6ClaveTurno', 'f88HuellaArqueo', 'vCaja',
   ];
   vm.runInContext([
     ...names.map((name) => functionSource(name)),
