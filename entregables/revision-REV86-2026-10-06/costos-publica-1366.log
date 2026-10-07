@@ -1,0 +1,14 @@
+✔ REV84 edición de cantidad conserva costo de tres decimales hasta la operación (2305.5702ms)
+✔ REV84 fusión conserva bultos sin multiplicar ni descontar dos veces (2177.6372ms)
+✔ REV84 fusión conserva descuento neto sin multiplicar ni descontar dos veces (2149.9872ms)
+✔ REV84 mantiene renglón sin costo sin inventarle un importe al fusionar (2092.4111ms)
+✔ REV84 descuento general se redistribuye al corregir y avisa memoria no guardada (2443.1632ms)
+✔ REV84 presentación ambigua pregunta y permite confirmar otra cantidad (2132.3594ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13307.0721

@@ -1,0 +1,23 @@
+-- SOLO base local aislada. Dependencias mínimas para ejecutar las RPC reales copiadas.
+do $$begin
+if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if;
+if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
+if not exists(select 1 from pg_roles where rolname='service_role') then create role service_role bypassrls; end if;
+end$$;
+create schema private;
+create schema auth;
+create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+create table public.comercios(id uuid primary key);
+create table public.comercio_miembros(comercio_id uuid,user_id uuid,rol text,permisos jsonb default '{}',activo boolean default true);
+create table public.comercio_licencias(comercio_id uuid primary key,limite_ia_mensual integer default 100,activo boolean default true);
+create function private.business_date(uuid,timestamptz) returns date language sql as $$select ($2 at time zone 'America/Buenos_Aires')::date$$;
+create function private.licencia_activa(uuid) returns boolean language sql security definer set search_path='' as $$select coalesce((select activo from public.comercio_licencias where comercio_id=$1),false)$$;
+create function private.es_miembro(uuid) returns boolean language sql security definer set search_path='' as $$select exists(select 1 from public.comercio_miembros where comercio_id=$1 and user_id=auth.uid() and activo)$$;
+create function private.tiene_permiso(uuid,text) returns boolean language sql security definer set search_path='' as $$select exists(select 1 from public.comercio_miembros where comercio_id=$1 and user_id=auth.uid() and activo and (rol in ('duenio','admin') or permisos->>$2='true'))$$;
+grant usage on schema private,auth to authenticated;
+grant execute on function auth.uid(),private.es_miembro(uuid),private.tiene_permiso(uuid,text),private.licencia_activa(uuid) to authenticated;
+create table public.factura_ai_uso_v4(id bigint generated always as identity primary key,comercio_id uuid not null,user_id uuid,operation_id text,business_date date not null,created_at timestamptz not null default now(),provider_model text,input_tokens integer,output_tokens integer,thought_tokens integer,cached_tokens integer,tool_use_tokens integer,total_tokens integer,recognized_fields text[],recognized_items integer,result_recorded_at timestamptz,unique(comercio_id,user_id,operation_id));
+alter table public.factura_ai_uso_v4 enable row level security;
+insert into public.comercios values('00000000-0000-4000-8000-000000000001'),('00000000-0000-4000-8000-000000000002');
+insert into public.comercio_licencias(comercio_id) select id from public.comercios;
+insert into public.comercio_miembros(comercio_id,user_id,rol) select id,'00000000-0000-4000-8000-0000000000aa','duenio' from public.comercios;

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="0;url=../beta/">
+<title>Mi Comercio — redirigiendo</title>
+<style>body{font-family:system-ui,sans-serif;background:#f2f4f7;color:#161b24;display:grid;place-items:center;min-height:100vh;margin:0}.box{background:#fff;border:1px solid #e2e6ec;border-radius:14px;padding:28px;text-align:center;max-width:420px}a{color:#1857d6;font-weight:700}</style>
+</head>
+<body>
+<main class="box"><h1>Mi Comercio</h1><p>Esta dirección fue reemplazada por la versión actual del sistema.</p><p><a href="../beta/">Abrir el sistema</a></p></main>
+<script>
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+location.replace('../beta/'+location.search+location.hash);
+</script>
+</body>
+</html>

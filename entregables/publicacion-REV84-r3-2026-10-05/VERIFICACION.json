@@ -1,0 +1,188 @@
+{
+  "sourceCommit": "15b9f926f97af662c14ce2d15c395183ae96d6aa",
+  "previousCommit": "eb468b0d1b1b25845002872cc5eb2faf21135475",
+  "migrations": [
+    {
+      "version": "20261006024823",
+      "name": "rev84_lector_memoria"
+    },
+    {
+      "version": "20261006024829",
+      "name": "rev84_lector_cupo"
+    }
+  ],
+  "edge": {
+    "version": 24,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "exact": [
+      {
+        "name": "leer-factura/index.ts",
+        "exact": true
+      },
+      {
+        "name": "_shared/f5-auth-core.mjs",
+        "exact": true
+      },
+      {
+        "name": "_shared/f6-invoice-reader.mjs",
+        "exact": true
+      },
+      {
+        "name": "_shared/f6-invoice-review.mjs",
+        "exact": true
+      },
+      {
+        "name": "_shared/f6-invoice-providers.mjs",
+        "exact": true
+      },
+      {
+        "name": "_shared/f6-openai-invoice-reader.mjs",
+        "exact": true
+      }
+    ]
+  },
+  "timeUTC": {
+    "functionActivated": "2026-10-06 02:49:01 UTC",
+    "webPushed": "2026-10-06 02:49:08 UTC",
+    "webBytesVerified": "2026-10-06 02:50:17 UTC"
+  },
+  "pages": {
+    "id": 37405988996,
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "schema": {
+    "actividad": 0,
+    "rpc_rev84": [
+      {
+        "anon": false,
+        "auth": false,
+        "firma": "f6_service_capacidades_lector_factura_rev84(uuid,uuid)",
+        "config": [
+          "search_path=\"\""
+        ],
+        "definer": true,
+        "service": true
+      },
+      {
+        "anon": false,
+        "auth": false,
+        "firma": "f6_service_reservar_lectura_factura_rev84(uuid,uuid,uuid,integer)",
+        "config": [
+          "search_path=\"\""
+        ],
+        "definer": true,
+        "service": true
+      },
+      {
+        "anon": false,
+        "auth": false,
+        "firma": "f6_service_iniciar_intento_lectura_factura_rev84(uuid,uuid,uuid,text,integer)",
+        "config": [
+          "search_path=\"\""
+        ],
+        "definer": true,
+        "service": true
+      },
+      {
+        "anon": false,
+        "auth": false,
+        "firma": "f6_service_finalizar_lectura_factura_rev84(uuid,uuid,uuid)",
+        "config": [
+          "search_path=\"\""
+        ],
+        "definer": true,
+        "service": true
+      },
+      {
+        "anon": false,
+        "auth": false,
+        "firma": "f6_service_registrar_resultado_lectura_factura_rev84(uuid,uuid,uuid,text,jsonb,text[],integer)",
+        "config": [
+          "search_path=\"\""
+        ],
+        "definer": true,
+        "service": true
+      }
+    ],
+    "rpc_previas": [
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "firma": "consumir_cupo_factura_ai_v4(text,uuid)",
+        "huella": "393c4d9f12debe6a72b2d466a7ca5991"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "firma": "consumir_cupo_factura_ai()",
+        "huella": "8102c8f2dc2487be0328ca5e26111139"
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "firma": "f6_service_registrar_resultado_lectura_factura(uuid,uuid,uuid,text,jsonb,text[],integer)",
+        "huella": "e4591621604c0a5e3dfed03ff259332e"
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "firma": "f6_service_reservar_lectura_factura(uuid,uuid,uuid)",
+        "huella": "c1da18101cab61594cf5007f62fd50e2"
+      }
+    ],
+    "rls_intentos": true,
+    "columnas_memoria": 2
+  },
+  "advisors": {
+    "before": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 11
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 8
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "level": "WARN",
+        "count": 1
+      }
+    ],
+    "after": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 12
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 8
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "level": "WARN",
+        "count": 1
+      }
+    ],
+    "newFinding": "private.factura_ai_intentos_rev84: RLS habilitada, sin políticas; acceso cliente revocado y uso exclusivo por funciones de servicio."
+  },
+  "tests": {
+    "localNode": 507,
+    "criticalIntegrityFiles": 33,
+    "publicR3": 12,
+    "publicCostsEachWidth": 6,
+    "widths": [
+      1366,
+      390
+    ],
+    "simulatedAI": true,
+    "externalStockWrites": 0,
+    "paidAICalls": 0
+  },
+  "quotaRPC": "Capacidades REV84 respondieron correctamente, consulta de solo lectura.",
+  "cors": 204,
+  "unauthenticated": 401,
+  "zipSha256": "f733dcfe40d59463564e603e7792239801ce97ac4958614535b29d764428bf0a"
+}

@@ -1,0 +1,10 @@
+Prueba de navegador de REV75 (lector de facturas: emparejador, memoria y aviso de costo).
+Requisitos: Node 22 y Playwright con Chromium (PW=ruta del paquete playwright, CHROME=ruta del ejecutable).
+Usa el arnés de ../pruebas-navegador-REV58 (sirve una copia del paquete, bloquea la red externa y reemplaza Supabase por un stub).
+  node lector-emparejador-rev75.cjs   -> recorrido completo con asserts; termina con «REV75 navegador: recorrido completo aprobado»
+La IA y la tabla factura_alias_producto se simulan dentro de la página. Capturas: rev75_*.png
+Agrega a REV70: otro proveedor con otro bulto (R70-03), descripción contradictoria y atado distinto (R70-01/02).
+Agrega a REV71: atado sin X, salchicha 12 contra x6 y mcg contra mg (R71-01/03).
+Agrega a REV72: dosis distinta con el mismo volumen y unidad solo en la factura (R72-01).
+Agrega a REV73: medida y número de paquete intercambiados, 10g x20 contra 20g x10 (R73-01).
+Agrega a REV74: tamaños de los componentes de un pack cambiados (R74-01) y descripción de la IA que omite un número impreso (R74-02).

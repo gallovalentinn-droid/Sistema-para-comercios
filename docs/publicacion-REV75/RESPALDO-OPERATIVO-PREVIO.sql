@@ -1,0 +1,35 @@
+-- Respaldo operativo previo a REV75, dentro del esquema privado.
+-- No exporta credenciales ni copia Auth/configuración. No modifica los datos operativos.
+begin;
+create table private.rev75_predeploy_snapshot (source text primary key, rows jsonb not null, captured_at timestamptz not null default now());
+alter table private.rev75_predeploy_snapshot enable row level security;
+revoke all on private.rev75_predeploy_snapshot from public, anon, authenticated;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'comercios', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.comercios t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'productos', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.productos t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'promociones', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.promociones t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'combos', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.combos t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'combo_items', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.combo_items t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'clientes', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.clientes t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'cajas', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.cajas t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'caja_sesiones', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.caja_sesiones t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'caja_sesion_segmentos', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.caja_sesion_segmentos t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'ventas', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.ventas t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'venta_items', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.venta_items t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'venta_item_componentes', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.venta_item_componentes t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'venta_pagos', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.venta_pagos t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'venta_anulaciones', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.venta_anulaciones t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'movimientos_stock', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.movimientos_stock t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'pagos_fiado', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.pagos_fiado t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'ajustes_fiado', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.ajustes_fiado t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'fiado_cargos', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.fiado_cargos t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'fiado_aplicaciones', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.fiado_aplicaciones t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'egresos', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.egresos t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'egreso_reversiones', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.egreso_reversiones t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'cierres_caja', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.cierres_caja t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'cierre_ventas', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.cierre_ventas t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'cierre_pagos_fiado', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.cierre_pagos_fiado t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'cierre_egresos', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.cierre_egresos t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'cierre_ajustes', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.cierre_ajustes t;
+insert into private.rev75_predeploy_snapshot(source, rows) select 'factura_ai_uso_v4', coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from public.factura_ai_uso_v4 t;
+insert into private.rev75_predeploy_snapshot(source, rows) values ('deployment_state', jsonb_build_array(jsonb_build_object('previous_revision',69,'previous_reader_version',17,'alias_table_previously_exists',false)));
+commit;
