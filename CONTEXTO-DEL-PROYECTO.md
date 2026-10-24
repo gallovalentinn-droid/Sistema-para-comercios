@@ -1,6 +1,14 @@
 # MiComercio.ar — contexto de continuidad
 
-Actualizado: 2026-10-07 (America/Argentina/Buenos_Aires)
+Actualizado: 2026-10-24 (America/Argentina/Buenos_Aires)
+
+## REV92 — tamaños con stock compartido en kilos, 24/10/2026
+
+Por pedido explícito del usuario se integraron y publicaron tamaños con precio propio y un único stock de producto base en kg. Desde Productos se configura la base por peso y se entra en Tamaños para crear/editar/desactivar presentaciones; Vender ofrece botones de acceso directo. Cuarto/medio/kilo consumen 0,250/0,500/1 kg respectivamente. Los tamaños no tienen inventario separado. Se reutilizan componentes de combos, costos y snapshots de ventas; la anulación devuelve el consumo histórico aunque se edite el tamaño después. Sin migraciones, despliegue de Edge ni cambios de permisos.
+
+Fuente de aplicación: 89060ee324673e60edfa13e8d1e98ac1dfb78536, avance directo desde main REV88 4d1e43f. HTML/manifiesto REV92 edición 2026-10-24 y caché rev92. El candidato P0 0f1c901 permanece intacto en su checkout original; las referencias públicas REV88 de P0/C3 quedaron desactualizadas. Antes de ejecutar P0 se deben actualizar/revalidar las referencias e incorporar este cambio al candidato para evitar reemplazarlo por una versión anterior. Esta publicación no autoriza ejecutar P0.
+
+Verificado en código: revisión independiente con hallazgos de permisos y base archivada corregidos, sin pendientes. Verificado localmente: 526/526 pruebas, integridad de 33 archivos, tamaños y regresiones de Caja/lector en 1366/390. Verificado en el entorno público: HTML y SW HTTP 200 idénticos a la fuente REV92; escenario de tamaños aprobado en ambos anchos, venta offline de dos cuartos, un medio y un kilo por $39.000: 10 → 8 kg, anulación 8 → 10 kg, segundo intento sin devolución adicional, persistencia al recargar. Datos sintéticos, backend simulado y escrituras externas bloqueadas: no prueba drenaje autenticado real entre dispositivos. No se cargaron productos ni ventas reales en el comercio. Informe: entregables/revision-REV92-2026-10-24/INFORME.md. Las entradas inferiores son historial.
 
 ## REV88 — confirmación consistente de Caja, 07/10/2026
 
