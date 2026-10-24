@@ -849,8 +849,8 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:88,
-  packageEdition:'2026-10-07',
+  packageRevision:92,
+  packageEdition:'2026-10-24',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -4129,6 +4129,57 @@ function agregarAlTicket(p,cant=1){
   pintarPOS();
   mostrarFeedbackProducto();
 }
+/* PRESENTACIONES_CORE_START */
+function esPresentacionKg(c){
+  if(!c||!Array.isArray(c.items)||c.items.length!==1)return false;
+  const it=c.items[0],p=prod(it.prodId),q=Number(it.cant);
+  return !!(p&&p.unidad==='kg'&&!p.origenId&&Number.isFinite(q)&&q>0);
+}
+function crearDatosPresentacion({nombre,baseId,gramos,precio}){
+  const p=prod(baseId),g=Number(gramos),v=Number(precio),n=String(nombre||'').trim();
+  if(!p||p.unidad!=='kg'||p.origenId||productoArchivadoRev31(p))throw new Error('Elegí un producto base por kilo que esté activo.');
+  if(!n||n.length>160)throw new Error('Ingresá un nombre de hasta 160 caracteres.');
+  if(!Number.isInteger(g)||g<1||g>1000000)throw new Error('Ingresá gramos enteros entre 1 y 1.000.000.');
+  if(!Number.isFinite(v)||v<=0||v>999999999||Math.abs(v*100-Math.round(v*100))>0.000001)throw new Error('Ingresá un precio positivo con hasta dos decimales.');
+  return {nombre:n,precio:Math.round(v*100)/100,items:[{prodId:p.id,cant:g/1000}]};
+}
+function presentacionesActivas(){
+  return (db.combos||[]).filter(c=>c.activo!==false&&esPresentacionKg(c)&&!productoArchivadoRev31(prod(c.items[0].prodId)));
+}
+/* PRESENTACIONES_CORE_END */
+function puedeEditarPresentaciones(){return vistaVisible(VISTAS.find(v=>v.id==='combos')||{id:'combos'},esDuenio())&&f3PuedeEscribirMaestro('combos');}
+function exigirEdicionPresentacion(){
+  if(!puedeEditarPresentaciones()){aviso('Necesitás permiso para configurar tamaños.','bad');return false;}
+  if(sb&&sesion&&!enLinea){aviso('Conectate para configurar tamaños. Podés seguir vendiendo los ya guardados.','bad');return false;}
+  const guard=assertWritable('ui_mutation');return !!guard.ok;
+}
+function pintarPresentacionesPOS(){
+  const box=$('#presentacionesPOS');if(!box)return;
+  const list=presentacionesActivas();box.hidden=!list.length;
+  box.innerHTML=list.length?`<div class="hint" style="margin:12px 0 8px">Tamaños · un toque para agregar</div><div style="display:flex;flex-wrap:wrap;gap:8px">${list.map(c=>`<button type="button" class="btn ghost" data-vender-tamano="${esc(c.id)}" style="min-height:54px;flex:1 1 130px;white-space:normal"><span>${esc(c.nombre)}<br><b class="num">${$m(c.precio)}</b></span></button>`).join('')}</div>`:'';
+  $$('[data-vender-tamano]',box).forEach(b=>b.onclick=()=>{const c=(db.combos||[]).find(c=>c.id===b.dataset.venderTamano);if(c&&presentacionesActivas().includes(c))agregarComboAlTicket(c);});
+}
+function formPresentaciones(baseId=''){
+  if(!exigirEdicionPresentacion())return;
+  const list=(db.combos||[]).filter(c=>esPresentacionKg(c)&&(!baseId||c.items[0].prodId===baseId));
+  modal({titulo:'Tamaños con stock compartido',ancho:true,cuerpo:`<p>Cada tamaño tiene su precio y descuenta kilos del mismo producto base. Compras y ajustes de stock se cargan en ese producto.</p>${list.map(c=>{const p=prod(c.items[0].prodId);return `<div class="card" style="margin:10px 0"><div class="card-b"><b>${esc(c.nombre)}</b> · ${$m(c.precio)} ${c.activo===false?'· Desactivado':''}<div class="hint">${esc(p.nombre)} · ${nfKg.format(c.items[0].cant)} kg por venta</div><div class="row" style="margin-top:8px"><button class="btn ghost sm" data-ed-tamano="${esc(c.id)}">Editar</button><button class="btn ghost sm" data-toggle-tamano="${esc(c.id)}">${c.activo===false?'Activar':'Desactivar'}</button></div></div></div>`;}).join('')||'<p class="hint">Todavía no hay tamaños configurados.</p>'}`,pie:'<button class="btn ghost" data-cerrar>Cerrar</button><button class="btn" id="nuevoTamano">Nuevo tamaño</button>',alAbrir:ov=>{
+    $('#nuevoTamano',ov).onclick=()=>{cerrarModal();formPresentacion(null,baseId);};
+    $$('[data-ed-tamano]',ov).forEach(b=>b.onclick=()=>{cerrarModal();formPresentacion(b.dataset.edTamano,baseId);});
+    $$('[data-toggle-tamano]',ov).forEach(b=>b.onclick=()=>{if(!exigirEdicionPresentacion())return;const c=(db.combos||[]).find(c=>c.id===b.dataset.toggleTamano);if(!c||!esPresentacionKg(c))return;c.activo=c.activo===false;guardar();cerrarModal();formPresentaciones(baseId);});
+  }});
+}
+function formPresentacion(id=null,baseId=''){
+  if(!exigirEdicionPresentacion())return;
+  const c=id?(db.combos||[]).find(c=>c.id===id):null;if(id&&!esPresentacionKg(c)){aviso('Ese tamaño ya no está disponible.','bad');return;}
+  if(c&&productoArchivadoRev31(prod(c.items[0].prodId))){aviso('Desarchivá el producto base antes de editar este tamaño.','bad');return;}
+  const bases=db.productos.filter(p=>p.unidad==='kg'&&!p.origenId&&!productoArchivadoRev31(p));
+  if(!bases.length){aviso('Primero cargá el helado como producto por peso (kg), con su costo y stock total.','bad');return;}
+  const selected=c?c.items[0].prodId:baseId;
+  modal({titulo:c?'Editar tamaño':'Nuevo tamaño',cuerpo:`<label class="f" for="tamBase">Producto que aporta el stock</label><select class="inp" id="tamBase">${bases.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.nombre)} · ${fmtCant(p,p.stock)}</option>`).join('')}</select><label class="f" for="tamNombre" style="margin-top:12px">Nombre para vender</label><input class="inp" id="tamNombre" maxlength="160" value="${esc(c?c.nombre:'')}" placeholder="Ej.: Helado ¼ kg"><label class="f" for="tamGramos" style="margin-top:12px">Gramos que descuenta cada venta</label><input class="inp num" id="tamGramos" type="number" min="1" max="1000000" step="1" value="${c?Math.round(c.items[0].cant*1000):250}"><div class="row" style="margin:8px 0">${[250,500,1000].map(g=>`<button type="button" class="btn ghost sm" data-tamano-gramos="${g}">${g===1000?'1 kg':g+' g'}</button>`).join('')}</div><label class="f" for="tamPrecio">Precio de este tamaño</label><input class="inp num" id="tamPrecio" inputmode="decimal" value="${c?c.precio:''}"><p class="hint">El precio es propio. El costo se calcula según los kilos consumidos; este tamaño no tiene stock separado.</p><div id="tamError" class="hint" role="alert"></div>`,pie:'<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="guardarTamano">Guardar tamaño</button>',alAbrir:ov=>{
+    $('#tamNombre',ov).focus();$$('[data-tamano-gramos]',ov).forEach(b=>b.onclick=()=>{$('#tamGramos',ov).value=b.dataset.tamanoGramos;});
+    $('#guardarTamano',ov).onclick=()=>{if(!exigirEdicionPresentacion())return;try{const datos=crearDatosPresentacion({nombre:$('#tamNombre',ov).value,baseId:$('#tamBase',ov).value,gramos:$('#tamGramos',ov).value,precio:num($('#tamPrecio',ov).value)});if(c)Object.assign(c,datos);else{db.combos||=[];db.combos.push({id:uid(),...datos,activo:true});}guardar();cerrarModal();render();aviso('Tamaño guardado. Ya podés venderlo con un toque.','ok');}catch(e){$('#tamError',ov).textContent=e.message;}};
+  }});
+}
 function comboStockDisponible(combo){
   return Math.min(...combo.items.map(it=>{const p=prod(it.prodId); return p? Math.floor(Number(p.stock)/it.cant) : 0;}));
 }
@@ -4453,6 +4504,7 @@ function vVender(m){
         <input id="scan" placeholder="Escaneá el código o escribí el nombre del producto…" autocomplete="off" spellcheck="false">
       </div>
       <div class="scan-hint">Al elegir un producto o combo, se agrega al ticket. Los que se venden por peso te van a preguntar cuánto pesa.</div>
+      <div id="presentacionesPOS" hidden></div>
       <div class="pos-feedback" id="posFeedback" aria-live="polite"></div>
       <div class="results"><ul id="res" hidden></ul></div>
       <div class="card" style="margin-top:16px"><div id="posTabla"></div></div>
@@ -4476,7 +4528,7 @@ function vVender(m){
     ul.hidden=false;
     ul.innerHTML=
       rc.map(c=>`<li data-tipo="combo" data-id="${c.id}">
-        <span><span class="nm">${esc(c.nombre)} <span class="pill info">Combo</span></span><br><span class="mt">${esc(c.items.map(it=>{const p=prod(it.prodId);return it.cant+'× '+(p?p.nombre:'?');}).join(' + '))}</span></span>
+        <span><span class="nm">${esc(c.nombre)} <span class="pill info">${esPresentacionKg(c)?'Tamaño':'Combo'}</span></span><br><span class="mt">${esc(c.items.map(it=>{const p=prod(it.prodId);return it.cant+'× '+(p?p.nombre:'?');}).join(' + '))}</span></span>
         <span class="num" style="font-weight:600">${$m(c.precio)}</span></li>`).join('')
       + r.map(p=>{const s=Number(p.stock);const estado=s<=0?'bad':s<=Number(p.stockMin)?'warn':'ok';return `<li data-tipo="producto" data-id="${p.id}">${miniFoto(p)}
         <span style="flex:1;min-width:0"><span class="nm">${esc(p.nombre)}${p.unidad==='kg'?' · x kg':''}</span><br><span class="mt">${p.ean?esc(p.ean)+' · ':esc(p.rubro||'Sin código')+' · '}<span class="stock-state ${estado}">stock ${fmtCant(p,p.stock)}</span></span></span>
@@ -4517,6 +4569,7 @@ function pintarPOS(){
   if(vista!=='vender') return;
   const posTabla=$('#posTabla');
   if(!posTabla) return;
+  pintarPresentacionesPOS();
   const t=totalTicket();
 
   /* tabla de ítems */
@@ -4527,7 +4580,7 @@ function pintarPOS(){
         if(i.tipo==='combo'){
           const disp=Math.min(...i.componentes.map(c=>{const p=prod(c.prodId);return p?Math.floor(Number(p.stock)/c.cant):0;}));
           return `<tr>
-            <td data-label="Producto"><b>${esc(i.nombre)}</b> <span class="pill info">Combo</span>${i.cant>disp?`<br><span class="pill bad">alcanza para ${disp}</span>`:''}<br><span style="font-size:12px;color:var(--muted)">${esc(i.componentes.map(c=>c.cant+'× '+c.nombre).join(' + '))}</span></td>
+            <td data-label="Producto"><b>${esc(i.nombre)}</b> <span class="pill info">${esPresentacionKg({items:i.componentes})?'Tamaño':'Combo'}</span>${i.cant>disp?`<br><span class="pill bad">alcanza para ${disp}</span>`:''}<br><span style="font-size:12px;color:var(--muted)">${esc(i.componentes.map(c=>c.cant+'× '+c.nombre).join(' + '))}</span></td>
             <td data-label="Cantidad" class="r"><div class="qty"><button data-menos="${i.id}" aria-label="Restar">–</button><input class="num" data-cant="${i.id}" value="${i.cant}"><button data-mas="${i.id}" aria-label="Sumar">+</button></div></td>
             <td data-label="Precio" class="r num">${$m(i.precio)}</td>
             <td data-label="Subtotal" class="r num" style="font-weight:600">${$m(i.precio*i.cant)}</td>
@@ -5142,6 +5195,7 @@ function wireProductosActions(root){
   if(importar)importar.onclick=()=>{cerrarMenuProductos();panelImportar();};
   if(precios)precios.onclick=()=>{cerrarMenuProductos();panelPrecios();};
   if(exportarExcel)exportarExcel.onclick=()=>{cerrarMenuProductos();descargarCatalogoExcel();};
+  const tamanos=$('#bTamanos',root);if(tamanos)tamanos.onclick=()=>formPresentaciones();
 }
 function wireProductosVacio(root){
   const importar=$('#bImportarVacio',root),nuevo=$('#bNuevoVacio',root);
@@ -5163,6 +5217,7 @@ function vProductos(m){
   <div class="head">
     <div><h1>Productos</h1><div class="sub">${catalogoVacio?'Todavía no cargaste ningún producto':`${activos.length} activo${activos.length===1?'':'s'} · ${activos.filter(bajo).length} en el mínimo o por debajo`}</div></div>
     ${catalogoVacio?'':`<div class="products-actions">
+      ${puedeEditarPresentaciones()?'<button class="btn ghost" id="bTamanos">Tamaños</button>':''}
       <div class="products-more">
         <button class="btn ghost products-more-trigger" id="bMasProductos" aria-haspopup="menu" aria-expanded="false" aria-controls="menuProductos"><span class="products-more-dots" aria-hidden="true">•••</span> Más opciones</button>
         <div class="products-more-menu" id="menuProductos" role="menu" hidden>
@@ -5265,12 +5320,14 @@ function tablaProductos(){
       <td data-label="Stock" class="r product-number product-stock"><span class="pill ${Number(p.stock)<=0?'bad':'mute'} num">${fmtCant(p,p.stock)}</span><br><span style="font-size:11px;color:var(--muted)">${esSuelto(p)?`quedan ${fmtCant(atadoDe(p)||p,(atadoDe(p)||{}).stock||0)} atados`:`mín ${fmtCant(p,p.stockMin)} · ideal ${fmtCant(p,deseado(p))}`}</span></td>
       <td class="r product-extra" style="white-space:nowrap">
         ${esSuelto(p)?`<button class="btn ghost sm" data-abrir="${p.id}" title="Abrir atado de ${esc(p.nombre)}" aria-label="Abrir atado de ${esc(p.nombre)}">${ic('combo')} Abrir atado</button>`:''}
+        ${p.unidad==='kg'&&!productoArchivadoRev31(p)&&puedeEditarPresentaciones()?`<button class="btn ghost sm" data-tamanos-base="${esc(p.id)}">Tamaños</button>`:''}
         <button class="btn ghost sm" data-ed="${p.id}" title="Editar ${esc(p.nombre)}" aria-label="Editar ${esc(p.nombre)}">${ic('editar')} Editar</button>
         ${!productoArchivadoRev31(p)?`<button class="btn ghost sm" data-aj="${p.id}" title="Ajustar stock de ${esc(p.nombre)}" aria-label="Ajustar stock de ${esc(p.nombre)}">${ic('ajustar')} Ajustar</button>`:''}
         <button class="btn text sm product-secondary-action" data-hi="${p.id}" title="Ver historial de ${esc(p.nombre)}" aria-label="Ver historial de ${esc(p.nombre)}">${ic('historial')} Historial</button>
         <button class="btn text sm product-secondary-action" data-archivar="${p.id}" title="${productoArchivadoRev31(p)?'Desarchivar':'Archivar'} ${esc(p.nombre)}" aria-label="${productoArchivadoRev31(p)?'Desarchivar':'Archivar'} ${esc(p.nombre)}">${ic('archivo')} ${productoArchivadoRev31(p)?'Desarchivar':'Archivar'}</button>
       </td></tr>`;}).join('')}</tbody></table>`;
   $$('[data-abrir]').forEach(b=>b.onclick=()=>formAbrirAtado(b.dataset.abrir));
+  $$('[data-tamanos-base]',c).forEach(b=>b.onclick=()=>formPresentaciones(b.dataset.tamanosBase));
   $$('[data-expand-producto]',c).forEach(b=>b.onclick=()=>{const row=b.closest('tr');const abierto=row.classList.toggle('product-expanded');b.setAttribute('aria-expanded',String(abierto));b.textContent=abierto?'Ocultar detalles ↑':'Ver detalles ↓';});
   $$('[data-ed]').forEach(b=>b.onclick=()=>formProducto(b.dataset.ed));
   $$('[data-aj]').forEach(b=>b.onclick=()=>formAjuste(b.dataset.aj));
@@ -6045,7 +6102,7 @@ function sumaCostoComponentes(items){
   return items.reduce((a,it)=>{const p=prod(it.prodId);return a+(p?Number(p.costo)*it.cant:0);},0);
 }
 function vCombos(m){
-  const combos=db.combos||[];
+  const combos=(db.combos||[]).filter(c=>!esPresentacionKg(c));
   m.innerHTML=`
   <div class="head">
     <div><h1>Combos</h1><div class="sub">Agrupá productos a un precio fijo — por ejemplo, un vodka + un jugo a un precio especial.</div></div>
@@ -6257,7 +6314,7 @@ function formPromocion(id){
 }
 function pintarCombos(){
   const c=$('#listaCombos'); if(!c) return;
-  const combos=db.combos||[];
+  const combos=(db.combos||[]).filter(c=>!esPresentacionKg(c));
   if(!combos.length){ c.innerHTML=`<div class="card"><div class="empty"><b>Todavía no armaste ningún combo</b>Creá uno para vender varios productos juntos a un precio especial, como un vodka + un jugo.</div></div>`; return; }
   c.innerHTML=combos.map(cb=>{
     const suma=sumaComponentes(cb.items);
@@ -6297,6 +6354,7 @@ function pintarCombos(){
 let comboItems=[];
 function formCombo(id){
   const combo=id?db.combos.find(x=>x.id===id):null;
+  if(esPresentacionKg(combo)){formPresentacion(id);return;}
   comboItems = combo ? combo.items.map(it=>({...it})) : [];
   modal({titulo:combo?'Editar combo':'Nuevo combo', ancho:true,
     cuerpo:`
