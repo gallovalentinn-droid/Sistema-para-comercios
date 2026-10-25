@@ -25,7 +25,13 @@ La apertura de paquetes, según aclaración del usuario, no mueve dinero. `abrir
 
 ## Publicación
 
-Pendiente al preparar el retorno. Verificar HTML, SW y manifiesto públicos por SHA-256 y repetir Caja en ambos anchos antes de declararla completada.
+El usuario confirmó expresamente «si publica rev 88 ahora». Retorno publicado en `origin/main`: `026ca81e72878c9e183c59843a264dc43287da97`, sin reescribir historial. Respaldo REV92 enviado a `origin/codex/respaldo-rev92-tamanos` antes del retorno.
+
+Verificación pública el 25/10/2026 a las 12:48:36 de Argentina (15:48:36 UTC): HTML, SW y manifiesto respondieron HTTP 200 y coincidieron exactamente por SHA-256 con la fuente restaurada. Manifiesto SHA-256: `3dbfd0123455ba7610afb4ec2e3f74188ca9f1a3ee437639a5f038240a48fccd`.
+
+Caja pública aprobada a 1366/390: seis escenarios y tres cierres por ancho; lector público aprobado en ambos anchos, sin escrituras de stock. Se usaron datos sintéticos y backend simulado con escrituras externas bloqueadas: no representa una conciliación de datos reales ni un drenaje autenticado entre dispositivos. La incidencia de cigarrillos sigue en etapa de diagnóstico.
+
+El usuario pidió recibir el archivo privado del plan para pasárselo personalmente a Claude. Codex no lo envió por la aplicación de Claude.
 
 Una pestaña ya abierta en REV92 no mostrará el aviso de una versión menor: ese detector solo compara revisiones crecientes. Para cargar REV88 hay que finalizar cualquier venta, confirmar guardado local y recargar con conexión. No borrar datos, cookies ni IndexedDB.
 
