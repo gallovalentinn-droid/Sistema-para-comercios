@@ -1,10 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'..'),p=path.join(root,'integrity-manifest.json');
-const m=JSON.parse(fs.readFileSync(p,'utf8'));
-const html=fs.readFileSync(path.join(root,'beta/index.html'),'utf8');
-const build=require('node:vm').runInNewContext('('+html.match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/)[1]+')');
-m.packageRevision=build.packageRevision;m.packageEdition=build.packageEdition;m.generatedAt=build.packageEdition;
-if(process.argv.includes('--publication'))m.publicationFiles=require('node:child_process').execFileSync(process.env.GIT_EXECUTABLE||'git',['ls-files','-z'],{cwd:root,encoding:'utf8',windowsHide:true}).split('\0').filter(Boolean).sort();
+const m=JSON.parse(fs.readFileSync(p,'utf8'));m.packageRevision=88;m.packageEdition='2026-10-07';m.generatedAt='2026-10-07';
 for(const file of ['REV84-LECTOR-MEMORIA.sql','REV84-LECTOR-CUPO.sql','supabase/functions/_shared/f6-invoice-review.mjs','tools/actualizar-integridad.cjs'])m.files[file]='';
 if(fs.existsSync(path.join(root,'LEEME-REV84.md')))m.files['LEEME-REV84.md']='';
 for(const file of Object.keys(m.files))m.files[file]=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex');

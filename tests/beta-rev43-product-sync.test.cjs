@@ -61,7 +61,6 @@ test('al reconstruir la tabla de Productos conserva también su desplazamiento i
     fProd: { q: '', rubros: [], actividad: '', estado: 'activos', orden: 'nombre', incompletos: false },
     ultimoCambioPrecios: null, selectedProductosRev31: new Set(), seleccionProductosActivo: false, filtrosProductosAbiertos: false,
     productoArchivadoRev31: () => false, productoIncompleto: () => false, bajo: () => false,
-    puedeEditarPresentaciones: () => false,
     esc: String, ic: () => '', htmlFiltroRubrosRev31: () => '',
     $: selector => selector === '#tabProd' ? (rebuilt ? newList : oldList) : null,
     wireProductosActions: () => {}, montarFiltroRubrosRev31: () => {}, tablaProductos: () => {},

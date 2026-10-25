@@ -1,6 +1,14 @@
 # MiComercio.ar — contexto de continuidad
 
-Actualizado: 2026-10-24 (America/Argentina/Buenos_Aires)
+Actualizado: 2026-10-25 (America/Argentina/Buenos_Aires)
+
+## Retorno a REV88 para priorizar caja de cigarrillos, 25/10/2026
+
+El usuario pidió volver a REV88 y postergar tamaños hasta resolver la diferencia de caja de cigarrillos. HTML/SW/manifiesto y las pruebas modificadas por tamaños se restauran desde 4d1e43f5eef9a1b7224885bb5c541952a8b3ffd8. REV92 queda preservada en codex/respaldo-rev92-tamanos, punta 0417d087fd22521478806e894790baa2e62ae2b7; implementación 89060ee324673e60edfa13e8d1e98ac1dfb78536. Se conservan diseños e informe como historia; no se elimina catálogo, ventas, IndexedDB ni cola pendiente. Los combos existentes siguen siendo compatibles con REV88.
+
+El usuario aclaró que abrir paquetes no implica mover dinero. La apertura debe ser conversión de stock sin venta, cobro ni egreso de caja. En las funciones reales de REV88, con datos sintéticos, abrir dos paquetes no cambió ventas/cobros ni creó egresos. No se reprodujo el desvío informado ni se consultaron datos reales del comercio. Se preparó un pedido privado para Claude: conciliar un turno y localizar el origen antes de corregir, sin restar automáticamente el valor del paquete ni alterar el historial. No se implementó todavía una corrección de cigarrillos.
+
+Verificado localmente: 521/521 pruebas, integridad de 33 archivos, Caja (seis escenarios, tres cierres por ancho) y lector en 1366/390, con backend simulado y escrituras externas bloqueadas. Publicación del retorno pendiente al redactar esta entrada. Informe: entregables/retorno-REV88-2026-10-25/INFORME.md. Una pestaña REV92 ya abierta debe finalizar/guardar y recargar conectada: el aviso automático solo detecta revisiones mayores. No limpiar almacenamiento. P0 continúa sin autorización; conservar el candidato congelado y revalidar todas las referencias antes de una futura ejecución. Las entradas inferiores son historial.
 
 ## REV92 — tamaños con stock compartido en kilos, 24/10/2026
 
