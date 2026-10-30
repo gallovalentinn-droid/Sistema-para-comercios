@@ -357,14 +357,27 @@ table td.r .inp{text-align:right;font-variant-numeric:tabular-nums;font-feature-
 .cash-destination-options button small{display:block;margin-top:6px;color:var(--muted);font-size:12px;font-weight:400}
 .cash-destination-options button.selected{border:2px solid var(--primary);background:var(--primary-l);color:var(--primary-d)}
 .cash-destination-summary{margin-top:16px;padding:14px 16px;border-radius:12px;background:var(--verde-l);color:var(--verde-d);line-height:1.6}
-.cash-cigarette-separation{margin-top:18px;padding:18px;border:1px solid #D6C193;border-left:5px solid var(--ambar);border-radius:12px;background:#FFFBF2}
-.cash-cigarette-separation h3{margin:0 0 7px;font-size:17px}
-.cash-cigarette-separation p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.5}
-.cash-cigarette-separation .hint{margin-top:8px}
-.cash-cigarette-suggestion{margin:12px 0;padding:12px;border-radius:9px;background:#fff;border:1px solid #EAD9B6;line-height:1.5}
-.cash-cigarette-suggestion small{display:block;color:var(--muted);margin-top:4px}
-.cash-cigarette-separation .btn{margin:8px 0}
-.cash-cigarette-warning{color:#A43E18;font-weight:600}
+.cash-cigarette-separation{margin:0 0 18px}
+.cash-cigarette-separation p{margin:0 0 10px;font-size:16px;line-height:1.5}
+.cash-cigarette-input{display:flex;gap:8px;align-items:center}
+.cash-cigarette-input .inp{min-width:0;flex:1;font-size:19px}
+.cash-cigarette-input .cash-edit-amount{width:44px;min-width:44px;height:44px;padding:10px;display:grid;place-items:center}
+.cash-cigarette-input .cash-edit-amount .i{width:18px;height:18px}
+.cash-cigarette-input .btn{flex:none}
+.cash-cigarette-methods{margin-top:10px;color:var(--muted);font-size:12px}
+.cash-cigarette-methods summary{cursor:pointer;padding:4px 0}
+.cash-cigarette-methods .hint{margin-top:7px}
+.cash-cigarette-warning{margin-top:8px;color:var(--rojo);font-size:12px}
+.cash-finalize-flat .cash-destination-options{padding-top:17px;border-top:1px solid var(--line)}
+.cash-finalize-flat .cash-destination-options button{position:relative;padding:14px 14px 14px 42px}
+.cash-finalize-flat .cash-destination-options button:before{content:'';position:absolute;left:14px;top:18px;width:16px;height:16px;border:1px solid var(--line-2);border-radius:50%}
+.cash-finalize-flat .cash-destination-options button.selected:before{content:'✓';display:grid;place-items:center;background:var(--primary);border-color:var(--primary);color:var(--paper);font-size:11px}
+.cash-finalize-flat .cash-destination-summary{padding:0;background:transparent;color:var(--txt);font-size:13px}
+.cash-finalize-flat .cash-destination-summary>div{display:flex;justify-content:space-between;gap:12px;padding:6px 0}
+.cash-finalize-flat .cash-destination-summary b{white-space:nowrap}
+.cash-finalize-flat .cash-step-actions{align-items:center}
+.cash-finalize-flat #cerrarCaja{order:0;flex:1}
+.cash-finalize-flat #pasoCajaAnterior{order:1;min-width:0;padding:9px 0;background:transparent;border:0;color:var(--muted);font-size:12px;white-space:nowrap}
 .cash-detail{margin-bottom:16px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper)}
 .cash-detail summary{cursor:pointer;padding:16px 18px;font-weight:700}
 .cash-detail>div{padding:0 18px 18px}
@@ -849,8 +862,8 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:88,
-  packageEdition:'2026-10-07',
+  packageRevision:94,
+  packageEdition:'2026-10-30',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -9534,27 +9547,26 @@ function vCaja(m){
       <div class="cash-step-actions"><button type="button" class="btn ghost" data-caja-volver="contar">Corregir conteo</button><button type="button" class="btn" id="pasoCajaFinalizar">Continuar</button></div>
     </div>
     <div data-caja-paso="finalizar" class="cash-step-panel" hidden>
-      <div class="cash-step-intro"><h2>${separaCigarrillosAlCierre?'¿Cuánto separás para cigarrillos?':'¿Qué hacés con la plata contada?'}</h2><p>${separaCigarrillosAlCierre?'Indicá el efectivo real que apartás y después elegí cuánto queda para el próximo turno. La caja se contó una sola vez.':'Elegí una opción para que el próximo turno sepa cuánto tiene que encontrar '+(moduloCigarros?'en cada caja':'en la caja')+'.'}</p></div>
+      <div class="cash-step-intro"><h2>${separaCigarrillosAlCierre?'Finalizá el cierre':'¿Qué hacés con la plata contada?'}</h2>${separaCigarrillosAlCierre?'':`<p>Elegí una opción para que el próximo turno sepa cuánto tiene que encontrar ${moduloCigarros?'en cada caja':'en la caja'}.</p>`}</div>
       <div>
-      <div class="card cash-action-card">
-        <div class="card-b">
-          ${separaCigarrillosAlCierre?`<div class="cash-cigarette-separation"><h3>Separación de cigarrillos</h3><p>Sugerimos cuánto apartar por cigarrillos cobrados con cualquier medio. Confirmá el efectivo que realmente sacás de la caja.</p><div class="cash-cigarette-suggestion">Sugerencia por ventas de cigarrillos ya cobradas: <b>${$m(sugerenciaCigarrillos)}</b><small>Efectivo ${$m(cigCobradoPorForma.efectivo||0)} · Transferencia / QR ${$m(cigCobradoPorForma.transferencia||0)} · Tarjeta ${$m(cigCobradoPorForma.tarjeta||0)}${cigCobradoPorForma.otros?` · Otros ${$m(cigCobradoPorForma.otros)}`:''}</small></div><div class="hint">Transferencias y tarjetas no suman al efectivo de caja. El fiado pendiente no se incluye; los cobros posteriores no se asignan a productos. En pagos combinados se prorratea.</div><label class="f" for="apartadoCigarrillos">Efectivo que apartás para cigarrillos</label><input id="apartadoCigarrillos" class="inp num" inputmode="decimal" autocomplete="off" placeholder="Escribí el monto real, incluso 0" aria-required="true"><button type="button" class="btn ghost sm" id="usarSugerenciaCigarrillos">Usar sugerencia</button><div id="avisoSugerenciaCigarrillos" class="cash-cigarette-warning" role="status" hidden></div></div>`:''}
+      <div class="${separaCigarrillosAlCierre?'cash-finalize-flat':'card cash-action-card'}">
+        <div class="${separaCigarrillosAlCierre?'':'card-b'}">
+          ${separaCigarrillosAlCierre?`<div class="cash-cigarette-separation"><p>Tenés que separar <b>${$m(sugerenciaCigarrillos)}</b> para cigarrillos.</p><label class="sr-only" for="apartadoCigarrillos">Efectivo que separás para cigarrillos</label><div class="cash-cigarette-input"><input id="apartadoCigarrillos" class="inp num" inputmode="decimal" autocomplete="off" aria-required="true" aria-describedby="avisoSugerenciaCigarrillos" value="${sugerenciaCigarrillos}" readonly><button type="button" class="btn ghost cash-edit-amount" id="editarApartadoCigarrillos" aria-label="Editar monto para cigarrillos" title="Editar monto">${ic('editar')}</button><button type="button" class="btn ghost sm" id="guardarApartadoCigarrillos" hidden>Guardar</button><button type="button" class="btn text sm" id="cancelarApartadoCigarrillos" hidden>Cancelar</button></div><div id="avisoSugerenciaCigarrillos" class="cash-cigarette-warning" role="status" hidden></div><details class="cash-cigarette-methods"><summary>Ver cobros por medio de pago</summary><div class="hint">Efectivo ${$m(cigCobradoPorForma.efectivo||0)} · Transf/QR ${$m(cigCobradoPorForma.transferencia||0)} · Tarjeta ${$m(cigCobradoPorForma.tarjeta||0)}${cigCobradoPorForma.otros?` · Otros ${$m(cigCobradoPorForma.otros)}`:''}</div><div class="hint">El total incluye todos los medios. Transferencias y tarjetas no aumentan el efectivo contado. El fiado pendiente no se incluye.</div></details></div>`:''}
           <div class="cash-destination-options" role="group" aria-label="Destino de la plata contada">
             <button type="button" data-destino-caja="dejar" aria-pressed="false">Dejo plata<small>${separaCigarrillosAlCierre?'Calculamos cuánto queda después de apartar cigarrillos. Podés cambiarlo.':'Elegí cuánto queda para el siguiente turno.'}</small></button>
             <button type="button" data-destino-caja="retirar_todo" aria-pressed="false">Retiro todo<small>La próxima caja comienza en $0.</small></button>
           </div>
           <div id="camposQuedaCaja" hidden>
-            <p class="hint">${separaCigarrillosAlCierre?'Mostramos el resto luego de apartar cigarrillos. Si también retirás otra plata, escribí cuánto queda realmente.':'Si dejás toda la plata, usá los importes que ya contamos. También podés escribir una cantidad menor.'}</p>
+            ${separaCigarrillosAlCierre?'':`<p class="hint">Si dejás toda la plata, usá los importes que ya contamos. También podés escribir una cantidad menor.</p>`}
             <label class="f" for="quedaCajaGeneral">${moduloCigarros?'Queda en caja general':'Queda en caja para el próximo turno'}</label>
             <input id="quedaCajaGeneral" class="inp num" inputmode="decimal" autocomplete="off">
             ${moduloCigarros?`<label class="f" for="quedaCajaCigarros" style="margin-top:10px">Queda en caja de cigarrillos</label><input id="quedaCajaCigarros" class="inp num" inputmode="decimal" autocomplete="off">`:''}
           </div>
-          <div id="resumenDestinoCaja" class="cash-destination-summary" role="status">Elegí qué hacés con la plata contada.</div>
+          <div id="resumenDestinoCaja" class="cash-destination-summary" role="status" ${separaCigarrillosAlCierre?'hidden':''}>Elegí qué hacés con la plata contada.</div>
           <label class="f" for="responsableCierreCaja" style="margin-top:14px">Quién cierra la caja</label>
           <input id="responsableCierreCaja" class="inp" maxlength="120" value="${esc(activeSession?.abiertoPor||'')}" autocomplete="name">
           <div class="cash-step-actions"><button type="button" class="btn ghost" id="pasoCajaAnterior">Volver a revisar</button><button class="btn big" id="cerrarCaja" aria-describedby="ayudaCerrarCaja" disabled>Cerrar caja y guardar</button></div>
           <div class="hint" id="ayudaCerrarCaja" role="status" style="margin-top:8px;line-height:1.5"></div>
-          <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.55">Al cerrar se guarda una copia de seguridad automática de toda la base.</div>
         </div>
       </div>
       </div>
@@ -9604,14 +9616,23 @@ function vCaja(m){
   const quedaG=$('#quedaCajaGeneral'),quedaC=$('#quedaCajaCigarros');
   const apartadoInput=$('#apartadoCigarrillos');
   const avisoSugerencia=$('#avisoSugerenciaCigarrillos');
+  let apartadoEnEdicion=false,apartadoConfirmado=apartadoInput?.value||'';
   let decisionDestino='';
   let quedaGeneralEditada=false;
+  const errorImporteApartado=()=>{
+    if(!apartadoInput)return '';
+    const dato=numImportacion(apartadoInput.value);
+    if(!dato.ok||dato.blank||dato.value<0)return 'Ingresá un importe válido, igual o mayor a 0.';
+    if(inpG.value.trim()&&dato.value>num(inpG.value)+0.009)return `Contaste ${$m(num(inpG.value))}. No podés separar ${$m(dato.value)} de ese efectivo.`;
+    return '';
+  };
   const avisarSugerencia=()=>{
     if(!avisoSugerencia)return;
-    const contado=inpG.value.trim()===''?null:num(inpG.value);
-    const falta=contado==null?0:Math.round((sugerenciaCigarrillos-contado)*100)/100;
-    avisoSugerencia.textContent=falta>0.009
-      ?`La sugerencia supera el efectivo contado por ${$m(falta)}. Solo podés apartar plata que esté en la caja; indicá el importe real, incluso 0.`:'';
+    const error=errorImporteApartado(),dato=numImportacion(apartadoInput.value);
+    apartadoInput.setAttribute('aria-invalid',String(!!error));
+    $('#guardarApartadoCigarrillos').disabled=!!error;
+    const diferencia=dato.ok&&!dato.blank?Math.round((sugerenciaCigarrillos-dato.value)*100)/100:0;
+    avisoSugerencia.textContent=error||(diferencia>0.009?`Vas a separar ${$m(diferencia)} menos que lo calculado.`:diferencia<-0.009?`Vas a separar ${$m(-diferencia)} más que lo calculado.`:'');
     avisoSugerencia.hidden=!avisoSugerencia.textContent;
   };
   const ajustarQuedaTrasApartado=()=>{
@@ -9641,7 +9662,7 @@ function vCaja(m){
     const razon=motivo?'' : motivoDiferenciaCaja(num(inpG.value)-espGeneral,moduloCigarros?num(inpC.value)-espCigarros:0,explicacion?.value);
     const destino=f52CalcularDestinoCierre(num(inpG.value),moduloCigarros?num(inpC.value):0,decisionDestino,quedaG?.value,quedaC?.value,moduloCigarros);
     const apartado=separaCigarrillosAlCierre?f56ValidarApartadoCigarrillos(apartadoInput?.value,destino,true):{ok:true,value:0};
-    const pendiente=motivo||razon||(!destino.ok?destino.error:'')||(!apartado.ok?apartado.error:'');
+    const pendiente=motivo||razon||errorImporteApartado()||(apartadoEnEdicion?'Guardá o cancelá la edición del importe.':'')||(!destino.ok?destino.error:'')||(!apartado.ok?apartado.error:'');
     cerrarCaja.disabled=!!pendiente;
     cerrarCaja.title=pendiente;
     const ayuda=$('#ayudaCerrarCaja');if(ayuda){ayuda.textContent=pendiente;ayuda.hidden=!pendiente;}
@@ -9652,7 +9673,10 @@ function vCaja(m){
     const apartado=separaCigarrillosAlCierre?f56ValidarApartadoCigarrillos(apartadoInput?.value,destino,true):{ok:true,value:0};
     const desglose=apartado.ok?f57DesgloseRetiroCigarrillos(destino,apartado.value):null;
     const resumen=$('#resumenDestinoCaja');
-    if(resumen)resumen.textContent=destino.ok
+    if(resumen&&separaCigarrillosAlCierre){
+      resumen.hidden=!destino.ok||!apartado.ok;
+      if(!resumen.hidden)resumen.innerHTML=`<div><span>Para cigarrillos</span><b>${$m(desglose.apartadoCigarrillos)}</b></div><div><span>Otros retiros</span><b>${$m(desglose.otrosRetiros)}</b></div><div><span>Queda para el próximo turno</span><b>${$m(desglose.quedaGeneral)}</b></div>`;
+    }else if(resumen)resumen.textContent=destino.ok
       ?moduloCigarros
         ?`Caja general: contaste ${$m(num(inpG.value))} · retirás ${$m(destino.retiroGeneral)} · queda ${$m(destino.quedaGeneral)}. Caja de cigarrillos: contaste ${$m(num(inpC.value))} · retirás ${$m(destino.retiroCigarros)} · queda ${$m(destino.quedaCigarros)}.`
         :apartado.ok?separaCigarrillosAlCierre
@@ -9670,13 +9694,18 @@ function vCaja(m){
   });
   if(quedaG)quedaG.oninput=()=>{quedaGeneralEditada=true;pintarDestinoCaja();};
   if(quedaC)quedaC.oninput=pintarDestinoCaja;
-  if(apartadoInput)apartadoInput.oninput=()=>{ajustarQuedaTrasApartado();pintarDestinoCaja();};
-  const usarSugerencia=$('#usarSugerenciaCigarrillos');
-  if(usarSugerencia)usarSugerencia.onclick=()=>{
-    if(!inpG.value.trim()){inpG.focus();return;}
-    apartadoInput.value=String(Math.round(Math.min(sugerenciaCigarrillos,num(inpG.value))*100)/100);
-    apartadoInput.oninput();
-  };
+  if(apartadoInput){
+    apartadoInput.oninput=()=>{avisarSugerencia();ajustarQuedaTrasApartado();pintarDestinoCaja();};
+    const mostrarEdicion=editar=>{
+      apartadoEnEdicion=editar;apartadoInput.readOnly=!editar;
+      $('#editarApartadoCigarrillos').hidden=editar;$('#guardarApartadoCigarrillos').hidden=!editar;$('#cancelarApartadoCigarrillos').hidden=!editar;
+    };
+    $('#editarApartadoCigarrillos').onclick=()=>{apartadoConfirmado=apartadoInput.value;mostrarEdicion(true);pintarDestinoCaja();apartadoInput.focus();apartadoInput.select();};
+    $('#guardarApartadoCigarrillos').onclick=()=>{if(errorImporteApartado())return;apartadoConfirmado=apartadoInput.value;mostrarEdicion(false);apartadoInput.oninput();};
+    $('#cancelarApartadoCigarrillos').onclick=()=>{apartadoInput.value=apartadoConfirmado;mostrarEdicion(false);apartadoInput.oninput();};
+    apartadoInput.onkeydown=e=>{if(!apartadoEnEdicion)return;if(e.key==='Escape'){e.stopPropagation();e.preventDefault();$('#cancelarApartadoCigarrillos').click();}else if(e.key==='Enter'){e.preventDefault();$('#guardarApartadoCigarrillos').click();}};
+    avisarSugerencia();
+  }
   const actualizarDiferencia=(inp,esperado,box)=>{
     if(!inp||!box) return;
     inp.oninput=()=>{

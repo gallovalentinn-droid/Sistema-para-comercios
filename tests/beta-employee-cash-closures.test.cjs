@@ -57,7 +57,8 @@ function load() {
     cigTotal: 0, genEfectivo: 0, cigEfectivo: 0, cobEfectivo: 0, egrGeneral: 0, egrCigarros: 0, egrOtros: 0,
   };
   function node(key, dataset = {}) {
-    if (!nodes.has(key)) nodes.set(key, { dataset, value: '', innerHTML: '', focus: () => {},
+    const input=key.startsWith('#')?main.innerHTML.match(new RegExp('<input\\b[^>]*\\bid="'+key.slice(1)+'"[^>]*>'))?.[0]:null;
+    if (!nodes.has(key)) nodes.set(key, { dataset, value: input?.match(/\bvalue="([^"]*)"/)?.[1]||'', innerHTML: '', focus: () => {}, select:()=>{},
       classList:{add:()=>{},remove:()=>{},toggle:()=>{}},setAttribute:()=>{} });
     return nodes.get(key);
   }
@@ -289,22 +290,24 @@ test('una caja con separación de cigarrillos cuenta el efectivo una vez y exige
   context.vCaja(main);
   assert.match(main.innerHTML, /Todo el efectivo se cuenta junto\. El monto de cigarrillos se aparta al cerrar\./);
   assert.match(main.innerHTML, /<tr><td style="padding-left:0">Ventas en efectivo<\/td><td class="r num">\+ \$673970\.00<\/td><\/tr>/);
-  assert.match(main.innerHTML, /Separación de cigarrillos/);
+  assert.match(main.innerHTML, /Tenés que separar/);
   assert.doesNotMatch(main.innerHTML, /id="contadoC"/);
   nodes.get('#contadoG').value = '682000';
   nodes.get('#contadoG').oninput();
   assert.match(nodes.get('#difG').innerHTML, /\$0\.00/);
   nodes.get('[data-destino-caja]:retirar_todo').onclick();
+  assert.equal(nodes.get('#apartadoCigarrillos').value,'0');
+  nodes.get('#apartadoCigarrillos').value='';nodes.get('#apartadoCigarrillos').oninput();
   assert.equal(nodes.get('#cerrarCaja').disabled, true);
-  assert.match(nodes.get('#ayudaCerrarCaja').textContent, /cuánto efectivo separás para cigarrillos/i);
+  assert.match(nodes.get('#ayudaCerrarCaja').textContent, /importe válido/i);
   nodes.get('#apartadoCigarrillos').value = '159530';
   nodes.get('#apartadoCigarrillos').oninput();
   assert.equal(nodes.get('#cerrarCaja').disabled, false);
-  assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$159530\.00 para cigarrillos/);
-  assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$522470\.00 en otros retiros/);
+  assert.match(nodes.get('#resumenDestinoCaja').innerHTML, /Para cigarrillos<\/span><b>\$159530\.00/);
+  assert.match(nodes.get('#resumenDestinoCaja').innerHTML, /Otros retiros<\/span><b>\$522470\.00/);
 });
 
-test('el cierre sugiere cigarrillos cobrados por otros medios y calcula cuánto queda tras apartarlos', () => {
+test('el cierre precarga cigarrillos cobrados por todos los medios y conserva el reparto al editar', () => {
   const { context, main, nodes } = load();
   const turno = context.turnoActual('turno-duenio');
   context.turnoActual = () => ({ ...turno, cigCobradoTotal: 30000,
@@ -314,25 +317,29 @@ test('el cierre sugiere cigarrillos cobrados por otros medios y calcula cuánto 
   context.db.config.separaCigarrillosAlCierre = true;
   context.f3Estado.session = { id:'turno-duenio', estado:'abierta', fondoGeneral:50000, fondoCigarros:0 };
   context.vCaja(main);
-  assert.match(main.innerHTML, /Sugerencia por ventas de cigarrillos ya cobradas: <b>\$30000\.00<\/b>/);
-  assert.match(main.innerHTML, /Transferencia \/ QR \$15000\.00/);
+  assert.match(main.innerHTML, /Tenés que separar <b>\$30000\.00<\/b>/);
+  assert.match(main.innerHTML, /Transf\/QR \$15000\.00/);
   assert.match(main.innerHTML, /El fiado pendiente no se incluye/);
-  assert.equal(nodes.get('#apartadoCigarrillos').value, '');
+  assert.equal(nodes.get('#apartadoCigarrillos').value, '30000');
   nodes.get('#contadoG').value = '50000';
   nodes.get('#contadoG').oninput();
   nodes.get('[data-destino-caja]:dejar').onclick();
-  nodes.get('#usarSugerenciaCigarrillos').onclick();
   assert.equal(nodes.get('#apartadoCigarrillos').value, '30000');
   assert.equal(nodes.get('#quedaCajaGeneral').value, '20000');
-  assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$30000\.00 para cigarrillos/);
-  assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$20000\.00 queda/);
+  assert.match(nodes.get('#resumenDestinoCaja').innerHTML, /Para cigarrillos<\/span><b>\$30000\.00/);
+  assert.match(nodes.get('#resumenDestinoCaja').innerHTML, /Queda para el próximo turno<\/span><b>\$20000\.00/);
+  nodes.get('#editarApartadoCigarrillos').onclick();
   nodes.get('#apartadoCigarrillos').value = '25000';
   nodes.get('#apartadoCigarrillos').oninput();
+  assert.equal(nodes.get('#cerrarCaja').disabled,true);
+  nodes.get('#guardarApartadoCigarrillos').onclick();
   assert.equal(nodes.get('#quedaCajaGeneral').value, '25000');
   nodes.get('#quedaCajaGeneral').value = '18000';
   nodes.get('#quedaCajaGeneral').oninput();
+  nodes.get('#editarApartadoCigarrillos').onclick();
   nodes.get('#apartadoCigarrillos').value = '20000';
   nodes.get('#apartadoCigarrillos').oninput();
+  nodes.get('#guardarApartadoCigarrillos').onclick();
   assert.equal(nodes.get('#quedaCajaGeneral').value, '18000');
 });
 
@@ -348,12 +355,16 @@ test('si lo vendido en cigarrillos supera el efectivo contado, advierte y no int
   context.vCaja(main);
   nodes.get('#contadoG').value = '10000';
   nodes.get('#contadoG').oninput();
-  assert.match(nodes.get('#avisoSugerenciaCigarrillos').textContent, /supera el efectivo contado por \$20000\.00/);
+  assert.match(nodes.get('#avisoSugerenciaCigarrillos').textContent, /Contaste \$10000\.00\. No podés separar \$30000\.00/);
+  assert.equal(nodes.get('#apartadoCigarrillos').value,'30000','la precarga no se recorta silenciosamente');
   nodes.get('[data-destino-caja]:dejar').onclick();
-  nodes.get('#usarSugerenciaCigarrillos').onclick();
+  assert.equal(nodes.get('#cerrarCaja').disabled,true);
+  nodes.get('#editarApartadoCigarrillos').onclick();
+  nodes.get('#apartadoCigarrillos').value='10000';nodes.get('#apartadoCigarrillos').oninput();
+  nodes.get('#guardarApartadoCigarrillos').onclick();
   assert.equal(nodes.get('#apartadoCigarrillos').value, '10000');
   assert.equal(nodes.get('#quedaCajaGeneral').value, '0');
-  assert.match(nodes.get('#resumenDestinoCaja').textContent, /\$10000\.00 para cigarrillos/);
+  assert.match(nodes.get('#resumenDestinoCaja').innerHTML, /Para cigarrillos<\/span><b>\$10000\.00/);
 });
 
 test('el cierre guiado no revela el cálculo hasta que se cuenta y permite volver', () => {

@@ -3,6 +3,7 @@ process.env.PW||='C:/Users/valen/.cache/codex-runtimes/codex-primary-runtime/dep
 process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),temp=path.join(root,'.superpowers/sdd/2026-10-03-lector-facturas-rev84/compatibility');
+const currentRevision=require('../integrity-manifest.json').packageRevision;
 fs.mkdirSync(path.join(temp,'beta/vendor'),{recursive:true});process.env.REV=temp;
 const {openShadow}=require('./browser-fixture/shadow.cjs');
 (async()=>{for(const width of [1366,390]){
@@ -16,8 +17,8 @@ const {openShadow}=require('./browser-fixture/shadow.cjs');
  await p.evaluate(()=>f62ComprobarVersion());await p.locator('#f62VersionBanner').waitFor();assert.equal(await p.locator('#f62VersionBanner button').isDisabled(),true);
  await p.evaluate(()=>cerrarModal());assert.equal(await p.locator('#f62VersionBanner button').isEnabled(),true);
  fs.copyFileSync(path.join(root,'beta/index.html'),path.join(temp,'beta/index.html'));
- await Promise.all([p.waitForNavigation(),p.click('#f62VersionBanner button')]);await p.waitForFunction(()=>window.MiComercioBuild?.packageRevision===87);
- assert.equal(await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision),87);assert.equal(h.errors.filter(e=>e.startsWith('pageerror:')).length,0);
+ await Promise.all([p.waitForNavigation(),p.click('#f62VersionBanner button')]);await p.waitForFunction(revision=>window.MiComercioBuild?.packageRevision===revision,currentRevision);
+ assert.equal(await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision),currentRevision);assert.equal(h.errors.filter(e=>e.startsWith('pageerror:')).length,0);
  console.log(JSON.stringify({width,legacy426:'generic',manualAccessible:true,updateBlockedDuringModal:true,updatedRevision:await p.evaluate(()=>MICOMERCIO_BUILD.packageRevision),externalAI:0}));
  }finally{await h.close()}
 }})().catch(e=>{console.error(e);process.exitCode=1});
