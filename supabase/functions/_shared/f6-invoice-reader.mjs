@@ -273,7 +273,8 @@ export function extractGeminiInvoice(response,{reviewMode=false}={}) {
       const base = bases[index];
       const asignado = index === items.length - 1
         ? descuentoRestante
-        : Math.min(descuentoRestante, Math.round(descuentoRestante * base / baseRestante));
+        // Sin base restante (renglones finales en cero) no hay nada que repartir: 0/0 daba NaN.
+        : baseRestante > 0 ? Math.min(descuentoRestante, Math.round(descuentoRestante * base / baseRestante)) : 0;
       item.descuento = Math.round((item.descuento + asignado / 100) * 100) / 100;
       if(reviewMode)item.descuentoGlobalAsignado=asignado/100;
       descuentoRestante -= asignado;
