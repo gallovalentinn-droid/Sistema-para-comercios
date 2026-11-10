@@ -234,23 +234,33 @@ export function extractGeminiInvoice(response,{reviewMode=false}={}) {
     try {
     if (!isRecord(item)) throw invalidOutput('items', 'EXPECTED_ROW');
     const producto = boundedText(item.producto, 200, 'producto');
-    if (!producto) throw invalidOutput('producto', 'EMPTY_TEXT');
+    // En revisión, un dato atípico de UNA fila se marca para que lo resuelva una persona; no descarta la factura.
+    if (!producto && !reviewMode) throw invalidOutput('producto', 'EMPTY_TEXT');
+    const signed = reviewMode ? {minimum:-1_000_000_000_000} : {};
+    const bultoLeido = item.unidadesPorBulto;
+    const bultoDesconocido = reviewMode && typeof bultoLeido === 'number' && Number.isFinite(bultoLeido)
+      && (bultoLeido < 1 || !Number.isInteger(bultoLeido)) && bultoLeido >= 0 && bultoLeido <= 1_000_000;
     const result={
       producto,
       codigo: optionalCode(item.codigo),
       descripcion: optionalText(item.descripcion, 200),
-      cantidad: boundedNumber(item.cantidad, 1_000_000, {field:'cantidad'}),
-      unidadesPorBulto: boundedNumber(item.unidadesPorBulto, 1_000_000, { integer: true, minimum: 1, field:'unidadesPorBulto' }),
-      precioUnit: boundedNumber(item.precioUnit, 1_000_000_000, {field:'precioUnit'}),
+      cantidad: boundedNumber(item.cantidad, 1_000_000, {field:'cantidad',...(reviewMode?{minimum:-1_000_000}:{})}),
+      unidadesPorBulto: bultoDesconocido ? 1 : boundedNumber(bultoLeido, 1_000_000, { integer: true, minimum: 1, field:'unidadesPorBulto' }),
+      precioUnit: boundedNumber(item.precioUnit, 1_000_000_000, {field:'precioUnit',...(reviewMode?{minimum:-1_000_000_000}:{})}),
       descuento: boundedNumber(item.descuento, 1_000_000_000_000, {field:'descuento'}),
     };
     if(reviewMode){
-      result.impuestoFila=boundedNumber(item.impuestoFila===undefined?0:item.impuestoFila,1e12,{field:'impuestoFila'});
-      result.subtotal=item.subtotal==null?null:boundedNumber(item.subtotal,1e12,{field:'subtotal'});
+      result.impuestoFila=boundedNumber(item.impuestoFila===undefined?0:item.impuestoFila,1e12,{field:'impuestoFila',...signed});
+      result.subtotal=item.subtotal==null?null:boundedNumber(item.subtotal,1e12,{field:'subtotal',...signed});
       result.descuentoFila=result.descuento;
       result.descuentoGlobalAsignado=0;
       const pack=invoicePackEvidence(result.producto);result.packDetectado=pack.count;
       if(pack.ambiguous)result.packAmbiguo=true;
+      // El bulto ilegible no se asume unidad: la revisión exige elegir cómo se carga el stock.
+      if(bultoDesconocido){result.bultoDesconocido=true;result.packAmbiguo=true;}
+      if(!producto)result.productoVacio=true;
+      // Devolución, crédito o bonificación con signo: se conserva tal cual, no se carga ni recibe descuento general.
+      if(result.cantidad<0||result.precioUnit<0||(result.subtotal!==null&&result.subtotal<0))result.ajuste=true;
       result.revisionImporte=checkInvoiceRow(result);
     }
     return result;
@@ -261,7 +271,7 @@ export function extractGeminiInvoice(response,{reviewMode=false}={}) {
   });
   const descuentoGlobal = boundedNumber(parsed.descuentoGlobal, 1_000_000_000_000, {field:'descuentoGlobal'});
   if (descuentoGlobal > 0) {
-    const bases = items.map((item) => Math.max(0,reviewMode&&item.subtotal!==null?item.subtotal:item.cantidad * item.precioUnit - item.descuento+(reviewMode?item.impuestoFila:0)));
+    const bases = items.map((item) => item.ajuste ? 0 : Math.max(0,reviewMode&&item.subtotal!==null?item.subtotal:item.cantidad * item.precioUnit - item.descuento+(reviewMode?item.impuestoFila:0)));
     const totalBase = bases.reduce((sum, value) => sum + value, 0);
     const impossible=totalBase<=0||descuentoGlobal>totalBase+0.005;
     if(impossible&&!reviewMode)throw invalidOutput('descuentoGlobal','EXCEEDS_ITEMS_TOTAL');

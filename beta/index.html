@@ -7295,7 +7295,7 @@ function rev84ElegirProducto(r,id){
   r.prodId=id;r.origen=id?'manual':'';r.noMercaderia=!id&&!!r.noMercaderiaIa;
 }
 function rev84EstadoRevision(r){
-  if(!r._rev84||r.excluida||!(r.cantidad>0)||(r.noMercaderia&&!r.prodId))return {pending:false};
+  if(!r._rev84||r.excluida||r.ajuste||!(r.cantidad>0)||(r.noMercaderia&&!r.prodId))return {pending:false};
   const importe=rev84ControlImporte(r);
   const stock=rev84RequiereStock(r)&&(!r.modoStock||r.stockProducto!==r.prodId||r.stockPack!==r.packDetectado);
   return {pending:!r.prodId||stock||r.descuentoGlobalInvalido||importe.status==='mismatch'||(importe.status==='missing'&&!r.importeConfirmado),stock,importe};
@@ -7381,7 +7381,11 @@ function rev86PrepararPresentacion(r,p){
 function rev84PrepararEvidencia(r,it,recordado,mem,descuentoGlobalTotal){
   if(!Object.prototype.hasOwnProperty.call(it,'revisionImporte'))return r;
   Object.assign(r,{_rev84:true,subtotal:it.subtotal??null,impuestoFila:it.impuestoFila||0,
-    descuento:it.descuentoFila||0,descuentoGlobalAsignado:it.descuentoGlobalAsignado||0,packDetectado:it.packDetectado??null,packAmbiguo:!!it.packAmbiguo,descuentoGlobalTotal});
+    descuento:it.descuentoFila||0,descuentoGlobalAsignado:it.descuentoGlobalAsignado||0,packDetectado:it.packDetectado??null,
+    // Un bulto ilegible nunca se asume unidad: queda como presentación a resolver antes de cargar.
+    packAmbiguo:!!it.packAmbiguo||it.bultoDesconocido===true,bultoDesconocido:it.bultoDesconocido===true,descuentoGlobalTotal,
+    // Lo leído por la IA se conserva aparte de lo que la persona corrija en la revisión.
+    subtotalIa:it.subtotal??null,impuestoIa:it.impuestoFila||0});
   // Se conserva la cantidad hasta una decisión vigente o evidencia concordante en REV86.
   if(r.packDetectado>144){r.packDetectado=null;r.packAmbiguo=true;}
   if(!r.packAmbiguo&&!(r.packDetectado>1)&&r.porBultoIa>1){
@@ -7401,23 +7405,34 @@ function rev70PrepararFilas(parsed,productos,mem){
   const proveedor=String(parsed&&parsed.proveedor||'');
   const descuentoGlobalTotal=Math.max(0,numFactura(parsed&&parsed.descuentoGlobal)-((parsed&&parsed.items)||[]).filter(i=>rev77NoEsMercaderia(i.producto)||rev77NoEsMercaderia(i.descripcion)||!(i.cantidad>0)).reduce((s,i)=>s+(i.descuentoGlobalAsignado||0),0));
   return ((parsed&&parsed.items)||[]).map(it=>{
+    // Sin nombre leído no hay con qué emparejar: ni el emparejador ni la memoria eligen por la persona.
+    const sinNombre=!String(it.producto||'').trim();
     const original=String(it.producto||'').trim()||'(sin nombre)';
     const codigo=String(it.codigo||'').trim().slice(0,40),descripcion=String(it.descripcion||'').trim().slice(0,200);
+    // Devolución, crédito o bonificación con signo: se conserva tal cual hasta comparar con el total impreso.
+    // No es deuda anterior, no recibe descuento general y no se carga.
+    if(it.ajuste===true&&Object.prototype.hasOwnProperty.call(it,'revisionImporte')){
+      const cant=numFactura(it.cantidad),precio=numFactura(it.precioUnit),dto=numFactura(it.descuentoFila),imp=numFactura(it.impuestoFila);
+      const monto=it.subtotal!=null?numFactura(it.subtotal):cant*precio-dto+imp;
+      return {_rev84:true,ajuste:true,ajusteCentavos:Math.round(monto*100),original,codigo,descripcion,cantidad:cant,costoU:precio,descuento:dto,
+        impuestoFila:imp,subtotal:it.subtotal??null,subtotalIa:it.subtotal??null,impuestoIa:imp,porBulto:1,porBultoIa:1,via:'',prodId:'',origen:'',estado:'ajuste',
+        descuentoGlobalFijo:true,descuentoGlobalAsignado:0,descuentoGlobalTotal,packDetectado:null,packAmbiguo:false,candidatos:[]};
+    }
     // REV77: la cantidad 0 impresa se conserva (antes pasaba a 1 y se cargaba una unidad que no se compró).
     const cantidad=Math.max(0,numFactura(it.cantidad));
-    const noMercaderia=rev77NoEsMercaderia(original)||rev77NoEsMercaderia(descripcion);
+    const noMercaderia=!sinNombre&&(rev77NoEsMercaderia(original)||rev77NoEsMercaderia(descripcion));
     if(noMercaderia||!(cantidad>0)){
-      const sugerido=noMercaderia?null:rev70Emparejar(original,indice,{proveedor,descripcion});
+      const sugerido=noMercaderia||sinNombre?null:rev70Emparejar(original,indice,{proveedor,descripcion});
       return rev84PrepararEvidencia({original,codigo,descripcion,cantidad,costoU:numFactura(it.precioUnit),descuento:Math.abs(numFactura(it.descuento)),
         porBulto:Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||1),porBultoIa:Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||1),
         via:'',prodId:'',origen:'',estado:noMercaderia?'no-mercaderia':'cero',noMercaderia,noMercaderiaIa:noMercaderia,descuentoGlobalFijo:true,
         noMercaderiaMontoIa:noMercaderia?Math.round(Math.max(0,cantidad*numFactura(it.precioUnit))*100):0,
         candidatos:sugerido?sugerido.candidatos.map(c=>({id:c.producto.id,nombre:c.producto.nombre,otroTamano:!!c.incompatible,soloDescripcion:!!c.soloDescripcion})):[]},it,null,mem,descuentoGlobalTotal);
     }
-    const recordado=rev70BuscarEnMemoria(mem,{proveedor,texto:original,codigo},productos);
-    const auto=recordado?null:rev70Emparejar(original,indice,{proveedor,descripcion});
+    const recordado=sinNombre?null:rev70BuscarEnMemoria(mem,{proveedor,texto:original,codigo},productos);
+    const auto=sinNombre?{producto:null,estado:'sin-nombre',candidatos:[]}:recordado?null:rev70Emparejar(original,indice,{proveedor,descripcion});
     const upbIa=Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||detectarBulto(original));
-    return rev84PrepararEvidencia({original,codigo,descripcion,
+    return rev84PrepararEvidencia({original,codigo,descripcion,sinNombre,
       cantidad,costoU:numFactura(it.precioUnit),descuento:Math.abs(numFactura(it.descuento)),
       porBulto:recordado&&recordado.upb?recordado.upb:upbIa,porBultoIa:upbIa,via:recordado?recordado.via:'',
       prodId:recordado?recordado.producto.id:(auto.producto?auto.producto.id:''),
@@ -7430,7 +7445,7 @@ function rev70PrepararFilas(parsed,productos,mem){
 function rev70RecordarRevision(mem,filas,proveedor,refDe){
   (filas||[]).forEach(r=>{
     if(!r||!r.prodId||!(r.cantidad>0))return;
-    if(r.excluida||rev84EstadoRevision(r).pending)return;
+    if(r.excluida||r.ajuste||r.sinNombre||rev84EstadoRevision(r).pending)return;
     const ref=refDe?refDe(r):(r.prodId==='__nuevo__'?'':r.prodId);
     if(ref)rev70Recordar(mem,{proveedor,texto:r.original,codigo:r.codigo,ref,upb:r.porBulto,modoStock:r._rev84?r.modoStock:null,packDetectado:r._rev84?r.packDetectado:null});
   });
@@ -7521,7 +7536,13 @@ function f82DescribirFalloFactura(error={}){
   if(field)detail.push(`Campo: ${fields[field]}`);if(row)detail.push(`Fila: ${row}`);if(reason)detail.push(`Motivo: ${reasons[reason]}`);
   if(Number.isInteger(d.retryAfterSeconds)&&d.retryAfterSeconds>0&&d.retryAfterSeconds<=86400)detail.push(`Google indicó una espera de ${d.retryAfterSeconds} segundos antes de otra solicitud.`);
   if(typeof d.requestId==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(d.requestId))detail.push(`Referencia: ${d.requestId}`);
-  return {message:message.replaceAll('Google',providerName),detail:detail.join('\n').replaceAll('Google',providerName)};
+  // Si OpenAI falló por su cuenta y el respaldo tampoco pudo leer, quien administra tiene que enterarse igual.
+  const primero=d.fallbackDiagnostic&&typeof d.fallbackDiagnostic==='object'&&d.fallbackDiagnostic.provider==='openai'?d.fallbackDiagnostic:null;
+  const motivosCuenta={API_KEY_INVALID:'rechazó la clave del lector (vencida, revocada o mal configurada)',BILLING_REQUIRED:'informó falta de saldo o de facturación',PERMISSION_DENIED:'rechazó los permisos de la clave del lector',MODEL_NOT_FOUND:'no encontró el modelo configurado'};
+  const motivoCuenta=primero?(own(motivosCuenta,primero.providerCategory)?motivosCuenta[primero.providerCategory]:primero.providerStatus===401?motivosCuenta.API_KEY_INVALID:''):'';
+  const admin=motivoCuenta?`Antes de probar con el respaldo, OpenAI ${motivoCuenta}. Hasta corregirlo en la cuenta de OpenAI, todas las lecturas dependen del respaldo.`:'';
+  const texto=detail.join('\n').replaceAll('Google',providerName)+(primero&&own(categories,primero.providerCategory)&&primero.providerCategory!=='UNKNOWN'?`\nPrimer intento (OpenAI): ${primero.providerCategory}`:'');
+  return {message:message.replaceAll('Google',providerName),detail:texto,admin};
 }
 // REV82_DIAGNOSTICO_FIN
 function f82MostrarFalloFactura(ov,error){
@@ -7529,6 +7550,7 @@ function f82MostrarFalloFactura(ov,error){
   if(box){
     box.hidden=false;
     box.innerHTML=`<strong>No se pudo completar la lectura</strong><p>${esc(result.message)}</p><p>No se cargó ningún producto. Podés cargar la factura a mano abajo.</p><details><summary>Detalle del error</summary><pre>${esc(result.detail)}</pre><button type="button" class="btn ghost" id="facCopiarError">Copiar detalle</button></details>`;
+    if(result.admin&&['duenio','admin'].includes(f5RolActual())){const nota=document.createElement('div');nota.className='notice warn';nota.dataset.revAdmin='';nota.innerHTML=`<b>Aviso para administración</b><br>${esc(result.admin)}`;box.insertBefore(nota,box.querySelector('details'));}
     $('#facCopiarError',box).onclick=async()=>{try{await navigator.clipboard.writeText(result.message+'\n'+result.detail);aviso('Detalle copiado');}catch(_){aviso('No se pudo copiar. Podés seleccionar el detalle visible.','bad');}};
     if(ov._rev84Response||ov._rev84File){
       const retry=document.createElement('button');retry.type='button';retry.className='btn';retry.id='facReintentar';retry.textContent=ov._rev84Response?'Volver a revisar la lectura':'Reintentar lectura';
@@ -7684,7 +7706,7 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
         let creados=0, agregados=0, saltados=0;
         revisionFactura.forEach(r=>{
           if(!r.cantidad||r.cantidad<=0) return;
-          if(r.excluida)return;
+          if(r.excluida||r.ajuste)return;
           if(r.noMercaderia&&!r.prodId) return;
           const upb=Math.max(1,r.porBulto||1);
           const unidades=r.cantidad*upb;                                  // stock real en unidades sueltas
@@ -7738,8 +7760,9 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
 // REV70: estado de cada fila y aviso cuando el costo se aleja mucho del anterior.
 function rev70EstadoFila(r){
   if(r.excluida)return {clase:'',texto:'Excluida: no se carga'};
+  if(r.ajuste)return {clase:'',texto:'Ajuste: no se carga'};
   const revision=r._rev84?rev84EstadoRevision(r):{};
-  if(r._rev84&&!r.prodId&&!r.noMercaderia&&r.cantidad>0)return {clase:'warn',texto:(r.candidatos||[]).length?'Elegí cuál es':'Sin coincidencia'};
+  if(r._rev84&&!r.prodId&&!r.noMercaderia&&r.cantidad>0)return {clase:'warn',texto:r.sinNombre?'Sin nombre: elegí el producto':(r.candidatos||[]).length?'Elegí cuál es':'Sin coincidencia'};
   if(r.descuentoGlobalInvalido)return {clase:'warn',texto:'El descuento general no cuadra'};
   if(revision.pending)return {clase:'warn',texto:revision.importe&&revision.importe.status==='mismatch'?'El importe no cuadra':'Falta resolver'};
   // REV77: lo que no se va a cargar lo dice antes que nada.
@@ -7771,10 +7794,13 @@ function pintarRevision(ov2){
   const cuenta={ok:0,elegir:0,nada:0,nuevo:0,fuera:0};
   revisionFactura.forEach(r=>{const e=rev70EstadoFila(r);if(/no se carga$/.test(e.texto))cuenta.fuera++;else if(r.prodId==='__nuevo__')cuenta.nuevo++;else if(r.prodId)cuenta.ok++;else if(e.texto==='Elegí cuál es')cuenta.elegir++;else cuenta.nada++;});
   const resumen=[`${cuenta.ok} con producto`,cuenta.elegir?`${cuenta.elegir} para elegir`:'',cuenta.nada?`${cuenta.nada} sin coincidencia`:'',cuenta.nuevo?`${cuenta.nuevo} nuevos`:'',cuenta.fuera?`${cuenta.fuera} no se ${cuenta.fuera===1?'carga':'cargan'}`:''].filter(Boolean).join(' · ');
-  const evidencia=revisionFactura.filter(r=>r._rev84&&!r.excluida&&r.cantidad>0&&!r.noMercaderia);
+  const evidencia=revisionFactura.filter(r=>r._rev84&&!r.excluida&&!r.ajuste&&r.cantidad>0&&!r.noMercaderia);
   const totalRevision=evidencia.reduce((n,r)=>n+rev84CostoFila(r).importeCentavos,0)/100;
   const totalImpreso=facturaIA&&numFactura(facturaIA.parsed.total);
-  const avisoImportes=evidencia.length?`<div class="notice ${evidencia.every(r=>rev84ControlImporte(r).status!=='ok')?'warn':''}">${evidencia.every(r=>rev84ControlImporte(r).status!=='ok')?'<b>Ningún importe coincide: revisá la foto</b><br>':''}Costo final con impuestos: ${$m(totalRevision)}. ${totalImpreso>0?`Total impreso: ${$m(totalImpreso)} · diferencia: ${$m(Math.abs(totalRevision-totalImpreso))}`:'El total final no está visible.'}</div>`:'';
+  // Los ajustes con signo no se cargan ni se reparten: solo explican la diferencia con el total impreso.
+  const ajustes=revisionFactura.filter(r=>r.ajuste&&!r.excluida),totalAjustes=ajustes.reduce((n,r)=>n+(r.ajusteCentavos||0),0)/100;
+  const conSigno=v=>(v<0?'−':'+')+$m(Math.abs(v));
+  const avisoImportes=evidencia.length||ajustes.length?`<div class="notice ${evidencia.length&&evidencia.every(r=>rev84ControlImporte(r).status!=='ok')?'warn':''}">${evidencia.length&&evidencia.every(r=>rev84ControlImporte(r).status!=='ok')?'<b>Ningún importe coincide: revisá la foto</b><br>':''}Costo final con impuestos: ${$m(totalRevision)}. ${ajustes.length?`<span data-rev-ajustes>Ajustes de la factura que no se cargan: ${conSigno(totalAjustes)}.</span> `:''}${totalImpreso>0?`Total impreso: ${$m(totalImpreso)} · diferencia: ${$m(Math.abs(totalRevision+totalAjustes-totalImpreso))}`:'El total final no está visible.'}</div>`:'';
   c.innerHTML=`${revisionFactura.some(r=>r.descuentoGlobalInvalido)?'<div class="notice warn">El descuento general supera el importe de las filas. Corregí los importes o el descuento antes de cargar.</div>':''}${avisoImportes}<p class="rev70-resumen">${resumen}</p><table class="mtable invoice-lines"><thead><tr><th>Leído en la factura</th><th style="width:240px">Emparejado con</th><th class="r" style="width:80px">Cantidad</th><th class="r" style="width:120px">Unid. x bulto</th><th class="r" style="width:110px">Precio unit.</th><th class="r" style="width:100px">Descuento</th><th class="r">Se carga</th></tr></thead><tbody>
     ${revisionFactura.map((r,ix)=>{
       const upb=Math.max(1,r.porBulto||1);
@@ -7789,8 +7815,29 @@ function pintarRevision(ov2){
         ?`<div class="rev70-cands">${r.prodId==='__nuevo__'?'<span class="rev70-desc">¿No es alguno de estos?</span>':''}${r.candidatos.map((k,j)=>`<button type="button" class="btn ghost sm" data-rev-cand="${ix}:${j}">${esc(k.nombre)}${k.otroTamano?' <span class="rev70-desc">(otra presentación)</span>':(k.soloDescripcion?' <span class="rev70-desc">(solo según la descripción de la IA)</span>':'')}</button>`).join('')}</div>`:'';
       // REV71: si el bulto recordado no coincide con el leído, se avisa para revisarlo (no queda en una nota gris).
       const bultoIa=r.origen==='memoria'&&!r.modoStock&&r.porBultoIa&&r.porBultoIa!==upb?`<br><span class="pill warn rev70-costo">La IA leyó ${r.porBultoIa}. Revisá el bulto</span>`:'';
+      if(r.ajuste){
+        // Fila con signo: solo lectura. Editarla con los campos de producto le borraría el signo.
+        return `<tr data-rev-ajuste="${ix}">
+      <td data-label="Leído en la factura"><b>${esc(r.original)}</b>${cod}${extra}<br><span class="pill ${est.clase}">${est.texto}</span><div style="margin-top:10px"><small>Parece una devolución, un crédito o una bonificación. No cambia stock ni costos, y no es deuda anterior: solo se tiene en cuenta al comparar con el total impreso.</small><label><input type="checkbox" data-rev-excluir="${ix}" ${r.excluida?'checked':''}> No tener en cuenta este ajuste</label></div></td>
+      <td data-label="Emparejado con"><button class="btn ghost sm" type="button" data-rev-ajuste-producto="${ix}">Es un producto: cargarlo</button></td>
+      <td data-label="Cantidad" class="r num">${esc(String(r.cantidad).replace('.',','))}</td>
+      <td data-label="Unid. x bulto" class="r">—</td>
+      <td data-label="Precio unit." class="r num">${r.costoU<0?'−':''}${$m(Math.abs(r.costoU))}</td>
+      <td data-label="Descuento" class="r num">${$m(r.descuento||0)}</td>
+      <td data-label="Se carga" class="r"><b class="num">${conSigno((r.ajusteCentavos||0)/100)}</b><br>No se carga</td>
+    </tr>`;
+      }
       const control=rev84ControlImporte(r);
-      const desglose=r._rev84?`<div style="margin-top:10px">${control.status==='mismatch'?'<small>Revisá el precio, la cantidad y el descuento con la factura.</small>':''}${control.status==='missing'?`<label><input type="checkbox" data-rev-confirmar="${ix}" ${r.importeConfirmado?'checked':''}> Confirmé cuánto pago por este producto</label>`:''}<label><input type="checkbox" data-rev-excluir="${ix}" ${r.excluida?'checked':''}> Excluir esta fila</label></div>`:'';
+      // H2: la evidencia que traba la fila (subtotal e impuesto leídos) se puede corregir; lo leído por la IA queda aparte.
+      const dec=v=>v==null?'':String(v).replace('.',',');
+      const corregida=r._rev84&&r.subtotalIa!==undefined&&(r.subtotal!==r.subtotalIa||(r.impuestoFila||0)!==(r.impuestoIa||0));
+      const evidenciaFila=r._rev84&&!r.excluida&&r.cantidad>0&&(control.status!=='ok'||corregida)?`<details data-rev-evidencia="${ix}" ${control.status==='mismatch'||r.evidenciaAbierta?'open':''}><summary>${control.status==='mismatch'?`La factura dice ${$m(r.subtotal)} y la cuenta da ${$m(control.expected)} · diferencia ${$m(control.difference)}`:'Corregir subtotal o impuesto de la fila'}</summary><div style="display:grid;gap:6px;margin-top:8px">
+          <label>Subtotal de la fila en la factura<input class="inp num" data-rev-subtotal="${ix}" value="${dec(r.subtotal)}" placeholder="No se ve"></label>
+          <label>Impuesto sumado aparte en la fila<input class="inp num" data-rev-impuesto="${ix}" value="${dec(r.impuestoFila||0)}"></label>
+          ${control.status==='mismatch'?`<button type="button" class="btn ghost sm" data-rev-sin-subtotal="${ix}">El subtotal está mal leído: usar ${$m(Math.max(0,control.expected))}</button><small>Es cantidad × precio − descuento + impuesto. Después hay que confirmar el importe.</small>`:''}
+          ${corregida?`<small data-rev-leido="${ix}">La IA había leído: subtotal ${r.subtotalIa==null?'no visible':$m(r.subtotalIa)} · impuesto ${$m(r.impuestoIa||0)}.</small>`:''}
+        </div></details>`:'';
+      const desglose=r._rev84?`<div style="margin-top:10px">${control.status==='mismatch'?'<small>Revisá el precio, la cantidad y el descuento con la factura.</small>':''}${evidenciaFila}${control.status==='missing'?`<small data-rev-importe="${ix}">Importe de la fila: ${$m(Math.max(0,control.expected))}</small><label><input type="checkbox" data-rev-confirmar="${ix}" ${r.importeConfirmado?'checked':''}> Confirmé cuánto pago por este producto</label>`:''}<label><input type="checkbox" data-rev-excluir="${ix}" ${r.excluida?'checked':''}> Excluir esta fila</label></div>`:'';
       const presentacion=rev86Presentacion(r),stockPendiente=rev84EstadoRevision(r).stock;
       const eleccion=`<details data-rev-presentacion="${ix}" ${r.presentacionAbierta||(stockPendiente&&r.prodId)?'open':''}><summary>${stockPendiente?'Elegí cómo cargar':'Cambiar'}</summary><div style="display:grid;gap:6px;margin-top:8px">${(r.packDetectado>1&&r.packDetectado<=144?[[1,'packs'],[r.packDetectado,'unidades']]:[[1,'tal como figura']]).map(([n,modo])=>`<button type="button" class="btn ghost sm" data-rev-stock="${ix}:${n}">Cargar ${r.cantidad*n} ${modo}</button>`).join('')}<button type="button" class="btn ghost sm" data-rev-manual="${ix}">Confirmar otra cantidad</button></div></details>`;
       return `<tr>
@@ -7809,6 +7856,12 @@ function pintarRevision(ov2){
   $$('[data-rev-presentacion]',c).forEach(d=>d.ontoggle=()=>{revisionFactura[d.dataset.revPresentacion].presentacionAbierta=d.open;});
   $$('[data-rev-stock]',c).forEach(b=>b.onclick=()=>{const [ix,n]=b.dataset.revStock.split(':').map(Number);const r=revisionFactura[ix];r.stockEditado=true;r.presentacionAbierta=false;rev84ElegirStock(r,n);pintarRevision(ov2);});
   $$('[data-rev-manual]',c).forEach(b=>b.onclick=()=>{const r=revisionFactura[b.dataset.revManual];r.stockEditado=true;r.presentacionAbierta=false;if(!rev84ElegirStock(r,r.porBulto))aviso('Usá una cantidad entera entre 1 y 1000.','bad');pintarRevision(ov2);});
+  $$('[data-rev-evidencia]',c).forEach(d=>d.ontoggle=()=>{revisionFactura[d.dataset.revEvidencia].evidenciaAbierta=d.open;});
+  $$('[data-rev-subtotal]',c).forEach(i=>i.onchange=()=>{const r=revisionFactura[i.dataset.revSubtotal];r.importeConfirmado=false;r.evidenciaAbierta=true;r.subtotal=i.value.trim()===''?null:Math.max(0,num(i.value));pintarRevision(ov2);});
+  $$('[data-rev-impuesto]',c).forEach(i=>i.onchange=()=>{const r=revisionFactura[i.dataset.revImpuesto];r.importeConfirmado=false;r.evidenciaAbierta=true;r.impuestoFila=num(i.value);pintarRevision(ov2);});
+  $$('[data-rev-sin-subtotal]',c).forEach(b=>b.onclick=()=>{const r=revisionFactura[b.dataset.revSinSubtotal];r.subtotal=null;r.importeConfirmado=false;r.evidenciaAbierta=false;pintarRevision(ov2);});
+  // Si la IA marcó como ajuste lo que era un producto, la persona lo convierte y lo revisa como cualquier fila.
+  $$('[data-rev-ajuste-producto]',c).forEach(b=>b.onclick=()=>{const r=revisionFactura[b.dataset.revAjusteProducto];r.ajuste=false;r.estado='';r.descuentoGlobalFijo=false;r.cantidad=Math.abs(r.cantidad);r.costoU=Math.abs(r.costoU);r.descuento=Math.abs(r.descuento||0);r.subtotal=r.subtotal==null?null:Math.abs(r.subtotal);r.impuestoFila=Math.abs(r.impuestoFila||0);r.importeConfirmado=false;pintarRevision(ov2);});
   $$('[data-rev-confirmar]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revConfirmar].importeConfirmado=i.checked;pintarRevision(ov2);});
   $$('[data-rev-excluir]',c).forEach(i=>i.onchange=()=>{revisionFactura[i.dataset.revExcluir].excluida=i.checked;pintarRevision(ov2);});
   $$('[data-rev-omitir]',c).forEach(b=>b.onclick=()=>{revisionFactura[b.dataset.revOmitir].excluida=true;pintarRevision(ov2);});

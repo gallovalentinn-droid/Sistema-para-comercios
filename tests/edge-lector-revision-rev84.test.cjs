@@ -20,10 +20,31 @@ test('REV84 conserva impuesto y evidencia anterior al reparto global sin duplica
   assert.equal(item.revisionImporte?.status,'ok');assert.equal(item.descuentoFila,0);assert.equal(item.descuentoGlobalAsignado,10);
  }
 });
-test('REV84 subtotal ausente se marca, tax negativo o números como texto siguen rechazados',async()=>{
+test('REV84 subtotal ausente se marca; números como texto o fuera de rango siguen rechazados',async()=>{
  const m=await load();for(const [fn,encode] of [[m.gem.extractGeminiInvoice,gem],[m.gpt.extractOpenAIInvoice,gpt]]){
   assert.equal(fn(encode(doc([row({subtotal:null})])),{reviewMode:true}).items[0].revisionImporte?.status,'missing');
-  for(const extra of [{impuestoFila:-1},{cantidad:'1'},{precioUnit:-1},{subtotal:-1}])assert.throws(()=>fn(encode(doc([row(extra)])),{reviewMode:true}));
+  for(const extra of [{cantidad:'1'},{precioUnit:'1'},{subtotal:'1'},{impuestoFila:'1'},{cantidad:2e6},{unidadesPorBulto:-1},{unidadesPorBulto:'1'},{descuento:-1},{producto:7}])assert.throws(()=>fn(encode(doc([row(extra)])),{reviewMode:true}),JSON.stringify(extra));
+ }
+});
+// H3: una celda atípica de una fila llega marcada a la revisión; el resto de la factura no se pierde.
+test('H3 en revisión, negativos, bulto ilegible y producto vacío llegan marcados sin descartar la factura',async()=>{
+ const m=await load();for(const [fn,encode] of [[m.gem.extractGeminiInvoice,gem],[m.gpt.extractOpenAIInvoice,gpt]]){
+  const leer=extra=>{const r=fn(encode({...doc([row(),row(extra)]),descuentoGlobal:10}),{reviewMode:true});assert.equal(r.items.length,2);assert.equal(r.items[0].ajuste,undefined);return r.items;};
+  for(const extra of [{cantidad:-6,subtotal:-600},{precioUnit:-500,subtotal:-500},{subtotal:-100},{cantidad:-2,precioUnit:-100,subtotal:200}]){
+   const [producto,ajuste]=leer(extra);
+   assert.equal(ajuste.ajuste,true,JSON.stringify(extra));
+   for(const k of Object.keys(extra))assert.equal(ajuste[k],extra[k],'el signo leído se conserva');
+   assert.equal(ajuste.descuentoGlobalAsignado,0,'un ajuste no recibe descuento general');assert.equal(ajuste.descuento,0);
+   assert.equal(producto.descuentoGlobalAsignado,10);
+  }
+  const [,bulto]=leer({unidadesPorBulto:0});
+  assert.equal(bulto.unidadesPorBulto,1);assert.equal(bulto.bultoDesconocido,true);assert.equal(bulto.packAmbiguo,true);assert.equal(bulto.ajuste,undefined);
+  const [,vacio]=leer({producto:'  ',codigo:'A-77'});
+  assert.equal(vacio.producto,'');assert.equal(vacio.productoVacio,true);assert.equal(vacio.codigo,'A-77');
+  const [,percepcion]=leer({impuestoFila:-30,subtotal:70});
+  assert.equal(percepcion.impuestoFila,-30);assert.equal(percepcion.ajuste,undefined);assert.equal(percepcion.revisionImporte.status,'ok');
+  // Fuera de revisión el contrato estricto no cambia.
+  for(const extra of [{cantidad:-1},{unidadesPorBulto:0},{producto:''}])assert.throws(()=>fn(encode(doc([row(extra)]))),JSON.stringify(extra));
  }
 });
 test('REV84 tolerancia firme en 198/200 y packs excluyen pesos, códigos y ambigüedad',async()=>{

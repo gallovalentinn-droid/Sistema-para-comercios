@@ -36,9 +36,9 @@ test('REV82 network, timeout, malformed response and telemetry failures identify
  for(const r of [network,timeout,malformed,telemetry])assert.doesNotMatch(JSON.stringify([r.data,r.logs]),/PRIVATE/);
 });
 test('REV82 invalid invoice row identifies its field and row without product data',async()=>{
- const r=await run({status:200,body:output({...invoice,items:[invoice.items[0],{...invoice.items[0],cantidad:-1}]})});
+ const r=await run({status:200,body:output({...invoice,items:[invoice.items[0],{...invoice.items[0],cantidad:2_000_000}]})});
  assert.equal(r.data.code,'FACTURA_NO_RECONOCIDA');assert.equal(r.data.diagnostic?.stage,'validation');
- assert.equal(r.data.diagnostic?.field,'cantidad');assert.equal(r.data.diagnostic?.row,2);assert.equal(r.data.diagnostic?.reason,'BELOW_MINIMUM');
+ assert.equal(r.data.diagnostic?.field,'cantidad');assert.equal(r.data.diagnostic?.row,2);assert.equal(r.data.diagnostic?.reason,'ABOVE_MAXIMUM');
  assert.doesNotMatch(JSON.stringify([r.data,r.logs]),/Privado/);
 });
 test('REV82 valid invoices preserve success and strict validation',async()=>{

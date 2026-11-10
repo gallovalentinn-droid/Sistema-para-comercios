@@ -84,10 +84,12 @@ export function extractOpenAIInvoice(response,{reviewMode=false}={}) {
   parsed.items.forEach((row,index)=>{
     // Older local Responses fixtures predate tax evidence; their rows imply no extra tax.
     const tax = row.impuestoFila === undefined ? 0 : row.impuestoFila;
-    if (typeof tax !== 'number' || !Number.isFinite(tax) || tax<0 || tax>1e12) throw invalid('impuestoFila','INVALID_ROW_TAX',index+1);
+    // En revisión los importes con signo llegan marcados (ver extractGeminiInvoice); no descartan la factura.
+    const floor = reviewMode ? -1e12 : 0;
+    if (typeof tax !== 'number' || !Number.isFinite(tax) || tax<floor || tax>1e12) throw invalid('impuestoFila','INVALID_ROW_TAX',index+1);
     const subtotal = row.subtotal;
     if (subtotal !== null) {
-      if (typeof subtotal !== 'number' || !Number.isFinite(subtotal) || subtotal < 0 || subtotal > 1e12) {
+      if (typeof subtotal !== 'number' || !Number.isFinite(subtotal) || subtotal < floor || subtotal > 1e12) {
         throw invalid('subtotal','EXPECTED_VISIBLE_AMOUNT_OR_NULL',index+1);
       }
       // Compare BEFORE distributing the general discount; allow printed-price rounding.
