@@ -7,7 +7,7 @@ Base: `origin/main` cb1c9fc (REV94). Todo es local, con respuestas sintéticas: 
 - 523 pruebas unitarias y de función Edge (`tests/*.test.cjs`);
 - 11 recorridos de navegador `tests/browser-lector-*.cjs`, incluido el nuevo `browser-lector-recuperacion.cjs`, que falla contra la app sin estos cambios.
 
-No se cambió la identidad de build ni el service worker: eso corresponde al momento de publicar.
+**Identidad del candidato (preparada en local, no publicada):** REV95, edición `2026-11-10`, cache del service worker `micomercio-beta-6.0.0-f6-rc2-rev95` y manifiesto regenerado con `tools/actualizar-integridad.cjs`. `node tools/verificar-integridad.cjs` da «Integridad correcta: 33 archivos». La función pública sigue en v24 y la web pública en REV94: REV95 no está reservada ni publicada.
 
 ## H1 · El descuento general dejaba `NaN` en renglones finales con importe cero · corregido
 
@@ -62,8 +62,9 @@ Regresiones en `tests/browser-lector-recuperacion.cjs`.
 
 ## Pendiente, fuera de este cambio
 - **Reintento adicional a Gemini.** Requiere ampliar el contrato de intentos (reserva, contabilización y límites en SQL). Queda para después de recuperar OpenAI y medir lecturas reales.
-- **Los siete 429 del 06/11.** Siguen sin correlacionar.
-- **Rechazo de la credencial de OpenAI (S1).** Se corrige en la cuenta del proveedor y en el secreto de la función.
+- **Los siete 429 del 06/11.** Codex los correlacionó (ver `ENTREGA-CODEX-PENDIENTES-2026-11-10.md`): corresponden al límite propio de seis llamadas a proveedores en cinco minutos, agotado por tres lecturas fallidas que usaron OpenAI y Gemini. No requieren cambio de código; los límites no se tocan.
+- **Rechazo de la credencial de OpenAI (S1).** El usuario informó que creó una clave nueva. Falta comprobar que esté cargada como secreto `OPENAI_API_KEY` de la función y que una lectura real funcione.
+- **Publicación.** Función y web, con verificación pública posterior. Requiere autorización expresa.
 
 ## Sondas
 
