@@ -49,9 +49,18 @@ Fuera del modo revisión, el contrato estricto no cambia.
 
 **Ahora.** Dueño y admin ven «Aviso para administración: OpenAI rechazó la clave del lector…». Aplica también a falta de saldo, permisos y modelo no encontrado. El detalle del error agrega la categoría del primer intento. Nunca se muestra texto crudo del proveedor.
 
-## Pendiente, fuera de este cambio
+## Revisión de Codex sobre def617e · corregido
 
-- **Total del encabezado de la compra.** Cuando hay ajustes, sigue saliendo del total impreso. Falta decidir si el total a comparar en el paso 3 debe descontarlos.
+| Obs. | Problema | Corrección |
+| --- | --- | --- |
+| R1 | Al reclasificar un ajuste como producto se perdía la evidencia de bultos, y se cargaba sin preguntar | La fila de ajuste se arma con la misma función que las filas normales: conserva `porBultoIa`, `packDetectado`, `packAmbiguo` y `bultoDesconocido`. Reclasificada, exige decidir cómo entra el stock |
+| R2 | Un ajuste sin nombre reclasificado se guardaba en memoria | La marca `sinNombre` se conserva en la fila de ajuste; no se recuerda |
+| R3 | El paso 3 mostraba como error la diferencia ya explicada por los ajustes | El total impreso se conserva. El paso 3 concilia mercadería cargada + ajustes tenidos en cuenta contra ese total (`remitoHeader.ajustesTicket`). Una diferencia real, o un ajuste excluido, vuelve a mostrarse |
+| R4 | La prueba de memoria usaba una estructura inválida | Usa `rev70MemoriaVacia()`, con control positivo y dos negativos |
+
+Regresiones en `tests/browser-lector-recuperacion.cjs`.
+
+## Pendiente, fuera de este cambio
 - **Reintento adicional a Gemini.** Requiere ampliar el contrato de intentos (reserva, contabilización y límites en SQL). Queda para después de recuperar OpenAI y medir lecturas reales.
 - **Los siete 429 del 06/11.** Siguen sin correlacionar.
 - **Rechazo de la credencial de OpenAI (S1).** Se corrige en la cuenta del proveedor y en el secreto de la función.

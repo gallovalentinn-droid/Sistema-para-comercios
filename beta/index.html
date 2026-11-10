@@ -7414,9 +7414,11 @@ function rev70PrepararFilas(parsed,productos,mem){
     if(it.ajuste===true&&Object.prototype.hasOwnProperty.call(it,'revisionImporte')){
       const cant=numFactura(it.cantidad),precio=numFactura(it.precioUnit),dto=numFactura(it.descuentoFila),imp=numFactura(it.impuestoFila);
       const monto=it.subtotal!=null?numFactura(it.subtotal):cant*precio-dto+imp;
-      return {_rev84:true,ajuste:true,ajusteCentavos:Math.round(monto*100),original,codigo,descripcion,cantidad:cant,costoU:precio,descuento:dto,
-        impuestoFila:imp,subtotal:it.subtotal??null,subtotalIa:it.subtotal??null,impuestoIa:imp,porBulto:1,porBultoIa:1,via:'',prodId:'',origen:'',estado:'ajuste',
-        descuentoGlobalFijo:true,descuentoGlobalAsignado:0,descuentoGlobalTotal,packDetectado:null,packAmbiguo:false,candidatos:[]};
+      // Misma evidencia que una fila normal (bultos, presentación, sin nombre): si la persona la reclasifica
+      // como producto, los controles de stock y de memoria se aplican igual.
+      const upbAjuste=Math.max(1,Math.floor(numFactura(it.unidadesPorBulto))||1);
+      return rev84PrepararEvidencia({ajuste:true,ajusteCentavos:Math.round(monto*100),original,codigo,descripcion,sinNombre,cantidad:cant,costoU:precio,
+        porBulto:upbAjuste,porBultoIa:upbAjuste,via:'',prodId:'',origen:'',estado:'ajuste',descuentoGlobalFijo:true,candidatos:[]},it,null,mem,descuentoGlobalTotal);
     }
     // REV77: la cantidad 0 impresa se conserva (antes pasaba a 1 y se cargaba una unidad que no se compró).
     const cantidad=Math.max(0,numFactura(it.cantidad));
@@ -7740,7 +7742,9 @@ function abrirRevisionFactura(parsed,{conservarFilas=false,memoria=null}={}){
           nroComprobante: parsed.nroComprobante? String(parsed.nroComprobante).trim() : remitoHeader.nroComprobante,
           total: totalMercaderia>0? totalMercaderia.toFixed(2) : remitoHeader.total,
           deudaTicket: !cuenta.revisar?cuenta.deuda:0,pagosTicket:!cuenta.revisar?cuenta.pagos:0,
-          totalTicket:(cuenta.deuda||cuenta.pagos||cuenta.revisar)?totalTicket:0,revisarTicket:cuenta.revisar
+          totalTicket:(cuenta.deuda||cuenta.pagos||cuenta.revisar)?totalTicket:0,revisarTicket:cuenta.revisar,
+          // Ajustes con signo tenidos en cuenta en la revisión: no se cargan, pero explican el total impreso en el paso 3.
+          ajustesTicket:revisionFactura.filter(r=>r.ajuste&&!r.excluida).reduce((n,r)=>n+(r.ajusteCentavos||0),0)/100
         };
         // REV70: recordar lo elegido para la próxima factura de este proveedor.
         if(comercioRev){
@@ -7915,9 +7919,12 @@ function pintarRemito(){
   const facTotal=$('#facTotal'); const chk=$('#iCheck');
   if(facTotal&&chk){
     const declarado=num(facTotal.value);
-    chk.innerHTML = (facTotal.value.trim()==='') ? '' : Math.abs(declarado-costoTot)<1
-      ? `<span class="pill ok">Coincide con el total de la factura</span>`
-      : `<span class="pill bad">No coincide: cargaste ${$m(costoTot)} y la factura dice ${$m(declarado)} · diferencia ${$m(Math.abs(declarado-costoTot))}</span>`;
+    // El total impreso se conserva; los ajustes no cargados se concilian aparte: mercadería + ajustes = total.
+    const ajustes=Number(remitoHeader.ajustesTicket)||0,conAjustes=Math.abs(ajustes)>=0.005;
+    const signo=(ajustes<0?'−':'+')+$m(Math.abs(ajustes)),diferencia=Math.abs(declarado-(costoTot+ajustes));
+    chk.innerHTML = (facTotal.value.trim()==='') ? '' : diferencia<1
+      ? `<span class="pill ok">${conAjustes?`Coincide: cargás ${$m(costoTot)} de mercadería y la factura tiene ajustes por ${signo} que no se cargan. Total de la factura: ${$m(declarado)}`:'Coincide con el total de la factura'}</span>`
+      : `<span class="pill bad">No coincide: cargaste ${$m(costoTot)}${conAjustes?`, los ajustes que no se cargan suman ${signo}`:''} y la factura dice ${$m(declarado)} · diferencia ${$m(diferencia)}</span>`;
   }
   const redondear=n=>Math.round(n*1000)/1000;
   $$('[data-rbulto]').forEach(i=>i.onchange=()=>{const l=remito[i.dataset.rbulto];l.porBulto=Math.max(1,Math.floor(num(i.value))||1);pintarRemito();});

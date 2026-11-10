@@ -105,7 +105,55 @@ const gem=d=>({status:'completed',steps:[{type:'model_output',content:[{type:'te
       assert.equal(await cargar().isEnabled(),false);
       await p.selectOption('[data-rev-prod="0"]','sn');
       assert.equal(await cargar().isEnabled(),true);
-      assert.equal(await p.evaluate(()=>{const mem={v:1,proveedores:{},items:{}};const antes=JSON.stringify(mem);try{rev70RecordarRevision(mem,revisionFactura,'Distribuidora ficticia',r=>r.prodId);}catch(_){return 'error';}return JSON.stringify(mem)===antes;}),true,'una fila sin nombre no se recuerda');
+      // R4: memoria real, con control positivo (una fila válida sí se guarda) y negativo (la fila sin nombre no).
+      const recordar=()=>p.evaluate(()=>{const mem=rev70MemoriaVacia();rev70RecordarRevision(mem,revisionFactura,'Distribuidora ficticia',r=>r.prodId);return Object.keys(mem.filas);});
+      assert.deepEqual(await recordar(),[],'una fila sin nombre no se recuerda');
+      await abrir(leer(doc([fila('GASEOSA COLA 500 ML',1,800,{codigo:'G-1'})],800)));
+      await p.selectOption('[data-rev-prod="0"]','gas');
+      assert.ok((await recordar()).length>0,'control positivo: una fila válida sí se recuerda');
+
+      // R2 · ajuste sin nombre reclasificado como producto: sigue sin recordarse.
+      await abrir(leer(doc([fila('',-1,700,{codigo:'X-77',descripcion:''})],700)));
+      await p.click('[data-rev-ajuste-producto="0"]');
+      assert.match(await p.locator('#revTabla .pill').first().innerText(),/Sin nombre: elegí el producto/);
+      await p.selectOption('[data-rev-prod="0"]','sn');
+      assert.equal(await cargar().isEnabled(),true);
+      assert.deepEqual(await recordar(),[],'un ajuste sin nombre reclasificado tampoco se recuerda');
+
+      // R1 · ajuste con pack indicado solo en la columna: al reclasificarlo hay que decidir cómo entra el stock.
+      await p.evaluate(()=>{db.productos.push({id:'alf',nombre:'Alfajor individual',unidad:'unidad',costo:0,stock:0});});
+      const pack=leer(doc([fila('ALFAJOR TRIPLE',-2,600,{unidadesPorBulto:6})],1200));
+      assert.deepEqual([pack.items[0].ajuste,pack.items[0].unidadesPorBulto],[true,6]);
+      await abrir(pack);
+      await p.click('[data-rev-ajuste-producto="0"]');await p.selectOption('[data-rev-prod="0"]','alf');
+      assert.deepEqual(await p.evaluate(()=>({ia:revisionFactura[0].porBultoIa,pack:revisionFactura[0].packDetectado})),{ia:6,pack:6});
+      assert.equal(await cargar().isEnabled(),false,'no se asume ni 2 ni 12 unidades');
+      assert.match(await p.locator('[data-label="Se carga"]').innerText(),/^Por confirmar/);
+      await p.click('[data-rev-stock="0:6"]');
+      assert.equal(await cargar().isEnabled(),true);
+      await p.click('#okRev');
+      assert.deepEqual(await p.evaluate(()=>remito.map(l=>[l.cant,Number(l.costoU),l.totalL])),[[12,100,'1200.00']]);
+
+      // R1 · ajuste con bulto ilegible: al reclasificarlo la presentación sigue pendiente.
+      await abrir(leer(doc([fila('CARAMELOS SURTIDOS',-1,900,{unidadesPorBulto:0})],900)));
+      await p.click('[data-rev-ajuste-producto="0"]');await p.selectOption('[data-rev-prod="0"]','car');
+      assert.equal(await p.evaluate(()=>revisionFactura[0].bultoDesconocido),true);
+      assert.equal(await cargar().isEnabled(),false);
+      await p.click('[data-rev-stock="0:1"]');
+      assert.equal(await cargar().isEnabled(),true);
+
+      // R3 · el paso 3 concilia mercadería + ajustes contra el total impreso, que se conserva.
+      const dev=leer(doc([fila('GASEOSA COLA 500 ML',12,800),fila('DEVOLUCION ENVASES',-6,150)],8700));
+      await abrir(dev);await p.selectOption('[data-rev-prod="0"]','gas');await p.click('#okRev');
+      await p.locator('#iCheck .pill').waitFor();
+      assert.equal(await p.inputValue('#facTotal'),'8700.00','el total impreso no se reemplaza');
+      assert.equal(await p.locator('#iCheck .pill.ok').count(),1);
+      assert.match(await p.locator('#iCheck').innerText(),/9\.600,00.*−\$\s?900,00.*8\.700,00/s);
+      await p.fill('[data-rcostou="0"]','700');await p.press('[data-rcostou="0"]','Tab'); // cambio real: sale del campo
+      assert.match(await p.locator('#iCheck .pill.bad').innerText(),/8\.400,00.*−\$\s?900,00.*8\.700,00.*diferencia \$\s?1\.200,00/s,'una diferencia real sigue apareciendo');
+      // Con el ajuste excluido en la revisión, la diferencia de $900 vuelve a mostrarse.
+      await abrir(dev);await p.selectOption('[data-rev-prod="0"]','gas');await p.check('[data-rev-ajuste="1"] [data-rev-excluir]');await p.click('#okRev');
+      assert.match(await p.locator('#iCheck .pill.bad').innerText(),/diferencia \$\s?900,00/);
 
       assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'sin desborde horizontal');
 
