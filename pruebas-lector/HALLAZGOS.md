@@ -67,7 +67,7 @@ Fuera del modo revisión, el contrato estricto no cambia.
 
 Regresiones en `tests/browser-lector-recuperacion.cjs`.
 
-## S2 · El respaldo Gemini no responde · cambio de modelo preparado en local, sin publicar
+## S2 · El respaldo Gemini no responde · cambio de modelo con migración aplicada y función pendiente de desplegar
 
 **Medición real del 11/11/2026**, autorizada por el usuario. Llamadas directas a Google desde una máquina local, con el pedido que arma el código del lector (modo revisión) y una factura ficticia de 36 filas; no pasaron por Supabase ni usaron datos de comercios.
 
@@ -86,9 +86,13 @@ La clave es válida y el modelo figura disponible: el fallo es del servicio para
 - `REV95-LECTOR-RESPALDO.sql` agrega ese modelo a la lista que acepta `f6_service_registrar_resultado_lectura_factura`. Sin esa migración, una lectura del respaldo se entregaría pero su resultado no quedaría registrado. Conserva `gemini-3.8-flash` para poder volver atrás.
 - Prueba: `tests/edge-lector-respaldo-rev95.test.cjs` exige que el modelo de la función esté en la lista de la migración.
 
-**Orden para publicar:** primero la migración, después la función. Falta decidir la identidad con la que sale, porque el manifiesto cambia respecto del REV95 publicado.
+**Estado al 11/11/2026, con autorización expresa del usuario para la migración y el push.**
 
-**Límites.** Pocas muestras, de una sola franja horaria, con una factura impresa y nítida: mide disponibilidad más que calidad con fotos reales. La migración no se ejecutó contra ninguna base.
+- **Migración aplicada en producción** (`rev95_lector_respaldo`). Verificado: la función SQL acepta la lista nueva, el resto de su definición es idéntico al anterior y conserva dueño, `security definer` y permisos (`postgres`, `service_role`).
+- **Repositorio enviado a `main`.** La web sigue en REV95; cambia el manifiesto de integridad por el extractor y la migración nueva.
+- **Función sin desplegar.** `leer-factura` sigue en v30 con `gemini-3.8-flash`: el respaldo nuevo no rige hasta desplegarla. Hasta entonces el repositorio y la función pública difieren en esa constante.
+
+**Límites.** Pocas muestras, de una sola franja horaria, con una factura impresa y nítida: mide disponibilidad más que calidad con fotos reales.
 
 ## Pendiente, fuera de este cambio
 - **Reintento adicional a Gemini.** Requiere ampliar el contrato de intentos (reserva, contabilización y límites en SQL). Queda para después de recuperar OpenAI y medir lecturas reales.
