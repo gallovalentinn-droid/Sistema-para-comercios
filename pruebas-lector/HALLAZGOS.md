@@ -7,7 +7,14 @@ Base: `origin/main` cb1c9fc (REV94). Todo es local, con respuestas sintéticas: 
 - 523 pruebas unitarias y de función Edge (`tests/*.test.cjs`);
 - 11 recorridos de navegador `tests/browser-lector-*.cjs`, incluido el nuevo `browser-lector-recuperacion.cjs`, que falla contra la app sin estos cambios.
 
-**Identidad del candidato (preparada en local, no publicada):** REV95, edición `2026-11-10`, cache del service worker `micomercio-beta-6.0.0-f6-rc2-rev95` y manifiesto regenerado con `tools/actualizar-integridad.cjs`. `node tools/verificar-integridad.cjs` da «Integridad correcta: 33 archivos». La función pública sigue en v24 y la web pública en REV94: REV95 no está reservada ni publicada.
+**Identidad:** REV95, edición `2026-11-10`, cache del service worker `micomercio-beta-6.0.0-f6-rc2-rev95` y manifiesto regenerado con `tools/actualizar-integridad.cjs`. `node tools/verificar-integridad.cjs` da «Integridad correcta: 33 archivos».
+
+## Publicación REV95 · 10/11/2026, con autorización expresa del usuario
+
+- **Web.** `d0bd95b` enviado a `main` como avance directo desde `cb1c9fc`. Verificado públicamente sin caché en `micomercio.ar`: `beta/index.html`, `beta/sw.js`, `integrity-manifest.json` e `index.html` coinciden con el candidato (normalizando saltos de línea); revisión 95 y cache `rev95`.
+- **Función.** `leer-factura` pasó de v29 a **v30**, ACTIVE, con JWT requerido. Los seis archivos desplegados son idénticos a los del repositorio (normalizando saltos de línea). El preflight CORS desde `https://micomercio.ar` responde 204.
+- **Escenarios en la beta pública.** `tests/browser-lector-recuperacion.cjs` corrido contra `https://micomercio.ar/beta/` (REV95 confirmada en la página), para OpenAI y Gemini simulados, a 1366 y 390: aprobado. Es una prueba sintética: Supabase reemplazado por un stub, sin sesión real, sin lecturas pagas y sin compras.
+- **No se hizo:** lecturas reales con proveedores, migraciones SQL ni cambios de secretos.
 
 ## H1 · El descuento general dejaba `NaN` en renglones finales con importe cero · corregido
 
@@ -63,8 +70,8 @@ Regresiones en `tests/browser-lector-recuperacion.cjs`.
 ## Pendiente, fuera de este cambio
 - **Reintento adicional a Gemini.** Requiere ampliar el contrato de intentos (reserva, contabilización y límites en SQL). Queda para después de recuperar OpenAI y medir lecturas reales.
 - **Los siete 429 del 06/11.** Codex los correlacionó (ver `ENTREGA-CODEX-PENDIENTES-2026-11-10.md`): corresponden al límite propio de seis llamadas a proveedores en cinco minutos, agotado por tres lecturas fallidas que usaron OpenAI y Gemini. No requieren cambio de código; los límites no se tocan.
-- **Rechazo de la credencial de OpenAI (S1).** El usuario informó que creó una clave nueva. Falta comprobar que esté cargada como secreto `OPENAI_API_KEY` de la función y que una lectura real funcione.
-- **Publicación.** Función y web, con verificación pública posterior. Requiere autorización expresa.
+- **Rechazo de la credencial de OpenAI (S1).** Resuelto por el usuario con una clave nueva: Codex registró una lectura real con resultado de OpenAI el 10/11 a las 22:55, antes de esta publicación.
+- **Lectura real sobre REV95 y v30.** Todavía no hubo ninguna. Tampoco hay medición real de Gemini. Requieren autorización para llamadas pagas.
 
 ## Sondas
 
