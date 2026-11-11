@@ -67,7 +67,7 @@ Fuera del modo revisión, el contrato estricto no cambia.
 
 Regresiones en `tests/browser-lector-recuperacion.cjs`.
 
-## S2 · El respaldo Gemini no responde · cambio de modelo con migración aplicada y función pendiente de desplegar
+## S2 · El respaldo Gemini no responde · cambio de modelo publicado (migración y función v31)
 
 **Medición real del 11/11/2026**, autorizada por el usuario. Llamadas directas a Google desde una máquina local, con el pedido que arma el código del lector (modo revisión) y una factura ficticia de 36 filas; no pasaron por Supabase ni usaron datos de comercios.
 
@@ -90,7 +90,8 @@ La clave es válida y el modelo figura disponible: el fallo es del servicio para
 
 - **Migración aplicada en producción** (`rev95_lector_respaldo`). Verificado: la función SQL acepta la lista nueva, el resto de su definición es idéntico al anterior y conserva dueño, `security definer` y permisos (`postgres`, `service_role`).
 - **Repositorio enviado a `main`.** La web sigue en REV95; cambia el manifiesto de integridad por el extractor y la migración nueva.
-- **Función sin desplegar.** `leer-factura` sigue en v30 con `gemini-3.8-flash`: el respaldo nuevo no rige hasta desplegarla. Hasta entonces el repositorio y la función pública difieren en esa constante.
+- **Función desplegada el 11/11/2026, con autorización expresa del usuario y revisión de Codex sobre `20a172e`.** `leer-factura` pasó a **v31**, ACTIVE, con JWT requerido. Los seis archivos desplegados son idénticos a los del repositorio (normalizando saltos de línea), con `gemini-3.5-flash-lite` como respaldo.
+- **Sin comprobar todavía:** una petición en vivo a v31 (la red de la máquina de trabajo se cayó justo después del despliegue) y una lectura real del respaldo a través de la función pública. Esa lectura solo ocurre con una sesión de la app y cuando OpenAI falla.
 
 **Límites.** Pocas muestras, de una sola franja horaria, con una factura impresa y nítida: mide disponibilidad más que calidad con fotos reales.
 
