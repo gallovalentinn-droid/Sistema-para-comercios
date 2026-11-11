@@ -67,6 +67,29 @@ Fuera del modo revisión, el contrato estricto no cambia.
 
 Regresiones en `tests/browser-lector-recuperacion.cjs`.
 
+## S2 · El respaldo Gemini no responde · cambio de modelo preparado en local, sin publicar
+
+**Medición real del 11/11/2026**, autorizada por el usuario. Llamadas directas a Google desde una máquina local, con el pedido que arma el código del lector (modo revisión) y una factura ficticia de 36 filas; no pasaron por Supabase ni usaron datos de comercios.
+
+| Modelo | Respondió | Lecturas sin errores | Tiempo |
+| --- | --- | --- | --- |
+| `gemini-3.8-flash` (el desplegado) | 0 de 7; tampoco con un texto mínimo | — | 100 s sin respuesta, o 503 |
+| `gemini-3.5-flash-lite` | 14 de 15 (un 503) | 14 de 14, incluidas 4 con imagen degradada | 10 a 19 s |
+| `gemini-3.1-flash-lite` | 5 de 5 | 3 de 5 (un precio mal leído, marcado por el control) | 12 s |
+| `gemini-3.6-flash` | 3 de 5 (dos 503) | 3 de 3 | 15 a 20 s |
+
+La clave es válida y el modelo figura disponible: el fallo es del servicio para ese modelo, no del pedido. Un reintento adicional contra `gemini-3.8-flash` no habría ayudado.
+
+**Cambio preparado.**
+
+- `F6_INVOICE_MODEL` pasa a `gemini-3.5-flash-lite`.
+- `REV95-LECTOR-RESPALDO.sql` agrega ese modelo a la lista que acepta `f6_service_registrar_resultado_lectura_factura`. Sin esa migración, una lectura del respaldo se entregaría pero su resultado no quedaría registrado. Conserva `gemini-3.8-flash` para poder volver atrás.
+- Prueba: `tests/edge-lector-respaldo-rev95.test.cjs` exige que el modelo de la función esté en la lista de la migración.
+
+**Orden para publicar:** primero la migración, después la función. Falta decidir la identidad con la que sale, porque el manifiesto cambia respecto del REV95 publicado.
+
+**Límites.** Pocas muestras, de una sola franja horaria, con una factura impresa y nítida: mide disponibilidad más que calidad con fotos reales. La migración no se ejecutó contra ninguna base.
+
 ## Pendiente, fuera de este cambio
 - **Reintento adicional a Gemini.** Requiere ampliar el contrato de intentos (reserva, contabilización y límites en SQL). Queda para después de recuperar OpenAI y medir lecturas reales.
 - **Los siete 429 del 06/11.** Codex los correlacionó (ver `ENTREGA-CODEX-PENDIENTES-2026-11-10.md`): corresponden al límite propio de seis llamadas a proveedores en cinco minutos, agotado por tres lecturas fallidas que usaron OpenAI y Gemini. No requieren cambio de código; los límites no se tocan.

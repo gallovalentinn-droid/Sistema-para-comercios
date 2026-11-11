@@ -17,7 +17,7 @@ test('REV83 GPT principal conserva contrato, sectores y telemetría propia',asyn
 test('REV83 503 y rate limit usan Gemini una sola vez, siempre secuencial',async()=>{
  for(const [status,code] of [[503,'server_error'],[429,'rate_limit_exceeded']]){
   let calls=0,active=0;const r=await run(async(url)=>{assert.equal(active,0);active++;calls++;await Promise.resolve();active--;return calls===1?res({error:{code,message:'PRIVATE SECRET'}},status):res(google());});
-  assert.equal(calls,2);assert.equal(r.provider,'gemini');assert.equal(r.model,'gemini-3.8-flash');assert.equal(r.fallbackUsed,true);
+  assert.equal(calls,2);assert.equal(r.provider,'gemini');assert.equal(r.model,'gemini-3.5-flash-lite');assert.equal(r.fallbackUsed,true);
  }
 });
 test('REV83 conexión y timeout usan respaldo dentro del plazo conjunto',async()=>{

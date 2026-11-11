@@ -27,7 +27,7 @@
     "REV69-TURNOS-INTERRUMPIDOS.sql": "d6e8214fe4ac34df33ab143e2fd966ac5158b491a52f4dd88996b724525a4706",
     "REV71-ALIAS-FACTURA.sql": "91068789a4dc38600bc3aee31b8202adfc30a0d4114b1b5c5e06386e902041cf",
     "supabase/functions/leer-factura/index.ts": "363e78b2020f9c6a1689e396e21d04c65b8a7fb131fca3ca7b63e6f630eb3c62",
-    "supabase/functions/_shared/f6-invoice-reader.mjs": "48d0d867b43cec075d982b91f0283c301bba9476095018adf523e0dfa98ede2d",
+    "supabase/functions/_shared/f6-invoice-reader.mjs": "a6af7516dd9b953ef5d096c38640fed8dc45b76b3fb2db301231802a1f76feff",
     "supabase/functions/_shared/f5-auth-core.mjs": "1b9bac90205dab22c89e01d9c0e1a5e94151fdd1804b0d91f69c108abd6b4e99",
     "REV83-LECTOR-DOBLE.sql": "5926cb60a7065a8c671302ba3bbd1a5fe737d6d25d81c7c01aa4c0687173e4ec",
     "supabase/functions/_shared/f6-openai-invoice-reader.mjs": "53e27ca783c8807f5130a0967ee2d8f9d88cd6463824954c37dd9b9f7a2d8d33",
@@ -35,8 +35,9 @@
     "REV84-LECTOR-MEMORIA.sql": "44ca468e4ce851d0ba1559641d0d7da63d3ac19d1ba6b0d47caf8386f4804c4d",
     "REV84-LECTOR-CUPO.sql": "eb0f6bc52a5b3988ccd78c65b0b547efc9207c3ddec16e61bae76f1ec5bb7e2a",
     "supabase/functions/_shared/f6-invoice-review.mjs": "c6bb73ff5600cce6c76290726d6fb787eb8bd208983e591d16600cd67887252e",
-    "tools/actualizar-integridad.cjs": "18bb3de15e6baf20b8f1fcf590573cfb35fd210648469e101b929f6ee0ddee8f",
-    "LEEME-REV84.md": "864e83b352e09d28e2dafea11b502b8e7ce976837e410f8436fe4a7993c310ca"
+    "tools/actualizar-integridad.cjs": "38443012fbec9e4567d1b6396f1b9ded0f55ac1fd4cd41fe47bbd599027bc4c6",
+    "LEEME-REV84.md": "864e83b352e09d28e2dafea11b502b8e7ce976837e410f8436fe4a7993c310ca",
+    "REV95-LECTOR-RESPALDO.sql": "5330d92fac2be4707d4492077f1987d88c3f83565fb6a228f7645543d1e93a70"
   },
   "packageEdition": "2026-11-10"
 }

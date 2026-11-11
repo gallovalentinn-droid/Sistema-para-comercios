@@ -1,6 +1,6 @@
 import {checkInvoiceRow,invoicePackEvidence,INVOICE_REVIEW_RULES} from './f6-invoice-review.mjs';
 export const F6_INVOICE_MAX_BYTES = 8 * 1024 * 1024;
-export const F6_INVOICE_MODEL = 'gemini-3.8-flash';
+export const F6_INVOICE_MODEL = 'gemini-3.5-flash-lite';
 export const F6_INVOICE_PROVIDER_TIMEOUT_MS = 90_000;
 // REV70: cada renglón suma código y descripción (~20 tokens). Con 16384 entran unos 165 renglones.
 export const F6_INVOICE_MAX_OUTPUT_TOKENS = 16384;

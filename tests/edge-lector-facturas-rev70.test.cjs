@@ -23,7 +23,7 @@ test('REV70 el pedido a Gemini pide código y descripción expandida sin perder 
   assert.equal(pedido.generation_config.max_output_tokens, 16384);
   assert.equal(pedido.generation_config.thinking_level, 'low');
   assert.equal(pedido.store, false);
-  assert.equal(pedido.model, 'gemini-3.8-flash');
+  assert.equal(pedido.model, 'gemini-3.5-flash-lite');
 });
 
 test('REV70 la lectura acepta código y descripción, y no se cae si faltan o vienen mal', async () => {
