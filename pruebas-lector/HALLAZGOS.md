@@ -91,7 +91,8 @@ La clave es válida y el modelo figura disponible: el fallo es del servicio para
 - **Migración aplicada en producción** (`rev95_lector_respaldo`). Verificado: la función SQL acepta la lista nueva, el resto de su definición es idéntico al anterior y conserva dueño, `security definer` y permisos (`postgres`, `service_role`).
 - **Repositorio enviado a `main`.** La web sigue en REV95; cambia el manifiesto de integridad por el extractor y la migración nueva.
 - **Función desplegada el 11/11/2026, con autorización expresa del usuario y revisión de Codex sobre `20a172e`.** `leer-factura` pasó a **v31**, ACTIVE, con JWT requerido. Los seis archivos desplegados son idénticos a los del repositorio (normalizando saltos de línea), con `gemini-3.5-flash-lite` como respaldo.
-- **Sin comprobar todavía:** una petición en vivo a v31 (la red de la máquina de trabajo se cayó justo después del despliegue) y una lectura real del respaldo a través de la función pública. Esa lectura solo ocurre con una sesión de la app y cuando OpenAI falla.
+- **Lectura real sobre v31, hecha por el usuario el 11/11 a las 18:56.** La función arrancó y respondió 200: OpenAI (`gpt-6-luna`), un intento, 7 filas, 49,4 s hasta registrar el resultado, sin llamadas pendientes ni filas con importe discrepante en los registros. No acredita la compra ni lo que mostró la pantalla de revisión.
+- **Sin comprobar todavía:** una lectura real del respaldo a través de la función pública. Solo ocurre con una sesión de la app y cuando OpenAI falla.
 
 **Límites.** Pocas muestras, de una sola franja horaria, con una factura impresa y nítida: mide disponibilidad más que calidad con fotos reales.
 
