@@ -96,6 +96,33 @@ La clave es válida y el modelo figura disponible: el fallo es del servicio para
 
 **Límites.** Pocas muestras, de una sola franja horaria, con una factura impresa y nítida: mide disponibilidad más que calidad con fotos reales.
 
+## S2/S3 · El respaldo se activó y falló en producción · corrección preparada en local, sin publicar
+
+**Evidencia pública del 12/11/2026 (función v31).**
+
+| Inicio | OpenAI | Gemini `3.5-flash-lite` | Total |
+| --- | --- | --- | --- |
+| 13:06:09 | respondió, 17 filas (12 con importe discrepante) | no se usó | 54 s |
+| 13:07:32 | sin respuesta a los 60 s | 503, unos 9 s después | 70 s |
+| 13:08:52 | sin respuesta a los 60 s | 503, unos 7 s después | 67 s |
+| 13:38:21 | sin respuesta a los 60 s | 503, unos 7 s después | 68 s |
+
+**Lectura.** Las lecturas reales buenas de OpenAI tardaron 38, 49 y 54 s, y el lector le daba 60 s fijos: el corte quedaba justo. Es una hipótesis; el registro no dice cuánto habría tardado. Gemini falló rápido con 503 las tres veces. En las mediciones directas del 11/11, cada 503 fue seguido por una respuesta buena en el intento siguiente.
+
+**Cambio preparado.**
+
+- **Más tiempo para el principal.** OpenAI recibe hasta 90 s cuando el plazo conjunto (135 s) deja 40 s para el respaldo; nunca menos de 60 s. Con poco margen se comporta como antes.
+- **Un reintento a Gemini.** Solo ante un 503 rápido, tras 3 s, y si quedan al menos 28 s. No se reintenta un tiempo agotado, un 429 ni una respuesta inválida.
+- **Contrato de intentos.** `REV95-LECTOR-REINTENTO.sql` admite hasta tres intentos por lectura (columnas, tabla de intentos y RPC de reserva). **Los límites de frecuencia no cambian** (6 en 5 minutos, 30 en una hora).
+- **La plaza extra es optativa.** La función la pide; si el límite de frecuencia no la admite, o la base todavía no acepta tres intentos, reserva las plazas de siempre. Así no baja la cantidad de lecturas seguidas posibles y la función puede desplegarse antes o después de la migración.
+- **Diagnóstico.** `iaRetryUsed` en la respuesta, `retryUsed` en el error y el evento `F6_IA_RETRY` en los registros.
+
+**Verificado localmente.** 530 pruebas unitarias; 11 recorridos de navegador; integridad; y `node tests/sql-lector-rev84.cjs --cupo --reintento` sobre PostgreSQL local: migraciones aplicadas dos veces, tres intentos en orden, cuarto rechazado, límites sin cambios y registro del modelo de respaldo.
+
+**No acreditado.** Que 90 s alcancen para las facturas que hoy agotan la espera, ni que el reintento rescate lecturas en el horario en que Gemini falló. Solo se verá con lecturas reales después de publicar.
+
+**Para publicar:** migración (optativa en el orden, necesaria para que exista el reintento), despliegue de la función y revisión de Codex. La web no cambia.
+
 ## Pendiente, fuera de este cambio
 - **Reintento adicional a Gemini.** Requiere ampliar el contrato de intentos (reserva, contabilización y límites en SQL). Queda para después de recuperar OpenAI y medir lecturas reales.
 - **Los siete 429 del 06/11.** Codex los correlacionó (ver `ENTREGA-CODEX-PENDIENTES-2026-11-10.md`): corresponden al límite propio de seis llamadas a proveedores en cinco minutos, agotado por tres lecturas fallidas que usaron OpenAI y Gemini. No requieren cambio de código; los límites no se tocan.

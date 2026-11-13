@@ -5,7 +5,7 @@ const buildSource=fs.readFileSync(path.join(root,'beta/index.html'),'utf8').matc
 if(!buildSource)throw new Error('INTEGRIDAD_BUILD_IDENTITY_MISSING');
 const build=require('node:vm').runInNewContext('('+buildSource[1]+')');
 m.version=build.version;m.packageRevision=build.packageRevision;m.packageEdition=build.packageEdition;m.generatedAt=build.packageEdition;
-for(const file of ['REV84-LECTOR-MEMORIA.sql','REV84-LECTOR-CUPO.sql','REV95-LECTOR-RESPALDO.sql','supabase/functions/_shared/f6-invoice-review.mjs','tools/actualizar-integridad.cjs'])m.files[file]='';
+for(const file of ['REV84-LECTOR-MEMORIA.sql','REV84-LECTOR-CUPO.sql','REV95-LECTOR-RESPALDO.sql','REV95-LECTOR-REINTENTO.sql','supabase/functions/_shared/f6-invoice-review.mjs','tools/actualizar-integridad.cjs'])m.files[file]='';
 if(fs.existsSync(path.join(root,'LEEME-REV84.md')))m.files['LEEME-REV84.md']='';
 for(const file of Object.keys(m.files))m.files[file]=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex');
 fs.writeFileSync(p,JSON.stringify(m,null,2)+'\n');

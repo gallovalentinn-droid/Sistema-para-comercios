@@ -76,28 +76,43 @@ async function attempt({provider, apiKey, input, fetchImpl, timeoutMs, reviewMod
   } finally { clearTimeout(timeout); }
 }
 
+// El principal recibe hasta primaryTimeoutMs si queda fallbackReserveMs para el respaldo; nunca menos de
+// primaryMinimumMs mientras el plazo conjunto alcance. Las lecturas reales buenas tardaron 38 a 54 s: 60 s fijos quedaban justos.
+// geminiRetries: reintentos ya admitidos por la reserva. Solo se usan ante un 503 rápido de Gemini y con tiempo para otra lectura.
 export async function readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,fetchImpl = fetch,now = Date.now,
-  totalTimeoutMs = F6_INVOICE_PROVIDER_TIMEOUT_MS,primaryTimeoutMs = 60_000,beforeAttempt}) {
+  totalTimeoutMs = F6_INVOICE_PROVIDER_TIMEOUT_MS,primaryTimeoutMs = 90_000,primaryMinimumMs = 60_000,fallbackReserveMs = 40_000,
+  geminiRetries = 0,retryDelayMs = 3_000,retryMinimumMs = 25_000,sleep = ms=>new Promise(resolve=>setTimeout(resolve,ms)),beforeAttempt}) {
   // HEIC/HEIF remain supported through Gemini; OpenAI accepts JPEG, PNG and WebP.
   const providers = [];
   if (openaiApiKey && ['image/jpeg','image/png','image/webp'].includes(input.mediaType)) providers.push({provider:'openai',apiKey:openaiApiKey});
   if (geminiApiKey) providers.push({provider:'gemini',apiKey:geminiApiKey});
   if (!providers.length) throw failure('IA_NO_CONFIGURADA',503,{stage:'configuration'});
   const started = now(), reviewMode=input.readerContract==='f6-invoice-review-v1';
-  let fallbackDiagnostic;
-  for (let index = 0; index < providers.length; index++) {
-    if(now()-started>=totalTimeoutMs)throw failure('IA_TIEMPO_AGOTADO',504,{stage:'provider',provider:providers[index].provider,fallbackUsed:index>0});
-    if (beforeAttempt) await beforeAttempt({provider:providers[index].provider,attempt:index+1});
+  let fallbackDiagnostic, index = 0, attemptNumber = 0, retriesLeft = Math.max(0,Math.floor(geminiRetries)||0), retried = false;
+  while (index < providers.length) {
+    const {provider} = providers[index];
+    if(now()-started>=totalTimeoutMs)throw failure('IA_TIEMPO_AGOTADO',504,{stage:'provider',provider,fallbackUsed:index>0});
+    if (beforeAttempt) await beforeAttempt({provider,attempt:++attemptNumber});
     const remaining = totalTimeoutMs - (now()-started);
-    if (remaining <= 0) throw failure('IA_TIEMPO_AGOTADO',504,{stage:'provider',provider:providers[index].provider,fallbackUsed:index>0});
+    if (remaining <= 0) throw failure('IA_TIEMPO_AGOTADO',504,{stage:'provider',provider,fallbackUsed:index>0});
+    const primary = Math.min(remaining,primaryTimeoutMs,Math.max(primaryMinimumMs,remaining-fallbackReserveMs));
     try {
-      const result = await attempt({...providers[index],input,fetchImpl,reviewMode,timeoutMs:index === 0 && providers.length>1 ? Math.min(primaryTimeoutMs,remaining) : remaining});
-      return {...result,fallbackUsed:index>0,...(fallbackDiagnostic?{fallbackDiagnostic}:{})};
+      const result = await attempt({...providers[index],input,fetchImpl,reviewMode,timeoutMs:index === 0 && providers.length>1 ? primary : remaining});
+      return {...result,fallbackUsed:index>0,...(retried?{retryUsed:true}:{}),...(fallbackDiagnostic?{fallbackDiagnostic}:{})};
     } catch (error) {
       error.diagnostic.fallbackUsed = index>0;
+      if (retried) error.diagnostic.retryUsed = true;
       if (fallbackDiagnostic) error.diagnostic.fallbackDiagnostic=fallbackDiagnostic;
-      if (!error.transient || index+1 === providers.length || now()-started >= totalTimeoutMs) throw error;
+      const left = totalTimeoutMs - (now()-started);
+      if (provider === 'gemini' && retriesLeft > 0 && error.transient && error.diagnostic.providerCategory === 'UNAVAILABLE'
+        && left >= retryDelayMs + retryMinimumMs) {
+        retriesLeft--; retried = true;
+        await sleep(retryDelayMs);
+        continue;
+      }
+      if (!error.transient || index+1 === providers.length || left <= 0) throw error;
       fallbackDiagnostic={...error.diagnostic,code:error.code};
+      index++;
     }
   }
 }

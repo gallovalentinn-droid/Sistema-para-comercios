@@ -24,6 +24,12 @@ const sql=file=>fs.readFileSync(path.join(root,file),'utf8');
    await c.query(sql('REV84-LECTOR-CUPO.sql'));await c.query(sql('REV84-LECTOR-CUPO.sql'));await c.query(sql('supabase/tests/rev84/lector-cupo.sql'));
    require('node:assert/strict').deepEqual((await c.query("select oid::regprocedure::text signature,pg_get_functiondef(oid) definition from pg_proc where proname in ('f6_service_reservar_lectura_factura','f6_service_registrar_resultado_lectura_factura') order by proname")).rows,definition.rows,'legacy RPC definitions unchanged');
    await require('./sql-lector-cupo-concurrency.cjs')({queryClient,database,c});console.log('CUPO SQL: controles y concurrencia aprobados');
+   if(process.argv.includes('--reintento')){
+    // REV95: migraciones reales dos veces (idempotencia) y controles en una sesión nueva.
+    for(const file of ['REV95-LECTOR-RESPALDO.sql','REV95-LECTOR-REINTENTO.sql']){await c.query(sql(file));await c.query(sql(file));}
+    const c2=await queryClient(database);try{await c2.query(sql('supabase/tests/rev95/lector-reintento.sql'));}finally{await c2.end();}
+    console.log('REINTENTO SQL: tres intentos, orden, límites sin cambios e idempotencia aprobados');
+   }
   }
  }finally{
   if(c)await c.end();if(admin){if(database)await admin.query(`drop database ${database}`);await admin.end();}

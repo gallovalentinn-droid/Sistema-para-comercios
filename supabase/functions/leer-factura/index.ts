@@ -174,13 +174,22 @@ Deno.serve(async (request: Request) => {
     }else if(probe.data?.contract!=="f6-reader-quota-rev84")return fail("IA_RESERVA_NO_DISPONIBLE",503,"reservation");
   }catch(_){return fail("IA_RESERVA_NO_DISPONIBLE",503,"reservation");}
   const modern=quotaMode==="rev84";
-  const maxAttempts=openaiApiKey&&geminiApiKey&&["image/jpeg","image/png","image/webp"].includes(input.mediaType)?2:1;
+  const baseAttempts=openaiApiKey&&geminiApiKey&&["image/jpeg","image/png","image/webp"].includes(input.mediaType)?2:1;
   if (!usefulReadingTime()) return fail("IA_TIEMPO_AGOTADO",408,"upload");
-  let reserved;
-  try { reserved = await invoiceStep(serviceClient.rpc(
+  // REV95: se pide una plaza más para reintentar Gemini ante un 503. Es optativa: si el límite de frecuencia
+  // no la admite, o la base todavía no acepta tres intentos, la lectura sigue con las plazas de siempre.
+  const reserve=(attempts:number)=>invoiceStep(serviceClient.rpc(
     modern?"f6_service_reservar_lectura_factura_rev84":"f6_service_reservar_lectura_factura",
-    {...identity,...(modern?{p_max_attempts:maxAttempts}:{})},
-  ),admissionTime()); } catch (_) { return fail("IA_RESERVA_NO_DISPONIBLE", 503, "reservation"); }
+    {...identity,...(modern?{p_max_attempts:attempts}:{})},
+  ),admissionTime());
+  let maxAttempts=modern&&geminiApiKey?baseAttempts+1:baseAttempts;
+  let reserved;
+  try {
+    reserved = await reserve(maxAttempts);
+    const withoutRetry=maxAttempts>baseAttempts&&(String(reserved.error?.message??"").includes("F6_IA_INPUT_INVALID")
+      ||(reserved.data?.ok!==true&&reserved.data?.code==="IA_LIMITE_FRECUENCIA"));
+    if(withoutRetry){maxAttempts=baseAttempts;reserved=await reserve(maxAttempts);}
+  } catch (_) { return fail("IA_RESERVA_NO_DISPONIBLE", 503, "reservation"); }
   const { data: reservation, error: reservationError } = reserved;
   if (reservationError) return reservationFailure(reservationError);
   if(reservation?.replayed===true){
@@ -211,7 +220,7 @@ Deno.serve(async (request: Request) => {
   let stage = "provider";
   try {
     if(deadline-Date.now()<=5_000)throw Object.assign(new Error("IA_TIEMPO_AGOTADO"),{code:"IA_TIEMPO_AGOTADO",status:504});
-    const result = await readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,fetchImpl:fetch,totalTimeoutMs:Math.min(135_000,deadline-Date.now()-5_000),
+    const result = await readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,fetchImpl:fetch,totalTimeoutMs:Math.min(135_000,deadline-Date.now()-5_000),geminiRetries:maxAttempts-baseAttempts,
       ...(modern?{beforeAttempt:async({provider,attempt}: {provider:string;attempt:number})=>{
         let admitted;
         try{admitted=await invoiceStep(serviceClient.rpc("f6_service_iniciar_intento_lectura_factura_rev84",{...identity,p_provider:provider,p_attempt:attempt}),Math.max(1,Math.min(2_000,deadline-Date.now()-5_000)));}
@@ -221,6 +230,7 @@ Deno.serve(async (request: Request) => {
     });
     const {invoice,iaUsage} = result;
     if(result.fallbackDiagnostic)console.error("F6_IA_FALLBACK",JSON.stringify({...diagnosticAt("provider"),...result.fallbackDiagnostic}));
+    if(result.retryUsed)console.error("F6_IA_RETRY",JSON.stringify({...diagnosticAt("provider"),provider:result.provider}));
     invoice.items.forEach((row: {revisionImporte?:{status:string}},index:number)=>{
       if(row.revisionImporte?.status==="mismatch")console.error("F6_IA_ROW_REVIEW",JSON.stringify({...diagnosticAt("validation"),provider:result.provider,row:index+1,field:"subtotal",reason:"ROW_AMOUNT_MISMATCH"}));
     });
@@ -246,7 +256,7 @@ Deno.serve(async (request: Request) => {
     }
     }catch(_){accountingStatus="pending";console.error("F6_IA_TELEMETRY_PENDING",JSON.stringify(diagnosticAt(stage)));}
     const closed=await finalize();
-    return respond(origin, { ...invoice, iaUsage, iaProvider:result.provider, iaFallbackUsed:result.fallbackUsed,
+    return respond(origin, { ...invoice, iaUsage, iaProvider:result.provider, iaFallbackUsed:result.fallbackUsed,...(result.retryUsed?{iaRetryUsed:true}:{}),
       ...(result.fallbackDiagnostic?{iaFallbackDiagnostic:{...result.fallbackDiagnostic,requestId:input.requestId}}:{}),
       iaQuotaMode:quotaMode,iaAccountingStatus:accountingStatus,...(accountingStatus==="pending"?{iaAccountingDiagnostic:diagnosticAt("telemetry")}:{ }),
       ...(closed?{}:{iaClosureStatus:"pending"}),
