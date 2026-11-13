@@ -26,19 +26,19 @@
     "REV61-PERMISO-CONFIG.sql": "55c596e236728162bebdcf1bc2ed83a5789895c95716ddb319192846e2bad095",
     "REV69-TURNOS-INTERRUMPIDOS.sql": "d6e8214fe4ac34df33ab143e2fd966ac5158b491a52f4dd88996b724525a4706",
     "REV71-ALIAS-FACTURA.sql": "91068789a4dc38600bc3aee31b8202adfc30a0d4114b1b5c5e06386e902041cf",
-    "supabase/functions/leer-factura/index.ts": "f9798b505c031a24d41738a0bf41c501d8924c9a154a46add53996e2fd293170",
+    "supabase/functions/leer-factura/index.ts": "1c19bd51d7a6833d4ff6edef96059434d4dab98d2cdc12ec1e2237002c06d551",
     "supabase/functions/_shared/f6-invoice-reader.mjs": "a6af7516dd9b953ef5d096c38640fed8dc45b76b3fb2db301231802a1f76feff",
     "supabase/functions/_shared/f5-auth-core.mjs": "1b9bac90205dab22c89e01d9c0e1a5e94151fdd1804b0d91f69c108abd6b4e99",
     "REV83-LECTOR-DOBLE.sql": "5926cb60a7065a8c671302ba3bbd1a5fe737d6d25d81c7c01aa4c0687173e4ec",
     "supabase/functions/_shared/f6-openai-invoice-reader.mjs": "53e27ca783c8807f5130a0967ee2d8f9d88cd6463824954c37dd9b9f7a2d8d33",
-    "supabase/functions/_shared/f6-invoice-providers.mjs": "5b9c77c9ff7219fac341d83626835eaab20da790e55cfa38e12e00634d6baf3d",
+    "supabase/functions/_shared/f6-invoice-providers.mjs": "2bbdf74278fb61c0553aea50354cf623e474034a9da920d9456e28fa6a309b22",
     "REV84-LECTOR-MEMORIA.sql": "44ca468e4ce851d0ba1559641d0d7da63d3ac19d1ba6b0d47caf8386f4804c4d",
     "REV84-LECTOR-CUPO.sql": "eb0f6bc52a5b3988ccd78c65b0b547efc9207c3ddec16e61bae76f1ec5bb7e2a",
     "supabase/functions/_shared/f6-invoice-review.mjs": "c6bb73ff5600cce6c76290726d6fb787eb8bd208983e591d16600cd67887252e",
     "tools/actualizar-integridad.cjs": "9dad819f33d637f907c64cb4fc93f3b540c5db02c009f5b400a1fabad3bd8641",
     "LEEME-REV84.md": "864e83b352e09d28e2dafea11b502b8e7ce976837e410f8436fe4a7993c310ca",
     "REV95-LECTOR-RESPALDO.sql": "5330d92fac2be4707d4492077f1987d88c3f83565fb6a228f7645543d1e93a70",
-    "REV95-LECTOR-REINTENTO.sql": "f13e76d0c027053c93f904f2f2931e3e3b208c719d26e04dfe9f8d2b2cf4b6c1"
+    "REV95-LECTOR-REINTENTO.sql": "09645d4faeb2a09db1ee9eed8e3f70e0bb81f9f568395988625d410aaed5096a"
   },
   "packageEdition": "2026-11-10"
 }

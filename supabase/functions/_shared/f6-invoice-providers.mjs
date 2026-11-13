@@ -78,17 +78,19 @@ async function attempt({provider, apiKey, input, fetchImpl, timeoutMs, reviewMod
 
 // El principal recibe hasta primaryTimeoutMs si queda fallbackReserveMs para el respaldo; nunca menos de
 // primaryMinimumMs mientras el plazo conjunto alcance. Las lecturas reales buenas tardaron 38 a 54 s: 60 s fijos quedaban justos.
-// geminiRetries: reintentos ya admitidos por la reserva. Solo se usan ante un 503 rápido de Gemini y con tiempo para otra lectura.
+// Reintento de Gemini: uno por lectura, solo ante un 503. Espera lo que indica el proveedor (Retry-After) o, si no
+// indica nada, retryDelayMs. Se omite si esa espera, la admisión y una lectura mínima no caben en el plazo restante.
+// requestRetry pide la plaza extra recién en ese momento; sin plaza (false o error) se informa el fallo original.
 export async function readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,fetchImpl = fetch,now = Date.now,
   totalTimeoutMs = F6_INVOICE_PROVIDER_TIMEOUT_MS,primaryTimeoutMs = 90_000,primaryMinimumMs = 60_000,fallbackReserveMs = 40_000,
-  geminiRetries = 0,retryDelayMs = 3_000,retryMinimumMs = 25_000,sleep = ms=>new Promise(resolve=>setTimeout(resolve,ms)),beforeAttempt}) {
+  requestRetry,retryDelayMs = 3_000,retryAdmissionMs = 4_000,retryMinimumMs = 25_000,sleep = ms=>new Promise(resolve=>setTimeout(resolve,ms)),beforeAttempt}) {
   // HEIC/HEIF remain supported through Gemini; OpenAI accepts JPEG, PNG and WebP.
   const providers = [];
   if (openaiApiKey && ['image/jpeg','image/png','image/webp'].includes(input.mediaType)) providers.push({provider:'openai',apiKey:openaiApiKey});
   if (geminiApiKey) providers.push({provider:'gemini',apiKey:geminiApiKey});
   if (!providers.length) throw failure('IA_NO_CONFIGURADA',503,{stage:'configuration'});
   const started = now(), reviewMode=input.readerContract==='f6-invoice-review-v1';
-  let fallbackDiagnostic, index = 0, attemptNumber = 0, retriesLeft = Math.max(0,Math.floor(geminiRetries)||0), retried = false;
+  let fallbackDiagnostic, index = 0, attemptNumber = 0, retried = false;
   while (index < providers.length) {
     const {provider} = providers[index];
     if(now()-started>=totalTimeoutMs)throw failure('IA_TIEMPO_AGOTADO',504,{stage:'provider',provider,fallbackUsed:index>0});
@@ -104,11 +106,17 @@ export async function readInvoiceWithProviders({input,openaiApiKey,geminiApiKey,
       if (retried) error.diagnostic.retryUsed = true;
       if (fallbackDiagnostic) error.diagnostic.fallbackDiagnostic=fallbackDiagnostic;
       const left = totalTimeoutMs - (now()-started);
-      if (provider === 'gemini' && retriesLeft > 0 && error.transient && error.diagnostic.providerCategory === 'UNAVAILABLE'
-        && left >= retryDelayMs + retryMinimumMs) {
-        retriesLeft--; retried = true;
-        await sleep(retryDelayMs);
-        continue;
+      const indicated = error.diagnostic.retryAfterSeconds;
+      const wait = Number.isFinite(indicated) && indicated > 0 ? indicated * 1000 : retryDelayMs;
+      if (provider === 'gemini' && !retried && requestRetry && error.transient && error.diagnostic.providerCategory === 'UNAVAILABLE'
+        && left >= wait + retryAdmissionMs + retryMinimumMs) {
+        let granted = false;
+        try { granted = (await requestRetry({provider,attempt:attemptNumber+1})) === true; } catch (_) {}
+        if (granted) {
+          retried = true;
+          await sleep(wait);
+          continue;
+        }
       }
       if (!error.transient || index+1 === providers.length || left <= 0) throw error;
       fallbackDiagnostic={...error.diagnostic,code:error.code};

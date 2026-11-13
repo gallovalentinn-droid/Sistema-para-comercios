@@ -112,16 +112,25 @@ La clave es válida y el modelo figura disponible: el fallo es del servicio para
 **Cambio preparado.**
 
 - **Más tiempo para el principal.** OpenAI recibe hasta 90 s cuando el plazo conjunto (135 s) deja 40 s para el respaldo; nunca menos de 60 s. Con poco margen se comporta como antes.
-- **Un reintento a Gemini.** Solo ante un 503 rápido, tras 3 s, y si quedan al menos 28 s. No se reintenta un tiempo agotado, un 429 ni una respuesta inválida.
-- **Contrato de intentos.** `REV95-LECTOR-REINTENTO.sql` admite hasta tres intentos por lectura (columnas, tabla de intentos y RPC de reserva). **Los límites de frecuencia no cambian** (6 en 5 minutos, 30 en una hora).
-- **La plaza extra es optativa.** La función la pide; si el límite de frecuencia no la admite, o la base todavía no acepta tres intentos, reserva las plazas de siempre. Así no baja la cantidad de lecturas seguidas posibles y la función puede desplegarse antes o después de la migración.
+- **Un reintento a Gemini.** Solo ante un 503, una vez por lectura. Espera lo que indica el proveedor (`Retry-After`, 30 s en producción) o 3 s si no indica nada. Se omite si esa espera, 4 s de admisión y 25 s de lectura mínima no caben en el plazo restante. No se reintenta un tiempo agotado, un 429 ni una respuesta inválida.
+- **Contrato de intentos.** `REV95-LECTOR-REINTENTO.sql` admite hasta tres intentos por lectura (columnas y tabla de intentos) y agrega la RPC `f6_service_ampliar_intento_lectura_factura_rev95`. **La reserva inicial y los límites de frecuencia no cambian** (una o dos plazas; 6 llamadas en 5 minutos, 30 en una hora).
+- **La plaza extra se pide recién al reintentar**, bajo el mismo candado que la reserva y contando las plazas ya admitidas de otras lecturas. Sin capacidad, sin la RPC (base sin migrar) o ante un error, se informa el fallo original sin otra llamada.
 - **Diagnóstico.** `iaRetryUsed` en la respuesta, `retryUsed` en el error y el evento `F6_IA_RETRY` en los registros.
 
-**Verificado localmente.** 530 pruebas unitarias; 11 recorridos de navegador; integridad; y `node tests/sql-lector-rev84.cjs --cupo --reintento` sobre PostgreSQL local: migraciones aplicadas dos veces, tres intentos en orden, cuarto rechazado, límites sin cambios y registro del modelo de respaldo.
+**Revisión de Codex sobre `51bf3b5` · corregido.**
 
-**No acreditado.** Que 90 s alcancen para las facturas que hoy agotan la espera, ni que el reintento rescate lecturas en el horario en que Gemini falló. Solo se verá con lecturas reales después de publicar.
+| Obs. | Problema | Corrección |
+| --- | --- | --- |
+| R1 | El reintento esperaba siempre 3 s e ignoraba el `Retry-After` de Gemini | Espera el valor indicado y solo reintenta si cabe en el plazo. Regresiones con 30 s, con tiempo suficiente e insuficiente |
+| R2 | Reservar tres plazas por anticipado podía rechazar otra lectura solapada (`2 + 3 + 2 = 7`) | La reserva vuelve a ser de dos; la tercera se pide al necesitarla con una RPC atómica. Regresión SQL con dos llamadas previas y dos lecturas solapadas |
 
-**Para publicar:** migración (optativa en el orden, necesaria para que exista el reintento), despliegue de la función y revisión de Codex. La web no cambia.
+**Consecuencia del reparto del plazo, decidida y a la vista.** El reintento con 30 s de espera cabe cuando OpenAI falla rápido (como con la clave rechazada del 04 al 10/11: quedan más de 120 s). No cabe cuando OpenAI agota sus 90 s (quedan unos 38 s), que es el caso del 12/11: ahí la mejora es el tiempo extra del principal, no el reintento. Se priorizó darle tiempo a OpenAI porque es el lector más preciso y el que venía respondiendo; con 70 s para el principal el reintento habría entrado justo, a costa de ese margen.
+
+**Verificado localmente.** 531 pruebas unitarias; 11 recorridos de navegador; integridad; y `node tests/sql-lector-rev84.cjs --cupo --reintento` sobre PostgreSQL local: migraciones aplicadas dos veces, ampliación única y en orden, cuarto intento rechazado, topes de 5 minutos y de una hora intactos, lecturas solapadas admitidas y registro del modelo de respaldo.
+
+**No acreditado.** Que 90 s alcancen para las facturas que hoy agotan la espera, ni que esperar 30 s recupere a Gemini. Solo se verá con lecturas reales después de publicar.
+
+**Para publicar:** migración (optativa en el orden, necesaria para que exista el reintento), despliegue de la función y nueva revisión de Codex. La web no cambia.
 
 ## Pendiente, fuera de este cambio
 - **Reintento adicional a Gemini.** Requiere ampliar el contrato de intentos (reserva, contabilización y límites en SQL). Queda para después de recuperar OpenAI y medir lecturas reales.

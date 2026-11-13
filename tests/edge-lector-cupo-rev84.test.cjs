@@ -21,10 +21,10 @@ test('REV84 entrega factura válida aunque fallen registro y cierre, sin devolve
  }});assert.equal(r.status,200);assert.equal(r.data.items.length,1);assert.equal(r.data.iaAccountingStatus,'pending');assert.equal(confirmed,committed);assert.equal(r.data.iaAccountingDiagnostic.stage,'telemetry');assert.doesNotMatch(JSON.stringify(r.logs),/PRIVATE|Producto|subtotal/);assert.ok(!r.rpcs.some(n=>/borrar|devolver|compensar/.test(n)))}
  const legacy=await run({status:200,body,telemetryError:true});assert.equal(legacy.status,200);assert.equal(legacy.data.iaAccountingStatus,'pending');assert.equal(legacy.data.iaQuotaMode,'legacy-rev83');
 });
-test('REV84 reserva plazas para principal/respaldo y, desde REV95, una más para el reintento de Gemini',async()=>{
- const r=await run({openai:true,responses:[new Response('{}',{status:503}),new Response(JSON.stringify(body))],rpcImpl:base});assert.equal(r.status,200);assert.equal(r.rpcParams.find(p=>p.p_max_attempts).p_max_attempts,3);assert.equal(r.rpcs.filter(n=>n.includes('iniciar_intento')).length,2);assert.equal(r.rpcs.filter(n=>n.includes('reservar')).length,1);
- const single=await run({status:200,body,rpcImpl:base});assert.equal(single.rpcParams.find(p=>p.p_max_attempts).p_max_attempts,2);
- const heic=await run({openai:true,status:200,body,mediaType:'image/heic',rpcImpl:base});assert.equal(heic.rpcParams.find(p=>p.p_max_attempts).p_max_attempts,2);assert.equal(heic.data.iaProvider,'gemini');
+test('REV84 reserva dos plazas para principal/respaldo, una para HEIC o proveedor único',async()=>{
+ const r=await run({openai:true,responses:[new Response('{}',{status:503}),new Response(JSON.stringify(body))],rpcImpl:base});assert.equal(r.status,200);assert.equal(r.rpcParams.find(p=>p.p_max_attempts).p_max_attempts,2);assert.equal(r.rpcs.filter(n=>n.includes('iniciar_intento')).length,2);assert.equal(r.rpcs.filter(n=>n.includes('reservar')).length,1);
+ const single=await run({status:200,body,rpcImpl:base});assert.equal(single.rpcParams.find(p=>p.p_max_attempts).p_max_attempts,1);
+ const heic=await run({openai:true,status:200,body,mediaType:'image/heic',rpcImpl:base});assert.equal(heic.rpcParams.find(p=>p.p_max_attempts).p_max_attempts,1);assert.equal(heic.data.iaProvider,'gemini');
  const hook=await run({rpcImpl:n=>n.includes('iniciar_intento')?{error:{code:'PRIVATE'}}:base(n)});assert.equal(hook.calls,0);assert.equal(hook.status,503);assert.ok(hook.rpcs.some(n=>n.includes('finalizar')));
  const empty=await run({status:200,body:{...body,steps:[{type:'model_output',content:[{type:'text',text:JSON.stringify({...invoice,items:[]})}]}]},rpcImpl:base});assert.equal(empty.status,422);assert.ok(!empty.rpcs.some(n=>n.includes('registrar_resultado')));assert.ok(empty.rpcs.some(n=>n.includes('finalizar')));
 });
