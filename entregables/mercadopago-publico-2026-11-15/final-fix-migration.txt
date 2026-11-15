@@ -1,0 +1,10 @@
+NOTICE:  schema "mp_private" already exists, skipping
+NOTICE:  relation "accounts" already exists, skipping
+NOTICE:  relation "mp_one_primary" already exists, skipping
+NOTICE:  relation "mp_accounts_commerce" already exists, skipping
+NOTICE:  relation "attempts" already exists, skipping
+NOTICE:  relation "mp_attempts_account" already exists, skipping
+NOTICE:  relation "receipts" already exists, skipping
+NOTICE:  relation "oauth" already exists, skipping
+NOTICE:  relation "mp_oauth_expiry" already exists, skipping
+NOTICE:  relation "audit" already exists, skipping

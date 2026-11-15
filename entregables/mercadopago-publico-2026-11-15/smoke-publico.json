@@ -1,0 +1,8 @@
+{
+  "preflight": 204,
+  "withoutSession": 401,
+  "foreignOrigin": 403,
+  "invalidCallback": 303,
+  "fixedRedirect": true,
+  "noBusinessWrites": true
+}

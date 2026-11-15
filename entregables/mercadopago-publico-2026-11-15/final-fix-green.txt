@@ -1,0 +1,43 @@
+▶ PostgreSQL enforces private MP persistence and cross-worker payment invariants
+  ✔ anon and authenticated cannot read tables or execute privileged RPC (635.6558ms)
+  ✔ OAuth state consumed exactly once by concurrent workers and expires (697.8761ms)
+  ✔ provider account cannot cross commerces; concurrent primary leaves exactly one (534.6824ms)
+  ✔ sale lease excludes other workers and prevents stale CAS after reclaim (782.9048ms)
+  ✔ sale snapshot freezes account amount and fingerprint (640.4902ms)
+  ✔ same payment cannot claim two sales and same sale cannot claim two payments (581.9188ms)
+  ✔ disconnect blocked while pending and account position freezes in attempt (628.9722ms)
+  ✔ QR timeout retries identical idempotency and manual remains blocked until provider cancellation (4568.615ms)
+  ✔ simultaneous QR calls across service instances produce one creation (1429.6536ms)
+  ✔ missing POS does not freeze a new sale and old untouched prepared rows can acquire POS (2174.7759ms)
+  ✔ definitive first creation rejection permits cancellation/manual but does not clear earlier ambiguity (5412.2312ms)
+  ✔ QR accreditation persists receipt and recovery works after transfer gate closes (2278.149ms)
+  ✔ kill switch preserves existing receipt recovery and status cannot start an unknown charge (3771.4163ms)
+  ✔ cancel discovers official paid order and persists one receipt across retries (2159.4006ms)
+  ✔ disconnected terminal QR recovers exact snapshot and manual completes once without provider credentials (5994.072ms)
+  ✔ active or creating QR cannot disconnect or enter terminal recovery, and leased terminal remains excluded (2222.235ms)
+  ✔ refresh serialized across workers; ambiguous provider failure forces reconnection forever (926.3741ms)
+  ✔ successful refresh writes rotated credentials once and fences stale finish (1646.0977ms)
+  ✔ OAuth callback rechecks original authority and never leaks state code credentials (1867.458ms)
+✔ PostgreSQL enforces private MP persistence and cross-worker payment invariants (39398.0819ms)
+✔ backend exports executable public API (1.9396ms)
+✔ AES-GCM binds credentials to their account and rejects tampering (12.1367ms)
+✔ dedicated encryption key must be exactly 32 base64 bytes (0.5154ms)
+✔ employees and administrators cannot administer accounts (0.673ms)
+✔ payment validation rejects receiver amount currency pending and fake transfer (0.5436ms)
+✔ QR validates official order and transaction states and rejects partial refunded pending or multiple payments (0.5528ms)
+✔ Auth validates JWT then membership then real F5 and never trusts payload role (25.2174ms)
+✔ Auth rejects invalid JWT before any privileged storage call (2.8586ms)
+✔ CORS rejects alien origins and supports authorized preflight without auth (0.8055ms)
+✔ provider keeps stable Orders idempotency and sanitizes errors (1.3363ms)
+✔ unconfigured backend still lists masked accounts and gives honest OAuth error (1.2751ms)
+✔ revoked membership missing F5 foreign device and role mismatch fail closed (2.9151ms)
+✔ oversized body unknown action invalid IDs and raw errors never reach privileged storage (1.8441ms)
+✔ only documented definitive create rejection is distinguished from timeout 5xx or unknown 4xx (0.8525ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 39491.3782

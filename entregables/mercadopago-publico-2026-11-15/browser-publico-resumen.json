@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "800e2b0076d791c935c276311b8b75f0ab105bdd",
+  "widths": [
+    1366,
+    390
+  ],
+  "scripts": [
+    "browser-mercadopago-publico",
+    "browser-mercadopago-final-review",
+    "browser-mercadopago-capacidades",
+    "browser-mercadopago-conexion",
+    "browser-mercadopago",
+    "browser-caja-conteo-ciego",
+    "browser-caja-cierre-pendiente",
+    "browser-selectores-unificados"
+  ],
+  "executions": 16,
+  "result": "all passed",
+  "realBusinessWritesBlocked": true,
+  "provider": "synthetic"
+}

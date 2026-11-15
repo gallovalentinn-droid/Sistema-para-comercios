@@ -22,3 +22,17 @@ test('revoked membership missing F5 foreign device and role mismatch fail closed
 test('oversized body unknown action invalid IDs and raw errors never reach privileged storage',async()=>{const m=await modulePromise;assert.ok(m);let calls=0;const h=m.createApiHandler({config:{},store:{call(){calls++;}},fetcher:async()=>{throw Error('SQL credential must not leak');}});for(const body of ['{"action":"alien"}',JSON.stringify({action:'accounts',commerceId:'foreign',deviceId}),JSON.stringify({action:'accounts',padding:'a'.repeat(17000)})]){const r=await h(new Request('https://fixture',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer fixture'},body}));assert.ok(r.status>=400);assert.equal((await r.text()).includes('credential'),false);}assert.equal(calls,0);});
 test('only documented definitive create rejection is distinguished from timeout 5xx or unknown 4xx',async()=>{const m=await modulePromise;assert.ok(m);for(const [status,body,definitive] of [[404,{errors:[{code:'pos_not_found',message:'private raw details'}]},true],[500,{errors:[{code:'pos_not_found'}]},false],[400,{error:'unknown'},false],[400,{errors:[{code:'bad_request'}]},true]]){const p=new m.Provider({},async()=>Response.json(body,{status}));await assert.rejects(p.create({access_token:'synthetic'},{},'fixed'),e=>{assert.equal(!!e.definitiveNoOrder,definitive);assert.equal(e.message.includes('private'),false);return true;});}});
 module.exports={commerceId,userId,deviceId,ctx};
+
+test('masked or malformed application ID cannot start OAuth or persist a challenge',async()=>{
+ const m=await modulePromise,key=crypto.getRandomValues(new Uint8Array(32));
+ const env={SUPABASE_URL:'https://fixture.supabase.co',SUPABASE_ANON_KEY:'synthetic',SUPABASE_SERVICE_ROLE_KEY:'synthetic',MP_CLIENT_SECRET:'synthetic',MP_TOKEN_ENCRYPTION_KEY:Buffer.from(key).toString('base64')};
+ for(const bad of ['••••••••','********','2383552865605665 extra','']){
+   const config=m.configuration({...env,MP_CLIENT_ID:bad});assert.equal(config.configured,false,'an ID copied from a masked field is not configuration');let saved=false;
+   const service=new m.Service({config,store:{call:async()=>{saved=true;return true;}},provider:{}});
+   await assert.rejects(service.handle(ctx,{action:'oauth-start',alias:'Local'},'synthetic'),/APLICACION_NO_CONFIGURADA/);assert.equal(saved,false,'invalid configuration must not persist OAuth state');
+ }
+});
+test('numeric application ID generates the authorization URL unchanged',async()=>{
+ const m=await modulePromise,key=crypto.getRandomValues(new Uint8Array(32)),config=m.configuration({SUPABASE_URL:'https://fixture.supabase.co',SUPABASE_ANON_KEY:'synthetic',SUPABASE_SERVICE_ROLE_KEY:'synthetic',MP_CLIENT_SECRET:'synthetic',MP_TOKEN_ENCRYPTION_KEY:Buffer.from(key).toString('base64'),MP_CLIENT_ID:'2383552865605665'});assert.equal(config.configured,true);
+ const service=new m.Service({config,store:{call:async()=>true},provider:{}}),result=await service.handle(ctx,{action:'oauth-start',alias:'Local'},'synthetic');const url=new URL(result.url);assert.equal(url.searchParams.get('client_id'),'2383552865605665');assert.equal(url.searchParams.get('redirect_uri'),'https://fixture.supabase.co/functions/v1/mercadopago-callback');assert.equal(url.searchParams.get('code_challenge_method'),'S256');
+});

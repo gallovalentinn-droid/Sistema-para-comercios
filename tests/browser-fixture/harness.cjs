@@ -13,10 +13,10 @@ function serve(){return new Promise(r=>{const s=http.createServer((q,res)=>{let 
  if(u.includes('supabase-js')&&!process.env.REAL_SB){res.writeHead(200,{'content-type':'application/javascript'});return res.end(STUB);}
  const f=path.join(ROOT,u);if(!f.startsWith(ROOT)||!fs.existsSync(f)){res.writeHead(404);return res.end();}
  const ext=path.extname(f);res.writeHead(200,{'content-type':{'.html':'text/html; charset=utf-8','.js':'application/javascript'}[ext]||'application/octet-stream'});fs.createReadStream(f).pipe(res);}).listen(0,()=>r(s));});}
-async function open({width=1366,height=800,boot=true,publicUrl=null}={}){
+async function open({width=1366,height=800,boot=true,publicUrl=process.env.PUBLIC_URL||null}={}){
  const server=await serve();const port=server.address().port;
  const browser=await chromium.launch({...(process.env.CHROME?{executablePath:process.env.CHROME}:{})});
- const ctx=await browser.newContext({viewport:{width,height},locale:'es-AR',timezoneId:'America/Buenos_Aires',acceptDownloads:true});
+ const ctx=await browser.newContext({viewport:{width,height},locale:'es-AR',timezoneId:'America/Buenos_Aires',acceptDownloads:true,serviceWorkers:publicUrl?'block':'allow'});
  const errors=[],external=[];
  await ctx.route('**/*',route=>{const u=route.request().url();
  if(publicUrl&&u.includes('/vendor/supabase-js-'))return route.fulfill({contentType:'application/javascript',body:STUB});

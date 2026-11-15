@@ -6,6 +6,20 @@ Versión unificada Docker + Mercado Pago, conservando las correcciones públicas
 
 Actualizado: 2026-10-25 (America/Argentina/Buenos_Aires)
 
+## Mercado Pago público — REV97, 15/11/2026
+
+Diseño Supabase aprobado y ejecutado por pedido del usuario, con informe. Web fuente inicial 800e2b0076d791c935c276311b8b75f0ab105bdd; Pages 43775038560 success, HTML/SW/MP/QR/manifiesto públicos idénticos al commit. REV97 edición 2026-11-15-mp-publico-r1, caché rev97-r1. Cliente público usa /functions/v1/mercadopago; Docker conserva /api/mercadopago. Fuente preparada en .worktrees/publicacion-docker-mp/; conservar la rama original y no copiar claves ni SQLite.
+
+Backend instalado: migración mercadopago_publico, versión remota 20261115232440; cinco tablas mp_private con RLS, sin acceso directo cliente, RPC mp_publico_store service_role-only. Funciones mercadopago v3 con JWT y Auth/membresía/F5; mercadopago-callback v3 público solo para OAuth state/PKCE y autoridad original. Fuentes remotas cotejadas. Callback registrado por el usuario: https://qrvdfqpxutymmlcplsal.supabase.co/functions/v1/mercadopago-callback. Retorno fijo a beta/; no publicar secretos, códigos o estados OAuth.
+
+Las tres claves MP fueron cargadas privadamente por el usuario. Clave de cifrado generada solo en memoria/portapapeles, luego limpiado; ningún valor sensible leído ni guardado en archivos. Tras error Invalid request parameters con Client ID aparentemente enmascarado, se guió su corrección y se endureció la validación numérica. Autorización real COMPLETADA: una cuenta activa cifrada y evento connected confirmados; cero intentos/recibos en esa comprobación. Falta crear/elegir caja QR (lista elegible vacía) y probar proveedor antes de un cobro real. No regenerar MP_TOKEN_ENCRYPTION_KEY con cuentas existentes.
+
+Verificado en código: revisiones independientes de diseño, cliente, backend y conjunto; hallazgos corregidos con regresiones y relecturas aprobadas. Incluye estados oficiales de orden processed/processed y transacción processed/accredited, recuperación terminal tras desconexión y cancelación durable sin orden previa. Local: 671/671 Node con SQL sintético real incluido, 46 archivos de integridad; módulos navegador 1366/390 y regresiones RED/GREEN. Público: HTTP 204 CORS, 401 sin sesión, 403 origen ajeno, callback inválido 303; ACL/RLS y fuentes; 16 recorridos de ocho scripts en ambos anchos con sesión/proveedor sintéticos y escrituras reales bloqueadas. OAuth real confirmado separadamente, sin cobros reales del agente.
+
+MP_TRANSFER_VERIFICATION_ENABLED sigue sin activar hasta demostrar cobertura de transferencias directas Mercado Pago/bancos. MP_NEW_PAYMENTS_ENABLED=false pausa NUEVOS cobros preservando recuperación; no retirar secretos ni volver ciegamente a REV96 porque rompería pendientes. QR consulta mientras el modal está abierto y al recuperarlo, sin webhooks ni reembolsos automáticos. Fiado/mixtos siguen manuales. El lector no se redeplegó; su fuente conserva huella 9ea66fafb5bd1b69e46a0d8876f09ead5a59b0902a324dd3fb30928a1abfa9bc.
+
+Informe: entregables/mercadopago-publico-2026-11-15/INFORME.md del candidato; operación tools/mercadopago/PUBLICO.md. No declarar QR acreditado ni cobertura bancaria probados por pruebas sintéticas.
+
 ## Retorno a REV88 para priorizar caja de cigarrillos, 25/10/2026
 
 El usuario pidió volver a REV88 y postergar tamaños hasta resolver la diferencia de caja de cigarrillos. HTML/SW/manifiesto y las pruebas modificadas por tamaños se restauran desde 4d1e43f5eef9a1b7224885bb5c541952a8b3ffd8. REV92 queda preservada en codex/respaldo-rev92-tamanos, punta 0417d087fd22521478806e894790baa2e62ae2b7; implementación 89060ee324673e60edfa13e8d1e98ac1dfb78536. Se conservan diseños e informe como historia; no se elimina catálogo, ventas, IndexedDB ni cola pendiente. Los combos existentes siguen siendo compatibles con REV88.

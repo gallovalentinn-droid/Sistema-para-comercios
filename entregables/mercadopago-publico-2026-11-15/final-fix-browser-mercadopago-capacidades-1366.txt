@@ -1,0 +1,1 @@
+{"ok":true,"width":1366,"transferGate":true,"manualAvailable":true,"ownerOnly":true}

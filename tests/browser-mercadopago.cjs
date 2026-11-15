@@ -7,8 +7,8 @@ async function main(){
  const width=Number(process.env.WIDTH||process.argv[2])||1366,h=await openShadow({width,height:900}),p=h.page;
  let accounts=[],qrPaid=false,cancelFail=false,claims=0,mode='normal';const linked=new Map();
  const receipt={saleId:'',paymentId:'123',accountId:'a',amountCents:450000,kind:'transfer',verifiedAt:new Date().toISOString()};
- await p.route('**/api/mercadopago',async route=>{const b=route.request().postDataJSON();let data={};
-  if(b.action==='accounts')data={configured:accounts.length>0,accounts};
+ await p.route(/\/(?:api|functions\/v1)\/mercadopago(?:\?.*)?$/,async route=>{const b=route.request().postDataJSON();let data={};
+  if(b.action==='accounts')data={configured:accounts.length>0,capabilities:{transferVerification:true,newPayments:true},accounts};
   if(b.action==='receipts')data={receipts:[{id:'123',amountCents:450000,matches:true,date:new Date().toISOString(),payer:'Cliente de prueba',used:false},{id:'124',amountCents:250000,matches:false,date:new Date().toISOString(),payer:'Otra persona',used:false}]};
   if(b.action==='claim'){claims++;await new Promise(r=>setTimeout(r,100));data={receipt:{...receipt,saleId:b.saleId}};linked.set(b.saleId,data.receipt);}
   if(b.action==='qr-create')data={attempt:{id:'qr1',status:'created',qrData:'000201010212-micomercio-test'}};

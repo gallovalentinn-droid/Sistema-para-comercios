@@ -1,0 +1,120 @@
+▶ PostgreSQL enforces private MP persistence and cross-worker payment invariants
+  ✔ anon and authenticated cannot read tables or execute privileged RPC (668.1293ms)
+  ✔ OAuth state consumed exactly once by concurrent workers and expires (675.5769ms)
+  ✔ provider account cannot cross commerces; concurrent primary leaves exactly one (543.3309ms)
+  ✔ sale lease excludes other workers and prevents stale CAS after reclaim (821.5517ms)
+  ✔ sale snapshot freezes account amount and fingerprint (645.1241ms)
+  ✔ same payment cannot claim two sales and same sale cannot claim two payments (558.3097ms)
+  ✔ disconnect blocked while pending and account position freezes in attempt (651.8255ms)
+  ✔ QR timeout retries identical idempotency and manual remains blocked until provider cancellation (4839.0074ms)
+  ✔ simultaneous QR calls across service instances produce one creation (1462.5186ms)
+  ✔ missing POS does not freeze a new sale and old untouched prepared rows can acquire POS (2129.3424ms)
+  ✔ definitive first creation rejection permits cancellation/manual but does not clear earlier ambiguity (6028.5762ms)
+  ✖ QR accreditation persists receipt and recovery works after transfer gate closes (1734.4962ms)
+  ✖ kill switch preserves existing receipt recovery and status cannot start an unknown charge (3209.6988ms)
+  ✖ cancel discovers official paid order and persists one receipt across retries (1695.9536ms)
+  ✖ disconnected terminal QR recovers exact snapshot and manual completes once without provider credentials (1693.205ms)
+  ✖ active or creating QR cannot disconnect or enter terminal recovery, and leased terminal remains excluded (778.7711ms)
+  ✔ refresh serialized across workers; ambiguous provider failure forces reconnection forever (1044.8523ms)
+  ✔ successful refresh writes rotated credentials once and fences stale finish (1649.2888ms)
+  ✔ OAuth callback rechecks original authority and never leaks state code credentials (1824.1814ms)
+✖ PostgreSQL enforces private MP persistence and cross-worker payment invariants (33162.2684ms)
+✔ backend exports executable public API (2.0796ms)
+✔ AES-GCM binds credentials to their account and rejects tampering (18.8892ms)
+✔ dedicated encryption key must be exactly 32 base64 bytes (0.5674ms)
+✔ employees and administrators cannot administer accounts (0.6822ms)
+✔ payment validation rejects receiver amount currency pending and fake transfer (0.6025ms)
+✖ QR validates official order and transaction states and rejects partial refunded pending or multiple payments (0.6588ms)
+✔ Auth validates JWT then membership then real F5 and never trusts payload role (26.0177ms)
+✔ Auth rejects invalid JWT before any privileged storage call (4.1686ms)
+✔ CORS rejects alien origins and supports authorized preflight without auth (0.8555ms)
+✔ provider keeps stable Orders idempotency and sanitizes errors (1.2851ms)
+✔ unconfigured backend still lists masked accounts and gives honest OAuth error (1.1436ms)
+✔ revoked membership missing F5 foreign device and role mismatch fail closed (2.5798ms)
+✔ oversized body unknown action invalid IDs and raw errors never reach privileged storage (2.0533ms)
+✔ only documented definitive create rejection is distinguished from timeout 5xx or unknown 4xx (0.9887ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 27
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 33259.8305
+
+✖ failing tests:
+
+test at tests\mercadopago-publico-sql.test.cjs:96:11
+✖ QR accreditation persists receipt and recovery works after transfer gate closes (1734.4962ms)
+  Error: ORDEN_SIN_ACREDITAR
+      at fail (file:///C:/Users/valen/.codex/.chatgpt-projects/g-p-6a8b192b818c8191ad9447dd21800d7c/github/Sistema-para-comercios/.worktrees/publicacion-docker-mp/supabase/functions/_shared/mp-core.mjs:7:54)
+      at accreditedOrderPayment (file:///C:/Users/valen/.codex/.chatgpt-projects/g-p-6a8b192b818c8191ad9447dd21800d7c/github/Sistema-para-comercios/.worktrees/publicacion-docker-mp/supabase/functions/_shared/mp-core.mjs:71:108)
+      at Service.handle (file:///C:/Users/valen/.codex/.chatgpt-projects/g-p-6a8b192b818c8191ad9447dd21800d7c/github/Sistema-para-comercios/.worktrees/publicacion-docker-mp/supabase/functions/_shared/mp-core.mjs:223:25)
+      at async TestContext.<anonymous> (C:\Users\valen\.codex\.chatgpt-projects\g-p-6a8b192b818c8191ad9447dd21800d7c\github\Sistema-para-comercios\.worktrees\publicacion-docker-mp\tests\mercadopago-publico-sql.test.cjs:99:48)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async TestContext.<anonymous> (C:\Users\valen\.codex\.chatgpt-projects\g-p-6a8b192b818c8191ad9447dd21800d7c\github\Sistema-para-comercios\.worktrees\publicacion-docker-mp\tests\mercadopago-publico-sql.test.cjs:96:3)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    status: 409
+  }
+
+test at tests\mercadopago-publico-sql.test.cjs:102:11
+✖ kill switch preserves existing receipt recovery and status cannot start an unknown charge (3209.6988ms)
+  Error: COBROS_NO_HABILITADOS
+      at fail (file:///C:/Users/valen/.codex/.chatgpt-projects/g-p-6a8b192b818c8191ad9447dd21800d7c/github/Sistema-para-comercios/.worktrees/publicacion-docker-mp/supabase/functions/_shared/mp-core.mjs:7:54)
+      at Service.handle (file:///C:/Users/valen/.codex/.chatgpt-projects/g-p-6a8b192b818c8191ad9447dd21800d7c/github/Sistema-para-comercios/.worktrees/publicacion-docker-mp/supabase/functions/_shared/mp-core.mjs:178:7)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (C:\Users\valen\.codex\.chatgpt-projects\g-p-6a8b192b818c8191ad9447dd21800d7c\github\Sistema-para-comercios\.worktrees\publicacion-docker-mp\tests\mercadopago-publico-sql.test.cjs:110:19)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async TestContext.<anonymous> (C:\Users\valen\.codex\.chatgpt-projects\g-p-6a8b192b818c8191ad9447dd21800d7c\github\Sistema-para-comercios\.worktrees\publicacion-docker-mp\tests\mercadopago-publico-sql.test.cjs:102:3)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    status: 409
+  }
+
+test at tests\mercadopago-publico-sql.test.cjs:113:11
+✖ cancel discovers official paid order and persists one receipt across retries (1695.9536ms)
+  Error: ORDEN_SIN_ACREDITAR
+      at fail (file:///C:/Users/valen/.codex/.chatgpt-projects/g-p-6a8b192b818c8191ad9447dd21800d7c/github/Sistema-para-comercios/.worktrees/publicacion-docker-mp/supabase/functions/_shared/mp-core.mjs:7:54)
+      at accreditedOrderPayment (file:///C:/Users/valen/.codex/.chatgpt-projects/g-p-6a8b192b818c8191ad9447dd21800d7c/github/Sistema-para-comercios/.worktrees/publicacion-docker-mp/supabase/functions/_shared/mp-core.mjs:71:108)
+      at Service.handle (file:///C:/Users/valen/.codex/.chatgpt-projects/g-p-6a8b192b818c8191ad9447dd21800d7c/github/Sistema-para-comercios/.worktrees/publicacion-docker-mp/supabase/functions/_shared/mp-core.mjs:223:25)
+      at async TestContext.<anonymous> (C:\Users\valen\.codex\.chatgpt-projects\g-p-6a8b192b818c8191ad9447dd21800d7c\github\Sistema-para-comercios\.worktrees\publicacion-docker-mp\tests\mercadopago-publico-sql.test.cjs:116:48)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async TestContext.<anonymous> (C:\Users\valen\.codex\.chatgpt-projects\g-p-6a8b192b818c8191ad9447dd21800d7c\github\Sistema-para-comercios\.worktrees\publicacion-docker-mp\tests\mercadopago-publico-sql.test.cjs:113:3)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    status: 409
+  }
+
+test at tests\mercadopago-publico-sql.test.cjs:118:11
+✖ disconnected terminal QR recovers exact snapshot and manual completes once without provider credentials (1693.205ms)
+  Error: ERROR:  CUENTA_NO_DISPONIBLE
+  CONTEXT:  PL/pgSQL function public.mp_publico_store(text,jsonb) line 94 at RAISE
+
+      at C:\Users\valen\.codex\.chatgpt-projects\g-p-6a8b192b818c8191ad9447dd21800d7c\github\Sistema-para-comercios\.worktrees\publicacion-docker-mp\tests\mercadopago-publico-sql.test.cjs:8:263
+      at ChildProcess.exithandler (node:child_process:424:5)
+      at ChildProcess.emit (node:events:509:28)
+      at maybeClose (node:internal/child_process:1124:16)
+      at ChildProcess._handle.onexit (node:internal/child_process:306:5)
+
+test at tests\mercadopago-publico-sql.test.cjs:140:11
+✖ active or creating QR cannot disconnect or enter terminal recovery, and leased terminal remains excluded (778.7711ms)
+  Error: ERROR:  ACCION_INVALIDA
+  CONTEXT:  PL/pgSQL function public.mp_publico_store(text,jsonb) line 142 at RAISE
+
+      at C:\Users\valen\.codex\.chatgpt-projects\g-p-6a8b192b818c8191ad9447dd21800d7c\github\Sistema-para-comercios\.worktrees\publicacion-docker-mp\tests\mercadopago-publico-sql.test.cjs:8:263
+      at ChildProcess.exithandler (node:child_process:424:5)
+      at ChildProcess.emit (node:events:509:28)
+      at maybeClose (node:internal/child_process:1124:16)
+      at ChildProcess._handle.onexit (node:internal/child_process:306:5)
+
+test at tests\mercadopago-publico.test.cjs:15:1
+✖ QR validates official order and transaction states and rejects partial refunded pending or multiple payments (0.6588ms)
+  Error: ORDEN_SIN_ACREDITAR
+      at fail (file:///C:/Users/valen/.codex/.chatgpt-projects/g-p-6a8b192b818c8191ad9447dd21800d7c/github/Sistema-para-comercios/.worktrees/publicacion-docker-mp/supabase/functions/_shared/mp-core.mjs:7:54)
+      at Module.accreditedOrderPayment (file:///C:/Users/valen/.codex/.chatgpt-projects/g-p-6a8b192b818c8191ad9447dd21800d7c/github/Sistema-para-comercios/.worktrees/publicacion-docker-mp/supabase/functions/_shared/mp-core.mjs:71:108)
+      at TestContext.<anonymous> (C:\Users\valen\.codex\.chatgpt-projects\g-p-6a8b192b818c8191ad9447dd21800d7c\github\Sistema-para-comercios\.worktrees\publicacion-docker-mp\tests\mercadopago-publico.test.cjs:15:545)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    status: 409
+  }

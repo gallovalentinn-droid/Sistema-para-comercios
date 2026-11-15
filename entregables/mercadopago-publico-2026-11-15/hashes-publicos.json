@@ -1,0 +1,7 @@
+{
+  "beta/index.html": "6fb6aec261a0f587d9027397d8db6c904f579add8e523f5111de7d91f28159ab",
+  "beta/sw.js": "ace1d0d14b3704b6ebfd36f92c6f9ad6d34b82676967e4a108b26b0c5a4aa2a3",
+  "beta/mercadopago.js": "5207b3379433bef68d105751716c07400f23485235b628c0c44a3d93b1927600",
+  "beta/vendor/qrcode-generator-2.0.4.js": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c",
+  "integrity-manifest.json": "d24aad47fd4eae099bf29268ae78edc82c3b9f61f5fa73c3612392de999b7192"
+}

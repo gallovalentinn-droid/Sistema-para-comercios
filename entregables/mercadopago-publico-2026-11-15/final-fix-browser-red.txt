@@ -1,0 +1,9 @@
+AssertionError [ERR_ASSERTION]: server pause after enabled accounts must explain pause and manual recovery
+    at main (C:\Users\valen\.codex\.chatgpt-projects\g-p-6a8b192b818c8191ad9447dd21800d7c\github\Sistema-para-comercios\.worktrees\publicacion-docker-mp\tests\browser-mercadopago-final-review.cjs:16:101) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'No pudimos recuperar el estado del cobro. Reintentá antes de continuar.',
+  expected: /pausados.*manualmente/,
+  operator: 'match',
+  diff: 'simple'
+}

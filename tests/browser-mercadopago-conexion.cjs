@@ -5,8 +5,8 @@ const assert=require('node:assert/strict');
 const {openShadow}=require('./browser-fixture/shadow.cjs');
 async function main(){
  const h=await openShadow({width:Number(process.env.WIDTH)||1366,height:900}),p=h.page;
- let configured=false,expired=false,starts=0,alias;
- await p.route('**/api/mercadopago',async route=>{
+ const isPublic=await p.evaluate(()=>mpPublico());let configured=false,expired=false,starts=0,alias;
+ await p.route(/\/(?:api|functions\/v1)\/mercadopago(?:\?.*)?$/,async route=>{
   const b=route.request().postDataJSON();
   if(b.action==='accounts')return route.fulfill({json:{configured,accounts:[]}});
   if(b.action==='oauth-start'){
@@ -21,14 +21,14 @@ async function main(){
   await config();
   assert.equal(await p.locator('#mpConectar').isVisible(),false,'sin aplicación no se promete conectar una cuenta');
   assert.equal(await p.locator('#mpCuentaNombre').isVisible(),false);
-  assert.equal(await p.locator('#mpPrepararConexion').isVisible(),true);
+  assert.equal(await p.locator('#mpPrepararConexion').isVisible(),!isPublic);
   assert.equal(await p.locator('#mpPrepararConexion').getAttribute('href'),'https://www.mercadopago.com.ar/developers/panel/app');
   assert.equal(starts,0);
   configured=true;await config();
   assert.equal(await p.locator('#mpConectar').isVisible(),true);
   assert.equal(await p.locator('#mpPrepararConexion').isVisible(),false);
   expired=true;await p.click('#mpConectar');
-  await p.waitForSelector('#mpPrepararConexion:visible');
+  await p.waitForSelector('#mpAltaCuenta[hidden]',{state:'attached'});
   assert.equal(await p.locator('#mpConectar').isVisible(),false,'si el servidor pierde configuración, vuelve al alta explícita');
   assert.match(await p.locator('#mpCuentasEstado').innerText(),/MiComercio/);
   expired=false;await config();

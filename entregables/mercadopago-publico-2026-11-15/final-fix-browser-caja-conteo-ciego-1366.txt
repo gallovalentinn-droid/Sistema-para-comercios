@@ -1,0 +1,6 @@
+{"ok":true,"width":1366,"rol":"duenio","modo":"unica"}
+{"ok":true,"width":1366,"rol":"duenio","modo":"separar"}
+{"ok":true,"width":1366,"rol":"duenio","modo":"dos_cajas"}
+{"ok":true,"width":1366,"rol":"empleado","modo":"unica"}
+{"ok":true,"width":1366,"rol":"empleado","modo":"separar"}
+{"ok":true,"width":1366,"rol":"empleado","modo":"dos_cajas"}

@@ -1,0 +1,1 @@
+{"ok":true,"width":390,"serverPause":true,"rollbackPublicTransport":true,"disconnectedTerminalReload":true,"sales":3}

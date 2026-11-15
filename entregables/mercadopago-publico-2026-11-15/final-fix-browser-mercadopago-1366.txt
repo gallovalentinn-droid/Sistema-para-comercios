@@ -1,0 +1,1 @@
+{"width":1366,"pass":true,"sales":5,"claims":1,"reloadRecovery":true}

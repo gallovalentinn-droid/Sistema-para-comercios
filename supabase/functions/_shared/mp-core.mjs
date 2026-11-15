@@ -28,7 +28,7 @@ export function configuration(env) {
   try { const raw=env.MP_TOKEN_ENCRYPTION_KEY||''; if(/^[A-Za-z0-9+/]{43}=$/.test(raw)) {const k=unb64(raw);if(k.length===32)key=k;} } catch { /* configured:false */ }
   const url = env.SUPABASE_URL || '';
   const c = {url,anonKey:env.SUPABASE_ANON_KEY||'',serviceKey:env.SUPABASE_SERVICE_ROLE_KEY||'',clientId:env.MP_CLIENT_ID||'',clientSecret:env.MP_CLIENT_SECRET||'',key,transferVerification:env.MP_TRANSFER_VERIFICATION_ENABLED==='true',newPayments:env.MP_NEW_PAYMENTS_ENABLED!=='false',redirectUri:url+'/functions/v1/mercadopago-callback'};
-  c.configured = !!(url.startsWith('https://')&&c.anonKey&&c.serviceKey&&c.clientId&&c.clientSecret&&key);
+  c.configured = !!(url.startsWith('https://')&&c.anonKey&&c.serviceKey&&/^[0-9]{1,30}$/.test(c.clientId)&&c.clientSecret&&key);
   return c;
 }
 export function cents(value) {

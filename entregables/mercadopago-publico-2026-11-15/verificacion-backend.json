@@ -1,0 +1,35 @@
+{
+  "migrationName": "mercadopago_publico",
+  "remoteMigrationVersion": "20261115232440",
+  "functions": {
+    "mercadopago": {
+      "version": 3,
+      "verify_jwt": true,
+      "sourceFilesMatched": 3
+    },
+    "mercadopago-callback": {
+      "version": 3,
+      "verify_jwt": false,
+      "sourceFilesMatched": 3
+    }
+  },
+  "privateTables": 5,
+  "rlsAll": true,
+  "rpcExecute": {
+    "anon": false,
+    "authenticated": false,
+    "service_role": true
+  },
+  "directTableAccess": {
+    "anon": false,
+    "authenticated": false
+  },
+  "realOAuth": {
+    "activeAccounts": 1,
+    "encryptedAccounts": 1,
+    "connectedEvents": 1,
+    "attemptsObserved": 0,
+    "receiptsObserved": 0
+  },
+  "secretValuesRead": false
+}
