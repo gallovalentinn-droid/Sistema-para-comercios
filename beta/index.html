@@ -1018,8 +1018,8 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:96,
-  packageEdition:'2026-11-15-docker-mp-r1',
+  packageRevision:97,
+  packageEdition:'2026-11-15-mp-publico-r1',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -4166,6 +4166,7 @@ function ir(v){
   vista=v; render();
 }
 function render(){
+  if(typeof mpProcesarRetorno==='function')mpProcesarRetorno();
   if(typeof cierreConteoPendienteUX!=='undefined'&&cierreConteoPendienteUX&&cierreConteoPendienteUX.usuario===sesion?.user?.id&&cierreConteoPendienteUX.comercio===f3Estado?.comercioId)vista='caja';
   if(vista!=='config'&&typeof configLimpiarNavegacionUX==='function')configLimpiarNavegacionUX();
   if(typeof fiadoCorreccionActiva!=='undefined'&&fiadoCorreccionActiva)return;

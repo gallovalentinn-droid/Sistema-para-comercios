@@ -1,0 +1,10 @@
+const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
+const source=fs.readFileSync(path.join(__dirname,'../beta/mercadopago.js'),'utf8');
+function setup(host='micomercio.ar'){
+ const requests=[];let reply={configured:false,accounts:[]};
+ const ctx=vm.createContext({URL,AbortSignal,location:{hostname:host},SUPABASE_URL:'https://project.supabase.co',SUPABASE_ANON_KEY:'public-test-key',sesion:{access_token:'synthetic-session',user:{id:'u1'}},f3Estado:{comercioId:'c1',deviceUuid:'d1'},fetch:async(url,options)=>{requests.push({url,options});return {ok:true,json:async()=>reply};}});vm.runInContext(source,ctx);return {ctx,requests,reply:r=>reply=r};
+}
+test('MP público usa el backend HTTPS con JWT y clave pública; preserva scope autoritativo',async()=>{const s=setup();await vm.runInContext("mpRequest('accounts',{commerceId:'foreign',action:'disconnect',deviceId:'foreign'})",s.ctx);const r=s.requests[0];assert.equal(r.url,'https://project.supabase.co/functions/v1/mercadopago');assert.equal(r.options.headers.apikey,'public-test-key');assert.equal(r.options.headers.authorization,'Bearer synthetic-session');assert.deepEqual(JSON.parse(r.options.body),{commerceId:'c1',action:'accounts',deviceId:'d1'});assert.equal(r.options.cache,'no-store');});
+test('Docker conserva el conector local y no manda cabeceras de backend ajeno',async()=>{const s=setup('127.0.0.1');await vm.runInContext("mpRequest('accounts')",s.ctx);assert.equal(s.requests[0].url,'/api/mercadopago');assert.equal(s.requests[0].options.headers.apikey,undefined);});
+test('sin sesión no se llama al servidor MP',async()=>{const s=setup();s.ctx.sesion=null;await assert.rejects(vm.runInContext("mpRequest('accounts')",s.ctx),/SESION_INVALIDA/);assert.equal(s.requests.length,0);});
+test('no se acepta respuesta que llegó después de cambiar de cuenta',async()=>{const s=setup();s.ctx.fetch=async()=>{s.ctx.sesion.user.id='other';return {ok:true,json:async()=>({accounts:[]})};};await assert.rejects(vm.runInContext("mpRequest('accounts')",s.ctx),/SESION_INVALIDA/);});
