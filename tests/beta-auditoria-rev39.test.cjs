@@ -50,11 +50,12 @@ test('abrir la pantalla no reinicia el plazo de un arranque ya iniciado', async 
 test('con una caja abierta se puede elegir separación al cierre, pero no activar dos cajas físicas', () => {
   const button = { value: 'dos_cajas', checked: true };
   const notices = []; let saves = 0, aceptarCambio;
-  const ctx = run(block("  $$('input[name=\"modoCaja\"]',m).forEach", "  $$('[data-mod]').forEach"), {
+  const ctx = run(block("  $$('input[name=\"modoCaja\"]',m).forEach(radio=>radio.onchange", "  $$('[data-mod]').forEach(b=>b.onclick"), {
     $$: () => [button], db: { config: { moduloCigarros: false, separaCigarrillosAlCierre: false } },
     m: {},
     f3Estado: { session: { estado: 'abierta' } },
     aviso: message => notices.push(message), guardar: () => { saves++; }, render: () => {},
+    actualizarAjustes: () => {}, guardarAjuste: cambios => {Object.assign(ctx.db.config,cambios);saves++;},
     confirmar: (_titulo, _texto, aceptar) => { aceptarCambio=aceptar; },
     f57ModoCaja: config => config.moduloCigarros ? 'dos_cajas' : config.separaCigarrillosAlCierre ? 'unica_separa_cigarrillos' : 'unica',
   });

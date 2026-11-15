@@ -96,58 +96,17 @@ test('mantiene resultados REV79 para raíces, ausentes, simultáneos, filtros y 
   }
 });
 
-function searchHarness() {
-  let timerId = 0, timers = new Map(), elements = {}, buttons = [], paints = [];
-  const host = {set innerHTML(value) {
-    Object.values(elements).forEach(e => e.isConnected = false);
-    elements = Object.fromEntries(['qMovimientos', 'rubroMovimientos', 'movTurnoA', 'movTurnoB', 'fechaMovimientos', 'movRango'].map(id => [id, {value: '', isConnected: true}]));
-    buttons = ['periodo', 'turnos'].map(v => ({dataset: {movVista: v}}));
-  }};
-  const ctx = vm.createContext({
-    movVista: 'turnos', movTurnoA: 's1', movTurnoB: 's2', fechaMovimientos: '2026-10-01', movRango: 'dia', filtrosMovimientos: {q: '', rubro: ''},
-    f79PuedeCompararTurnos: () => true, f79OpcionesTurnos: () => [t1, t2], esc: x => x, fFH: x => x, rubros: () => [], hoy: () => '2026-10-01',
-    $: selector => elements[selector.slice(1)], $$: () => buttons,
-    pintarMovimientosActual: () => paints.push(ctx.filtrosMovimientos.q),
-    setTimeout: fn => {timers.set(++timerId, fn); return timerId;}, clearTimeout: id => timers.delete(id)
-  });
-  const start = html.indexOf('function vMovimientos(m){'), end = html.indexOf('\n/* ═', start);
-  const debounceStart = html.indexOf('/* REV80_MOVIMIENTOS_BUSQUEDA_START */'), debounceEnd = html.indexOf('/* REV80_MOVIMIENTOS_BUSQUEDA_END */');
-  if (debounceStart >= 0) vm.runInContext(html.slice(debounceStart, debounceEnd), ctx);
-  const uxStart = html.indexOf('/* REV81_COMPARACION_START */'), uxEnd = html.indexOf('/* REV81_COMPARACION_END */');
-  if (uxStart >= 0) vm.runInContext(html.slice(uxStart, uxEnd), ctx);
-  vm.runInContext(html.slice(start, end), ctx);
-  ctx.vMovimientos(host);
-  return {ctx, paints, type: value => {elements.qMovimientos.value = value; elements.qMovimientos.oninput({target: elements.qMovimientos});},
-    flush: () => {const pending = [...timers.values()]; timers.clear(); pending.forEach(fn => fn());},
-    switchTo: value => buttons.find(b => b.dataset.movVista === value).onclick(),
-    rerender: () => ctx.vMovimientos(host)};
+function rubrosHarness() {
+  let elements={},buttons=[],aplicarRubros,paints=[];
+  const host={set innerHTML(value){elements=Object.fromEntries(['movTurnoA','movTurnoB'].map(id=>[id,{value:''}]));buttons=['periodo','turnos'].map(v=>({dataset:{movVista:v}}));}};
+  const ctx=vm.createContext({movVista:'turnos',movTurnoA:'s1',movTurnoB:'s2',fechaMovimientos:'2026-10-01',movRango:'dia',movDesdeUX:'',movPaginaUX:3,movRubrosUX:[],movAlertasUX:['negativo'],movSoloAvisos:true,filtrosMovimientos:{q:'viejo',rubro:'anterior'},db:{productos:[]},
+    f79PuedeCompararTurnos:()=>true,f79OpcionesTurnos:()=>[t1,t2],esc:x=>x,fFH:x=>x,hoy:()=> '2026-10-01',htmlFiltroRubrosRev31:()=>'<div></div>',montarFiltroRubrosRev31:(_id,_ps,_rs,cb)=>{aplicarRubros=cb;},
+    $:selector=>elements[selector.slice(1)],$$:selector=>selector==='[data-mov-vista]'?buttons:[],f80CancelarBusquedaMovimientos:()=>{},
+    pintarMovimientosActual:()=>paints.push({vista:ctx.movVista,rubros:[...ctx.movRubrosUX]})});
+  const a=html.indexOf('function vMovimientos(m){'),b=html.indexOf('\n/* ═',a),u=html.indexOf('/* REV81_COMPARACION_START */'),v=html.indexOf('/* REV81_COMPARACION_END */');
+  vm.runInContext(html.slice(u,v),ctx);vm.runInContext(html.slice(a,b),ctx);ctx.vMovimientos(host);
+  return {ctx,paints,apply:rs=>aplicarRubros(rs),switchTo:v=>buttons.find(b=>b.dataset.movVista===v).onclick()};
 }
-
-// Catches repainting the expensive comparison synchronously on every key.
-test('buscar en turnos reúne pulsaciones rápidas y dibuja sólo la última consulta', () => {
-  const h = searchHarness();
-  h.type('a'); h.type('az'); h.type('azu');
-  assert.deepEqual(h.paints, [''], 'no bloquea cada pulsación con un repintado');
-  h.flush();
-  assert.deepEqual(h.paints, ['', 'azu']);
-});
-
-test('la consulta por período continúa inmediata y descarta un repintado pendiente de turnos', () => {
-  const h = searchHarness();
-  h.type('a');
-  h.switchTo('periodo');
-  const afterSwitch = h.paints.length;
-  h.flush();
-  assert.equal(h.paints.length, afterSwitch);
-  h.type('az');
-  assert.equal(h.paints.at(-1), 'az');
-  assert.equal(h.paints.length, afterSwitch + 1);
-});
-
-test('repintar la vista cancela su búsqueda pendiente evitando resultados de un control eliminado', () => {
-  const h = searchHarness();
-  h.type('a'); h.rerender();
-  const afterRender = h.paints.length;
-  h.flush();
-  assert.equal(h.paints.length, afterRender);
-});
+test('aplicar varios rubros repinta una vez y vuelve a la primera página',()=>{const h=rubrosHarness();h.apply(['Bebidas','Cigarrillos']);assert.equal(h.paints.length,2);assert.deepEqual(h.paints[1].rubros,['Bebidas','Cigarrillos']);assert.equal(h.ctx.movPaginaUX,1);});
+test('pasar de comparación a período conserva los rubros seleccionados',()=>{const h=rubrosHarness();h.apply(['Bebidas']);h.switchTo('periodo');assert.equal(h.paints.at(-1).vista,'periodo');assert.deepEqual(h.paints.at(-1).rubros,['Bebidas']);});
+test('la entrada elimina filtros antiguos ocultos y usa los últimos siete días',()=>{const h=rubrosHarness();assert.equal(h.ctx.filtrosMovimientos.q,'');assert.equal(h.ctx.filtrosMovimientos.rubro,'');assert.equal(h.ctx.movAlertasUX.length,0);assert.equal(vm.runInContext('movSoloAvisos',h.ctx),false);assert.equal(h.ctx.movRango,'personalizado');assert.equal(h.ctx.movDesdeUX,'2026-09-25');assert.equal(h.ctx.fechaMovimientos,'2026-10-01');});

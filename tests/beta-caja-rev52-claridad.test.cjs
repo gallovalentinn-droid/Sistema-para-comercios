@@ -28,14 +28,12 @@ test('el motivo se pide al revisar y se valida antes de cerrar', () => {
   assert.match(caja, /nota:explicacionCaja\.value\.trim\(\)/);
 });
 
-test('el cierre no muestra sugerencias de fondos y las correcciones quedan separadas de la lista de movimientos', () => {
+test('el cierre no muestra sugerencias de fondos y conserva los movimientos en una sola sección plegable', () => {
   const caja = section(source(), 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
   assert.doesNotMatch(caja, /Configurar sugerencias de fondos de apertura/);
   assert.doesNotMatch(caja, /id="okFondo"/);
-  assert.equal((caja.match(/<summary>Más datos y correcciones<\/summary>/g) || []).length, 1);
-  assert.match(caja, /movimientos\.slice\(0,5\)\.map\(htmlMovimiento\)/);
-  assert.match(caja, /movimientos\.slice\(5\)\.map\(htmlMovimiento\)/);
-  assert.doesNotMatch(caja, /movimientos\.map\(htmlMovimiento\)/);
+  assert.equal((caja.match(/<summary>Movimientos del turno<\/summary>/g) || []).length, 1);
+  assert.doesNotMatch(caja, /cash-movements-card|verTodosMovCaja|Más datos y correcciones/);
   assert.doesNotMatch(caja, /Cobros por forma de pago/);
   assert.doesNotMatch(caja, /<summary>Ver más datos del turno|<summary>Ver cobros por forma de pago|<summary>Ver ventas y egresos del turno/);
   assert.match(caja, /id="contadoG"[^>]*inputmode="decimal"[^>]*>/);
@@ -52,10 +50,10 @@ test('los fondos sugeridos se configuran fuera del cierre y rechazan importes in
   assert.match(config, /if\(!lecturaGeneral\.ok/);
 });
 
-test('la caja muestra la cuenta del efectivo sin ocultar un cálculo negativo', () => {
+test('la caja conserva el cálculo interno sin mostrar el esperado durante el conteo', () => {
   const caja = section(source(), 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
-  assert.match(caja, /tarjetaCaja\(moduloCigarros\?'Caja general':'Caja única',resumen\.general,espGeneral/);
-  assert.match(caja, /class="cash-box-amount \$\{esperado<0\?'negative'/);
+  assert.match(caja, /esperadoGeneral:espGeneral,contadoGeneral,diferenciaGeneral:dG/);
+  assert.doesNotMatch(caja, /class="cash-box-amount/);
   assert.doesNotMatch(caja, /Math\.max\(0,espGeneral\)/);
 });
 

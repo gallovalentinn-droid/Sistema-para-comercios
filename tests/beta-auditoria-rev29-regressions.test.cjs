@@ -31,7 +31,7 @@ test('los importes argentinos y las cantidades fraccionarias usan parsers distin
 test('el cobro conserva el comprobante y bloquea un segundo cierre durante la animación', () => {
   const text = source();
   const payment = block(text, 'function pintarPagoModal(ov){', '\nfunction pintarMixtoFilas(');
-  const close = block(text, 'function cerrarVenta(forma){', '\nfunction ticketImpreso(');
+  const close = block(text, 'function cerrarVenta(forma,mpCobro=null){', '\nfunction ticketImpreso(');
   const shortcuts = block(text, '/* ═══════════════════════════════════════════════════════\n   10. ATAJOS + ARRANQUE', '/* ==========================================================================\n   MI COMERCIO — F4.3');
   assert.doesNotMatch(payment, /cerrarVenta\([^)]*\)\)\s*cerrarModal\(\)/);
   assert.match(close, /ventaEnProceso/);
@@ -40,14 +40,14 @@ test('el cobro conserva el comprobante y bloquea un segundo cierre durante la an
   assert.match(shortcuts, /!ventaEnProceso/);
 });
 
-test('el cierre exige conteos escritos y describe la diferencia como falta o sobra', () => {
+test('el cierre exige conteos escritos sin revelar el resultado del arqueo', () => {
   const cash = block(source(), 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
   assert.match(cash, /function conteosCajaCompletos\(/);
   assert.match(cash, /siguiente\.disabled=!!motivo/);
-  assert.match(cash, /cerrarCaja\.disabled=!!pendiente/);
+  assert.match(cash, /cerrarCaja\.disabled=cierreEnProceso\|\|!!pendiente/);
   assert.match(cash, /ayuda\.textContent=pendiente/);
   assert.match(cash, /inpG\.value\.trim\(\)===''/);
-  assert.match(cash, /dG<0\?'Falta':'Sobra'/);
+  assert.doesNotMatch(cash, /dG<0\?'Falta':'Sobra'/);
 });
 
 test('Caja usa el mismo criterio de costos y egresos operativos que Resumen', () => {
@@ -133,7 +133,7 @@ test('el paquete incluye verificación de integridad y la ruta anterior ya no ca
   assert.ok(fs.existsSync(path.resolve(__dirname, '../verificar.ps1')));
   assert.ok(fs.existsSync(path.resolve(__dirname, '../tools/verificar-integridad.cjs')));
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  assert.equal(manifest.packageRevision, 95);
+  assert.equal(manifest.packageRevision, 96);
   assert.equal(manifest.algorithm, 'sha256');
   assert.ok(manifest.files['beta/index.html']);
   assert.ok(manifest.files['beta/vendor/supabase-js-2.112.3.min.js']);
@@ -145,6 +145,6 @@ test('el paquete incluye verificación de integridad y la ruta anterior ya no ca
 test('la identidad de la corrección queda alineada en la revisión actual', () => {
   const text = source();
   const sw = fs.readFileSync(swPath, 'utf8');
-  assert.match(text, /packageRevision:95/);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev95/);
+  assert.match(text, /packageRevision:96/);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev96/);
 });

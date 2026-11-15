@@ -54,7 +54,7 @@ test('Costo, Venta, Margen y Stock usan alineación derecha y cifras tabulares',
 
   assert.match(css, /#tabProd \.product-number\{[^}]*text-align:right[^}]*font-variant-numeric:tabular-nums/);
   for (const [label, className] of [['Costo','cost'], ['Venta','sale'], ['Margen','margin'], ['Stock','stock']]) {
-    assert.match(table, new RegExp(`<th class="product-number product-${className}">${label}<\\/th>`));
+    assert.match(table, new RegExp(`<th class="product-number product-${className}(?: product-extra)?">${label}<\\/th>`));
   }
 });
 
@@ -64,19 +64,19 @@ test('la tabla distingue costo faltante, venta principal y margen calculado', ()
     { id:'p1', nombre:'Con costo', ean:'', rubro:'', proveedor:'', costo:2900, precio:4400, stock:6, stockMin:4, stockDeseado:8, unidad:'unidad', vence:'' }
   ]);
 
-  assert.match(rendered, /data-label="Costo" class="[^"]*product-cost[^"]*">—<\/td>/);
+  assert.match(rendered, /data-label="Costo" class="[^"]*product-cost[^"]*">Sin costo<\/td>/);
   assert.match(rendered, /data-label="Costo" class="[^"]*product-cost[^"]*">\$2\.900,00<\/td>/);
   assert.match(rendered, /data-label="Venta" class="[^"]*product-sale[^"]*">\$3\.300,00<\/td>/);
   assert.match(rendered, /data-label="Margen" class="[^"]*product-value[^"]*">52%<\/td>/);
 });
 
-test('el stock muestra la cantidad como antes de REV62: rojo si está agotado', () => {
+test('el stock diferencia agotado y crítico según su mínimo y conserva la cantidad', () => {
   const rendered = renderProducts([
     { id:'p0', nombre:'Agotado', ean:'', rubro:'', proveedor:'', costo:1, precio:2, stock:0, stockMin:4, stockDeseado:8, unidad:'unidad', vence:'' },
     { id:'p1', nombre:'Disponible', ean:'', rubro:'', proveedor:'', costo:1, precio:2, stock:6, stockMin:8, stockDeseado:12, unidad:'unidad', vence:'' }
   ]);
 
-  assert.match(rendered, /product-stock[^>]*><span class="pill bad num">0<\/span>/);
-  assert.match(rendered, /product-stock[^>]*><span class="pill mute num">6<\/span>/);
+  assert.match(rendered, /stock-agotado[^>]*>[\s\S]*?<b class="num">0<\/b><small>Sin stock<\/small>/);
+  assert.match(rendered, /stock-bajo[^>]*>[\s\S]*?<b class="num">6<\/b><small>Crítico<\/small>/);
   assert.doesNotMatch(rendered, /Sin stock · |Bajo · /);
 });

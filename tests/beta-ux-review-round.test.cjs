@@ -58,10 +58,10 @@ test('el cobro en efectivo ofrece montos rápidos y acepta el importe exacto por
 test('Fiado permite operar desde la lista y diferencia saldo abierto de todos', () => {
   const text = source();
   const credit = block(text, 'function vFiado(m){', '\nfunction formCliente(');
-  assert.match(credit, /Registrar fiado/);
+  assert.match(credit, /Nueva venta fiada/);
   assert.match(credit, /fiadoFiltro/);
   assert.match(credit, /Con saldo/);
-  assert.match(credit, /Sin pagar hace/);
+  assert.match(credit, /Vencimiento/);
   assert.match(credit, /data-fiar/);
   assert.match(credit, /monto vencido/);
 });
@@ -114,11 +114,12 @@ test('Movimientos separa ingresos y ajustes y permite auditar negativos', () => 
   const text = source();
   const movements = text;
   assert.match(movements, /movRango/);
-  assert.match(movements, />Ingresos</);
-  assert.match(movements, />Ajustes</);
+  assert.match(movements, /cabecera\('Ingresos','ingresos'\)/);
+  assert.match(movements, /cabecera\('Otros movimientos','ajustes'\)/);
   assert.match(movements, /stock-negative/);
   assert.match(movements, /data-mov-detalle/);
-  assert.match(movements, /Totales del período/);
+  const periodo=block(text, 'function pintarMovimientosDia(){', '\nfunction responsableMovimiento(');
+  assert.doesNotMatch(periodo, /Totales del período|mov-ux-totales-wrap/);
 });
 
 test('Vencimientos informa cobertura y permite cargar o liquidar', () => {
@@ -148,7 +149,7 @@ test('Soporte prepara el contacto con diagnóstico técnico de solo lectura', ()
   assert.match(support, /supportMensaje/);
   assert.match(support, /MICOMERCIO_BUILD\.version/);
   assert.match(support, /navigator\.userAgent/);
-  assert.match(support, /Abrir WhatsApp con todo cargado/);
+  assert.match(support, /Abrir WhatsApp/);
   assert.doesNotMatch(support, /Productos:.*Ventas:.*Clientes:/s);
 });
 
@@ -168,6 +169,7 @@ test('Para pedir y Movimientos contienen sus tablas en notebooks angostas', () =
   assert.match(text, /\.rep-table col:nth-child\(2\),\.rep-table th:nth-child\(2\),\.rep-table td:nth-child\(2\)\{display:none\}/);
   assert.match(text, /aria-label="Movimientos de stock"[^>]*><table class="mtable mov-table"/);
   assert.match(text, /#tablaMovimientos \.mov-table th,#tablaMovimientos \.mov-table td/);
-  assert.match(text, /#tablaMovimientos \.mov-table th:last-child,#tablaMovimientos \.mov-table td:last-child\{display:none\}/);
+  assert.doesNotMatch(text, /#tablaMovimientos \.mov-table th:last-child,#tablaMovimientos \.mov-table td:last-child\{display:none\}/);
+  assert.match(text, /#tablaMovimientos \.mov-table td\.mov-ux-acciones\{display:flex/);
   assert.match(text, /data-mov-fila/);
 });

@@ -1,14 +1,14 @@
 {
   "version": "6.0.0-f6-rc2",
-  "packageRevision": 95,
+  "packageRevision": 96,
   "algorithm": "sha256",
-  "generatedAt": "2026-11-10",
+  "generatedAt": "2026-11-15-docker-mp-r1",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "41d8973e80e57b0380e8b7cd6e962481f9bb5016a23e85e0f8f21f0a0cbe580b",
+    "beta/index.html": "72bb121039228ebc42fcacdf43bac5e1dd780e80038954d57d85c6a751185cfe",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "082812fff0f19f830b3ee30c6529c27fbabc522228e411b509e15544d872fd1c",
+    "beta/sw.js": "eb51bacc50a8fc0316bfbcde88c9f2e4e40006327bad23252e5d8f468f66330c",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -38,7 +38,12 @@
     "tools/actualizar-integridad.cjs": "9dad819f33d637f907c64cb4fc93f3b540c5db02c009f5b400a1fabad3bd8641",
     "LEEME-REV84.md": "864e83b352e09d28e2dafea11b502b8e7ce976837e410f8436fe4a7993c310ca",
     "REV95-LECTOR-RESPALDO.sql": "5330d92fac2be4707d4492077f1987d88c3f83565fb6a228f7645543d1e93a70",
-    "REV95-LECTOR-REINTENTO.sql": "09645d4faeb2a09db1ee9eed8e3f70e0bb81f9f568395988625d410aaed5096a"
+    "REV95-LECTOR-REINTENTO.sql": "09645d4faeb2a09db1ee9eed8e3f70e0bb81f9f568395988625d410aaed5096a",
+    "beta/mercadopago.js": "53ffeb06cfd952e87d8d61c0023b7a6bfa93588e69affa62cfc603775ab67a68",
+    "beta/vendor/qrcode-generator-2.0.4.js": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c",
+    "beta/vendor/LICENSE-qrcode-generator-2.0.4.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
+    "tools/mercadopago/core.cjs": "c87928bb7c59c2790655daa356cdaa1948f6d83f078850e4df197c73eaf5ee32",
+    "tools/mercadopago/server.cjs": "58e8a4fe3dcd5c722ed7adc6c78fb16cb6e1fad7b74382001eada3d818e710a2"
   },
-  "packageEdition": "2026-11-10"
+  "packageEdition": "2026-11-15-docker-mp-r1"
 }

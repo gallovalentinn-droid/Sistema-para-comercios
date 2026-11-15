@@ -1,0 +1,13 @@
+'use strict';
+process.env.PW||='C:/Users/valen/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright';process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
+const assert=require('node:assert/strict'),{openShadow}=require('./browser-fixture/shadow.cjs');
+async function main(){const h=await openShadow({width:1024,height:950}),p=h.page;try{
+ await p.evaluate(()=>{f5GestionEmpleados={comercioId:f3Estado.comercioId,codigo:'PRUEBA',items:[],loaded:true,loading:false,error:'',soloActivos:false};vista='config';render();window.__persistirConfig=persistirCambiosIdb;window.__comercioConfig=f3Estado.comercioId;persistirCambiosIdb=async()=>{throw new Error('FALLO_CONFIG_PRUEBA');};});
+ await p.locator('[data-mod="moduloFiado"]').click();await p.waitForSelector('#cfgGuardadoPendiente:not([hidden])');
+ await p.evaluate(()=>{f3Estado.comercioId='otro-comercio';vConfig($('#main'));});assert.equal(await p.locator('[data-mod="moduloFiado"]').isEnabled(),true,'un fallo del comercio anterior no bloquea al nuevo');assert.equal(await p.locator('#cfgGuardadoPendiente').isVisible(),false);
+ await p.evaluate(()=>{f3Estado.comercioId=window.__comercioConfig;persistirCambiosIdb=window.__persistirConfig;vConfig($('#main'));});assert.equal(await p.locator('#cfgGuardadoPendiente').isVisible(),true,'la identidad original puede recuperar su guardado');await p.click('#cfgReintentarGuardado');await p.waitForFunction(()=>document.querySelector('#cfgGuardadoPendiente').hidden);
+ await p.evaluate(()=>{persistirCambiosIdb=async(...args)=>{await new Promise(r=>setTimeout(r,800));return window.__persistirConfig(...args);};});await p.locator('[data-mod="moduloVencimientos"]').click();await p.evaluate(()=>{vista='productos';render();vista='config';render();});await p.waitForFunction(()=>!document.querySelector('#okCfg').disabled,{},{timeout:5000});assert.equal(await p.locator('[data-mod="moduloVencimientos"]').isEnabled(),true,'volver durante un guardado no deja botones viejos bloqueados');
+ await p.locator('[data-mod="moduloFiado"]').click();await p.evaluate(()=>{f3Estado.comercioId='comercio-nuevo';vConfig($('#main'));});await p.waitForTimeout(1100);assert.equal(await p.locator('#cfgFuncionesEstado').innerText(),'Los cambios se guardan al elegir una opción.','una respuesta de la cuenta anterior no cambia el estado de la pantalla nueva');
+ assert.deepEqual(h.errors.filter(x=>x.startsWith('pageerror:')),[]);console.log(JSON.stringify({ok:true,aislamiento:true,regresoDuranteGuardado:true}));
+ }finally{await h.close();}}
+main().catch(e=>{console.error(e.stack||e);process.exitCode=1;});

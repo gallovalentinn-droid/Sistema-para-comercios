@@ -13,11 +13,11 @@ function caja(){
   const turno={desde:'2026-10-06T10:00:00Z',ventas:[{id:'venta-a'}],pagos:[],egresos:[],total:1000,
     porForma:{efectivo:1000},cigTotal:0,costo:500,egrGeneral:0,egrCigarros:0};
   const callbacks=[],avisos=[];
-  const nodes={'#responsableCierreCaja':{value:'Ana'},'#cerrarCaja':{}};
+  const nodes={'#responsableCierreCaja':{value:'Ana'},'#cerrarCaja':{setAttribute(){}}};
   const c={f3Estado:{session:ses,cajaId:'caja'},db:{cierres:[],config:{}},activeSession:ses,t:turno,
     inpG:{value:'1100'},inpC:null,moduloCigarros:false,separaCigarrillosAlCierre:false,
     espGeneral:1100,espCigarros:0,decisionDestino:'retirar_todo',quedaG:null,quedaC:null,
-    explicacionCaja:{value:''},apartadoInput:null,rev31ReabrirTrasCierre:false,
+    explicacionCaja:{value:''},apartadoInput:null,apartadoEnEdicion:false,rev31ReabrirTrasCierre:false,cierreEnProceso:false,cerrarCaja:nodes['#cerrarCaja'],
     conteosCajaCompletos:()=>true,f3Activo:()=>true,num:Number,
     f5EstadoBloqueo:()=>({authority:{writable:true}}),f5Estado:()=>({membership:{user_id:'persona'}}),
     f5ExigirEscritura:()=>{},motivoDiferenciaCaja:()=>'',f52CalcularDestinoCierre:()=>({ok:true,retiroGeneral:1100,retiroCigarros:0,quedaGeneral:0,quedaCigarros:0}),

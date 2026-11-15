@@ -63,9 +63,9 @@ test('al reconstruir la tabla de Productos conserva también su desplazamiento i
     productoArchivadoRev31: () => false, productoIncompleto: () => false, bajo: () => false,
     esc: String, ic: () => '', htmlFiltroRubrosRev31: () => '',
     $: selector => selector === '#tabProd' ? (rebuilt ? newList : oldList) : null,
-    wireProductosActions: () => {}, montarFiltroRubrosRev31: () => {}, tablaProductos: () => {},
+    wireProductosActions: () => {}, montarFiltroRubrosRev31: () => {}, tablaProductos: () => {}, $$:()=>[],
   };
-  context(`${sourceOf('vProductos')}\nthis.mostrar=vProductos;`, ctx);
+  context(`${sourceOf('productoAlertasUX')}\n${sourceOf('pluralProductos')}\n${sourceOf('vProductos')}\nthis.mostrar=vProductos;`, ctx);
   ctx.mostrar(root);
   assert.equal(newList.scrollTop, 460);
 });

@@ -1,3 +1,7 @@
+# Publicación REV96 — 15/11/2026
+
+Versión unificada Docker + Mercado Pago, conservando las correcciones públicas REV95 del lector. Edición 2026-11-15-docker-mp-r1, caché rev96-r1. Publicación autorizada expresamente por el usuario. GitHub Pages sirve la web; el conector MP Node sigue siendo local y requiere hosting HTTPS y configuración del proveedor para conectar cuentas o emitir QR reales. El cobro manual permanece disponible. No se aplican migraciones ni se despliega leer-factura en esta publicación.
+
 # MiComercio.ar — contexto de continuidad
 
 Actualizado: 2026-10-25 (America/Argentina/Buenos_Aires)

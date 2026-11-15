@@ -95,6 +95,8 @@ function load() {
     nfM: { format: (value) => String(value) },
     FORMAS: { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' },
     busCajaTurno: '',
+    rubrosCajaTurno: [],
+    montarFiltroRubrosRev31:()=>{},
     cierreResponsableFiltro: 'todos',
     f69Estado: { comercioId: commerceId, items: [], loading: false, loadedAt: 0, error: '' },
     filtrarVentasPorBusqueda: (rows) => rows,
@@ -108,7 +110,7 @@ function load() {
     'f32BuscarLocalV4', 'f32BuscarLocalLegacy', 'f32LocalParaRemoto', 'f32ResolverIdLocal',
     'f32UpsertArray', 'f32AplicarVisible', 'f32bEstado', 'f32bCursorKey', 'f32bSetCursor',
     'f32bMapEgreso', 'f32bMapVenta', 'f32bMapCierre', 'f32bMapOperacion', 'f32bDeviceFila', 'f32bAplicarVisible',
-    'f32bAvanzarOmitida', 'f32bProcesarFila', 'pintarVentasCajaActual', 'responsableCierre',
+    'f32bAvanzarOmitida', 'f32bProcesarFila', 'normalizarBusqueda', 'rubrosVenta', 'htmlFiltroRubrosRev31', 'pintarVentasCajaActual', 'responsableCierre',
     'montoDiferenciaCaja', 'motivoCierrePendiente', 'motivoDiferenciaCaja', 'estadoDiferenciaCaja', 'f69ResumenCierre', 'f52CalcularDestinoCierre',
     'f56ValidarApartadoCigarrillos', 'f57DesgloseRetiroCigarrillos', 'f56CajaSeparadaEnSesion', 'f57ModoCaja', 'f56EsperadoCajaUnica',
     'esEgresoOperativo', 'f59DesgloseCajaActual', 'f59MovimientosCajaActual', 'f59TiempoAbiertoCaja',
@@ -234,13 +236,13 @@ test('el historial sigue visible con un turno abierto y ordena por fecha de cier
   context.db.cierres.unshift({ ...context.db.cierres[0], id: 'reciente', hasta: '2026-09-15T20:00:00.000Z', nota: 'Cierre reciente' });
   context.f3Estado.session = { id: 'turno-duenio', estado: 'abierta' };
   context.vCaja(main);
-  assert.match(main.innerHTML, /Vendido en el turno/);
+  assert.doesNotMatch(main.innerHTML, /Vendido en el turno|cash-sales-card|cash-payment-list/);
   assert.match(main.innerHTML, /Turno de empleado/);
   assert.ok(main.innerHTML.indexOf('Cierre reciente') < main.innerHTML.indexOf('Turno de empleado'));
   assert.equal(context.f3Estado.session.id, 'turno-duenio');
 });
 
-test('el arqueo reserva el rojo para una diferencia negativa real', () => {
+test('el conteo no revela diferencias antes de guardar el cierre', () => {
   const { context, main, nodes } = load();
   const turno = context.turnoActual('turno-duenio');
   context.turnoActual = () => ({ ...turno, genEfectivo: 1000, porForma: { ...turno.porForma, efectivo: 1000 } });
@@ -248,17 +250,15 @@ test('el arqueo reserva el rojo para una diferencia negativa real', () => {
   context.vCaja(main);
 
   const contado = nodes.get('#contadoG');
-  const diferencia = nodes.get('#difG');
   contado.value = '800';
   contado.oninput();
-  assert.equal(diferencia.className, 'cash-difference negative');
-  assert.match(diferencia.innerHTML, /Falta/);
-  assert.match(diferencia.innerHTML, /\$200\.00/);
+  assert.equal(nodes.has('#difG'),false);
+  assert.doesNotMatch(main.innerHTML,/Debería haber|class="cash-calculation"/);
 
   contado.value = '1000';
   contado.oninput();
-  assert.equal(diferencia.className, 'cash-difference ok');
-  assert.doesNotMatch(diferencia.innerHTML, /Falta|Sobra/);
+  assert.equal(nodes.has('#difG'),false);
+  assert.equal(nodes.get('#pasoCajaSiguiente').disabled,false);
 });
 
 test('Caja exige contar y elegir el destino antes de habilitar el cierre', () => {
@@ -274,6 +274,8 @@ test('Caja exige contar y elegir el destino antes de habilitar el cierre', () =>
   contado.oninput();
   assert.equal(boton.disabled, true);
   nodes.get('[data-destino-caja]:retirar_todo').onclick();
+  assert.equal(boton.disabled,true);
+  nodes.get('#responsableCierreCaja').value='Ana';nodes.get('#responsableCierreCaja').oninput();
   assert.equal(boton.disabled, false);
   assert.equal(ayuda.hidden, true);
 });
@@ -288,19 +290,20 @@ test('una caja con separación de cigarrillos cuenta el efectivo una vez y exige
   context.db.config.separaCigarrillosAlCierre = true;
   context.f3Estado.session = { id:'turno-duenio', estado:'abierta', fondoGeneral:8030, fondoCigarros:0 };
   context.vCaja(main);
-  assert.match(main.innerHTML, /Todo el efectivo se cuenta junto\. El monto de cigarrillos se aparta al cerrar\./);
-  assert.match(main.innerHTML, /<tr><td style="padding-left:0">Ventas en efectivo<\/td><td class="r num">\+ \$673970\.00<\/td><\/tr>/);
-  assert.match(main.innerHTML, /Tenés que separar/);
+  assert.doesNotMatch(main.innerHTML, /Todo el efectivo se cuenta junto\. El monto de cigarrillos se aparta al cerrar\./);
+  assert.doesNotMatch(main.innerHTML, /class="cash-calculation"|Debería haber/);
+  assert.match(main.innerHTML, /Monto a separar para cigarrillos/);
   assert.doesNotMatch(main.innerHTML, /id="contadoC"/);
   nodes.get('#contadoG').value = '682000';
   nodes.get('#contadoG').oninput();
-  assert.match(nodes.get('#difG').innerHTML, /\$0\.00/);
+  assert.equal(nodes.has('#difG'),false);
   nodes.get('[data-destino-caja]:retirar_todo').onclick();
   assert.equal(nodes.get('#apartadoCigarrillos').value,'0');
   nodes.get('#apartadoCigarrillos').value='';nodes.get('#apartadoCigarrillos').oninput();
   assert.equal(nodes.get('#cerrarCaja').disabled, true);
   assert.match(nodes.get('#ayudaCerrarCaja').textContent, /importe válido/i);
   nodes.get('#apartadoCigarrillos').value = '159530';
+  nodes.get('#responsableCierreCaja').value='Ana';
   nodes.get('#apartadoCigarrillos').oninput();
   assert.equal(nodes.get('#cerrarCaja').disabled, false);
   assert.match(nodes.get('#resumenDestinoCaja').innerHTML, /Para cigarrillos<\/span><b>\$159530\.00/);
@@ -317,9 +320,9 @@ test('el cierre precarga cigarrillos cobrados por todos los medios y conserva el
   context.db.config.separaCigarrillosAlCierre = true;
   context.f3Estado.session = { id:'turno-duenio', estado:'abierta', fondoGeneral:50000, fondoCigarros:0 };
   context.vCaja(main);
-  assert.match(main.innerHTML, /Tenés que separar <b>\$30000\.00<\/b>/);
-  assert.match(main.innerHTML, /Transf\/QR \$15000\.00/);
-  assert.match(main.innerHTML, /El fiado pendiente no se incluye/);
+  assert.match(main.innerHTML, /Monto a separar para cigarrillos/);
+  assert.match(main.innerHTML, /Transf\/QR <b>\$15000\.00/);
+  assert.doesNotMatch(main.innerHTML, /Cómo se calcula|Total efectivo en caja/);
   assert.equal(nodes.get('#apartadoCigarrillos').value, '30000');
   nodes.get('#contadoG').value = '50000';
   nodes.get('#contadoG').oninput();
@@ -328,18 +331,15 @@ test('el cierre precarga cigarrillos cobrados por todos los medios y conserva el
   assert.equal(nodes.get('#quedaCajaGeneral').value, '20000');
   assert.match(nodes.get('#resumenDestinoCaja').innerHTML, /Para cigarrillos<\/span><b>\$30000\.00/);
   assert.match(nodes.get('#resumenDestinoCaja').innerHTML, /Queda para el próximo turno<\/span><b>\$20000\.00/);
-  nodes.get('#editarApartadoCigarrillos').onclick();
+  nodes.get('#responsableCierreCaja').value='Ana';
   nodes.get('#apartadoCigarrillos').value = '25000';
   nodes.get('#apartadoCigarrillos').oninput();
-  assert.equal(nodes.get('#cerrarCaja').disabled,true);
-  nodes.get('#guardarApartadoCigarrillos').onclick();
+  assert.equal(nodes.get('#cerrarCaja').disabled,false);
   assert.equal(nodes.get('#quedaCajaGeneral').value, '25000');
   nodes.get('#quedaCajaGeneral').value = '18000';
   nodes.get('#quedaCajaGeneral').oninput();
-  nodes.get('#editarApartadoCigarrillos').onclick();
   nodes.get('#apartadoCigarrillos').value = '20000';
   nodes.get('#apartadoCigarrillos').oninput();
-  nodes.get('#guardarApartadoCigarrillos').onclick();
   assert.equal(nodes.get('#quedaCajaGeneral').value, '18000');
 });
 
@@ -359,9 +359,7 @@ test('si lo vendido en cigarrillos supera el efectivo contado, advierte y no int
   assert.equal(nodes.get('#apartadoCigarrillos').value,'30000','la precarga no se recorta silenciosamente');
   nodes.get('[data-destino-caja]:dejar').onclick();
   assert.equal(nodes.get('#cerrarCaja').disabled,true);
-  nodes.get('#editarApartadoCigarrillos').onclick();
   nodes.get('#apartadoCigarrillos').value='10000';nodes.get('#apartadoCigarrillos').oninput();
-  nodes.get('#guardarApartadoCigarrillos').onclick();
   assert.equal(nodes.get('#apartadoCigarrillos').value, '10000');
   assert.equal(nodes.get('#quedaCajaGeneral').value, '0');
   assert.match(nodes.get('#resumenDestinoCaja').innerHTML, /Para cigarrillos<\/span><b>\$10000\.00/);
@@ -371,7 +369,7 @@ test('el cierre guiado no revela el cálculo hasta que se cuenta y permite volve
   const { context, main, nodes } = load();
   context.f3Estado.session = { id:'turno-duenio', estado:'abierta' };
   const paneles = ['contar','revisar','finalizar'].map(cajaPaso => ({dataset:{cajaPaso},hidden:false}));
-  const indicadores = ['contar','revisar','finalizar'].map(cajaIndicador => ({dataset:{cajaIndicador},classList:{toggle:()=>{}}}));
+  const indicadores = ['contar','revisar','finalizar'].map(cajaIndicador => ({dataset:{cajaIndicador},classList:{toggle:()=>{}},setAttribute(){},removeAttribute(){}}));
   const original = context.$$;
   context.$$ = (selector, root) => selector==='[data-caja-paso]' ? paneles : selector==='[data-caja-indicador]' ? indicadores : original(selector, root);
   context.vCaja(main);
@@ -389,8 +387,12 @@ test('el cierre guiado no revela el cálculo hasta que se cuenta y permite volve
   assert.deepEqual(paneles.map(p => p.hidden), [true,false,true]);
   nodes.get('#pasoCajaFinalizar').onclick();
   assert.deepEqual(paneles.map(p => p.hidden), [true,true,false]);
-  nodes.get('#pasoCajaAnterior').onclick();
+  indicadores[1].onclick();
   assert.deepEqual(paneles.map(p => p.hidden), [true,false,true]);
+  indicadores[0].onclick();
+  assert.deepEqual(paneles.map(p => p.hidden), [false,true,true]);
+  indicadores[2].onclick();
+  assert.deepEqual(paneles.map(p => p.hidden), [true,true,false]);
 });
 
 test('sin turno y sin historial muestra Abrir turno', () => {

@@ -41,27 +41,27 @@ test('Caja separa turno, historial y el cierre en una ventana guiada', () => {
   assert.match(caja, /data-caja-panel="turno"/);
   assert.match(caja, /data-caja-panel="cierre"/);
   assert.match(caja, /data-caja-panel="historial"/);
-  for (const label of ['Vendido en el turno', 'Vendido en cigarrillos', 'Egresos del turno', 'Anotado en fiado', 'Ganancia estimada']) {
+  for (const label of ['Vendido en cigarrillos', 'Egresos del turno', 'Ganancia estimada']) {
     assert.match(caja, new RegExp(label));
   }
+  assert.doesNotMatch(caja, /cash-sales-card|Vendido en el turno|cash-payment-list/);
   assert.doesNotMatch(caja, /Egresos del turno<\/span><b style="color:var\(--rojo\)"/);
   assert.match(caja, /id="bGastoCaja">\$\{ic\('mas'\)\} Registrar gasto/);
   assert.match(caja, /id="bRetiroCaja">\$\{ic\('subir'\)\} Sacar plata/);
   assert.doesNotMatch(caja, /id="bHistorialCaja"/);
-  assert.match(caja, /movimientos\.slice\(0,5\)\.map\(htmlMovimiento\)/);
+  assert.doesNotMatch(caja, /class="card cash-movements-card"/);
+  assert.match(caja, /id="operacionesCaja"><summary>Movimientos del turno<\/summary>/);
 });
 
-test('el cierre destaca el único dato manual y permite plegar cigarrillos', () => {
+test('el cierre destaca el conteo manual y reserva el arqueo para después de guardar', () => {
   const text = source();
   const caja = sliceBetween(text, 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
 
   assert.match(caja, /class="cash-count-box"[\s\S]*id="contadoG"/);
-  assert.match(caja, /id="difG" class="cash-difference[^\"]*"[\s\S]*Diferencia[\s\S]*—/);
-  assert.match(caja, /data-caja-cig-toggle/);
-  assert.match(caja, /data-caja-cig-content/);
+  assert.doesNotMatch(caja, /id="difG"|id="difC"|class="cash-calculation"/);
   assert.match(caja, /const aplicarVistaCaja=/);
-  assert.match(caja, /const actualizarDiferencia=/);
-  assert.match(caja, /d<-0\.009\?'negative':d>0\.009\?'positive':'ok'/);
+  assert.match(caja, /const actualizarConteo=/);
+  assert.match(caja, /pendiente\.tarea=guardar\(opCierre\);await pendiente\.tarea/);
 });
 
 test('Caja guía el cierre en contar, revisar y decidir cuánto queda', () => {
@@ -71,7 +71,8 @@ test('Caja guía el cierre en contar, revisar y decidir cuánto queda', () => {
   assert.match(caja, /data-caja-paso="revisar"/);
   assert.match(caja, /data-caja-paso="finalizar"/);
   assert.match(caja, /id="pasoCajaSiguiente"/);
-  assert.match(caja, /id="pasoCajaAnterior"/);
+  assert.doesNotMatch(caja, /id="pasoCajaAnterior"/);
+  assert.match(caja, /<button type="button" data-caja-indicador="revisar"/);
   assert.match(caja, /data-destino-caja="retirar_todo"/);
   assert.match(caja, /data-destino-caja="dejar"/);
   assert.match(caja, /id="quedaCajaGeneral"/);
@@ -97,6 +98,6 @@ test('el rediseño de Caja publica una identidad de caché nueva y alineada', ()
   const identity = text.match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/);
   assert.ok(identity, 'falta la identidad del build');
   const build = vm.runInNewContext(`(${identity[1]})`);
-  assert.equal(build.packageRevision, 95);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev95/);
+  assert.equal(build.packageRevision, 96);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev96/);
 });

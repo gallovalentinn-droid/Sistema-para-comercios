@@ -1,6 +1,6 @@
 const CACHE_PREFIX='micomercio-beta-';
-const CACHE='micomercio-beta-6.0.0-f6-rc2-rev95';
-const BASE=['./','./index.html','./vendor/supabase-js-2.112.3.min.js','./vendor/xlsx-0.18.5.full.min.js'];
+const CACHE='micomercio-beta-6.0.0-f6-rc2-rev96-r1';
+const BASE=['./','./index.html','./mercadopago.js','./vendor/qrcode-generator-2.0.4.js','./vendor/supabase-js-2.112.3.min.js','./vendor/xlsx-0.18.5.full.min.js'];
 
 const EXTERNOS = [
   'cdn.jsdelivr.net',
@@ -33,6 +33,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
+  if(url.pathname.startsWith('/api/mercadopago'))return;
   if (url.hostname.includes('supabase') || url.hostname.includes('api.anthropic.com')) return;
 
   const esExterno = EXTERNOS.some(d => url.hostname.includes(d));

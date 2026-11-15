@@ -113,7 +113,7 @@ test('Productos y Para pedir renderizan la misma foto firmada', async () => {
     const selectedProductosRev31=new Set(),seleccionProductosActivo=false,productoArchivadoRev31=p=>!!p.archivadoAt;
     const pedido={}; let repOrden='rubro';
     const target={innerHTML:''};
-    const $=()=>target, $$=()=>[];
+    const $=selector=>selector==='#tabProd'?target:null, $$=()=>[];
     const listaFiltrada=()=>[producto], esSuelto=()=>false, alertaVence=()=>false;
     const estaVencido=()=>false, textoVence=()=>'', fFecha=()=>'', atadoDe=()=>null;
     const bajo=()=>true, fmtCant=(_p,n)=>String(n), deseado=p=>p.stockDeseado;
@@ -209,6 +209,7 @@ test('las listas operativas muestran la foto compartida del producto', () => {
 
 test('el editor encierra la foto existente sin superponer los campos siguientes', async () => {
   const source = html();
+  const selectorHtml = sliceBetween(source,'function htmlSelectorBusquedaUX(','\nfunction vincularSelectorBusquedaUX(');
   const productForm = sliceBetween(
     source,
     'function formProducto(id,pre={},luego){',
@@ -222,6 +223,7 @@ test('el editor encierra la foto existente sin superponer los campos siguientes'
     const normalizarBusqueda=value=>String(value||'').toLowerCase();
     const atadoDe=()=>null, porAtado=()=>0, fFecha=()=>'', ic=()=>'';
     let captured=null; const modal=options=>{captured=options;};
+    ${selectorHtml}
     ${productForm}
   `);
   await context.f6PrepararFotosProductos([{ fotoPath: 'comercio/p1.jpg' }]);

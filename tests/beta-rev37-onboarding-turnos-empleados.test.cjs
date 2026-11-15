@@ -5,6 +5,9 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '../beta/index.html'), 'utf8').replace(/\r\n/g, '\n');
+// Estos dos ensayos aíslan abrir/cancelar y el reseteo de permisos. El recorrido
+// browser-configuracion-simple prueba los helpers y la persistencia reales.
+const configUXStubs={permisosConfigHtmlUX:()=>'',configActivarNavegacionUX:()=>{},contextoConfiguracionUX:()=> 'fixture',configAjustesPorContextoUX:new Map(),f57ModoCaja:()=> 'unica',telefonoConfigUX:v=>({visible:v||''}),f5NormalizarUsuarioEmpleado:v=>String(v).trim().toLowerCase(),vista:'config'};
 
 function between(start, end) {
   const from = html.indexOf(start);
@@ -171,6 +174,7 @@ test('crear empleado despliega el formulario y cancelarlo conserva la lista visi
     }
   } };
   const context = {
+    ...configUXStubs,
     db: { config: { nombre: 'Comercio', nroVenta: 1, permisosEmpleado: {}, fondoCaja: 0, fondoCajaCigarros: 0 } },
     SECCIONES_PERMISO: [],
     F5_EMPLOYEE_PERMISSION_KEYS: ['ventas_registrar'],
@@ -209,6 +213,7 @@ test('tras guardar un empleado el próximo formulario vuelve a los permisos mín
     { dataset: { f5NewPerm: 'productos_editar' }, checked: true },
   ];
   const context = {
+    ...configUXStubs,
     db: { config: { nombre: 'Comercio', nroVenta: 1, permisosEmpleado: {} } },
     SECCIONES_PERMISO: [], F5_EMPLOYEE_PERMISSION_KEYS: ['ventas_registrar', 'productos_editar'],
     F5_PERMISO_EMPLEADO_UI: { ventas_registrar: ['Vender', 'Registrar'], productos_editar: ['Productos', 'Editar'] },

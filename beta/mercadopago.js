@@ -1,0 +1,109 @@
+'use strict';
+let mpOperacionOcupada=false,mpCierreAutorizado=false,mpPersistenciaPendiente=null;
+function mpScope(){return JSON.stringify([sesion?.user?.id||'',f3Estado?.comercioId||'']);}
+function mpPendingKey(){return 'micomercio:mp-cobro-v1:'+mpScope();}
+function mpLeerPendiente(){try{return JSON.parse(localStorage.getItem(mpPendingKey())||'null');}catch{return null;}}
+function mpGuardarPendiente(p){localStorage.setItem(mpPendingKey(),JSON.stringify(p));}
+function mpBorrarPendiente(scope=mpScope()){localStorage.removeItem('micomercio:mp-cobro-v1:'+scope);}
+function mpBloqueaCobro(){return !mpCierreAutorizado&&!!mpLeerPendiente();}
+function mpMensaje(code){return ({APLICACION_NO_CONFIGURADA:'La conexión de MiComercio con Mercado Pago todavía no está habilitada. Falta configurar su aplicación.',CONFIGURAR_CAJA_QR:'El dueño debe elegir la caja de Mercado Pago en Configuración.',SESION_INVALIDA:'Volvé a ingresar para consultar Mercado Pago.',AUTORIDAD_NO_VIGENTE:'No pudimos validar tu acceso para consultar cobros.',TRANSFERENCIA_UTILIZADA:'Esta transferencia ya se usó en otra venta.',INGRESO_MONTO_DISTINTO:'El importe recibido no coincide con este cobro.',INGRESO_NO_VALIDO:'Mercado Pago no confirmó una transferencia acreditada para esta cuenta.',TICKET_CAMBIO:'El ticket cambió. Recuperá el cobro original antes de continuar.',RECONECTAR_CUENTA:'El dueño debe volver a conectar esta cuenta de Mercado Pago.',COBRO_PENDIENTE:'Primero resolvé el cobro pendiente.',MERCADO_PAGO_OCUPADO:'Mercado Pago está ocupado. Consultá otra vez en unos segundos.'})[code]||'No pudimos recuperar el estado del cobro. Reintentá antes de continuar.';}
+async function mpRequest(action,body={}){
+ if(!sesion?.access_token||!f3Estado?.comercioId)throw new Error('SESION_INVALIDA');
+ const scope=mpScope(),r=await fetch('/api/mercadopago',{method:'POST',cache:'no-store',headers:{'content-type':'application/json',authorization:'Bearer '+sesion.access_token},body:JSON.stringify({...body,action,commerceId:f3Estado.comercioId,deviceId:f3Estado.deviceUuid}),signal:AbortSignal.timeout(20000)});
+ if(scope!==mpScope())throw new Error('SESION_INVALIDA');let data;try{data=await r.json();}catch{throw new Error('CONEXION_NO_DISPONIBLE');}if(!r.ok)throw new Error(data.code||'CONEXION_NO_DISPONIBLE');return data;
+}
+function mpPayload(p){return {accountId:p.accountId,saleId:p.saleId,fingerprint:p.fingerprint,amount:p.amount};}
+function mpSnapshot(){return {ticket:structuredClone(ticket),pago,pagoMixto:structuredClone(pagoMixto),dto:structuredClone(dto),recibido,clienteFiado,calculo:{items:ticket.map(buildVentaItem),subtotal:subtotalTicket(),descuento:montoDescuento(),descuentoDetalle:montoDescuento()>0?{tipo:dto.tipo,valor:num(dto.valor),motivo:dto.motivo}:null,promoAuto:descuentoPromoAuto(),promoAutoDetalle:structuredClone(detallePromoAuto()),promoPago:descuentoPromoPago(),promoPagoDetalle:promoPagoPct(pago)>0?{forma:pago,porcentaje:promoPagoPct(pago)}:null,total:totalTicket()}};}
+// La identidad del ticket no cambia cuando vence una promoción: su cálculo se conserva aparte.
+async function mpFingerprint(snapshot=mpSnapshot()){const {calculo,...identity}=snapshot;const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(identity)));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+async function mpPreparar(accountId){const scope=mpScope(),snapshot=mpSnapshot(),fingerprint=await mpFingerprint(snapshot);if(scope!==mpScope())throw new Error('SESION_INVALIDA');const previous=mpLeerPendiente();if(previous){if(previous.stage==='manual')throw new Error('COBRO_MANUAL_PENDIENTE');if(previous.fingerprint!==fingerprint||previous.accountId!==accountId)throw new Error('TICKET_CAMBIO');return previous;}const amount=snapshot.calculo.total;if(!(amount>0))throw new Error('MONTO_INVALIDO');const p={saleId:uid(),accountId,fingerprint,amount:amount.toFixed(2),snapshot,stage:'prepared',scope};mpGuardarPendiente(p);return p;}
+function mpRestaurarPendiente(){const p=mpLeerPendiente();if(!p)return;ticket=structuredClone(p.snapshot.ticket);pago=p.snapshot.pago;pagoMixto=structuredClone(p.snapshot.pagoMixto);dto=structuredClone(p.snapshot.dto);recibido=p.snapshot.recibido;clienteFiado=p.snapshot.clienteFiado;abrirModalPago();}
+function mpMontarRecuperacion(root){
+ if(!root)return;const previous=root.querySelector('#mpRecuperacion'),pending=mpLeerPendiente();
+ if(!pending){previous?.remove();return;}if(previous)return;
+ const banner=document.createElement('div');banner.id='mpRecuperacion';banner.className='ux-banner warn';banner.style.marginBottom='12px';
+ banner.innerHTML='<span>Hay un cobro de Mercado Pago pendiente de terminar. Recuperalo antes de cobrar otra venta.</span><button class="btn ghost sm" id="mpRecuperarCobro">Recuperar cobro</button>';
+ banner.querySelector('button').onclick=mpRestaurarPendiente;root.prepend(banner);
+}
+async function mpCompletar(receipt,p,manual=false){
+ if(p.scope!==mpScope())throw new Error('SESION_INVALIDA');const fingerprint=await mpFingerprint();if(p.scope!==mpScope())throw new Error('SESION_INVALIDA');if(p.fingerprint!==fingerprint)throw new Error('TICKET_CAMBIO');
+ if(!manual){if(receipt?.amountCents!==Math.round(p.snapshot.calculo.total*100))throw new Error('INGRESO_MONTO_DISTINTO');p.receipt=receipt;p.stage='verified';mpGuardarPendiente(p);}
+ const existing=db.ventas.find(v=>v.id===p.saleId);
+ if(existing){if(mpPersistenciaPendiente?.saleId===p.saleId){await mpPersistenciaPendiente.persistencia.reintentar();if(p.scope===mpScope())mpPersistenciaPendiente.finalizar();mpPersistenciaPendiente=null;}else{ticket=[];recibido='';pago='efectivo';pagoMixto=[];clienteFiado='';limpiarDescuento();pintarPOS();ticketImpreso(existing);}mpBorrarPendiente(p.scope);return;}
+ mpCierreAutorizado=true;try{const result=await cerrarVenta('transferencia',{saleId:p.saleId,estado:manual?'manual':'verified',receipt:manual?null:receipt,calculo:p.snapshot.calculo,scope:p.scope});if(!result)throw new Error('VENTA_NO_GUARDADA');mpBorrarPendiente(p.scope);}finally{mpCierreAutorizado=false;}
+}
+function mpEstadoHTML(v){const t=formaKey(v.forma)==='transferencia'||(v.pagos||[]).some(p=>formaKey(p.forma)==='transferencia');return t?`<div class="hint" data-mp-venta="${esc(v.id)}" style="margin-top:12px"><b>${v.mpCobro?.estado==='manual'?'Confirmada manualmente · sin verificación de Mercado Pago':'Consultando verificación de Mercado Pago…'}</b></div>`:'';}
+async function mpConsultarVenta(root,v){const el=root.querySelector('[data-mp-venta]');if(!el||v.mpCobro?.estado==='manual')return;try{const r=await mpRequest('sale-receipts',{saleIds:[v.id]});if(!el.isConnected)return;const receipt=r.receipts?.[0];el.textContent=receipt?(receipt.kind==='qr'?'QR verificado con Mercado Pago':'Transferencia verificada con Mercado Pago'):'Sin verificación de Mercado Pago registrada';}catch{if(el.isConnected)el.textContent='No se pudo consultar la verificación de Mercado Pago';}}
+function mpCobroHTML(){return `<div id="mpPanel">
+ <label class="f" for="mpCuenta">Recibir en</label><select class="inp" id="mpCuenta"><option value="">Consultando cuentas…</option></select>
+ <div id="mpInicioCobro" class="mp-opciones">
+  <button class="btn verde big" type="button" id="mpIniciarCobro">Cobrar ${$m(totalTicket())}</button>
+  <button class="btn ghost" type="button" id="mpGenerarQR">Cobrar con QR de Mercado Pago</button>
+ </div>
+ <section id="mpComprobarCobro" hidden aria-labelledby="mpPasoTitulo">
+  <h3 id="mpPasoTitulo" tabindex="-1" style="margin:16px 0 12px">Comprobar el cobro</h3>
+  <button class="btn" type="button" id="mpBuscar">Ver transferencias recibidas</button>
+  <div id="mpIngresos"></div><div id="mpQR" aria-label="Código QR de cobro"></div>
+  <button class="btn ghost sm" id="mpActualizarQR" type="button" hidden>Consultar estado del QR</button>
+  <hr><button class="btn verde big" id="mpCobroManual" type="button">Confirmar sin comprobar</button>
+  <div class="hint">Se registra como cobro manual, sin verificación de Mercado Pago.</div>
+  <button class="btn ghost sm" type="button" id="mpVolverCobro" style="margin-top:12px">Volver al cobro</button>
+ </section>
+ <p class="hint" id="mpEstado" role="status" aria-live="polite">Consultando Mercado Pago…</p>
+ <button class="btn ghost sm" id="mpRestaurar" type="button" hidden>Recuperar cobro pendiente</button>
+ </div>`;}
+function mpMontarCobro(root){
+ const pending=mpLeerPendiente();if(pago!=='transferencia'){if(pending){const div=document.createElement('div');div.className='ux-banner warn';div.innerHTML='<span>Hay un cobro de Mercado Pago pendiente.</span><button class="btn ghost sm">Recuperar cobro</button>';root.querySelector('#pagoBody')?.prepend(div);div.querySelector('button').onclick=mpRestaurarPendiente;}return;}
+ const panel=root.querySelector('#mpPanel');if(!panel)return;const scope=mpScope(),state=panel.querySelector('#mpEstado'),account=panel.querySelector('#mpCuenta');let poll=null;
+ const active=()=>root.isConnected&&scope===mpScope()&&panel.isConnected;
+ const setState=m=>{if(active())state.textContent=m;};
+ const mostrarComprobacion=(qr=false)=>{
+  panel.querySelector('#mpInicioCobro').hidden=true;
+  panel.querySelector('#mpComprobarCobro').hidden=false;
+  panel.querySelector('#mpBuscar').hidden=qr||!!mpLeerPendiente();
+  panel.querySelector('#mpActualizarQR').hidden=!qr;
+  panel.querySelector('#mpVolverCobro').hidden=!!mpLeerPendiente();
+  panel.querySelector('#mpPasoTitulo').textContent=qr?'Cobro con QR de Mercado Pago':'Comprobar el cobro';
+  panel.querySelector('#mpCobroManual').textContent=qr?'Cancelar QR y confirmar manualmente':mpLeerPendiente()?.stage==='verified'?'Registrar venta con el pago verificado':'Confirmar sin comprobar';
+ };
+ panel.querySelector('#mpIniciarCobro').onclick=()=>{if(!mpOperacionOcupada&&active()){mostrarComprobacion();panel.querySelector('#mpPasoTitulo').focus();}};
+ panel.querySelector('#mpVolverCobro').onclick=()=>{if(!mpOperacionOcupada&&!mpLeerPendiente()&&active()){panel.querySelector('#mpComprobarCobro').hidden=true;panel.querySelector('#mpInicioCobro').hidden=false;panel.querySelector('#mpIniciarCobro').focus();}};
+ const run=fn=>async()=>{if(mpOperacionOcupada||!active())return;mpOperacionOcupada=true;panel.querySelectorAll('button,select').forEach(x=>x.disabled=true);try{await fn();}catch(e){setState(mpMensaje(e.message));}finally{mpOperacionOcupada=false;if(active()){panel.querySelectorAll('button,select').forEach(x=>x.disabled=false);account.disabled=!!mpLeerPendiente();panel.querySelectorAll('[data-mp-ingreso]').forEach(x=>x.disabled=x.dataset.mpDisponible!=='1');}}};
+ const handleOrder=async(r,p)=>{
+  if(!active())return;if(r.receipt){clearTimeout(poll);await mpCompletar(r.receipt,p);return;}mostrarComprobacion(true);
+  if(['canceled','expired','manual'].includes(r.attempt?.status)){p.stage=r.attempt.status;mpGuardarPendiente(p);panel.querySelector('#mpQR').innerHTML='';setState(r.attempt.status==='expired'?'El QR venció. Podés confirmar el cobro manual.':r.attempt.status==='manual'?'El cobro fue confirmado manualmente. Recuperá el guardado pendiente.':'QR cancelado. Podés confirmar el cobro manual.');return;}
+  p.stage='qr';mpGuardarPendiente(p);setState('Esperando el pago en Mercado Pago. Todavía no se registró la venta.');
+  if(r.attempt?.qrData){const qr=qrcode(0,'M');qr.addData(r.attempt.qrData);qr.make();panel.querySelector('#mpQR').innerHTML=qr.createSvgTag({cellSize:4,margin:16,scalable:true});}
+  clearTimeout(poll);poll=setTimeout(()=>{if(active())update();},5000);
+ };
+ const update=run(async()=>{const p=mpLeerPendiente();if(p?.stage==='manual'){setState('Recuperá el guardado del cobro manual antes de continuar.');return;}if(p)await handleOrder(await mpRequest('qr-status',mpPayload(p)),p);});
+ panel.querySelector('#mpActualizarQR').onclick=update;
+ panel.querySelector('#mpGenerarQR').onclick=run(async()=>{if(!account.value){setState('Primero hay que conectar una cuenta desde Configuración.');return;}const p=await mpPreparar(account.value);p.stage='creating';mpGuardarPendiente(p);mostrarComprobacion(true);setState('Preparando el QR…');await handleOrder(await mpRequest('qr-create',mpPayload(p)),p);});
+ panel.querySelector('#mpBuscar').onclick=run(async()=>{
+  if(!account.value){setState('Primero hay que conectar una cuenta desde Configuración.');return;}const r=await mpRequest('receipts',{accountId:account.value,amount:totalTicket().toFixed(2)});if(!active())return;
+  const list=panel.querySelector('#mpIngresos');list.innerHTML=(r.receipts||[]).map(t=>`<div class="mp-ingreso"><div><b>${$m(t.amountCents/100)}</b><small>${esc(t.date?new Date(t.date).toLocaleString('es-AR'):'Hora no disponible')} · ${esc(t.payer||'Remitente no informado')}</small></div><button type="button" class="btn ghost sm" data-mp-ingreso="${esc(t.id)}" data-mp-disponible="${t.matches&&!t.used?'1':'0'}" ${t.matches&&!t.used?'':'disabled'}>${t.used?'Ya usada':t.matches?'Es esta':'Otro importe'}</button></div>`).join('')||'<div class="hint">No hay transferencias acreditadas disponibles en la consulta de los últimos 3 días.</div>';
+  list.querySelectorAll('[data-mp-ingreso]').forEach(b=>b.onclick=run(async()=>{const p=await mpPreparar(account.value);p.stage='claiming';mpGuardarPendiente(p);const r=await mpRequest('claim',{...mpPayload(p),paymentId:b.dataset.mpIngreso});if(active())await mpCompletar(r.receipt,p);}));setState('Elegí el ingreso que corresponde a esta venta. Última consulta: '+new Date().toLocaleTimeString('es-AR'));
+ });
+ panel.querySelector('#mpCobroManual').onclick=run(async()=>{
+  let p=mpLeerPendiente();if(p){if(p.scope!==scope||p.fingerprint!==await mpFingerprint())throw new Error('TICKET_CAMBIO');
+   if(['creating','qr'].includes(p.stage)){const r=await mpRequest('qr-cancel',mpPayload(p));if(r.receipt){await mpCompletar(r.receipt,p);return;}if(!['canceled','expired'].includes(r.attempt?.status))throw new Error('COBRO_PENDIENTE');p.stage=r.attempt.status;mpGuardarPendiente(p);}
+   if(['claiming','verified'].includes(p.stage)){const r=await mpRequest('sale-receipts',{saleIds:[p.saleId]});if(r.receipts?.length){await mpCompletar(r.receipts[0],p);return;}}
+   if(p.accountId&&p.stage!=='manual'){const r=await mpRequest('manual',mpPayload(p));if(r.receipt){await mpCompletar(r.receipt,p);return;}p.stage='manual';mpGuardarPendiente(p);}
+  }else{const snapshot=mpSnapshot(),fingerprint=await mpFingerprint(snapshot);if(scope!==mpScope())throw new Error('SESION_INVALIDA');p={saleId:uid(),accountId:account.value,fingerprint,amount:snapshot.calculo.total.toFixed(2),snapshot,stage:'manual',scope};}
+  mpGuardarPendiente(p);await mpCompletar(null,p,true);
+ });
+ panel.querySelector('#mpRestaurar').onclick=mpRestaurarPendiente;if(pending){mostrarComprobacion(['creating','qr','canceled','expired'].includes(pending.stage));panel.querySelector('#mpRestaurar').hidden=false;setState('Hay un cobro pendiente. Recuperalo antes de iniciar otro.');}
+ mpRequest('accounts').then(r=>{if(!active())return;account.innerHTML=(r.accounts||[]).map(a=>`<option value="${esc(a.id)}">${esc(a.alias)}${a.primary?' · principal':''}</option>`).join('')||'<option value="">Sin cuenta conectada</option>';account.value=pending?.accountId||(r.accounts||[]).find(a=>a.primary)?.id||r.accounts?.[0]?.id||'';account.disabled=!!pending;if(!pending)setState(r.accounts?.length?'Elegí cómo querés comprobar este cobro.':'Podés cobrar manualmente. Para verificar ingresos o cobrar con QR, falta conectar Mercado Pago en Configuración.');if(pending&&['creating','qr'].includes(pending.stage))update();if(pending?.stage==='verified')setState('El pago está verificado. Recuperá el cobro para terminar de registrar la venta.');}).catch(()=>setState('Podés cobrar manualmente. No pudimos consultar las cuentas conectadas.'));
+}
+function mpMontarConfiguracion(root){
+ if(root.querySelector('#mpConfiguracion'))return;const card=document.createElement('div');card.className='card config-card';card.id='mpConfiguracion';card.style.marginBottom='16px';card.innerHTML='<div class="card-h"><h2>Mercado Pago</h2></div><div class="card-b"><p>Conectá las cuentas donde recibís los cobros. El personal autorizado podrá verificar transferencias y cobrar con QR desde Vender.</p><div id="mpCuentasEstado" role="status" aria-live="polite">Consultando conexión…</div><div id="mpCuentasLista"></div><a class="btn" id="mpPrepararConexion" href="https://www.mercadopago.com.ar/developers/panel/app" target="_blank" rel="noopener noreferrer" style="margin-top:12px" hidden>Configurar aplicación en Mercado Pago</a><div id="mpAltaCuenta" hidden><label class="f" for="mpCuentaNombre">Nombre de la cuenta (opcional)</label><input class="inp" id="mpCuentaNombre" maxlength="80" placeholder="Por ejemplo: Mercado Pago del local"><button type="button" class="btn" style="margin-top:12px" id="mpConectar" disabled>Conectar otra cuenta</button><p class="hint">Se abre Mercado Pago para iniciar sesión y autorizar esta cuenta. Una cuenta se usa como principal.</p></div></div>';root.querySelector('#cf-caja')?.after(card);
+ const scope=mpScope(),state=card.querySelector('#mpCuentasEstado'),list=card.querySelector('#mpCuentasLista'),connect=card.querySelector('#mpConectar');let busy=false,configured=false;const current=()=>card.isConnected&&scope===mpScope();
+ const mostrarConexion=enabled=>{configured=enabled===true;card.querySelector('#mpAltaCuenta').hidden=!configured;card.querySelector('#mpPrepararConexion').hidden=configured;connect.disabled=!configured||busy;state.textContent=configured?'Conectá una cuenta o administrá las existentes.':'La conexión de MiComercio con Mercado Pago todavía no está habilitada. Primero hay que configurar su aplicación; iniciar sesión en el panel por sí solo no vincula una cuenta. Podés seguir cobrando manualmente.';};
+ const run=fn=>async()=>{if(busy||!current())return;busy=true;connect.disabled=true;try{await fn();}catch(e){if(current()){if(e.message==='APLICACION_NO_CONFIGURADA')mostrarConexion(false);else state.textContent=mpMensaje(e.message);}}finally{busy=false;if(current())connect.disabled=!configured;}};
+ const load=async()=>{const r=await mpRequest('accounts');if(!current())return;mostrarConexion(r.configured);list.innerHTML=(r.accounts||[]).map(a=>`<div class="mp-ingreso"><div><b>${esc(a.alias)}</b><small>${a.primary?'Cuenta principal':'Cuenta adicional'} · ${a.posId?'QR configurado':'Falta elegir caja para QR'}</small></div><div class="row"><button class="btn ghost sm" data-mp-principal="${esc(a.id)}" ${a.primary?'disabled':''}>Usar como principal</button><button class="btn ghost sm" data-mp-caja="${esc(a.id)}">Elegir caja QR</button><button class="btn ghost sm" data-mp-desconectar="${esc(a.id)}">Desconectar</button></div></div>`).join('');
+  list.querySelectorAll('[data-mp-principal]').forEach(b=>b.onclick=run(async()=>{await mpRequest('primary',{accountId:b.dataset.mpPrincipal});await load();}));
+  list.querySelectorAll('[data-mp-desconectar]').forEach(b=>b.onclick=()=>confirmar('Desconectar cuenta','No se podrán consultar nuevos ingresos ni generar QR con esta cuenta.',()=>run(async()=>{await mpRequest('disconnect',{accountId:b.dataset.mpDesconectar});await load();})(),'Desconectar'));
+  list.querySelectorAll('[data-mp-caja]').forEach(b=>b.onclick=run(async()=>{const r=await mpRequest('positions',{accountId:b.dataset.mpCaja});if(!current())return;modal({titulo:'Caja de Mercado Pago',cuerpo:r.positions.length?`<label class="f" for="mpCajaQR">Dónde se cobran los QR</label><select class="inp" id="mpCajaQR">${r.positions.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select>`:'Primero creá una caja en la configuración de tu cuenta de Mercado Pago. Después volvé a elegirla acá.',pie:'<button class="btn ghost" data-cerrar>Volver</button>'+(r.positions.length?'<button class="btn" id="mpGuardarCaja">Guardar caja</button>':''),alAbrir:ov=>{ov.querySelector('#mpGuardarCaja')?.addEventListener('click',run(async()=>{await mpRequest('set-position',{accountId:b.dataset.mpCaja,posId:ov.querySelector('#mpCajaQR').value});cerrarModal();await load();}));}});}));
+ };
+ connect.onclick=run(async()=>{if(!configured){mostrarConexion(false);return;}const alias=card.querySelector('#mpCuentaNombre').value.trim()||'Mercado Pago';state.textContent='Abriendo la autorización de Mercado Pago…';const r=await mpRequest('oauth-start',{alias});if(!current())return;if(!r.url?.startsWith('https://auth.mercadopago.com/authorization?'))throw new Error('CONEXION_NO_DISPONIBLE');location.assign(r.url);});load().catch(()=>{if(current())state.textContent='La conexión con Mercado Pago no está disponible. Podés seguir cobrando manualmente.';});
+}

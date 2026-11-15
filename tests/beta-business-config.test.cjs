@@ -62,3 +62,10 @@ test('no modifica los datos locales si el servidor no confirma el nuevo nombre',
   );
   assert.equal(localApplications, 0);
 });
+
+test('no aplica datos si cambia el contexto o la numeración mientras responde el servidor', async () => {
+  const {f5CrearGuardadoDatosComercio}=loadCore();let resolver,aplicados=0,vigente=true;
+  const save=f5CrearGuardadoDatosComercio({guardarNombreRemoto:()=>new Promise(r=>{resolver=r;}),aplicarLocal:async()=>{aplicados++;}});
+  const pendiente=save({nombre:'Nombre nuevo',nroVenta:12,validarVigencia:()=>{if(!vigente)throw new Error('CONFIG_DESACTUALIZADA');}});
+  vigente=false;resolver({nombre:'Nombre nuevo'});await assert.rejects(pendiente,/CONFIG_DESACTUALIZADA/);assert.equal(aplicados,0);
+});
