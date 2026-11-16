@@ -94,7 +94,8 @@ export class Provider {
   exchange(code,verifier){return this.token({grant_type:'authorization_code',code,code_verifier:verifier,redirect_uri:this.config.redirectUri});}
   refresh(c){return this.token({grant_type:'refresh_token',refresh_token:c.refresh_token});}
   identity(c){return this.request('/users/me',c);}
-  async positions(c){const rows=[];for(let offset=0;offset<1000;offset+=100){const r=await this.request('/pos?limit=100&offset='+offset,c);rows.push(...(r.results||[]));if(offset+100>=(r.paging?.total||0))break;}return rows;}
+  async positions(c){const rows=[];for(let offset=0;offset<1020;offset+=30){const r=await this.request('/v2/pos?limit=30&offset='+offset,c);if(!Array.isArray(r.data))fail('MERCADO_PAGO_NO_DISPONIBLE',503);rows.push(...r.data);if(offset+30>=(r.paging?.total||0))return rows;}fail('MERCADO_PAGO_NO_DISPONIBLE',503);}
+  preparePosition(c,id,externalId,key){if(!/^\d{1,30}$/.test(String(id)))fail('CAJA_NO_DISPONIBLE');return this.request('/v2/pos/'+id,c,{method:'PATCH',headers:{'X-Idempotency-Key':key},body:JSON.stringify({external_id:externalId})});}
   async search(c){const end=new Date(),begin=new Date(end-3*86400000),rows=[];for(let offset=0;offset<500;offset+=50){const q=new URLSearchParams({sort:'date_created',criteria:'desc',range:'date_created',begin_date:begin.toISOString(),end_date:end.toISOString(),operation_type:'money_transfer',status:'approved',limit:'50',offset:String(offset)});const r=await this.request('/v1/payments/search?'+q,c);rows.push(...(r.results||[]));if(offset+50>=(r.paging?.total||0))break;}return rows;}
   payment(c,id){if(!/^\d{1,30}$/.test(id))fail('INGRESO_NO_VALIDO');return this.request('/v1/payments/'+id,c);}
   create(c,body,key){return this.request('/v1/orders',c,{method:'POST',headers:{'X-Idempotency-Key':key},body:JSON.stringify(body),definitiveCreation:true});}
@@ -161,10 +162,25 @@ export class Service {
     if(action==='primary'||action==='disconnect'){await this.call(ctx,action,{accountId:account.id});return {ok:true};}
     if(action==='positions'||action==='set-position'){
       const c=await this.credentials(ctx,account),rows=await this.provider.positions(c);
-      const positions=rows.filter(p=>typeof p.external_id==='string'&&p.external_id.length<=100).map(p=>({id:p.external_id,name:String(p.name||p.external_id).slice(0,100)}));
+      const eligible=rows.filter(p=>p.status!=='inactive'&&(p.user_id==null||String(p.user_id)===account.providerId));
+      const selection=p=>p.external_id?(typeof p.external_id==='string'&&p.external_id.length<=100?p.external_id:null):/^\d{1,30}$/.test(String(p.id))?'@pos:'+p.id:null;
+      const positions=eligible.map(p=>({id:selection(p),name:String(p.name||p.external_id||'Caja '+p.id).slice(0,100)})).filter(p=>p.id);
       if(action==='positions')return {positions};
-      if(!positions.some(p=>p.id===input.posId))fail('CAJA_NO_DISPONIBLE');
-      await this.call(ctx,'position',{accountId:account.id,posId:input.posId});return {ok:true};
+      // A lost PATCH response may have prepared this same POS already. Accept
+      // its original numeric selection without replacing the now-existing ID.
+      const numericSelection=typeof input.posId==='string'&&/^@pos:\d{1,30}$/.test(input.posId)?input.posId.slice(5):null;
+      const selected=eligible.find(p=>selection(p)&&(selection(p)===input.posId||(numericSelection&&String(p.id)===numericSelection)));if(!selected)fail('CAJA_NO_DISPONIBLE');
+      let posId=selected.external_id;
+      if(!posId){
+        // Only after owner selection. Stable per provider POS, safe to retry;
+        // PATCH leaves its name, store and QR configuration untouched.
+        const digest=await hash('micomercio-pos:'+account.providerId+':'+selected.id),externalId='MC'+digest.slice(0,32);
+        await this.provider.preparePosition(c,selected.id,externalId,digest);
+        const confirmed=(await this.provider.positions(c)).find(p=>String(p.id)===String(selected.id)&&p.status!=='inactive'&&(p.user_id==null||String(p.user_id)===account.providerId));
+        if(confirmed?.external_id!==externalId)fail('CAJA_NO_DISPONIBLE');
+        posId=externalId;
+      }
+      await this.call(ctx,'position',{accountId:account.id,posId});return {ok:true};
     }
     if(action==='receipts'){
       if(!this.config.transferVerification)fail('TRANSFERENCIAS_NO_HABILITADAS');
