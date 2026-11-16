@@ -265,15 +265,15 @@ async function readBody(request) {
 }
 export function createApiHandler({config,store,provider=new Provider(config),fetcher=fetch}) {
   const service=new Service({config,store,provider});
-  return async request=>{const origin=request.headers.get('origin')||'';try {
+  return async request=>{const origin=request.headers.get('origin')||'';let action='invalid';try {
     if(origin&&!ORIGINS.has(origin))fail('ORIGEN_NO_PERMITIDO',403);
     if(request.method==='OPTIONS')return response(null,204,origin);
     if(request.method!=='POST')fail('METODO_NO_PERMITIDO',405);
-    const body=await readBody(request);if(!ACTIONS.has(body.action))fail('ACCION_INVALIDA',400);
+    const body=await readBody(request);if(!ACTIONS.has(body.action))fail('ACCION_INVALIDA',400);action=body.action;
     const token=request.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
     const ctx=await authenticate(config,token,body,fetcher);authorize(ctx,OWNER.has(body.action));
     return response(await service.handle(ctx,body,token),200,origin);
-  }catch(e){return response({code:ERROR_CODES.has(e.message)?e.message:'CONEXION_NO_DISPONIBLE'},e.status||409,origin);}};
+  }catch(e){const code=ERROR_CODES.has(e.message)?e.message:'CONEXION_NO_DISPONIBLE';console.warn(JSON.stringify({event:'MP_PUBLIC_ERROR',action,code}));return response({code},e.status||409,origin);}};
 }
 export function createCallbackHandler({config,store,provider=new Provider(config),fetcher=fetch}) {
   return async request=>{let status='error';try {

@@ -23,6 +23,14 @@ test('oversized body unknown action invalid IDs and raw errors never reach privi
 test('only documented definitive create rejection is distinguished from timeout 5xx or unknown 4xx',async()=>{const m=await modulePromise;assert.ok(m);for(const [status,body,definitive] of [[404,{errors:[{code:'pos_not_found',message:'private raw details'}]},true],[500,{errors:[{code:'pos_not_found'}]},false],[400,{error:'unknown'},false],[400,{errors:[{code:'bad_request'}]},true]]){const p=new m.Provider({},async()=>Response.json(body,{status}));await assert.rejects(p.create({access_token:'synthetic'},{},'fixed'),e=>{assert.equal(!!e.definitiveNoOrder,definitive);assert.equal(e.message.includes('private'),false);return true;});}});
 module.exports={commerceId,userId,deviceId,ctx};
 
+test('API diagnostics record only allowlisted action and code without raw failure details',async()=>{
+ const m=await modulePromise,logs=[],original=console.warn;
+ const fetcher=async url=>Response.json(url.endsWith('/auth/v1/user')?{id:userId}:url.includes('comercio_miembros')?[{comercio_id:commerceId,user_id:userId,rol:'duenio',activo:true}]:{writable:true,membership:{rol:'duenio'}});
+ const h=m.createApiHandler({config:{url:'https://fixture',anonKey:'synthetic'},store:{call:async()=>{throw Error('private details must never escape');}},fetcher});
+ console.warn=s=>logs.push(s);
+ try{const r=await h(new Request('https://fixture',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer synthetic'},body:JSON.stringify({action:'accounts',commerceId,deviceId})}));assert.equal(r.status,409);assert.deepEqual(await r.json(),{code:'CONEXION_NO_DISPONIBLE'});assert.deepEqual(logs.map(s=>JSON.parse(s)),[{event:'MP_PUBLIC_ERROR',action:'accounts',code:'CONEXION_NO_DISPONIBLE'}]);}finally{console.warn=original;}
+});
+
 test('masked or malformed application ID cannot start OAuth or persist a challenge',async()=>{
  const m=await modulePromise,key=crypto.getRandomValues(new Uint8Array(32));
  const env={SUPABASE_URL:'https://fixture.supabase.co',SUPABASE_ANON_KEY:'synthetic',SUPABASE_SERVICE_ROLE_KEY:'synthetic',MP_CLIENT_SECRET:'synthetic',MP_TOKEN_ENCRYPTION_KEY:Buffer.from(key).toString('base64')};

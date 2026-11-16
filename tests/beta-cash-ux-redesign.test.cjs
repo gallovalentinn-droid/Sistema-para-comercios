@@ -98,6 +98,6 @@ test('el rediseño de Caja publica una identidad de caché nueva y alineada', ()
   const identity = text.match(/const MICOMERCIO_BUILD=Object\.freeze\((\{[\s\S]*?\})\);/);
   assert.ok(identity, 'falta la identidad del build');
   const build = vm.runInNewContext(`(${identity[1]})`);
-  assert.equal(build.packageRevision, 98);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev98/);
+  assert.equal(build.packageRevision, 99);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev99/);
 });
