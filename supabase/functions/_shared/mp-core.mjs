@@ -1,8 +1,8 @@
 // Shared by Deno Edge and Node tests. No Node dependencies or local storage.
 const encoder = new TextEncoder();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ACTIONS = new Set(['accounts','oauth-start','primary','disconnect','positions','set-position','sale-receipts','receipts','claim','manual','qr-create','qr-status','qr-cancel']);
-const OWNER = new Set(['oauth-start','primary','disconnect','positions','set-position']);
+const ACTIONS = new Set(['accounts','oauth-start','primary','disconnect','positions','set-position','transfer-coverage','sale-receipts','receipts','claim','manual','qr-create','qr-status','qr-cancel']);
+const OWNER = new Set(['oauth-start','primary','disconnect','positions','set-position','transfer-coverage']);
 const ORIGINS = new Set(['https://micomercio.ar','https://www.micomercio.ar']);
 export function fail(code, status = 409) { const e = new Error(code); e.status = status; throw e; }
 function b64(bytes) { return btoa(String.fromCharCode(...bytes)); }
@@ -61,6 +61,33 @@ export function validatePayment(p,account,amount) {
   if(!/^\d{1,30}$/.test(String(p?.id||''))||p.status!=='approved'||p.status_detail!=='accredited'||String(p.collector_id)!==account.providerId||p.currency_id!=='ARS'||p.operation_type!=='money_transfer')fail('INGRESO_NO_VALIDO');
   const n=cents(p.transaction_amount);if(amount!==undefined&&n!==amount)fail('INGRESO_MONTO_DISTINTO');
 }
+// Diagnóstico de cobertura de transferencias: solo conteos por categorías del proveedor.
+// Nunca incluye importes, fechas, nombres ni identificadores. Cada campo se clasifica contra
+// un catálogo cerrado de categorías conocidas del proveedor: cualquier otro texto, aunque
+// tenga forma de categoría, se informa como "otro" y nunca se copia a la salida ni al registro.
+const COVERAGE_CATALOG = {
+  operation:new Set(['regular_payment','money_transfer','recurring_payment','account_fund','payment_addition','cellphone_recharge','pos_payment','money_exchange','investment']),
+  type:new Set(['account_money','bank_transfer','ticket','atm','credit_card','debit_card','prepaid_card','digital_currency','digital_wallet','voucher_card','crypto_transfer']),
+  method:new Set(['account_money','cvu','debin_transfer','bank_transfer','interop_transfer','consumer_credits','visa','master','amex','naranja','cabal','maestro','debvisa','debmaster','debcabal','pagofacil','rapipago']),
+  status:new Set(['pending','approved','authorized','in_process','in_mediation','rejected','cancelled','refunded','charged_back']),
+  detail:new Set(['accredited','pending_contingency','pending_review_manual','pending_waiting_payment','pending_waiting_transfer','partially_refunded','refunded','by_collector','by_payer','expired']),
+  currency:new Set(['ARS','USD']),
+};
+const coverageLabel = (field,v) => v==null?'sin_dato':typeof v==='string'&&COVERAGE_CATALOG[field].has(v)?v:'otro';
+export const COVERAGE_MAX_MINUTES = 4320;
+// available: total informado por el proveedor para la ventana. Si supera lo analizado, el
+// resultado está recortado y una ausencia no permite concluir nada.
+export function transferCoverage(rows,account,{minutes=COVERAGE_MAX_MINUTES,available}={}) {
+  const groups=new Map();let total=0;
+  for(const p of Array.isArray(rows)?rows.slice(0,500):[]){
+    total++;let accepted=true;try{validatePayment(p,account);}catch{accepted=false;}
+    const key=JSON.stringify({operation:coverageLabel('operation',p?.operation_type),type:coverageLabel('type',p?.payment_type_id),method:coverageLabel('method',p?.payment_method_id),status:coverageLabel('status',p?.status),detail:coverageLabel('detail',p?.status_detail),currency:coverageLabel('currency',p?.currency_id),received:String(p?.collector_id??'')===account.providerId,accepted});
+    groups.set(key,(groups.get(key)||0)+1);
+  }
+  const list=[...groups].map(([key,count])=>({...JSON.parse(key),count})).sort((a,b)=>b.count-a.count);
+  const reported=Number.isSafeInteger(available)&&available>=0?available:total;
+  return {minutes,total,truncated:reported>total||(Array.isArray(rows)&&rows.length>500),groups:list.slice(0,40),otherGroups:Math.max(0,list.length-40)};
+}
 export function validateOrder(o,account,a) {
   if(!/^ORD[A-Za-z0-9]{26}$/.test(String(o?.id||''))||o.type!=='qr'||String(o.user_id)!==account.providerId||(o.currency||o.currency_id)!=='ARS'||o.external_reference!==a.reference)fail('ORDEN_INVALIDA');
   if(cents(o.total_amount)!==a.amountCents)fail('ORDEN_MONTO_DISTINTO');
@@ -111,7 +138,11 @@ export class Provider {
   identity(c){return this.request('/users/me',c);}
   async positions(c){const rows=[];for(let offset=0;offset<1020;offset+=30){const r=await this.request('/v2/pos?limit=30&offset='+offset,c);if(!Array.isArray(r.data))fail('MERCADO_PAGO_NO_DISPONIBLE',503);rows.push(...r.data);if(offset+30>=(r.paging?.total||0))return rows;}fail('MERCADO_PAGO_NO_DISPONIBLE',503);}
   preparePosition(c,id,externalId,key){if(!/^\d{1,30}$/.test(String(id)))fail('CAJA_NO_DISPONIBLE');return this.request('/v2/pos/'+id,c,{method:'PATCH',headers:{'X-Idempotency-Key':key},body:JSON.stringify({external_id:externalId})});}
-  async search(c){const end=new Date(),begin=new Date(end-3*86400000),rows=[];for(let offset=0;offset<500;offset+=50){const q=new URLSearchParams({sort:'date_created',criteria:'desc',range:'date_created',begin_date:begin.toISOString(),end_date:end.toISOString(),operation_type:'money_transfer',status:'approved',limit:'50',offset:String(offset)});const r=await this.request('/v1/payments/search?'+q,c);rows.push(...(r.results||[]));if(offset+50>=(r.paging?.total||0))break;}return rows;}
+  // Sin filtros (searchAll) solo se usa para el diagnóstico de cobertura, que nunca muestra ni reclama ingresos.
+  // Es estricta: una respuesta sin arreglo de resultados o sin total válido es un error, nunca
+  // "cero movimientos". Devuelve también el total informado para detectar recortes.
+  async searchAll(c,minutes=4320){let available=0;const rows=await this.search(c,{},{windowMs:minutes*60000,onPage:r=>{if(!Array.isArray(r?.results)||!Number.isSafeInteger(r.paging?.total)||r.paging.total<0)fail('MERCADO_PAGO_NO_DISPONIBLE',503);available=r.paging.total;}});return {rows,available};}
+  async search(c,filters={operation_type:'money_transfer',status:'approved'},{windowMs=3*86400000,onPage}={}){const end=new Date(),begin=new Date(end-windowMs),rows=[];for(let offset=0;offset<500;offset+=50){const q=new URLSearchParams({sort:'date_created',criteria:'desc',range:'date_created',begin_date:begin.toISOString(),end_date:end.toISOString(),...filters,limit:'50',offset:String(offset)});const r=await this.request('/v1/payments/search?'+q,c);onPage?.(r);rows.push(...(r.results||[]));if(offset+50>=(r.paging?.total||0))break;}return rows;}
   payment(c,id){if(!/^\d{1,30}$/.test(id))fail('INGRESO_NO_VALIDO');return this.request('/v1/payments/'+id,c);}
   create(c,body,key){return this.request('/v1/orders',c,{method:'POST',headers:{'X-Idempotency-Key':key},body:JSON.stringify(body),definitiveCreation:true});}
   order(c,id){return this.request('/v1/orders/'+encodeURIComponent(id),c);}
@@ -196,6 +227,18 @@ export class Service {
         posId=externalId;
       }
       await this.call(ctx,'position',{accountId:account.id,posId});return {ok:true};
+    }
+    if(action==='transfer-coverage'){
+      // Solo dueño. Consulta movimientos sin escrituras de negocio (ni ventas, ni recibos, ni
+      // reclamos); si las credenciales vencieron, puede renovarlas como cualquier otra acción.
+      // No depende de transferVerification: sirve para decidir si habilitarla.
+      // minutes acota la ventana para poder atribuir una transferencia recién hecha.
+      const minutes=input.minutes===undefined?COVERAGE_MAX_MINUTES:input.minutes;
+      if(!Number.isSafeInteger(minutes)||minutes<1||minutes>COVERAGE_MAX_MINUTES)fail('DATOS_INVALIDOS',400);
+      const {rows,available}=await this.provider.searchAll(await this.credentials(ctx,account),minutes);
+      const coverage=transferCoverage(rows,account,{minutes,available});
+      console.info(JSON.stringify({event:'MP_PUBLIC_COVERAGE',...coverage}));
+      return {coverage};
     }
     if(action==='receipts'){
       if(!this.config.transferVerification)fail('TRANSFERENCIAS_NO_HABILITADAS');

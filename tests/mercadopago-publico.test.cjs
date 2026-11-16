@@ -33,6 +33,67 @@ test('API logs the unaccredited reason name only and keeps the client response u
   try{const r=await h(new Request('https://fixture',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer synthetic'},body:JSON.stringify({action:'accounts',commerceId,deviceId})}));assert.equal(r.status,409);assert.deepEqual(await r.json(),{code:'ORDEN_SIN_ACREDITAR'});assert.deepEqual(logs.map(s=>JSON.parse(s)),[{event:'MP_PUBLIC_ERROR',action:'accounts',code:'ORDEN_SIN_ACREDITAR',...expected}]);}finally{console.warn=original;}
  }
 });
+test('transfer coverage reports only category counts and never amounts names or identifiers',async()=>{
+ const m=await modulePromise;assert.ok(m);const account={providerId:'77'},base={id:'9000000001',collector_id:77,currency_id:'ARS',transaction_amount:'1234.56',date_approved:'2026-11-16T10:00:00Z',payer:{first_name:'PrivateName',email:'private@example.test'}};
+ const rows=[{...base,operation_type:'money_transfer',payment_type_id:'account_money',payment_method_id:'account_money',status:'approved',status_detail:'accredited'},{...base,operation_type:'money_transfer',payment_type_id:'account_money',payment_method_id:'account_money',status:'approved',status_detail:'accredited'},{...base,operation_type:'regular_payment',payment_type_id:'bank_transfer',payment_method_id:'cvu',status:'approved',status_detail:'accredited'},{...base,collector_id:88,operation_type:'money_transfer',payment_type_id:'account_money',payment_method_id:'account_money',status:'approved',status_detail:'accredited'},{...base,operation_type:'Private Name 1234.56',payment_type_id:undefined,payment_method_id:9000000001,status:'pending',status_detail:'x'.repeat(41)}];
+ const c=m.transferCoverage(rows,account);assert.equal(c.total,5);assert.equal(c.truncated,false);assert.equal(c.otherGroups,0);assert.equal(c.groups.length,4);
+ assert.deepEqual(c.groups[0],{operation:'money_transfer',type:'account_money',method:'account_money',status:'approved',detail:'accredited',currency:'ARS',received:true,accepted:true,count:2});
+ assert.ok(c.groups.some(g=>g.operation==='regular_payment'&&g.type==='bank_transfer'&&g.method==='cvu'&&g.received&&!g.accepted&&g.count===1));
+ assert.ok(c.groups.some(g=>!g.received&&!g.accepted));assert.ok(c.groups.some(g=>g.operation==='otro'&&g.type==='sin_dato'&&g.method==='otro'&&g.detail==='otro'));
+ const text=JSON.stringify(c);for(const secret of ['1234.56','PrivateName','private@example.test','9000000001','2026-11-16T10','77','88'])assert.equal(text.includes(secret),false,secret);
+ assert.deepEqual(m.transferCoverage(null,account),{minutes:4320,total:0,truncated:false,groups:[],otherGroups:0});
+});
+test('transfer coverage copies only catalogued categories: category-shaped identifiers and names become otro',async()=>{
+ const m=await modulePromise;assert.ok(m);const account={providerId:'77'};
+ for(const field of ['operation_type','payment_type_id','payment_method_id','status','status_detail','currency_id'])for(const value of ['9000000001','juan_perez','cvu_0000003100012345678901','ars','accredited_private',''])
+  {const text=JSON.stringify(m.transferCoverage([{[field]:value}],account));if(value)assert.equal(text.includes(value),false,field+' '+value);assert.equal(text.includes('"otro"'),true,field+' '+value);}
+ const known=m.transferCoverage([{operation_type:'regular_payment',payment_type_id:'bank_transfer',payment_method_id:'cvu',status:'approved',status_detail:'accredited',currency_id:'ARS'}],account).groups[0];
+ assert.deepEqual([known.operation,known.type,known.method,known.status,known.detail,known.currency],['regular_payment','bank_transfer','cvu','approved','accredited','ARS']);
+});
+test('transfer coverage reports truncation from the provider total and limits the window by minutes',async()=>{
+ const m=await modulePromise;assert.ok(m);const account={providerId:'77'};
+ assert.equal(m.transferCoverage([{}],account,{available:1}).truncated,false);assert.equal(m.transferCoverage([{}],account,{available:2}).truncated,true);assert.equal(m.transferCoverage([{}],account,{minutes:10,available:1}).minutes,10);
+ const urls=[],provider=new m.Provider({},async url=>{urls.push(new URL(url));return Response.json({results:[{}],paging:{total:700}});});
+ const r=await provider.searchAll({access_token:'synthetic'},10);assert.equal(r.available,700);assert.equal(r.rows.length,10);assert.equal(urls.length,10);
+ const span=Date.parse(urls[0].searchParams.get('end_date'))-Date.parse(urls[0].searchParams.get('begin_date'));assert.equal(span,600000);
+ assert.equal(m.transferCoverage(r.rows,account,{minutes:10,available:r.available}).truncated,true);
+});
+test('transfer coverage never reads an incomplete provider response as zero movements',async()=>{
+ const m=await modulePromise;assert.ok(m);
+ for(const body of [{paging:{total:1}},{results:null,paging:{total:0}},{results:[]},{results:[],paging:{}},{results:[],paging:{total:'1'}},{results:[],paging:{total:-1}},{}]){
+  const provider=new m.Provider({},async()=>Response.json(body));
+  await assert.rejects(provider.searchAll({access_token:'synthetic'}),e=>e.message==='MERCADO_PAGO_NO_DISPONIBLE'&&e.status===503,JSON.stringify(body));
+ }
+ const empty=new m.Provider({},async()=>Response.json({results:[],paging:{total:0}}));assert.deepEqual(await empty.searchAll({access_token:'synthetic'}),{rows:[],available:0});
+ // The regular flow keeps its previous tolerance.
+ const legacy=new m.Provider({},async()=>Response.json({paging:{total:1}}));assert.deepEqual(await legacy.search({access_token:'synthetic'}),[]);
+});
+test('transfer coverage validates minutes and may renew expired credentials without business writes',async()=>{
+ const m=await modulePromise;assert.ok(m);const key=crypto.getRandomValues(new Uint8Array(32)),accountId='40000000-0000-4000-8000-000000000002',ops=[];
+ const credentials=await m.encrypt({access_token:'old',refresh_token:'synthetic',user_id:'77',expiresAt:Date.now()-1000},key,'account:'+accountId);
+ const store={call:async op=>{ops.push(op);if(op==='account')return {id:accountId,active:true,providerId:'77',credentials,refreshState:'idle',version:1};if(op==='refresh-begin'||op==='refresh-finish')return true;throw Error('unexpected storage operation '+op);}};
+ const paths=[],provider=new m.Provider({clientId:'1',clientSecret:'synthetic'},async url=>{const u=new URL(url);paths.push(u.pathname);return u.pathname==='/oauth/token'?Response.json({access_token:'new',refresh_token:'synthetic2',user_id:77,expires_in:3600}):Response.json({results:[],paging:{total:0}});});
+ const service=new m.Service({config:{configured:true,key,transferVerification:false},store,provider}),original=console.info;console.info=()=>{};
+ try{
+  for(const minutes of [0,-5,4321,1.5,'10',null])await assert.rejects(service.handle(ctx,{action:'transfer-coverage',accountId,minutes}),/DATOS_INVALIDOS/);
+  assert.deepEqual(ops.filter(op=>op!=='account'),[],'invalid input must not reach the provider or renew credentials');assert.deepEqual(paths,[]);ops.length=0;
+  const r=await service.handle(ctx,{action:'transfer-coverage',accountId,minutes:10});assert.deepEqual(r.coverage,{minutes:10,total:0,truncated:false,groups:[],otherGroups:0});
+ }finally{console.info=original;}
+ assert.deepEqual(ops,['account','refresh-begin','refresh-finish'],'only the normal OAuth renewal may write');assert.deepEqual(paths,['/oauth/token','/v1/payments/search']);
+});
+test('transfer coverage is owner-only read-only works with verification disabled and uses an unfiltered search',async()=>{
+ const m=await modulePromise;assert.ok(m);const key=crypto.getRandomValues(new Uint8Array(32)),accountId='40000000-0000-4000-8000-000000000001',ops=[],logs=[],original=console.info;
+ const credentials=await m.encrypt({access_token:'synthetic',refresh_token:'synthetic',user_id:'77',expiresAt:Date.now()+3600000},key,'account:'+accountId);
+ const store={call:async(op)=>{ops.push(op);if(op==='account')return {id:accountId,active:true,providerId:'77',credentials,refreshState:'idle',version:1};throw Error('unexpected storage operation '+op);}};
+ const urls=[],provider=new m.Provider({},async url=>{urls.push(new URL(url));return Response.json({results:[{id:'1',collector_id:77,currency_id:'ARS',operation_type:'money_transfer',payment_type_id:'account_money',payment_method_id:'account_money',status:'approved',status_detail:'accredited',transaction_amount:'10.00'}],paging:{total:1}});});
+ const service=new m.Service({config:{configured:true,key,transferVerification:false},store,provider});
+ await assert.rejects(service.handle({...ctx,role:'empleado',permissions:['ventas_registrar']},{action:'transfer-coverage',accountId}),/PERMISO_DUENIO/);assert.deepEqual(ops,[]);
+ console.info=s=>logs.push(s);let r;try{r=await service.handle(ctx,{action:'transfer-coverage',accountId});}finally{console.info=original;}
+ assert.deepEqual(ops,['account'],'the diagnostic must not write or claim anything');assert.equal(r.coverage.total,1);assert.equal(r.coverage.groups[0].accepted,true);
+ assert.equal(urls.length,1);assert.equal(urls[0].pathname,'/v1/payments/search');assert.equal(urls[0].searchParams.has('operation_type'),false);assert.equal(urls[0].searchParams.has('status'),false);
+ assert.deepEqual(logs.map(s=>JSON.parse(s)),[{event:'MP_PUBLIC_COVERAGE',...r.coverage}]);
+ urls.length=0;await provider.search({access_token:'synthetic'});assert.equal(urls[0].searchParams.get('operation_type'),'money_transfer');assert.equal(urls[0].searchParams.get('status'),'approved');
+});
 test('Auth validates JWT then membership then real F5 and never trusts payload role',async()=>{const m=await modulePromise;assert.ok(m);const paths=[];const fetcher=async(url,init)=>{paths.push(new URL(url).pathname);if(url.endsWith('/auth/v1/user'))return Response.json({id:userId});if(url.includes('comercio_miembros'))return Response.json([{comercio_id:commerceId,user_id:userId,rol:'empleado',activo:true,permisos:[]}]);return Response.json({writable:true,membership:{rol:'empleado',permisos_efectivos:[]}});};await assert.rejects(m.authenticate({url:'https://test.supabase.co',anonKey:'fixture'},'fixture',{commerceId,deviceId,role:'duenio'},fetcher),/PERMISO_VENDER/);assert.deepEqual(paths,['/auth/v1/user','/rest/v1/comercio_miembros','/rest/v1/rpc/f5_chequear_autoridad']);});
 test('Auth rejects invalid JWT before any privileged storage call',async()=>{const m=await modulePromise;assert.ok(m);let storage=0;const h=m.createApiHandler({config:{url:'https://test.supabase.co',anonKey:'fixture',configured:false},store:{call(){storage++;}},fetcher:async()=>Response.json({}, {status:401})});const r=await h(new Request('https://test.supabase.co/functions/v1/mercadopago',{method:'POST',headers:{origin:'https://micomercio.ar','content-type':'application/json',authorization:'Bearer fixture'},body:JSON.stringify({action:'accounts',commerceId,deviceId})}));assert.equal(r.status,401);assert.equal(storage,0);});
 test('CORS rejects alien origins and supports authorized preflight without auth',async()=>{const m=await modulePromise;assert.ok(m);const h=m.createApiHandler({config:{configured:false}});const bad=await h(new Request('https://test/f',{method:'OPTIONS',headers:{origin:'https://evil.example'}}));assert.equal(bad.status,403);const good=await h(new Request('https://test/f',{method:'OPTIONS',headers:{origin:'https://micomercio.ar'}}));assert.equal(good.status,204);assert.equal(good.headers.get('access-control-allow-origin'),'https://micomercio.ar');assert.equal(good.headers.get('cache-control'),'no-store');});
