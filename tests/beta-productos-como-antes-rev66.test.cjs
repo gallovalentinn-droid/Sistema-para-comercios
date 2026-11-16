@@ -22,6 +22,6 @@ test('REV66: Historial y Archivar vuelven a mostrar su texto en pantallas anchas
 
 test('identidad del paquete (REV77)', () => {
   const sw = fs.readFileSync(path.join(__dirname, '..', 'beta', 'sw.js'), 'utf8');
-  assert.match(html, /packageRevision:99,/);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev99/);
+  assert.match(html, /packageRevision:100,/);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev100/);
 });

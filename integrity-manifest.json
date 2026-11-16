@@ -1,14 +1,14 @@
 {
   "version": "6.0.0-f6-rc2",
-  "packageRevision": 99,
+  "packageRevision": 100,
   "algorithm": "sha256",
-  "generatedAt": "2026-11-16-mp-recuperar-r1",
+  "generatedAt": "2026-11-16-mp-acreditada-r1",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "081a6f018e97828ba8c8d6c53e45eb6ae4f166f07816286afff0a2b9cbd3bc23",
+    "beta/index.html": "ffa076d5b3f9d62bd43556ca0f9f873b9c5bdf89597951d348a6b4bc874e74d0",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "58c222b15b8a0a286e94c5cefe59e1d5392c7f3dee6342707b6753102d8c6fb3",
+    "beta/sw.js": "275e076429b2d9551be1ad0ebccc6ed789f9d134940bc4fe2c9a98b3be04a816",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -39,17 +39,17 @@
     "LEEME-REV84.md": "864e83b352e09d28e2dafea11b502b8e7ce976837e410f8436fe4a7993c310ca",
     "REV95-LECTOR-RESPALDO.sql": "5330d92fac2be4707d4492077f1987d88c3f83565fb6a228f7645543d1e93a70",
     "REV95-LECTOR-REINTENTO.sql": "09645d4faeb2a09db1ee9eed8e3f70e0bb81f9f568395988625d410aaed5096a",
-    "beta/mercadopago.js": "0bf93a0cd9ddfac50fce08e44b200a9ac45e5695b39ce50a46e30288df831c68",
+    "beta/mercadopago.js": "3028ca511ff78a02e3b0d559a1831cf7c9c35162a870bf5700ace0533f696654",
     "beta/vendor/qrcode-generator-2.0.4.js": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c",
     "beta/vendor/LICENSE-qrcode-generator-2.0.4.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
     "tools/mercadopago/core.cjs": "c87928bb7c59c2790655daa356cdaa1948f6d83f078850e4df197c73eaf5ee32",
     "tools/mercadopago/server.cjs": "58e8a4fe3dcd5c722ed7adc6c78fb16cb6e1fad7b74382001eada3d818e710a2",
-    "supabase/functions/_shared/mp-core.mjs": "4e91ea91c4fdd7eea2697198ad6ffcc434c521a2fa90eb1ba7de91ae67fb15d5",
+    "supabase/functions/_shared/mp-core.mjs": "d9d83a77673745ea2aaaec2d7adc9467c52f5e3fe29869aee961dc36d4e5efec",
     "supabase/functions/_shared/mp-store.mjs": "77d02ab2b377db5a1e5ebf6d1749f1d7235a6e2da05d13e6ce86e64839b6dfd5",
     "supabase/functions/mercadopago/index.ts": "1baced7171592f51e0be4c6b1cd01a39c05d2300f041ddffcaf3a99f9bf20bc4",
     "supabase/functions/mercadopago-callback/index.ts": "e8febd79e2311dde9d28b37e95ce3005a6e0d5e16241611acad402d0c8e82f02",
     "supabase/migrations/20261115184112_mercadopago_publico.sql": "bfe8c1079db36445afb48b0d53316d5e84ce75313f7d699ba214016bb70c58eb",
     "tools/mercadopago/copiar-clave-cifrado.ps1": "3fb8061d04406dfe20f2071abfea09123b53d5d1678445cd83df219923f7d1a6"
   },
-  "packageEdition": "2026-11-16-mp-recuperar-r1"
+  "packageEdition": "2026-11-16-mp-acreditada-r1"
 }

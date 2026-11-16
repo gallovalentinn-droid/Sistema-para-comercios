@@ -66,10 +66,25 @@ export function validateOrder(o,account,a) {
   if(cents(o.total_amount)!==a.amountCents)fail('ORDEN_MONTO_DISTINTO');
   if(!['created','processed','canceled','expired','action_required','failed'].includes(o.status))fail('ORDEN_INVALIDA');
 }
+// Diagnóstico seguro: solo el nombre de la condición que falló, nunca valores de la respuesta.
+const UNACCREDITED_REASONS = new Set(['estado_orden','detalle_orden','cantidad_pagos','id_pago','estado_pago','detalle_pago','importe_pago']);
+function unaccredited(reason) { const e=new Error('ORDEN_SIN_ACREDITAR'); e.status=409; e.reason=reason; throw e; }
+// Mercado Pago documenta la orden pagada como processed/processed en su tabla de estados
+// y como processed/accredited en el ejemplo de la notificación order.processed. Se aceptan
+// ambas; partially_refunded y refunded siguen rechazadas. La acreditación se decide en la
+// transacción: única, processed/accredited y por el importe congelado del intento.
+const ORDER_PAID_DETAILS = new Set(['processed','accredited']);
 export function accreditedOrderPayment(o,account,a) {
   validateOrder(o,account,a);const payments=o.transactions?.payments;
-  if(o.status!=='processed'||o.status_detail!=='processed'||!Array.isArray(payments)||payments.length!==1)fail('ORDEN_SIN_ACREDITAR');
-  const p=payments[0];if(!p?.id||p.status!=='processed'||p.status_detail!=='accredited'||cents(p.amount)!==a.amountCents)fail('ORDEN_SIN_ACREDITAR');
+  if(o.status!=='processed')unaccredited('estado_orden');
+  if(!ORDER_PAID_DETAILS.has(o.status_detail))unaccredited('detalle_orden');
+  if(!Array.isArray(payments)||payments.length!==1)unaccredited('cantidad_pagos');
+  const p=payments[0];
+  if(!p?.id)unaccredited('id_pago');
+  if(p.status!=='processed')unaccredited('estado_pago');
+  if(p.status_detail!=='accredited')unaccredited('detalle_pago');
+  let amount=null;try{amount=cents(p.amount);}catch{}
+  if(amount!==a.amountCents)unaccredited('importe_pago');
   return String(p.id);
 }
 export class Provider {
@@ -273,7 +288,7 @@ export function createApiHandler({config,store,provider=new Provider(config),fet
     const token=request.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
     const ctx=await authenticate(config,token,body,fetcher);authorize(ctx,OWNER.has(body.action));
     return response(await service.handle(ctx,body,token),200,origin);
-  }catch(e){const code=ERROR_CODES.has(e.message)?e.message:'CONEXION_NO_DISPONIBLE';console.warn(JSON.stringify({event:'MP_PUBLIC_ERROR',action,code}));return response({code},e.status||409,origin);}};
+  }catch(e){const code=ERROR_CODES.has(e.message)?e.message:'CONEXION_NO_DISPONIBLE';const reason=code==='ORDEN_SIN_ACREDITAR'&&UNACCREDITED_REASONS.has(e.reason)?e.reason:undefined;console.warn(JSON.stringify({event:'MP_PUBLIC_ERROR',action,code,...(reason?{reason}:{})}));return response({code},e.status||409,origin);}};
 }
 export function createCallbackHandler({config,store,provider=new Provider(config),fetcher=fetch}) {
   return async request=>{let status='error';try {
