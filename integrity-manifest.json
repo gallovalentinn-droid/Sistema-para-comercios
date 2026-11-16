@@ -1,14 +1,14 @@
 {
   "version": "6.0.0-f6-rc2",
-  "packageRevision": 97,
+  "packageRevision": 98,
   "algorithm": "sha256",
-  "generatedAt": "2026-11-15-mp-publico-r1",
+  "generatedAt": "2026-11-16-mp-qr-r1",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "6fb6aec261a0f587d9027397d8db6c904f579add8e523f5111de7d91f28159ab",
+    "beta/index.html": "fbc3aa3c607a6287730c5334542203f2a4d947b8468510efe6e023fa4c7a6a27",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "ace1d0d14b3704b6ebfd36f92c6f9ad6d34b82676967e4a108b26b0c5a4aa2a3",
+    "beta/sw.js": "adbac5105c89e44071dcc64aa688d14f7984d64416ea082ee53345e34cbe6467",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -39,7 +39,7 @@
     "LEEME-REV84.md": "864e83b352e09d28e2dafea11b502b8e7ce976837e410f8436fe4a7993c310ca",
     "REV95-LECTOR-RESPALDO.sql": "5330d92fac2be4707d4492077f1987d88c3f83565fb6a228f7645543d1e93a70",
     "REV95-LECTOR-REINTENTO.sql": "09645d4faeb2a09db1ee9eed8e3f70e0bb81f9f568395988625d410aaed5096a",
-    "beta/mercadopago.js": "5207b3379433bef68d105751716c07400f23485235b628c0c44a3d93b1927600",
+    "beta/mercadopago.js": "fc74074c2af1ac7a1cec7013dd330f0b43033028c7cc12f314bd0df220976802",
     "beta/vendor/qrcode-generator-2.0.4.js": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c",
     "beta/vendor/LICENSE-qrcode-generator-2.0.4.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
     "tools/mercadopago/core.cjs": "c87928bb7c59c2790655daa356cdaa1948f6d83f078850e4df197c73eaf5ee32",
@@ -51,5 +51,5 @@
     "supabase/migrations/20261115184112_mercadopago_publico.sql": "bfe8c1079db36445afb48b0d53316d5e84ce75313f7d699ba214016bb70c58eb",
     "tools/mercadopago/copiar-clave-cifrado.ps1": "3fb8061d04406dfe20f2071abfea09123b53d5d1678445cd83df219923f7d1a6"
   },
-  "packageEdition": "2026-11-15-mp-publico-r1"
+  "packageEdition": "2026-11-16-mp-qr-r1"
 }
