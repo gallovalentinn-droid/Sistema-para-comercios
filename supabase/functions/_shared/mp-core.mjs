@@ -77,6 +77,22 @@ const COVERAGE_CATALOG = {
 };
 const coverageLabel = (field,v) => v==null?'sin_dato':typeof v==='string'&&COVERAGE_CATALOG[field].has(v)?v:'otro';
 export const COVERAGE_MAX_MINUTES = 4320;
+// Fixed presence counters only. Names, documents, bank account data and arbitrary
+// property names from the provider must never reach this diagnostic or its log.
+export function senderFieldPresence(rows){
+  const text=v=>typeof v==='string'&&v.trim().length>0;
+  const identifier=v=>text(v)||typeof v==='number'&&Number.isFinite(v)&&v>0;
+  const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+  const empty=()=>({total:0,payerFirstName:0,payerLastName:0,payerIdentificationType:0,payerIdentificationNumber:0,bankPayerObject:0,bankPayerName:0,bankPayerLongName:0,bankPayerAccountId:0,bankPayerFirstName:0,bankPayerLastName:0,bankPayerId:0,bankPayerIdentificationType:0,bankPayerIdentificationNumber:0});
+  const out={all:empty(),cvu:empty(),moneyTransfer:empty()};
+  for(const p of (Array.isArray(rows)?rows:[]).slice(0,500)){
+    const payer=p?.payer,bank=p?.point_of_interaction?.transaction_data?.bank_info?.payer;
+    const flags={payerFirstName:text(payer?.first_name),payerLastName:text(payer?.last_name),payerIdentificationType:text(payer?.identification?.type),payerIdentificationNumber:identifier(payer?.identification?.number),bankPayerObject:object(bank),bankPayerName:text(bank?.name),bankPayerLongName:text(bank?.long_name),bankPayerAccountId:identifier(bank?.account_id),bankPayerFirstName:text(bank?.first_name),bankPayerLastName:text(bank?.last_name),bankPayerId:identifier(bank?.id),bankPayerIdentificationType:text(bank?.identification?.type),bankPayerIdentificationNumber:identifier(bank?.identification?.number)};
+    const buckets=[out.all];if(p?.operation_type==='account_fund'&&p.payment_type_id==='bank_transfer'&&p.payment_method_id==='cvu')buckets.push(out.cvu);if(p?.operation_type==='money_transfer')buckets.push(out.moneyTransfer);
+    for(const b of buckets){b.total++;for(const key of Object.keys(flags))b[key]+=Number(flags[key]);}
+  }
+  return out;
+}
 // available: total informado por el proveedor para la ventana. Si supera lo analizado, el
 // resultado está recortado y una ausencia no permite concluir nada.
 export function transferCoverage(rows,account,{minutes=COVERAGE_MAX_MINUTES,available}={}) {
@@ -238,8 +254,10 @@ export class Service {
       // minutes acota la ventana para poder atribuir una transferencia recién hecha.
       const minutes=input.minutes===undefined?COVERAGE_MAX_MINUTES:input.minutes;
       if(!Number.isSafeInteger(minutes)||minutes<1||minutes>COVERAGE_MAX_MINUTES)fail('DATOS_INVALIDOS',400);
+      if(input.includeSenderFields!==undefined&&typeof input.includeSenderFields!=='boolean')fail('DATOS_INVALIDOS',400);
       const {rows,available}=await this.provider.searchAll(await this.credentials(ctx,account),minutes);
       const coverage=transferCoverage(rows,account,{minutes,available});
+      if(input.includeSenderFields===true)coverage.senderFields=senderFieldPresence(rows);
       console.info(JSON.stringify({event:'MP_PUBLIC_COVERAGE',...coverage}));
       return {coverage};
     }

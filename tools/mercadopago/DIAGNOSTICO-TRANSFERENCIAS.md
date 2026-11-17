@@ -23,6 +23,10 @@ El servidor registra el resumen con el evento `MP_PUBLIC_COVERAGE`. La respuesta
 
 ## Protocolo de prueba
 
+### Presencia de campos de remitente
+
+El dueño puede agregar `includeSenderFields:true` a la acción transfer-coverage. La respuesta y el registro agregan senderFields con conteos por all/cvu/moneyTransfer y rutas fijas de payer y point_of_interaction.transaction_data.bank_info.payer. Nunca devuelven los valores, documentos, nombres, datos bancarios ni nombres de propiedades arbitrarias. name/long_name del banco o identificación presente no equivalen a nombre de persona y no se usan como remitente. La opción omitida conserva la respuesta anterior. No activa la comprobación de transferencias ni modifica negocio; puede renovar credenciales.
+
 1. Ejecutar y guardar una consulta previa.
 2. El usuario realiza una sola transferencia de prueba a la cuenta conectada.
 3. Después de uno o dos minutos, ejecutar y guardar la consulta posterior con la misma ventana.
