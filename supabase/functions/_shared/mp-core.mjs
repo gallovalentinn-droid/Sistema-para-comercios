@@ -70,7 +70,7 @@ export function validateTransferWindow(p,a){
   const paid=typeof p?.date_approved==='string'?Date.parse(p.date_approved):NaN;
   if(!Number.isFinite(paid)||paid<start-120000||paid>start+1800000)fail('INGRESO_FUERA_DE_VENTANA');
 }
-function transferAttempt(a,sale){if(!a)fail('COBRO_NO_INICIADO');if(a.accountId!==sale.accountId||a.amountCents!==sale.amountCents||a.fingerprint!==sale.fingerprint)fail('TICKET_CAMBIO');if(a.orderId||a.status==='creating')fail('QR_PENDIENTE');return a;}
+function transferAttempt(a,sale){if(!a)fail('COBRO_NO_INICIADO');if(a.accountId!==sale.accountId||a.amountCents!==sale.amountCents||a.fingerprint!==sale.fingerprint)fail('TICKET_CAMBIO');if(['canceled','expired'].includes(a.status))fail('COBRO_CANCELADO');if(a.orderId||a.status==='creating')fail('QR_PENDIENTE');return a;}
 // Diagnóstico de cobertura de transferencias: solo conteos por categorías del proveedor.
 // Nunca incluye importes, fechas, nombres ni identificadores. Cada campo se clasifica contra
 // un catálogo cerrado de categorías conocidas del proveedor: cualquier otro texto, aunque
@@ -308,6 +308,7 @@ export class Service {
         await this.call(ctx,'sale-update',{saleId:a.saleId,owner,patch:{status:'manual'}});return {ok:true};
       }
       if(action==='claim'){
+        if(['canceled','expired'].includes(a.status))fail('COBRO_CANCELADO');
         if(a.status==='manual')fail('COBRO_FINALIZADO_MANUAL');
         if(a.orderId||a.status==='creating')fail('QR_PENDIENTE');
         const p=await this.provider.payment(await this.credentials(ctx,account),String(input.paymentId||''));
@@ -350,7 +351,7 @@ export class Service {
     } finally {await this.call(ctx,'sale-release',{saleId:sale.saleId,owner}).catch(()=>{});}
   }
 }
-const ERROR_CODES = new Set(['SESION_INVALIDA','PERMISO_DENEGADO','PERMISO_DUENIO_REQUERIDO','PERMISO_VENDER_REQUERIDO','AUTORIDAD_NO_VIGENTE','APLICACION_NO_CONFIGURADA','ACCION_INVALIDA','DATOS_INVALIDOS','ORIGEN_NO_PERMITIDO','METODO_NO_PERMITIDO','NOMBRE_CUENTA_INVALIDO','CUENTA_NO_DISPONIBLE','CUENTA_OTRO_COMERCIO','CUENTA_OCUPADA','COBRO_OCUPADO','COBRO_NO_EXISTE','COBROS_NO_HABILITADOS','COBRO_PENDIENTE','QR_PENDIENTE','QR_REQUIERE_CONCILIACION','TICKET_CAMBIO','VENTA_INVALIDA','MONTO_INVALIDO','CAJA_NO_DISPONIBLE','CONFIGURAR_CAJA_QR','TRANSFERENCIAS_NO_HABILITADAS','TRANSFERENCIA_UTILIZADA','VENTA_YA_VERIFICADA','COBRO_FINALIZADO_MANUAL','INGRESO_NO_VALIDO','INGRESO_MONTO_DISTINTO','INGRESO_FUERA_DE_VENTANA','INGRESO_VINCULADO_ORDEN','COBRO_NO_INICIADO','ORDEN_INVALIDA','ORDEN_MONTO_DISTINTO','ORDEN_SIN_ACREDITAR','RECONECTAR_CUENTA','MERCADO_PAGO_OCUPADO','MERCADO_PAGO_NO_DISPONIBLE','CONEXION_NO_DISPONIBLE','AUTORIZACION_RECHAZADA','AUTORIZACION_VENCIDA']);
+const ERROR_CODES = new Set(['SESION_INVALIDA','PERMISO_DENEGADO','PERMISO_DUENIO_REQUERIDO','PERMISO_VENDER_REQUERIDO','AUTORIDAD_NO_VIGENTE','APLICACION_NO_CONFIGURADA','ACCION_INVALIDA','DATOS_INVALIDOS','ORIGEN_NO_PERMITIDO','METODO_NO_PERMITIDO','NOMBRE_CUENTA_INVALIDO','CUENTA_NO_DISPONIBLE','CUENTA_OTRO_COMERCIO','CUENTA_OCUPADA','COBRO_OCUPADO','COBRO_NO_EXISTE','COBROS_NO_HABILITADOS','COBRO_PENDIENTE','QR_PENDIENTE','QR_REQUIERE_CONCILIACION','TICKET_CAMBIO','VENTA_INVALIDA','MONTO_INVALIDO','CAJA_NO_DISPONIBLE','CONFIGURAR_CAJA_QR','TRANSFERENCIAS_NO_HABILITADAS','TRANSFERENCIA_UTILIZADA','VENTA_YA_VERIFICADA','COBRO_FINALIZADO_MANUAL','INGRESO_NO_VALIDO','INGRESO_MONTO_DISTINTO','INGRESO_FUERA_DE_VENTANA','INGRESO_VINCULADO_ORDEN','COBRO_NO_INICIADO','COBRO_CANCELADO','ORDEN_INVALIDA','ORDEN_MONTO_DISTINTO','ORDEN_SIN_ACREDITAR','RECONECTAR_CUENTA','MERCADO_PAGO_OCUPADO','MERCADO_PAGO_NO_DISPONIBLE','CONEXION_NO_DISPONIBLE','AUTORIZACION_RECHAZADA','AUTORIZACION_VENCIDA']);
 function response(body,status=200,origin='') {
   const headers={'content-type':'application/json; charset=utf-8','cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','vary':'Origin'};
   if(ORIGINS.has(origin))Object.assign(headers,{'access-control-allow-origin':origin,'access-control-allow-headers':'authorization, apikey, content-type, x-client-info','access-control-allow-methods':'POST, OPTIONS'});

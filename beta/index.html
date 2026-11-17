@@ -1020,8 +1020,8 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:103,
-  packageEdition:'2026-11-17-mp-simple-r1',
+  packageRevision:104,
+  packageEdition:'2026-11-17-mp-cierre-r1',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -3895,12 +3895,13 @@ function modal({titulo,cuerpo,pie,ancho,alAbrir}){
   </div>`;
   document.body.appendChild(ov);
   if(typeof f62PintarActualizacion==='function'&&f62VersionNueva)f62PintarActualizacion();
-  ov.addEventListener('click',e=>{ if(e.target===ov||(e.target.closest&&e.target.closest('[data-cerrar]'))) cerrarModal(); });
+  ov.addEventListener('click',e=>{ if(e.target===ov||(e.target.closest&&e.target.closest('[data-cerrar]'))) cerrarModalUsuario(); });
   alAbrir&&alAbrir(ov);
   return ov;
 }
 const cerrarModal=()=>{ const o=$('#ov'); o&&o.remove();if(typeof f62PintarActualizacion==='function'&&f62VersionNueva)f62PintarActualizacion(); };
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrarModal(); });
+function cerrarModalUsuario(){const o=$('#ov');if(o?.mpCerrar)o.mpCerrar();else cerrarModal();}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrarModalUsuario(); });
 
 function confirmar(titulo,texto,alAceptar,textoBoton='Confirmar',clase='rojo'){
   modal({titulo,cuerpo:`<p style="margin:0;line-height:1.6">${texto}</p>`,
@@ -4806,19 +4807,25 @@ function pintarPOS(){
 }
 function confirmarCancelacionVenta(){
   if(!ticket.length) return;
-  const ejecutar=()=>{ticket=[];recibido='';clienteFiado='';pagoMixto=[];pago='';ultimoAgregado=null;limpiarDescuento();pintarPOS();const f=$('#posFeedback');if(f)f.innerHTML='';aviso('Venta cancelada');};
+  const ejecutar=async()=>{if(typeof mpLeerPendiente==='function'&&mpLeerPendiente()){const result=await mpTerminarCobro();if(result!=='canceled')return;}ticket=[];recibido='';clienteFiado='';pagoMixto=[];pago='';ultimoAgregado=null;limpiarDescuento();pintarPOS();const f=$('#posFeedback');if(f)f.innerHTML='';aviso('Venta cancelada');};
   if(ticket.length<3){ejecutar();return;}
   confirmar('Cancelar esta venta',`Se van a quitar <b>${ticket.length} productos o combos</b> del ticket.`,ejecutar,'Cancelar venta','rojo');
 }
 
 /* ── modal de medio de pago: todo el flujo de cobro vive acá ── */
-function abrirModalPago(){
+function abrirModalPago(continuarCobro=false){
+  if(continuarCobro!==true&&typeof mpLeerPendiente==='function'&&mpLeerPendiente()){
+    mpTerminarCobro().then(result=>{if(result==='canceled'&&ticket.length)abrirModalPago();});return;
+  }
   if(!ticket.length) return;
   if(!pago) pago='efectivo';
   modal({titulo:'¿Cómo te pagan?',
     cuerpo:`<div id="pagoBody"></div>`,
     pie:`<button class="btn ghost" data-cerrar>Volver al ticket</button>`,
-    alAbrir:ov=>pintarPagoModal(ov)});
+    alAbrir:ov=>{pintarPagoModal(ov);ov.mpCerrar=async()=>{
+      if(typeof mpTerminarCobro!=='function'||!mpLeerPendiente()&&!mpOperacionOcupada){cerrarModal();return;}
+      const result=await mpTerminarCobro();if(result==='canceled'&&$('#ov')===ov)cerrarModal();
+    };}});
 }
 function pintarPagoModal(ov){
   const t=totalTicket();
@@ -5043,7 +5050,7 @@ function formDescuento(){
 }
 
 function cerrarVenta(forma,mpCobro=null){
-  if(typeof mpBloqueaCobro==='function'&&mpBloqueaCobro()){aviso('Recuperá el cobro pendiente de Mercado Pago antes de cobrar otra venta.','bad');return false;}
+  if(typeof mpBloqueaCobro==='function'&&mpBloqueaCobro()){aviso('Cerrá este cobro antes de confirmar otro medio de pago.','bad');return false;}
   if(ventaEnProceso||!ticket.length) return false;
   if(estadoTurnoRev31(db.config,f3Estado&&f3Estado.session).requiereApertura){aviso('Abrí un turno antes de vender','bad');render();return false;}
   if(ticket.some(i=>i.tipo==='producto'?productoArchivadoRev31(prod(i.prodId)):((i.componentes||[]).some(c=>productoArchivadoRev31(prod(c.prodId)))))){aviso('El ticket contiene un producto archivado. Revisalo antes de cobrar.','bad');return false;}

@@ -23,7 +23,7 @@ async function main(){
   assert.match(await p.locator('#mpQR').innerText(),/Generando QR/);assert.equal(await p.locator('#mpGenerarQR').isDisabled(),true);}
   release();await p.waitForSelector('#mpQR svg');if(!process.env.POLL_ONLY)assert.equal(await p.locator('#mpQR').getAttribute('aria-busy'),'false');
   assert.match(await p.locator('#mpAyudaQR').innerText(),/cuenta distinta/);
-  assert.match(await p.locator('#mpAyudaQR').innerText(),/panel abierto.*recuper/i);
+  assert.match(await p.locator('#mpAyudaQR').innerText(),/panel abierto.*cerrarlo se cancela/i);
   await p.waitForSelector('.ov:has-text("QR verificado")',{timeout:22000});
   assert.ok(checks>=2);assert.equal(await p.evaluate(()=>db.ventas.length),1);assert.equal(await p.evaluate(()=>mpLeerPendiente()),null);
   console.log(JSON.stringify({ok:true,width,generating:true,automaticRetryAfter409:true,verifiedSaleOnce:true}));

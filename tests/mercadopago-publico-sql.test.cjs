@@ -162,6 +162,10 @@ test('PostgreSQL enforces private MP persistence and cross-worker payment invari
     payment={...payment,date_approved:first.attempt.createdAt,order:{id:'ORDfixture'}};await assert.rejects(service.handle(ctx,{...input,action:'claim',paymentId:payment.id}),/INGRESO_VINCULADO_ORDEN/);delete payment.order;await service.handle(ctx,{...input,action:'claim',paymentId:payment.id});assert.equal((await call('receipts',{saleIds:[input.saleId]})).length,1);
     await service.handle(ctx,{...input,saleId:'anotherTransferSale',action:'transfer-start'});await assert.rejects(service.handle(ctx,{...input,saleId:'anotherTransferSale',action:'claim',paymentId:payment.id}),/TRANSFERENCIA_UTILIZADA/);
   });
+  await t.test('cancelar transferencia cierra el intento y rechaza claims posteriores sin recibo',async()=>{
+    await account();let providerCalls=0;const service=new m.Service({store,config,provider:{payment:async()=>{providerCalls++;throw Error('No debe consultar pago');}}}),input={accountId,saleId:'canceledTransfer',amount:'300',fingerprint:'frozen'};
+    await service.handle(ctx,{...input,action:'transfer-start'});const canceled=await service.handle(ctx,{...input,action:'qr-cancel'});assert.equal(canceled.attempt.status,'canceled');for(const action of ['transfer-start','receipts','claim'])await assert.rejects(service.handle(ctx,{...input,action,paymentId:'901'}),/COBRO_CANCELADO/);assert.equal((await call('receipts',{saleIds:[input.saleId]})).length,0);assert.equal(providerCalls,0);
+  });
   await t.test('OAuth callback rechecks original authority and never leaks state code credentials',async()=>{
     const configCb={...config,url:'https://fixture.supabase.co',anonKey:'synthetic'},authFetch=async url=>url.endsWith('/auth/v1/user')?Response.json({id:userId}):url.includes('comercio_miembros')?Response.json([{comercio_id:commerceId,user_id:userId,activo:true,rol:'duenio'}]):Response.json({writable:true,membership:{rol:'duenio',permisos_efectivos:[]}});
     const provider={exchange:async()=>({access_token:'synthetic',refresh_token:'synthetic',user_id:'99',expires_in:3600}),identity:async()=>({id:'99'})};
