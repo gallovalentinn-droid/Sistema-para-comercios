@@ -44,7 +44,7 @@
     "beta/vendor/LICENSE-qrcode-generator-2.0.4.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
     "tools/mercadopago/core.cjs": "b42b889790c2d32dd635bc54bf008c38f6240158a6e3fc3096c9fdc7e5b0b8ea",
     "tools/mercadopago/server.cjs": "58e8a4fe3dcd5c722ed7adc6c78fb16cb6e1fad7b74382001eada3d818e710a2",
-    "supabase/functions/_shared/mp-core.mjs": "9f07a87118b335cda31df5c13dc6634f17977df3e77a362c2a0f5decaf7390b2",
+    "supabase/functions/_shared/mp-core.mjs": "ee2d7e8cd601d6b3d4bcc5b836db2044f9b62c322449a128aab9a865c7af51fc",
     "supabase/functions/_shared/mp-store.mjs": "77d02ab2b377db5a1e5ebf6d1749f1d7235a6e2da05d13e6ce86e64839b6dfd5",
     "supabase/functions/mercadopago/index.ts": "1baced7171592f51e0be4c6b1cd01a39c05d2300f041ddffcaf3a99f9bf20bc4",
     "supabase/functions/mercadopago-callback/index.ts": "e8febd79e2311dde9d28b37e95ce3005a6e0d5e16241611acad402d0c8e82f02",
