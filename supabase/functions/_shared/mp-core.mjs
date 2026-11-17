@@ -1,8 +1,8 @@
 // Shared by Deno Edge and Node tests. No Node dependencies or local storage.
 const encoder = new TextEncoder();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ACTIONS = new Set(['accounts','oauth-start','primary','disconnect','positions','set-position','transfer-coverage','sender-report-prepare','income-senders','income-history','transfer-start','sale-receipts','receipts','claim','manual','qr-create','qr-status','qr-cancel']);
-const OWNER = new Set(['oauth-start','primary','disconnect','positions','set-position','transfer-coverage','sender-report-prepare']);
+const ACTIONS = new Set(['accounts','oauth-start','primary','disconnect','positions','set-position','transfer-coverage','income-senders','income-history','transfer-start','sale-receipts','receipts','claim','manual','qr-create','qr-status','qr-cancel']);
+const OWNER = new Set(['oauth-start','primary','disconnect','positions','set-position','transfer-coverage']);
 const ORIGINS = new Set(['https://micomercio.ar','https://www.micomercio.ar']);
 export function fail(code, status = 409) { const e = new Error(code); e.status = status; throw e; }
 function b64(bytes) { return btoa(String.fromCharCode(...bytes)); }
@@ -68,41 +68,7 @@ export function validateTransferWindow(p,a){
   const start=typeof a?.createdAt==='string'?Date.parse(a.createdAt):NaN;
   if(!Number.isFinite(start))fail('COBRO_NO_INICIADO');
   const paid=typeof p?.date_approved==='string'?Date.parse(p.date_approved):NaN;
-  if(!Number.isFinite(paid)||paid<start-120000||paid>start+1800000)fail('INGRESO_FUERA_DE_VENTANA');
-}
-// Private CSV stays in server memory. Only exact, provider-validated incoming IDs
-// can receive a name. Conflicting settlement rows fail closed for that payment.
-export function reportSenders(csv,account,payments,stats,covered){
-  if(typeof csv!=='string'||csv.length>2097152)fail('REPORTE_NO_VALIDO');
-  const rows=[];let row=[],field='',quoted=false,closed=false;
-  const add=()=>{row.push(field);field='';closed=false;if(row.length>100)fail('REPORTE_NO_VALIDO');};
-  csv=csv.replace(/^\uFEFF/,'');
-  for(let i=0;i<csv.length;i++){
-    const c=csv[i];
-    if(quoted){if(c==='"'){if(csv[i+1]==='"'){field+='"';i++;}else{quoted=false;closed=true;}}else field+=c;}
-    else if(c===';'||c==='\n'||c==='\r'){add();if(c!==';'){if(c==='\r'&&csv[i+1]==='\n')i++;if(row.some(Boolean))rows.push(row);row=[];if(rows.length>10001)fail('REPORTE_NO_VALIDO');}}
-    else if(c==='"'&&!field&&!closed)quoted=true;
-    else {if(closed||c==='"')fail('REPORTE_NO_VALIDO');field+=c;}
-    if(field.length>16384)fail('REPORTE_NO_VALIDO');
-  }
-  if(quoted)fail('REPORTE_NO_VALIDO');if(field||row.length){add();if(row.some(Boolean))rows.push(row);}
-  const header=rows.shift()||[],required=['USER_ID','SOURCE_ID','PAYER_NAME','TRANSACTION_AMOUNT','TRANSACTION_CURRENCY','TRANSACTION_TYPE','SETTLEMENT_DATE'];
-  if(required.some(k=>header.filter(h=>h===k).length!==1))fail('REPORTE_NO_VALIDO');
-  const wanted=new Map();for(const p of payments){try{validatePayment(p,account);wanted.set(String(p.id),cents(p.transaction_amount));}catch{}}
-  const names=new Map(),blocked=new Set(),types=new Map(payments.map(p=>[String(p.id),p.operation_type==='account_fund'?'cvu':'moneyTransfer']));
-  if(stats){const empty=()=>({source:0,account:0,amount:0,currency:0,settlement:0,name:0});Object.assign(stats,{rows:rows.length,cvu:empty(),moneyTransfer:empty()});}
-  for(const r of rows){
-    if(r.length!==header.length)fail('REPORTE_NO_VALIDO');
-    const get=k=>r[header.indexOf(k)],id=get('SOURCE_ID');
-    if(stats&&wanted.has(id)){const b=stats[types.get(id)];b.source++;b.account+=Number(get('USER_ID')===account.providerId);b.currency+=Number(get('TRANSACTION_CURRENCY')==='ARS');b.settlement+=Number(get('TRANSACTION_TYPE')==='SETTLEMENT');b.name+=Number(!!get('PAYER_NAME').trim());try{b.amount+=Number(cents(get('TRANSACTION_AMOUNT'))===wanted.get(id));}catch{}}
-    if(get('USER_ID')!==account.providerId||!wanted.has(id)||get('TRANSACTION_CURRENCY')!=='ARS'||get('TRANSACTION_TYPE')!=='SETTLEMENT')continue;
-    let amount;try{amount=cents(get('TRANSACTION_AMOUNT'));}catch{continue;}if(amount!==wanted.get(id))continue;
-    covered?.add(id);
-    const name=get('PAYER_NAME').replace(/\s+/g,' ').trim();
-    if(!name||name.length>100||/[\u0000-\u001f\u007f<>]/.test(name)||!/[\p{L}]/u.test(name))continue;
-    if(names.has(id)&&names.get(id)!==name)blocked.add(id);else names.set(id,name);
-  }
-  for(const id of blocked)names.delete(id);return names;
+  if(!Number.isFinite(paid)||paid<start||paid>start+1800000)fail('INGRESO_FUERA_DE_VENTANA');
 }
 function transferAttempt(a,sale){if(!a)fail('COBRO_NO_INICIADO');if(a.accountId!==sale.accountId||a.amountCents!==sale.amountCents||a.fingerprint!==sale.fingerprint)fail('TICKET_CAMBIO');if(['canceled','expired'].includes(a.status))fail('COBRO_CANCELADO');if(a.orderId||a.status==='creating')fail('QR_PENDIENTE');return a;}
 // Diagnóstico de cobertura de transferencias: solo conteos por categorías del proveedor.
@@ -176,21 +142,13 @@ export function accreditedOrderPayment(o,account,a) {
   return String(p.id);
 }
 export class Provider {
-  constructor(config,fetcher=fetch){this.config=config;this.fetcher=fetcher;this.reportCache=new Map();}
+  constructor(config,fetcher=fetch){this.config=config;this.fetcher=fetcher;}
   async request(path,c,options={}) {
-    const {definitiveCreation,reportCreation,...fetchOptions}=options;
+    const {definitiveCreation,...fetchOptions}=options;
     let r;try {r=await this.fetcher('https://api.mercadopago.com'+path,{...fetchOptions,headers:{'content-type':'application/json',...(c?{authorization:'Bearer '+c.access_token}:{}),...options.headers},signal:AbortSignal.timeout(15000)});}catch {fail('MERCADO_PAGO_NO_DISPONIBLE',503);}
-    if(reportCreation&&r.ok&&r.status!==202){console.warn(JSON.stringify({event:'MP_REPORT_NOT_CREATED',http:r.status}));const e=new Error('REPORTE_NO_GENERADO');e.status=503;e.providerStatus=r.status;throw e;}
     if(!r.ok){
       const error=new Error(r.status===401?'RECONECTAR_CUENTA':r.status===429?'MERCADO_PAGO_OCUPADO':'MERCADO_PAGO_NO_DISPONIBLE');error.status=r.status===401?409:503;
       error.providerStatus=r.status;
-      if(path.startsWith('/v1/account/settlement_report')&&r.status!==404){
-        let data;try{data=await r.json();}catch{}
-        const reason=String(data?.error||data?.code||'').toLowerCase(),allowed=new Set(['bad_request','forbidden','unauthorized','invalid_config','invalid_column','invalid_columns','invalid_parameter','invalid_parameters','validation_error','not_allowed','user_not_allowed','internal_error']);
-        const fields=['file_name_prefix','columns','PAYER_NAME','SOURCE_ID','USER_ID','TRANSACTION_AMOUNT','TRANSACTION_CURRENCY','TRANSACTION_TYPE','SETTLEMENT_DATE','frequency','hour','type','value','show_fee_prevision','show_chargeback_cancel','coupon_detailed','include_withdraw','shipping_detail','refund_detailed','display_timezone','header_language','separator'];
-        const serialized=(JSON.stringify(data)||'').toLowerCase();
-        console.warn(JSON.stringify({event:'MP_REPORT_PROVIDER_ERROR',operation:path.endsWith('/config')?'configuration':path.endsWith('/list')?'list':'report',method:fetchOptions.method||'GET',http:r.status,reason:allowed.has(reason)?reason:'other',fields:fields.filter(f=>serialized.includes(f.toLowerCase())),hints:{authorization:/authoriz|permission|forbidden/.test(serialized),configuration:/config/.test(serialized),required:/required|missing|must not|null|empty/.test(serialized),terms:/agreement|terms|accept/.test(serialized),business:/business|collector|merchant/.test(serialized),invalid:/invalid|validation/.test(serialized)}}));
-      }
       if(definitiveCreation&&[400,404].includes(r.status)){
         // Only documented, unambiguous validation failures of POST Orders.
         const allowed=new Set(['pos_not_found','unsupported_site','unsupported_properties','bad_request','property_value','property_type','required_properties','minimum_properties','empty_required_header']);
@@ -215,26 +173,6 @@ export class Provider {
   async searchTransfers(c){let available=0;const rows=await this.search(c,{status:'approved'},{onPage:r=>{if(!Array.isArray(r?.results)||!Number.isSafeInteger(r.paging?.total)||r.paging.total<0)fail('MERCADO_PAGO_NO_DISPONIBLE',503);available=r.paging.total;}});return {rows,available};}
   async search(c,filters={operation_type:'money_transfer',status:'approved'},{windowMs=3*86400000,onPage}={}){const end=new Date(),begin=new Date(end-windowMs),rows=[];for(let offset=0;offset<500;offset+=50){const q=new URLSearchParams({sort:'date_created',criteria:'desc',range:'date_created',begin_date:begin.toISOString(),end_date:end.toISOString(),...filters,limit:'50',offset:String(offset)});const r=await this.request('/v1/payments/search?'+q,c);onPage?.(r);rows.push(...(r.results||[]));if(offset+50>=(r.paging?.total||0))break;}return rows;}
   payment(c,id){if(!/^\d{1,30}$/.test(id))fail('INGRESO_NO_VALIDO');return this.request('/v1/payments/'+id,c);}
-  reportConfig(c){return this.request('/v1/account/settlement_report/config',c);}
-  reportList(c){return this.request('/v1/account/settlement_report/list',c);}
-  async reportFile(c,name){
-    if(!/^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,199}\.csv$/.test(name)||name.includes('..'))fail('REPORTE_NO_VALIDO');
-    let r;try{r=await this.fetcher('https://api.mercadopago.com/v1/account/settlement_report/'+name,{headers:{authorization:'Bearer '+c.access_token},redirect:'error',signal:AbortSignal.timeout(15000)});}catch{fail('MERCADO_PAGO_NO_DISPONIBLE',503);}
-    if([202,404].includes(r.status)){const e=new Error('MERCADO_PAGO_NO_DISPONIBLE');e.reportPending=true;e.status=503;throw e;}
-    if(r.status!==200)fail('MERCADO_PAGO_NO_DISPONIBLE',503);
-    const reader=r.body?.getReader();if(!reader)fail('REPORTE_NO_VALIDO');let size=0;const chunks=[];
-    try{for(;;){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>2097152){await reader.cancel();fail('REPORTE_NO_VALIDO');}chunks.push(value);}}catch(e){if(e.message==='REPORTE_NO_VALIDO')throw e;fail('MERCADO_PAGO_NO_DISPONIBLE',503);}
-    const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
-    try{return new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{fail('REPORTE_NO_VALIDO');}
-  }
-  async cachedReportFile(c,accountId,name){
-    const key=accountId+':'+name,now=Date.now(),cached=this.reportCache.get(key);if(cached&&cached.until>now)return cached.value;
-    const value=await this.reportFile(c,name);for(const [k,v] of this.reportCache)if(v.until<=now)this.reportCache.delete(k);
-    if(this.reportCache.size>=8)this.reportCache.delete(this.reportCache.keys().next().value);
-    this.reportCache.set(key,{until:now+180000,value});return value;
-  }
-  createReportConfig(c,body){return this.request('/v1/account/settlement_report/config',c,{method:'POST',body:JSON.stringify(body)});}
-  createReport(c,begin,end){return this.request('/v1/account/settlement_report',c,{method:'POST',body:JSON.stringify({begin_date:begin,end_date:end}),reportCreation:true});}
   create(c,body,key){return this.request('/v1/orders',c,{method:'POST',headers:{'X-Idempotency-Key':key},body:JSON.stringify(body),definitiveCreation:true});}
   order(c,id){return this.request('/v1/orders/'+encodeURIComponent(id),c);}
   cancel(c,id,key){return this.request('/v1/orders/'+encodeURIComponent(id)+'/cancel',c,{method:'POST',headers:{'X-Idempotency-Key':key},body:'{}'});}
@@ -251,13 +189,6 @@ function credentialsPayload(c,providerId) {
 }
 export class Service {
   constructor({store,provider,config}){this.store=store;this.provider=provider;this.config=config;}
-  async reportNames(credentials,account,rows){
-    const list=await this.provider.reportList(credentials);if(!Array.isArray(list))fail('REPORTE_NO_VALIDO');
-    const reports=list.filter(r=>String(r?.user_id)===account.providerId&&typeof r.file_name==='string'&&r.file_name.startsWith('micomercio-remitentes-')&&Number.isFinite(Date.parse(r.date_created))&&Date.parse(r.date_created)>Date.now()-3*86400000).sort((a,b)=>Date.parse(b.date_created)-Date.parse(a.date_created));
-    if(!reports.length)return {state:'pending',names:new Map()};
-    const report=reports[0];let csv;try{csv=this.provider.cachedReportFile?await this.provider.cachedReportFile(credentials,account.id,report.file_name):await this.provider.reportFile(credentials,report.file_name);}catch(e){if(e.reportPending===true)return {state:'pending',names:new Map(),report};throw e;}
-    const diagnostic={},covered=new Set(),names=reportSenders(csv,account,rows,diagnostic,covered);return {state:'ready',names,report,diagnostic,covered};
-  }
   call(ctx,op,args={}){return this.store.call(op,{commerceId:ctx.commerceId,actor:ctx.userId,...args});}
   async account(ctx,id){if(!UUID.test(id||''))fail('CUENTA_NO_DISPONIBLE');const a=await this.call(ctx,'account',{accountId:id});if(!a?.active)fail('CUENTA_NO_DISPONIBLE');return a;}
   async credentials(ctx,account) {
@@ -303,17 +234,6 @@ export class Service {
       if(recovered)return recovered;
     }
     const account=await this.account(ctx,input.accountId);
-    if(action==='sender-report-prepare'){
-      const credentials=await this.credentials(ctx,account),required=['USER_ID','SOURCE_ID','PAYER_NAME','TRANSACTION_AMOUNT','TRANSACTION_CURRENCY','TRANSACTION_TYPE','SETTLEMENT_DATE'];let settings;
-      try{settings=await this.provider.reportConfig(credentials);}catch(e){if(e.providerStatus!==404)throw e;settings=await this.provider.createReportConfig(credentials,{file_name_prefix:'micomercio-remitentes',columns:required.map(key=>({key})),show_fee_prevision:false,show_chargeback_cancel:false,coupon_detailed:false,include_withdraw:false,shipping_detail:false,refund_detailed:false,frequency:{hour:0,type:'daily',value:1},display_timezone:'GMT-03',header_language:'en',separator:';'});}
-      if(!required.every(key=>settings?.columns?.some?.(c=>c?.key===key)))return {report:{state:'configuration_required'}};
-      const rows=await this.provider.reportList(credentials);if(!Array.isArray(rows))fail('MERCADO_PAGO_NO_DISPONIBLE',503);
-      const prefix=settings.file_name_prefix||'micomercio-remitentes';if(typeof prefix!=='string'||!/^[A-Za-z0-9_.-]{1,100}$/.test(prefix))return {report:{state:'configuration_required'}};
-      const now=Date.now();if(rows.some(r=>String(r.user_id)===account.providerId&&typeof r.file_name==='string'&&r.file_name.startsWith(prefix+'-')&&Date.parse(r.date_created)>now-600000))return {report:{state:'existing'}};
-      if(settings.scheduled===true||settings.sftp_info&&Object.values(settings.sftp_info).some(v=>v!=null&&v!=='')||settings.email_notification||settings.notification_email)return {report:{state:'configuration_required'}};
-      await this.provider.createReport(credentials,new Date(now-3*86400000).toISOString(),new Date(now).toISOString());
-      return {report:{state:'requested'}};
-    }
     if(action==='primary'||action==='disconnect'){await this.call(ctx,action,{accountId:account.id});return {ok:true};}
     if(action==='positions'||action==='set-position'){
       const c=await this.credentials(ctx,account),rows=await this.provider.positions(c);
@@ -337,25 +257,8 @@ export class Service {
       }
       await this.call(ctx,'position',{accountId:account.id,posId});return {ok:true};
     }
-    if(action==='income-senders'){
-      // Separate from listing/claim: reconciliation names never decide accreditation.
-      // Only an already prepared, app-owned config can generate a fresh private report.
-      const credentials=await this.credentials(ctx,account),{rows}=await this.provider.searchTransfers(credentials);
-      const valid=rows.filter(p=>{try{validatePayment(p,account);return true;}catch{return false;}}).slice(0,100);
-      if(!valid.length)return {senders:[],pending:false};
-      const data=await this.reportNames(credentials,account,valid),senders=[...data.names].map(([id,payer])=>({id,payer}));
-      if(data.state==='pending'&&data.report)return {senders,pending:true};
-      const needs=data.state==='pending'||valid.some(p=>!data.names.has(String(p.id))&&(!data.covered?.has(String(p.id))||Date.parse(p.date_approved)>Date.parse(data.report?.end_date)||Date.parse(p.date_approved)>Date.parse(data.report?.date_created)));
-      if(!needs)return {senders,pending:false};
-      // A report whose requested end is in the future is still only a snapshot.
-      // Debounce regeneration briefly; it must remain within the client's polling window.
-      if(data.report&&Date.parse(data.report.date_created)>Date.now()-60000)return {senders,pending:true};
-      const settings=await this.provider.reportConfig(credentials),required=['USER_ID','SOURCE_ID','PAYER_NAME','TRANSACTION_AMOUNT','TRANSACTION_CURRENCY','TRANSACTION_TYPE','SETTLEMENT_DATE'];
-      if(settings?.file_name_prefix!=='micomercio-remitentes'||settings.scheduled===true||Object.values(settings.sftp_info||{}).some(v=>v!==null&&v!==undefined&&v!=='')||settings.email_notification||settings.notification_email||!required.every(k=>settings.columns?.some?.(c=>c?.key===k)))return {senders,pending:false};
-      const reportEnd=new Date();
-      await this.provider.createReport(credentials,new Date(reportEnd.getTime()-3*86400000).toISOString(),reportEnd.toISOString());
-      return {senders,pending:true};
-    }
+    // Compatibility for already open REV105 clients: no report I/O.
+    if(action==='income-senders')return {senders:[],pending:false};
     if(action==='transfer-coverage'){
       // Solo dueño. Consulta movimientos sin escrituras de negocio (ni ventas, ni recibos, ni
       // reclamos); si las credenciales vencieron, puede renovarlas como cualquier otra acción.
@@ -365,19 +268,9 @@ export class Service {
       if(!Number.isSafeInteger(minutes)||minutes<1||minutes>COVERAGE_MAX_MINUTES)fail('DATOS_INVALIDOS',400);
       if(input.includeSenderFields!==undefined&&typeof input.includeSenderFields!=='boolean')fail('DATOS_INVALIDOS',400);
       if(input.includeSenderDetails!==undefined&&typeof input.includeSenderDetails!=='boolean')fail('DATOS_INVALIDOS',400);
-      if(input.includeSenderReports!==undefined&&typeof input.includeSenderReports!=='boolean')fail('DATOS_INVALIDOS',400);
-      if(input.includeSenderReportData!==undefined&&typeof input.includeSenderReportData!=='boolean')fail('DATOS_INVALIDOS',400);
-      if(input.includeSenderReportFreshness!==undefined&&typeof input.includeSenderReportFreshness!=='boolean')fail('DATOS_INVALIDOS',400);
       const credentials=await this.credentials(ctx,account),{rows,available}=await this.provider.searchAll(credentials,minutes);
       const coverage=transferCoverage(rows,account,{minutes,available});
-      if(input.includeSenderReportData===true){const data=await this.reportNames(credentials,account,rows);coverage.senderReportData={state:data.state,matched:data.names.size,matchedCvu:rows.filter(p=>data.names.has(String(p.id))&&p.operation_type==='account_fund').length,matchedMoneyTransfer:rows.filter(p=>data.names.has(String(p.id))&&p.operation_type==='money_transfer').length,...(data.diagnostic?{diagnostic:data.diagnostic}:{})};}
-      if(input.includeSenderReportData===true&&input.includeSenderReportFreshness===true){const list=await this.provider.reportList(credentials),report=Array.isArray(list)?list.filter(r=>String(r?.user_id)===account.providerId&&typeof r.file_name==='string'&&r.file_name.startsWith('micomercio-remitentes-')).sort((a,b)=>Date.parse(b.date_created)-Date.parse(a.date_created))[0]:null,settings=await this.provider.reportConfig(credentials);coverage.senderReportData.freshness={hasBegin:typeof report?.begin_date==='string',hasEnd:typeof report?.end_date==='string',validBegin:Number.isFinite(Date.parse(report?.begin_date)),validEnd:Number.isFinite(Date.parse(report?.end_date)),paymentAfterCreation:rows.some(p=>Date.parse(p?.date_approved)>Date.parse(report?.date_created)),paymentAfterEnd:rows.some(p=>Date.parse(p?.date_approved)>Date.parse(report?.end_date)),ownConfig:settings?.file_name_prefix==='micomercio-remitentes',requiredColumns:['USER_ID','SOURCE_ID','PAYER_NAME','TRANSACTION_AMOUNT','TRANSACTION_CURRENCY','TRANSACTION_TYPE','SETTLEMENT_DATE'].every(k=>settings?.columns?.some?.(c=>c?.key===k)),scheduled:settings?.scheduled===true,sftpPresent:Object.values(settings?.sftp_info||{}).some(v=>v!==null&&v!==undefined&&v!==''),emailPresent:!!(settings?.email_notification||settings?.notification_email)};}
       if(input.includeSenderFields===true)coverage.senderFields=senderFieldPresence(rows);
-      if(input.includeSenderReports===true){
-        const [settings,list]=await Promise.allSettled([this.provider.reportConfig(credentials),this.provider.reportList(credentials)]),code=r=>r.status==='fulfilled'?200:Number.isInteger(r.reason?.providerStatus)&&r.reason.providerStatus>=400&&r.reason.providerStatus<=599?r.reason.providerStatus:0;
-        const config=settings.status==='fulfilled'?settings.value:null,reportRows=list.status==='fulfilled'&&Array.isArray(list.value)?list.value:null;
-        coverage.senderReports={configuration:config&&Array.isArray(config.columns)?'ready':code(settings)===404?'missing':'unavailable',configurationHttp:code(settings),hasPayerName:!!config?.columns?.some?.(c=>c?.key==='PAYER_NAME'),hasSourceId:!!config?.columns?.some?.(c=>c?.key==='SOURCE_ID'),scheduled:config?.scheduled===true,list:reportRows?'ready':'unavailable',listHttp:code(list),reports:reportRows?.length||0};
-      }
       if(input.includeSenderDetails===true){
         const eligible=rows.filter(p=>{try{validatePayment(p,account);return true;}catch{return false;}}),sample=eligible.slice(0,3);let failed=0,mismatched=0;
         const details=await Promise.all(sample.map(async row=>{
@@ -394,7 +287,10 @@ export class Service {
       const amount=action==='receipts'?cents(input.amount):undefined;
       const attempt=action==='receipts'?transferAttempt(await this.call(ctx,'attempt',{saleId:input.saleId}),saleInput(input)):null;
       const {rows,available}=await this.provider.searchTransfers(await this.credentials(ctx,account)),receipts=[];
-      const valid=rows.filter(p=>{try{validatePayment(p,account);return true;}catch{return false;}}),visible=valid.slice(0,100);
+      const valid=rows.filter(p=>{try{validatePayment(p,account);return true;}catch{return false;}});
+      // A sale only needs compatible payments. Historical account activity must
+      // not consume its display limit or trigger a use lookup on every poll.
+      const compatible=attempt?valid.filter(p=>{try{validateTransferWindow(p,attempt);return cents(p.transaction_amount)===amount;}catch{return false;}}):valid,visible=compatible.slice(0,100);
       // Bounded parallel reads avoid a serial RPC for every row. Fail the whole list if
       // any use lookup fails; never guess that a transfer is available.
       for(let offset=0;offset<visible.length;offset+=10)receipts.push(...await Promise.all(visible.slice(offset,offset+10).map(async p=>{
@@ -402,7 +298,7 @@ export class Service {
         let eligible=false;if(attempt)try{validateTransferWindow(p,attempt);eligible=true;}catch{}
         return {id:String(p.id),amountCents:cents(p.transaction_amount),matches:amount!==undefined&&cents(p.transaction_amount)===amount,eligible,date:p.date_approved||p.date_created,payer:[p.payer?.first_name,p.payer?.last_name].filter(Boolean).join(' ').slice(0,100),used:!!used};
       })));
-      return {receipts,...(typeof this.provider.reportList==='function'?{senderNames:true}:{}),truncated:available>rows.length||valid.length>visible.length,days:3,...(attempt?{ambiguous:receipts.filter(p=>p.matches&&p.eligible&&!p.used).length>1,window:{startedAt:attempt.createdAt,endsAt:new Date(Date.parse(attempt.createdAt)+1800000).toISOString()}}:{})};
+      return {receipts,truncated:available>rows.length||compatible.length>visible.length,days:3,...(attempt?{ambiguous:receipts.filter(p=>p.matches&&p.eligible&&!p.used).length>1,window:{startedAt:attempt.createdAt,endsAt:new Date(Date.parse(attempt.createdAt)+1800000).toISOString()}}:{})};
     }
     const sale=saleInput(input),owner=crypto.randomUUID();
     const existing=await this.call(ctx,'attempt',{saleId:sale.saleId});
