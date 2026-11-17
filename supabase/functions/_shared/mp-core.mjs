@@ -1,8 +1,8 @@
 // Shared by Deno Edge and Node tests. No Node dependencies or local storage.
 const encoder = new TextEncoder();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ACTIONS = new Set(['accounts','oauth-start','primary','disconnect','positions','set-position','transfer-coverage','income-history','transfer-start','sale-receipts','receipts','claim','manual','qr-create','qr-status','qr-cancel']);
-const OWNER = new Set(['oauth-start','primary','disconnect','positions','set-position','transfer-coverage']);
+const ACTIONS = new Set(['accounts','oauth-start','primary','disconnect','positions','set-position','transfer-coverage','sender-report-prepare','income-history','transfer-start','sale-receipts','receipts','claim','manual','qr-create','qr-status','qr-cancel']);
+const OWNER = new Set(['oauth-start','primary','disconnect','positions','set-position','transfer-coverage','sender-report-prepare']);
 const ORIGINS = new Set(['https://micomercio.ar','https://www.micomercio.ar']);
 export function fail(code, status = 409) { const e = new Error(code); e.status = status; throw e; }
 function b64(bytes) { return btoa(String.fromCharCode(...bytes)); }
@@ -148,6 +148,14 @@ export class Provider {
     let r;try {r=await this.fetcher('https://api.mercadopago.com'+path,{...fetchOptions,headers:{'content-type':'application/json',...(c?{authorization:'Bearer '+c.access_token}:{}),...options.headers},signal:AbortSignal.timeout(15000)});}catch {fail('MERCADO_PAGO_NO_DISPONIBLE',503);}
     if(!r.ok){
       const error=new Error(r.status===401?'RECONECTAR_CUENTA':r.status===429?'MERCADO_PAGO_OCUPADO':'MERCADO_PAGO_NO_DISPONIBLE');error.status=r.status===401?409:503;
+      error.providerStatus=r.status;
+      if(path.startsWith('/v1/account/settlement_report')&&r.status!==404){
+        let data;try{data=await r.json();}catch{}
+        const reason=String(data?.error||data?.code||'').toLowerCase(),allowed=new Set(['bad_request','forbidden','unauthorized','invalid_config','invalid_column','invalid_columns','invalid_parameter','invalid_parameters','validation_error','not_allowed','user_not_allowed','internal_error']);
+        const fields=['file_name_prefix','columns','PAYER_NAME','SOURCE_ID','USER_ID','TRANSACTION_AMOUNT','TRANSACTION_CURRENCY','TRANSACTION_TYPE','SETTLEMENT_DATE','frequency','hour','type','value','show_fee_prevision','show_chargeback_cancel','coupon_detailed','include_withdraw','shipping_detail','refund_detailed','display_timezone','header_language','separator'];
+        const serialized=(JSON.stringify(data)||'').toLowerCase();
+        console.warn(JSON.stringify({event:'MP_REPORT_PROVIDER_ERROR',operation:path.endsWith('/config')?'configuration':path.endsWith('/list')?'list':'report',method:fetchOptions.method||'GET',http:r.status,reason:allowed.has(reason)?reason:'other',fields:fields.filter(f=>serialized.includes(f.toLowerCase())),hints:{authorization:/authoriz|permission|forbidden/.test(serialized),configuration:/config/.test(serialized),required:/required|missing|must not|null|empty/.test(serialized),terms:/agreement|terms|accept/.test(serialized),business:/business|collector|merchant/.test(serialized),invalid:/invalid|validation/.test(serialized)}}));
+      }
       if(definitiveCreation&&[400,404].includes(r.status)){
         // Only documented, unambiguous validation failures of POST Orders.
         const allowed=new Set(['pos_not_found','unsupported_site','unsupported_properties','bad_request','property_value','property_type','required_properties','minimum_properties','empty_required_header']);
@@ -172,6 +180,10 @@ export class Provider {
   async searchTransfers(c){let available=0;const rows=await this.search(c,{status:'approved'},{onPage:r=>{if(!Array.isArray(r?.results)||!Number.isSafeInteger(r.paging?.total)||r.paging.total<0)fail('MERCADO_PAGO_NO_DISPONIBLE',503);available=r.paging.total;}});return {rows,available};}
   async search(c,filters={operation_type:'money_transfer',status:'approved'},{windowMs=3*86400000,onPage}={}){const end=new Date(),begin=new Date(end-windowMs),rows=[];for(let offset=0;offset<500;offset+=50){const q=new URLSearchParams({sort:'date_created',criteria:'desc',range:'date_created',begin_date:begin.toISOString(),end_date:end.toISOString(),...filters,limit:'50',offset:String(offset)});const r=await this.request('/v1/payments/search?'+q,c);onPage?.(r);rows.push(...(r.results||[]));if(offset+50>=(r.paging?.total||0))break;}return rows;}
   payment(c,id){if(!/^\d{1,30}$/.test(id))fail('INGRESO_NO_VALIDO');return this.request('/v1/payments/'+id,c);}
+  reportConfig(c){return this.request('/v1/account/settlement_report/config',c);}
+  reportList(c){return this.request('/v1/account/settlement_report/list',c);}
+  createReportConfig(c,body){return this.request('/v1/account/settlement_report/config',c,{method:'POST',body:JSON.stringify(body)});}
+  createReport(c,begin,end){return this.request('/v1/account/settlement_report',c,{method:'POST',body:JSON.stringify({begin_date:begin,end_date:end})});}
   create(c,body,key){return this.request('/v1/orders',c,{method:'POST',headers:{'X-Idempotency-Key':key},body:JSON.stringify(body),definitiveCreation:true});}
   order(c,id){return this.request('/v1/orders/'+encodeURIComponent(id),c);}
   cancel(c,id,key){return this.request('/v1/orders/'+encodeURIComponent(id)+'/cancel',c,{method:'POST',headers:{'X-Idempotency-Key':key},body:'{}'});}
@@ -233,6 +245,17 @@ export class Service {
       if(recovered)return recovered;
     }
     const account=await this.account(ctx,input.accountId);
+    if(action==='sender-report-prepare'){
+      const credentials=await this.credentials(ctx,account),required=['USER_ID','SOURCE_ID','PAYER_NAME','TRANSACTION_AMOUNT','TRANSACTION_CURRENCY','TRANSACTION_TYPE','SETTLEMENT_DATE'];let settings;
+      try{settings=await this.provider.reportConfig(credentials);}catch(e){if(e.providerStatus!==404)throw e;settings=await this.provider.createReportConfig(credentials,{file_name_prefix:'micomercio-remitentes',columns:required.map(key=>({key})),show_fee_prevision:false,show_chargeback_cancel:false,coupon_detailed:false,include_withdraw:false,shipping_detail:false,refund_detailed:false,frequency:{hour:0,type:'daily',value:1},display_timezone:'GMT-03',header_language:'en',separator:';'});}
+      if(!required.every(key=>settings?.columns?.some?.(c=>c?.key===key)))return {report:{state:'configuration_required'}};
+      const rows=await this.provider.reportList(credentials);if(!Array.isArray(rows))fail('MERCADO_PAGO_NO_DISPONIBLE',503);
+      const prefix=settings.file_name_prefix||'micomercio-remitentes';if(typeof prefix!=='string'||!/^[A-Za-z0-9_.-]{1,100}$/.test(prefix))return {report:{state:'configuration_required'}};
+      const now=Date.now();if(rows.some(r=>String(r.user_id)===account.providerId&&typeof r.file_name==='string'&&r.file_name.startsWith(prefix+'-')&&Date.parse(r.date_created)>now-600000))return {report:{state:'existing'}};
+      if(settings.scheduled===true||settings.sftp_info&&Object.values(settings.sftp_info).some(v=>v!=null&&v!=='')||settings.email_notification||settings.notification_email)return {report:{state:'configuration_required'}};
+      await this.provider.createReport(credentials,new Date(now-3*86400000).toISOString(),new Date(now).toISOString());
+      return {report:{state:'requested'}};
+    }
     if(action==='primary'||action==='disconnect'){await this.call(ctx,action,{accountId:account.id});return {ok:true};}
     if(action==='positions'||action==='set-position'){
       const c=await this.credentials(ctx,account),rows=await this.provider.positions(c);
@@ -265,9 +288,15 @@ export class Service {
       if(!Number.isSafeInteger(minutes)||minutes<1||minutes>COVERAGE_MAX_MINUTES)fail('DATOS_INVALIDOS',400);
       if(input.includeSenderFields!==undefined&&typeof input.includeSenderFields!=='boolean')fail('DATOS_INVALIDOS',400);
       if(input.includeSenderDetails!==undefined&&typeof input.includeSenderDetails!=='boolean')fail('DATOS_INVALIDOS',400);
+      if(input.includeSenderReports!==undefined&&typeof input.includeSenderReports!=='boolean')fail('DATOS_INVALIDOS',400);
       const credentials=await this.credentials(ctx,account),{rows,available}=await this.provider.searchAll(credentials,minutes);
       const coverage=transferCoverage(rows,account,{minutes,available});
       if(input.includeSenderFields===true)coverage.senderFields=senderFieldPresence(rows);
+      if(input.includeSenderReports===true){
+        const [settings,list]=await Promise.allSettled([this.provider.reportConfig(credentials),this.provider.reportList(credentials)]),code=r=>r.status==='fulfilled'?200:Number.isInteger(r.reason?.providerStatus)&&r.reason.providerStatus>=400&&r.reason.providerStatus<=599?r.reason.providerStatus:0;
+        const config=settings.status==='fulfilled'?settings.value:null,reportRows=list.status==='fulfilled'&&Array.isArray(list.value)?list.value:null;
+        coverage.senderReports={configuration:config&&Array.isArray(config.columns)?'ready':code(settings)===404?'missing':'unavailable',configurationHttp:code(settings),hasPayerName:!!config?.columns?.some?.(c=>c?.key==='PAYER_NAME'),hasSourceId:!!config?.columns?.some?.(c=>c?.key==='SOURCE_ID'),scheduled:config?.scheduled===true,list:reportRows?'ready':'unavailable',listHttp:code(list),reports:reportRows?.length||0};
+      }
       if(input.includeSenderDetails===true){
         const eligible=rows.filter(p=>{try{validatePayment(p,account);return true;}catch{return false;}}),sample=eligible.slice(0,3);let failed=0,mismatched=0;
         const details=await Promise.all(sample.map(async row=>{
