@@ -45,15 +45,17 @@ async function mpConsultarVenta(root,v){const el=root.querySelector('[data-mp-ve
 function mpCobroHTML(){return `<div id="mpPanel">
  <label class="f" for="mpCuenta">Recibir en</label><select class="inp" id="mpCuenta"><option value="">Consultando cuentas…</option></select>
  <div id="mpInicioCobro" class="mp-opciones">
-  <button class="btn verde big" type="button" id="mpIniciarCobro">Cobrar ${$m(totalTicket())}</button>
+  <button class="btn verde big" type="button" id="mpIniciarCobro">Transferencia recibida · ${$m(totalTicket())}</button>
   <button class="btn ghost" type="button" id="mpGenerarQR">Cobrar con QR de Mercado Pago</button>
  </div>
  <section id="mpComprobarCobro" hidden aria-labelledby="mpPasoTitulo">
-  <h3 id="mpPasoTitulo" tabindex="-1" style="margin:16px 0 12px">Comprobar el cobro</h3>
-  <button class="btn" type="button" id="mpBuscar">Ver transferencias recibidas</button>
+  <h3 id="mpPasoTitulo" tabindex="-1" style="margin:16px 0 12px">Ingresos recientes</h3>
+  <button class="btn" type="button" id="mpBuscar">Consultar ingresos</button>
   <div id="mpIngresos"></div><div id="mpQR" aria-label="Código QR de cobro"></div>
+  <div id="mpIngresoSeleccionado" class="mp-acreditado" role="status" hidden></div>
+  <button class="btn verde big" type="button" id="mpConfirmarIngreso" hidden>Registrar venta con este ingreso</button>
   <button class="btn ghost sm" id="mpActualizarQR" type="button" hidden>Consultar estado del QR</button>
-  <hr><button class="btn verde big" id="mpCobroManual" type="button">Confirmar sin comprobar</button>
+  <hr><button class="btn ghost big" id="mpCobroManual" type="button">Confirmar sin comprobar</button>
   <div class="hint">Se registra como cobro manual, sin verificación de Mercado Pago.</div>
   <button class="btn ghost sm" type="button" id="mpVolverCobro" style="margin-top:12px">Volver al cobro</button>
  </section>
@@ -62,7 +64,9 @@ function mpCobroHTML(){return `<div id="mpPanel">
  </div>`;}
 function mpMontarCobro(root){
  const pending=mpLeerPendiente();if(pago!=='transferencia'){if(pending){const div=document.createElement('div');div.className='ux-banner warn';div.innerHTML='<span>Hay un cobro de Mercado Pago pendiente.</span><button class="btn ghost sm">Recuperar cobro</button>';root.querySelector('#pagoBody')?.prepend(div);div.querySelector('button').onclick=mpRestaurarPendiente;}return;}
- const panel=root.querySelector('#mpPanel');if(!panel)return;const scope=mpScope(),state=panel.querySelector('#mpEstado'),account=panel.querySelector('#mpCuenta');let poll=null,transferEnabled=!mpPublico(),newPaymentsEnabled=!mpPublico();
+ const panel=root.querySelector('#mpPanel');if(!panel)return;const scope=mpScope(),state=panel.querySelector('#mpEstado'),account=panel.querySelector('#mpCuenta');let poll=null,transferEnabled=!mpPublico(),newPaymentsEnabled=!mpPublico(),selectedIncome=null;
+ const descartarIngreso=()=>{selectedIncome=null;panel.querySelector('#mpConfirmarIngreso').hidden=true;panel.querySelector('#mpIngresoSeleccionado').hidden=true;panel.querySelector('#mpIngresos').innerHTML='';};
+ account.onchange=()=>{descartarIngreso();setState('Cuenta cambiada. Consultá sus ingresos antes de elegir uno.');};
  panel.querySelector('#mpGenerarQR').hidden=!newPaymentsEnabled;
  const active=()=>root.isConnected&&scope===mpScope()&&panel.isConnected;
  const setState=m=>{if(active())state.textContent=m;};
@@ -72,7 +76,8 @@ function mpMontarCobro(root){
   panel.querySelector('#mpBuscar').hidden=qr||!!mpLeerPendiente()||!transferEnabled||!newPaymentsEnabled;
   panel.querySelector('#mpActualizarQR').hidden=!qr;
   panel.querySelector('#mpVolverCobro').hidden=!!mpLeerPendiente();
-  panel.querySelector('#mpPasoTitulo').textContent=qr?'Cobro con QR de Mercado Pago':'Comprobar el cobro';
+  panel.querySelector('#mpPasoTitulo').textContent=qr?'Cobro con QR de Mercado Pago':'Ingresos recientes';
+  if(qr)descartarIngreso();
   panel.querySelector('#mpCobroManual').textContent=qr?'Cancelar QR y confirmar manualmente':mpLeerPendiente()?.stage==='verified'?'Registrar venta con el pago verificado':'Confirmar sin comprobar';
  };
  panel.querySelector('#mpIniciarCobro').onclick=()=>{if(!mpOperacionOcupada&&active()){mostrarComprobacion();if(!newPaymentsEnabled)setState('Los nuevos cobros de Mercado Pago están pausados. Podés confirmar este cobro manualmente.');else if(!transferEnabled)setState('La comprobación de transferencias todavía no está habilitada. Podés confirmar este cobro manualmente.');panel.querySelector('#mpPasoTitulo').focus();}};
@@ -96,10 +101,16 @@ function mpMontarCobro(root){
  panel.querySelector('#mpGenerarQR').onclick=async()=>{await run(async()=>{if(!newPaymentsEnabled)throw new Error('NUEVOS_COBROS_DESHABILITADOS');if(!account.value){setState('Primero hay que conectar una cuenta desde Configuración.');return;}mostrarComprobacion(true);setState('Generando QR de Mercado Pago…');const qr=panel.querySelector('#mpQR');qr.setAttribute('aria-busy','true');qr.innerHTML='<div role="status" style="display:flex;align-items:center;gap:12px;padding:24px"><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="50 26"><animateTransform attributeName="transform" type="rotate" from="0 16 16" to="360 16 16" dur="1s" repeatCount="indefinite"/></circle></svg><b>Generando QR…</b></div>';const p=await mpPreparar(account.value);p.stage='creating';mpGuardarPendiente(p);await handleOrder(await mpRequest('qr-create',mpPayload(p)),p);})();schedulePoll();};
  panel.querySelector('#mpBuscar').onclick=run(async()=>{
   if(!newPaymentsEnabled)throw new Error('NUEVOS_COBROS_DESHABILITADOS');if(!transferEnabled)throw new Error('TRANSFERENCIAS_NO_HABILITADAS');
-  if(!account.value){setState('Primero hay que conectar una cuenta desde Configuración.');return;}const r=await mpRequest('receipts',{accountId:account.value,amount:totalTicket().toFixed(2)});if(!active())return;
-  const list=panel.querySelector('#mpIngresos');list.innerHTML=(r.receipts||[]).map(t=>`<div class="mp-ingreso"><div><b>${$m(t.amountCents/100)}</b><small>${esc(t.date?new Date(t.date).toLocaleString('es-AR'):'Hora no disponible')} · ${esc(t.payer||'Remitente no informado')}</small></div><button type="button" class="btn ghost sm" data-mp-ingreso="${esc(t.id)}" data-mp-disponible="${t.matches&&!t.used?'1':'0'}" ${t.matches&&!t.used?'':'disabled'}>${t.used?'Ya usada':t.matches?'Es esta':'Otro importe'}</button></div>`).join('')||'<div class="hint">No hay transferencias acreditadas disponibles en la consulta de los últimos 3 días.</div>';
-  list.querySelectorAll('[data-mp-ingreso]').forEach(b=>b.onclick=run(async()=>{const p=await mpPreparar(account.value);p.stage='claiming';mpGuardarPendiente(p);const r=await mpRequest('claim',{...mpPayload(p),paymentId:b.dataset.mpIngreso});if(active())await mpCompletar(r.receipt,p);}));setState('Elegí el ingreso que corresponde a esta venta. Última consulta: '+new Date().toLocaleTimeString('es-AR'));
+  if(!account.value){setState('Primero hay que conectar una cuenta desde Configuración.');return;}
+  descartarIngreso();const accountId=account.value,amount=totalTicket().toFixed(2),list=panel.querySelector('#mpIngresos'),button=panel.querySelector('#mpBuscar');
+  button.textContent='Consultando…';list.setAttribute('aria-busy','true');setState('Consultando ingresos acreditados…');
+  let r;try{r=await mpRequest('receipts',{accountId,amount});}finally{if(active()){button.textContent='Consultar ingresos';list.setAttribute('aria-busy','false');}}
+  if(!active()||account.value!==accountId||totalTicket().toFixed(2)!==amount)return;
+  list.innerHTML=mpIngresosHTML(r.receipts,true,r.truncated);
+  list.querySelectorAll('[data-mp-ingreso]').forEach(b=>b.onclick=()=>{if(mpOperacionOcupada||!active()||account.value!==accountId||totalTicket().toFixed(2)!==amount)return;selectedIncome={id:b.dataset.mpIngreso,accountId,amount};list.querySelectorAll('[data-mp-ingreso]').forEach(x=>{const chosen=x===b;x.textContent=x.dataset.mpDisponible==='1'?(chosen?'Elegido':'Elegir'):x.textContent;x.setAttribute('aria-pressed',String(chosen));});const check=panel.querySelector('#mpIngresoSeleccionado');check.textContent='✓ Ingreso acreditado · Importe exacto · Sin usar en otra venta';check.hidden=false;panel.querySelector('#mpConfirmarIngreso').hidden=false;});
+  setState((r.truncated?'Consulta recortada: puede haber más ingresos. ':'')+'Elegí el ingreso de esta venta. No se registra hasta que lo confirmes. Última consulta: '+new Date().toLocaleTimeString('es-AR'));
  });
+ panel.querySelector('#mpConfirmarIngreso').onclick=run(async()=>{const chosen=selectedIncome;if(!chosen||chosen.accountId!==account.value||chosen.amount!==totalTicket().toFixed(2))throw new Error('TICKET_CAMBIO');const p=await mpPreparar(chosen.accountId);p.stage='claiming';mpGuardarPendiente(p);setState('Verificando el ingreso con Mercado Pago…');const r=await mpRequest('claim',{...mpPayload(p),paymentId:chosen.id});if(active())await mpCompletar(r.receipt,p);});
  panel.querySelector('#mpCobroManual').onclick=run(async()=>{
   let p=mpLeerPendiente();if(p){if(p.scope!==scope||p.fingerprint!==await mpFingerprint())throw new Error('TICKET_CAMBIO');
    if(['creating','qr'].includes(p.stage)){const r=await mpRequest('qr-cancel',mpPayload(p));if(r.receipt){await mpCompletar(r.receipt,p);return;}if(!['canceled','expired'].includes(r.attempt?.status))throw new Error('COBRO_PENDIENTE');p.stage=r.attempt.status;mpGuardarPendiente(p);}
@@ -111,6 +122,20 @@ function mpMontarCobro(root){
  panel.querySelector('#mpRestaurar').onclick=mpRestaurarPendiente;if(pending){mostrarComprobacion(['creating','qr','canceled','expired'].includes(pending.stage));panel.querySelector('#mpRestaurar').hidden=false;setState('Hay un cobro pendiente. Recuperalo antes de iniciar otro.');}
  mpRequest('accounts').then(r=>{if(!active())return;newPaymentsEnabled=r.capabilities?.newPayments!==false;panel.querySelector('#mpGenerarQR').hidden=!newPaymentsEnabled;transferEnabled=r.capabilities?.transferVerification===true||(!mpPublico()&&r.capabilities?.transferVerification!==false);if(!panel.querySelector('#mpComprobarCobro').hidden)panel.querySelector('#mpBuscar').hidden=!transferEnabled||!newPaymentsEnabled||!!mpLeerPendiente();account.innerHTML=(r.accounts||[]).map(a=>`<option value="${esc(a.id)}">${esc(a.alias)}${a.primary?' · principal':''}</option>`).join('')||'<option value="">Sin cuenta conectada</option>';account.value=pending?.accountId||(r.accounts||[]).find(a=>a.primary)?.id||r.accounts?.[0]?.id||'';account.disabled=!!pending;if(!pending)setState(r.accounts?.length?'Elegí cómo querés comprobar este cobro.':'Podés cobrar manualmente. Para verificar ingresos o cobrar con QR, falta conectar Mercado Pago en Configuración.');}).catch(()=>{if(!pending)setState('Podés cobrar manualmente. No pudimos consultar las cuentas conectadas.');});
  if(pending){account.innerHTML=`<option value="${esc(pending.accountId||'')}">Cuenta del cobro pendiente</option>`;account.disabled=true;if(['creating','qr'].includes(pending.stage)){setState('Consultando el cobro pendiente con Mercado Pago…');update(true);}else if(pending.stage==='verified')setState('El pago está verificado. Recuperá el cobro para terminar de registrar la venta.');}
+}
+function mpIngresosHTML(receipts,selectable=false,truncated=false){
+ return (receipts||[]).map(t=>`<div class="mp-ingreso"><div><b>${$m(t.amountCents/100)}</b> <span class="mp-acreditado">Acreditado</span><small>${esc(t.date?new Date(t.date).toLocaleString('es-AR'):'Hora no disponible')} · ${esc(t.payer||'Remitente no informado')}</small></div>${selectable?`<button type="button" class="btn ghost sm" data-mp-ingreso="${esc(t.id)}" data-mp-disponible="${t.matches&&!t.used?'1':'0'}" aria-pressed="false" ${t.matches&&!t.used?'':'disabled'}>${t.used?'Usado en una venta':t.matches?'Elegir':'Otro importe'}</button>`:`<span class="hint">${t.used?'Usado en una venta':'Sin asociar a una venta'}</span>`}</div>`).join('')||`<div class="hint">${truncated?'No hay ingresos compatibles en la parte consultada. Puede haber más movimientos.':'No se encontraron ingresos acreditados compatibles en los últimos 3 días.'}</div>`;
+}
+function mpMontarIngresosCaja(root){
+ if(root.querySelector('#mpVerIngresos')||typeof f5MembresiaActual!=='function')return;
+ const member=f5MembresiaActual();if(!member||member.rol==='empleado'&&member.permisos?.ventas_registrar!==true)return;
+ const head=root.querySelector('.head');if(!head)return;const button=document.createElement('button');button.type='button';button.className='btn ghost';button.id='mpVerIngresos';button.textContent='Ingresos de Mercado Pago';head.append(button);
+ button.onclick=()=>modal({titulo:'Ingresos de la cuenta',cuerpo:'<p class="hint">Ingresos acreditados de los últimos 3 días. Consultarlos no registra ventas.</p><label class="f" for="mpHistorialCuenta">Cuenta receptora</label><select class="inp" id="mpHistorialCuenta"><option value="">Consultando cuentas…</option></select><button type="button" class="btn" id="mpHistorialConsultar" style="margin-top:12px" disabled>Consultar ingresos</button><p class="hint" id="mpHistorialEstado" role="status" aria-live="polite">Consultando cuentas conectadas…</p><div id="mpHistorialLista" aria-busy="false"></div>',pie:'<button class="btn ghost" data-cerrar>Volver a Caja</button>',alAbrir:ov=>{
+  const scope=mpScope(),select=ov.querySelector('#mpHistorialCuenta'),consult=ov.querySelector('#mpHistorialConsultar'),state=ov.querySelector('#mpHistorialEstado'),list=ov.querySelector('#mpHistorialLista');const current=()=>ov.isConnected&&scope===mpScope();let busy=false;
+  select.onchange=()=>{list.innerHTML='';state.textContent='Cuenta cambiada. Consultá sus ingresos.';};
+  consult.onclick=async()=>{if(busy||!current()||!select.value)return;busy=true;consult.disabled=true;select.disabled=true;list.innerHTML='';list.setAttribute('aria-busy','true');consult.textContent='Consultando…';state.textContent='Consultando ingresos acreditados…';const accountId=select.value;try{const r=await mpRequest('income-history',{accountId});if(!current()||select.value!==accountId)return;list.innerHTML=mpIngresosHTML(r.receipts,false,r.truncated);state.textContent=(r.truncated?'Consulta recortada: puede haber más ingresos. ':'')+'Actualizado: '+new Date().toLocaleTimeString('es-AR')+'. Para asociar un ingreso, abrí el ticket en Vender.';}catch(e){if(current())state.textContent=mpMensaje(e.message);}finally{busy=false;if(current()){consult.disabled=!select.value;select.disabled=false;consult.textContent='Consultar ingresos';list.setAttribute('aria-busy','false');}}};
+  mpRequest('accounts').then(r=>{if(!current())return;select.innerHTML=(r.accounts||[]).map(a=>`<option value="${esc(a.id)}">${esc(a.alias)}${a.primary?' · principal':''}</option>`).join('')||'<option value="">Sin cuenta conectada</option>';select.value=r.accounts?.find(a=>a.primary)?.id||r.accounts?.[0]?.id||'';consult.disabled=!select.value;state.textContent=select.value?'Consultá los ingresos de esta cuenta.':'Conectá una cuenta desde Configuración.';}).catch(e=>{if(current())state.textContent=mpMensaje(e.message);});
+ }});
 }
 function mpMontarConfiguracion(root){
  if(typeof f5MembresiaActual!=='function'||f5MembresiaActual()?.rol!=='duenio')return;

@@ -946,7 +946,7 @@ body.offline .app{padding-top:34px}
   #tabProd table.product-compact tr.product-expanded td.product-extra{display:none}
 
 }
-.mp-opciones{display:grid;gap:8px;margin:12px 0}.mp-ingreso{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line,#ddd);flex-wrap:wrap}.mp-ingreso>div{min-width:0}.mp-ingreso small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.mp-ingreso .row{flex-wrap:wrap}#mpQR{max-width:290px;margin:14px auto;background:white}#mpQR svg{display:block;width:100%;height:auto}#mpPanel hr{margin:18px 0}#mpPanel .btn{white-space:normal;min-height:44px}#mpCuentasLista{margin:12px 0}
+.mp-acreditado{display:inline-block;color:var(--ok,#10714e);background:var(--ok-bg,#eaf7f0);border-radius:6px;padding:3px 7px;font-size:12px}#mpIngresoSeleccionado{display:block;margin:12px 0}#mpIngresos button[aria-pressed="true"]{outline:2px solid var(--accent,#2054db)}#mpHistorialLista{margin-top:12px}.mp-opciones{display:grid;gap:8px;margin:12px 0}.mp-ingreso{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line,#ddd);flex-wrap:wrap}.mp-ingreso>div{min-width:0}.mp-ingreso small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.mp-ingreso .row{flex-wrap:wrap}#mpQR{max-width:290px;margin:14px auto;background:white}#mpQR svg{display:block;width:100%;height:auto}#mpPanel hr{margin:18px 0}#mpPanel .btn{white-space:normal;min-height:44px}#mpCuentasLista{margin:12px 0}
 </style>
 </head>
 <body>
@@ -1018,8 +1018,8 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:100,
-  packageEdition:'2026-11-16-mp-acreditada-r1',
+  packageRevision:101,
+  packageEdition:'2026-11-16-mp-ingresos-r1',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -4178,6 +4178,7 @@ function render(){
   const m=$('#main');
   ({vender:vVender,resumen:vResumen,productos:vProductos,compras:vCompras,combos:vCombos,promociones:vPromociones,
     vencimientos:vVencimientos,fiado:vFiado,caja:vCaja,movimientos:vMovimientos,config:vConfig,soporte:vSoporte}[vista])(m);
+  if(vista==='caja'&&typeof mpMontarIngresosCaja==='function')mpMontarIngresosCaja(m);
   if(vista==='caja')void f69CargarTurnosInterrumpidos();
   f6ProgramarFotosProductos(db.productos);
   window.scrollTo(0,mismaVista?posicionAnterior:0);
