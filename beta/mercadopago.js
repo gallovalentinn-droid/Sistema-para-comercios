@@ -52,6 +52,7 @@ function mpCobroHTML(){return `<div id="mpPanel">
   <h3 id="mpPasoTitulo" tabindex="-1" style="margin:16px 0 12px">Ingresos recientes</h3>
   <button class="btn" type="button" id="mpBuscar">Consultar ingresos</button>
   <div id="mpIngresos"></div><div id="mpQR" aria-label="Código QR de cobro"></div>
+  <p class="hint" id="mpAyudaQR" hidden>Para probar este QR, pagá desde una cuenta distinta de la que recibe el cobro: el dueño no puede pagarse a sí mismo. Mantené el panel abierto para detectar el pago; si lo cerrás, usá Recuperar cobro pendiente. No hay confirmación automática con el navegador cerrado.</p>
   <div id="mpIngresoSeleccionado" class="mp-acreditado" role="status" hidden></div>
   <button class="btn verde big" type="button" id="mpConfirmarIngreso" hidden>Registrar venta con este ingreso</button>
   <button class="btn ghost sm" id="mpActualizarQR" type="button" hidden>Consultar estado del QR</button>
@@ -75,6 +76,7 @@ function mpMontarCobro(root){
   panel.querySelector('#mpComprobarCobro').hidden=false;
   panel.querySelector('#mpBuscar').hidden=qr||!!mpLeerPendiente()||!transferEnabled||!newPaymentsEnabled;
   panel.querySelector('#mpActualizarQR').hidden=!qr;
+  panel.querySelector('#mpAyudaQR').hidden=!qr;
   panel.querySelector('#mpVolverCobro').hidden=!!mpLeerPendiente();
   panel.querySelector('#mpPasoTitulo').textContent=qr?'Cobro con QR de Mercado Pago':'Ingresos recientes';
   if(qr)descartarIngreso();
