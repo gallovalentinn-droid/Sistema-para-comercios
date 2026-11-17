@@ -40,7 +40,7 @@ Pausar nuevas operaciones con MP_NEW_PAYMENTS_ENABLED=false. Conservar las funci
 
 ## Verificación
 
-REV101 publica la consulta de ingresos en Caja con la comprobación financiera de transferencias todavía deshabilitada. Antes de habilitar reclamos, verificar importe, fecha y remitente de un CVU real; decidir qué hacer si no viene remitente y exigir una política de antigüedad en el servidor. La lista de tres días no es una restricción del endpoint claim: el núcleo actual no impone antigüedad al identificador presentado directamente. No habilitarlo hasta resolver esa condición.
+REV101 publicó la consulta de ingresos en Caja con la comprobación financiera de transferencias deshabilitada. REV102 agrega inicio persistido en servidor y ventana de acreditación anclada a ese cobro: inicio-2min hasta inicio+30min. Claim exige intento previo y esa ventana; recuperación/reintento conservan el inicio. La lista de tres días de Caja sigue siendo independiente. Con múltiples ingresos elegibles se exige selección explícita viendo hora argentina de24h con segundos; si no se distinguen, manual. No activar antes de probar pago individual y unicidad con una transferencia nueva de otra persona contra venta verdadera. Ver REV102.md.
 
 El usuario confirmó un pago QR desde MODO detectado y registrado automáticamente en la versión pública anterior. Esto valida ese recorrido informado, no el reclamo de una transferencia CVU ni todos los bancos/billeteras.
 

@@ -9,7 +9,8 @@ async function main(){
  const receipt={saleId:'',paymentId:'123',accountId:'a',amountCents:450000,kind:'transfer',verifiedAt:new Date().toISOString()};
  await p.route(/\/(?:api|functions\/v1)\/mercadopago(?:\?.*)?$/,async route=>{const b=route.request().postDataJSON();let data={};
   if(b.action==='accounts')data={configured:accounts.length>0,capabilities:{transferVerification:true,newPayments:true},accounts};
-  if(b.action==='receipts')data={receipts:[{id:'123',amountCents:450000,matches:true,date:new Date().toISOString(),payer:'Cliente de prueba',used:false},{id:'124',amountCents:250000,matches:false,date:new Date().toISOString(),payer:'Otra persona',used:false}]};
+  if(b.action==='transfer-start')data={attempt:{createdAt:new Date().toISOString()}};
+  if(b.action==='receipts')data={receipts:[{id:'123',amountCents:450000,matches:true,eligible:true,date:new Date().toISOString(),payer:'Cliente de prueba',used:false},{id:'124',amountCents:250000,matches:false,eligible:true,date:new Date().toISOString(),payer:'Otra persona',used:false}]};
   if(b.action==='claim'){claims++;await new Promise(r=>setTimeout(r,100));data={receipt:{...receipt,saleId:b.saleId}};linked.set(b.saleId,data.receipt);}
   if(b.action==='qr-create')data={attempt:{id:'qr1',status:'created',qrData:'000201010212-micomercio-test'}};
   if(b.action==='qr-status'){data={attempt:{id:'qr1',status:qrPaid?'verified':'created'},receipt:qrPaid?{...receipt,saleId:b.saleId,kind:'qr'}:null};if(data.receipt)linked.set(b.saleId,data.receipt);}

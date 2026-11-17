@@ -1,7 +1,7 @@
 // Shared by Deno Edge and Node tests. No Node dependencies or local storage.
 const encoder = new TextEncoder();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ACTIONS = new Set(['accounts','oauth-start','primary','disconnect','positions','set-position','transfer-coverage','income-history','sale-receipts','receipts','claim','manual','qr-create','qr-status','qr-cancel']);
+const ACTIONS = new Set(['accounts','oauth-start','primary','disconnect','positions','set-position','transfer-coverage','income-history','transfer-start','sale-receipts','receipts','claim','manual','qr-create','qr-status','qr-cancel']);
 const OWNER = new Set(['oauth-start','primary','disconnect','positions','set-position','transfer-coverage']);
 const ORIGINS = new Set(['https://micomercio.ar','https://www.micomercio.ar']);
 export function fail(code, status = 409) { const e = new Error(code); e.status = status; throw e; }
@@ -58,11 +58,19 @@ export async function authenticate(config,token,body,fetcher=fetch) {
   authorize(ctx);return ctx;
 }
 export function validatePayment(p,account,amount) {
+  if(p?.order?.id||p?.metadata?.order_id||p?.point_of_interaction?.transaction_data?.order_id||typeof p?.external_reference==='string'&&p.external_reference.startsWith('MC_'))fail('INGRESO_VINCULADO_ORDEN');
   const transfer=p?.operation_type==='money_transfer'||(p?.operation_type==='account_fund'&&p.payment_type_id==='bank_transfer'&&p.payment_method_id==='cvu');
   if(!/^\d{1,30}$/.test(String(p?.id||''))||p.status!=='approved'||p.status_detail!=='accredited'||String(p.collector_id)!==account.providerId||p.currency_id!=='ARS'||!transfer)fail('INGRESO_NO_VALIDO');
   if(p.transaction_amount_refunded!=null&&(!/^0(?:\.0{1,2})?$/.test(String(p.transaction_amount_refunded))))fail('INGRESO_NO_VALIDO');
   const n=cents(p.transaction_amount);if(amount!==undefined&&n!==amount)fail('INGRESO_MONTO_DISTINTO');
 }
+export function validateTransferWindow(p,a){
+  const start=typeof a?.createdAt==='string'?Date.parse(a.createdAt):NaN;
+  if(!Number.isFinite(start))fail('COBRO_NO_INICIADO');
+  const paid=typeof p?.date_approved==='string'?Date.parse(p.date_approved):NaN;
+  if(!Number.isFinite(paid)||paid<start-120000||paid>start+1800000)fail('INGRESO_FUERA_DE_VENTANA');
+}
+function transferAttempt(a,sale){if(!a)fail('COBRO_NO_INICIADO');if(a.accountId!==sale.accountId||a.amountCents!==sale.amountCents||a.fingerprint!==sale.fingerprint)fail('TICKET_CAMBIO');if(a.orderId||a.status==='creating')fail('QR_PENDIENTE');return a;}
 // Diagnóstico de cobertura de transferencias: solo conteos por categorías del proveedor.
 // Nunca incluye importes, fechas, nombres ni identificadores. Cada campo se clasifica contra
 // un catálogo cerrado de categorías conocidas del proveedor: cualquier otro texto, aunque
@@ -264,33 +272,37 @@ export class Service {
     if(action==='receipts'||action==='income-history'){
       if(action==='receipts'&&!this.config.transferVerification)fail('TRANSFERENCIAS_NO_HABILITADAS');
       const amount=action==='receipts'?cents(input.amount):undefined;
+      const attempt=action==='receipts'?transferAttempt(await this.call(ctx,'attempt',{saleId:input.saleId}),saleInput(input)):null;
       const {rows,available}=await this.provider.searchTransfers(await this.credentials(ctx,account)),receipts=[];
       const valid=rows.filter(p=>{try{validatePayment(p,account);return true;}catch{return false;}}),visible=valid.slice(0,100);
       // Bounded parallel reads avoid a serial RPC for every row. Fail the whole list if
       // any use lookup fails; never guess that a transfer is available.
       for(let offset=0;offset<visible.length;offset+=10)receipts.push(...await Promise.all(visible.slice(offset,offset+10).map(async p=>{
         const used=await this.call(ctx,'used',{accountId:account.id,paymentId:String(p.id)});
-        return {id:String(p.id),amountCents:cents(p.transaction_amount),matches:amount!==undefined&&cents(p.transaction_amount)===amount,date:p.date_approved||p.date_created,payer:[p.payer?.first_name,p.payer?.last_name].filter(Boolean).join(' ').slice(0,100),used:!!used};
+        let eligible=false;if(attempt)try{validateTransferWindow(p,attempt);eligible=true;}catch{}
+        return {id:String(p.id),amountCents:cents(p.transaction_amount),matches:amount!==undefined&&cents(p.transaction_amount)===amount,eligible,date:p.date_approved||p.date_created,payer:[p.payer?.first_name,p.payer?.last_name].filter(Boolean).join(' ').slice(0,100),used:!!used};
       })));
-      return {receipts,truncated:available>rows.length||valid.length>visible.length,days:3};
+      return {receipts,truncated:available>rows.length||valid.length>visible.length,days:3,...(attempt?{ambiguous:receipts.filter(p=>p.matches&&p.eligible&&!p.used).length>1,window:{startedAt:attempt.createdAt,endsAt:new Date(Date.parse(attempt.createdAt)+1800000).toISOString()}}:{})};
     }
     const sale=saleInput(input),owner=crypto.randomUUID();
     const existing=await this.call(ctx,'attempt',{saleId:sale.saleId});
     if(action==='qr-status'&&!existing)fail('COBRO_NO_EXISTE');
     if(action==='qr-create'&&this.config.newPayments===false&&(!existing||existing.status==='prepared'))fail('COBROS_NO_HABILITADOS');
     if(action==='qr-create'&&(!existing||existing.status==='prepared')&&!existing?.posId&&!account.posId)fail('CONFIGURAR_CAJA_QR');
-    if(action==='claim'&&(!this.config.transferVerification||this.config.newPayments===false)){
+    if(['claim','transfer-start'].includes(action)&&(!this.config.transferVerification||this.config.newPayments===false)){
       if(existing){
         if(existing.accountId!==sale.accountId||existing.amountCents!==sale.amountCents||existing.fingerprint!==sale.fingerprint)fail('TICKET_CAMBIO');
         const rows=await this.call(ctx,'receipts',{saleIds:[sale.saleId]});if(rows.length)return {receipt:rows[0]};
       }
       fail(this.config.newPayments===false?'COBROS_NO_HABILITADOS':'TRANSFERENCIAS_NO_HABILITADAS');
     }
+    if(action==='claim'&&!existing)fail('COBRO_NO_INICIADO');
     let a=await this.call(ctx,'sale-begin',{...sale,owner,posId:account.posId||'',cancelIfMissing:action==='qr-cancel'});
     if(!a)fail('COBRO_OCUPADO');
     try {
       const previous=await this.call(ctx,'receipts',{saleIds:[sale.saleId]});
       if(previous.length)return {attempt:a,receipt:previous[0]};
+      if(action==='transfer-start'){transferAttempt(a,sale);return {attempt:a};}
       if(action==='manual'){
         if(a.orderId&&!['canceled','expired'].includes(a.status)||!['prepared','canceled','expired','manual'].includes(a.status))fail('QR_PENDIENTE');
         await this.call(ctx,'sale-update',{saleId:a.saleId,owner,patch:{status:'manual'}});return {ok:true};
@@ -300,6 +312,7 @@ export class Service {
         if(a.orderId||a.status==='creating')fail('QR_PENDIENTE');
         const p=await this.provider.payment(await this.credentials(ctx,account),String(input.paymentId||''));
         validatePayment(p,account,a.amountCents);if(String(p.id)!==String(input.paymentId))fail('INGRESO_NO_VALIDO');
+        validateTransferWindow(p,a);
         return {receipt:await this.call(ctx,'claim',{saleId:a.saleId,owner,paymentId:String(p.id),kind:'transfer'})};
       }
       if(['canceled','expired','manual'].includes(a.status))return {attempt:a,receipt:null};
@@ -337,7 +350,7 @@ export class Service {
     } finally {await this.call(ctx,'sale-release',{saleId:sale.saleId,owner}).catch(()=>{});}
   }
 }
-const ERROR_CODES = new Set(['SESION_INVALIDA','PERMISO_DENEGADO','PERMISO_DUENIO_REQUERIDO','PERMISO_VENDER_REQUERIDO','AUTORIDAD_NO_VIGENTE','APLICACION_NO_CONFIGURADA','ACCION_INVALIDA','DATOS_INVALIDOS','ORIGEN_NO_PERMITIDO','METODO_NO_PERMITIDO','NOMBRE_CUENTA_INVALIDO','CUENTA_NO_DISPONIBLE','CUENTA_OTRO_COMERCIO','CUENTA_OCUPADA','COBRO_OCUPADO','COBRO_NO_EXISTE','COBROS_NO_HABILITADOS','COBRO_PENDIENTE','QR_PENDIENTE','QR_REQUIERE_CONCILIACION','TICKET_CAMBIO','VENTA_INVALIDA','MONTO_INVALIDO','CAJA_NO_DISPONIBLE','CONFIGURAR_CAJA_QR','TRANSFERENCIAS_NO_HABILITADAS','TRANSFERENCIA_UTILIZADA','VENTA_YA_VERIFICADA','COBRO_FINALIZADO_MANUAL','INGRESO_NO_VALIDO','INGRESO_MONTO_DISTINTO','ORDEN_INVALIDA','ORDEN_MONTO_DISTINTO','ORDEN_SIN_ACREDITAR','RECONECTAR_CUENTA','MERCADO_PAGO_OCUPADO','MERCADO_PAGO_NO_DISPONIBLE','CONEXION_NO_DISPONIBLE','AUTORIZACION_RECHAZADA','AUTORIZACION_VENCIDA']);
+const ERROR_CODES = new Set(['SESION_INVALIDA','PERMISO_DENEGADO','PERMISO_DUENIO_REQUERIDO','PERMISO_VENDER_REQUERIDO','AUTORIDAD_NO_VIGENTE','APLICACION_NO_CONFIGURADA','ACCION_INVALIDA','DATOS_INVALIDOS','ORIGEN_NO_PERMITIDO','METODO_NO_PERMITIDO','NOMBRE_CUENTA_INVALIDO','CUENTA_NO_DISPONIBLE','CUENTA_OTRO_COMERCIO','CUENTA_OCUPADA','COBRO_OCUPADO','COBRO_NO_EXISTE','COBROS_NO_HABILITADOS','COBRO_PENDIENTE','QR_PENDIENTE','QR_REQUIERE_CONCILIACION','TICKET_CAMBIO','VENTA_INVALIDA','MONTO_INVALIDO','CAJA_NO_DISPONIBLE','CONFIGURAR_CAJA_QR','TRANSFERENCIAS_NO_HABILITADAS','TRANSFERENCIA_UTILIZADA','VENTA_YA_VERIFICADA','COBRO_FINALIZADO_MANUAL','INGRESO_NO_VALIDO','INGRESO_MONTO_DISTINTO','INGRESO_FUERA_DE_VENTANA','INGRESO_VINCULADO_ORDEN','COBRO_NO_INICIADO','ORDEN_INVALIDA','ORDEN_MONTO_DISTINTO','ORDEN_SIN_ACREDITAR','RECONECTAR_CUENTA','MERCADO_PAGO_OCUPADO','MERCADO_PAGO_NO_DISPONIBLE','CONEXION_NO_DISPONIBLE','AUTORIZACION_RECHAZADA','AUTORIZACION_VENCIDA']);
 function response(body,status=200,origin='') {
   const headers={'content-type':'application/json; charset=utf-8','cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','vary':'Origin'};
   if(ORIGINS.has(origin))Object.assign(headers,{'access-control-allow-origin':origin,'access-control-allow-headers':'authorization, apikey, content-type, x-client-info','access-control-allow-methods':'POST, OPTIONS'});

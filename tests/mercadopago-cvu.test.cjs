@@ -16,7 +16,7 @@ test('busqueda de ingresos incluye CVU y rechaza respuestas incompletas',async()
 async function fixture({usedError=false,transferVerification=false}={}){
  const core=await m,key=crypto.getRandomValues(new Uint8Array(32)),ops=[];
  const account={id:accountId,providerId:'77',active:true,refreshState:'idle',credentials:await core.encrypt({access_token:'synthetic',expiresAt:Date.now()+3600000},key,'account:'+accountId)};
- const store={call:async(op,args)=>{ops.push(op);if(op==='account')return account;if(op==='used'){if(usedError)throw Error('CONEXION_NO_DISPONIBLE');return args.paymentId==='902'?{saleId:'previous'}:null;}if(op==='attempt')return null;if(op==='sale-begin')return {...args,status:'prepared'};if(op==='receipts')return [];if(op==='claim')return {saleId:args.saleId,paymentId:args.paymentId,kind:'transfer',amountCents:30000};return true;}};
+ const store={call:async(op,args)=>{ops.push(op);if(op==='account')return account;if(op==='used'){if(usedError)throw Error('CONEXION_NO_DISPONIBLE');return args.paymentId==='902'?{saleId:'previous'}:null;}if(op==='attempt')return {accountId,amountCents:30000,fingerprint:'x',createdAt:cvu().date_approved,status:'prepared'};if(op==='sale-begin')return {...args,createdAt:cvu().date_approved,status:'prepared'};if(op==='receipts')return [];if(op==='claim')return {saleId:args.saleId,paymentId:args.paymentId,kind:'transfer',amountCents:30000};return true;}};
  const provider={search:async()=>[{...cvu(),operation_type:'money_transfer'}],searchTransfers:async()=>({rows:[cvu(),{...cvu(),id:'902',transaction_amount:1200}],available:501}),payment:async()=>cvu()};
  return {ops,service:new core.Service({config:{configured:true,key,transferVerification},store,provider})};
 }
@@ -26,7 +26,7 @@ test('historial muestra ingresos acreditados y uso sin habilitar reclamos ni esc
  await assert.rejects(service.handle(ctx,{action:'claim',accountId,saleId:'sale',fingerprint:'x',amount:'300',paymentId:'901'}),/TRANSFERENCIAS_NO_HABILITADAS/);
 });
 test('fallo al comprobar uso se propaga, nunca presenta como disponible',async()=>{
- const {service}=await fixture({usedError:true,transferVerification:true});await assert.rejects(service.handle(ctx,{action:'receipts',accountId,amount:'300'}),/CONEXION_NO_DISPONIBLE/);
+ const {service}=await fixture({usedError:true,transferVerification:true});await assert.rejects(service.handle(ctx,{action:'receipts',accountId,saleId:'sale',fingerprint:'x',amount:'300'}),/CONEXION_NO_DISPONIBLE/);
 });
 test('claim vuelve a leer CVU individual antes de asociarlo a una venta',async()=>{
  const {service,ops}=await fixture({transferVerification:true});const r=await service.handle(ctx,{action:'claim',accountId,saleId:'sale',fingerprint:'x',amount:'300',paymentId:'901'});assert.equal(r.receipt.paymentId,'901');assert.ok(ops.includes('claim'));
