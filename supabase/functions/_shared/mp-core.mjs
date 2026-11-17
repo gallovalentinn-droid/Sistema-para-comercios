@@ -1,7 +1,7 @@
 // Shared by Deno Edge and Node tests. No Node dependencies or local storage.
 const encoder = new TextEncoder();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ACTIONS = new Set(['accounts','oauth-start','primary','disconnect','positions','set-position','transfer-coverage','sender-report-prepare','income-history','transfer-start','sale-receipts','receipts','claim','manual','qr-create','qr-status','qr-cancel']);
+const ACTIONS = new Set(['accounts','oauth-start','primary','disconnect','positions','set-position','transfer-coverage','sender-report-prepare','income-senders','income-history','transfer-start','sale-receipts','receipts','claim','manual','qr-create','qr-status','qr-cancel']);
 const OWNER = new Set(['oauth-start','primary','disconnect','positions','set-position','transfer-coverage','sender-report-prepare']);
 const ORIGINS = new Set(['https://micomercio.ar','https://www.micomercio.ar']);
 export function fail(code, status = 409) { const e = new Error(code); e.status = status; throw e; }
@@ -69,6 +69,39 @@ export function validateTransferWindow(p,a){
   if(!Number.isFinite(start))fail('COBRO_NO_INICIADO');
   const paid=typeof p?.date_approved==='string'?Date.parse(p.date_approved):NaN;
   if(!Number.isFinite(paid)||paid<start-120000||paid>start+1800000)fail('INGRESO_FUERA_DE_VENTANA');
+}
+// Private CSV stays in server memory. Only exact, provider-validated incoming IDs
+// can receive a name. Conflicting settlement rows fail closed for that payment.
+export function reportSenders(csv,account,payments,stats){
+  if(typeof csv!=='string'||csv.length>2097152)fail('REPORTE_NO_VALIDO');
+  const rows=[];let row=[],field='',quoted=false,closed=false;
+  const add=()=>{row.push(field);field='';closed=false;if(row.length>100)fail('REPORTE_NO_VALIDO');};
+  csv=csv.replace(/^\uFEFF/,'');
+  for(let i=0;i<csv.length;i++){
+    const c=csv[i];
+    if(quoted){if(c==='"'){if(csv[i+1]==='"'){field+='"';i++;}else{quoted=false;closed=true;}}else field+=c;}
+    else if(c===';'||c==='\n'||c==='\r'){add();if(c!==';'){if(c==='\r'&&csv[i+1]==='\n')i++;if(row.some(Boolean))rows.push(row);row=[];if(rows.length>10001)fail('REPORTE_NO_VALIDO');}}
+    else if(c==='"'&&!field&&!closed)quoted=true;
+    else {if(closed||c==='"')fail('REPORTE_NO_VALIDO');field+=c;}
+    if(field.length>16384)fail('REPORTE_NO_VALIDO');
+  }
+  if(quoted)fail('REPORTE_NO_VALIDO');if(field||row.length){add();if(row.some(Boolean))rows.push(row);}
+  const header=rows.shift()||[],required=['USER_ID','SOURCE_ID','PAYER_NAME','TRANSACTION_AMOUNT','TRANSACTION_CURRENCY','TRANSACTION_TYPE','SETTLEMENT_DATE'];
+  if(required.some(k=>header.filter(h=>h===k).length!==1))fail('REPORTE_NO_VALIDO');
+  const wanted=new Map();for(const p of payments){try{validatePayment(p,account);wanted.set(String(p.id),cents(p.transaction_amount));}catch{}}
+  const names=new Map(),blocked=new Set(),types=new Map(payments.map(p=>[String(p.id),p.operation_type==='account_fund'?'cvu':'moneyTransfer']));
+  if(stats){const empty=()=>({source:0,account:0,amount:0,currency:0,settlement:0,name:0});Object.assign(stats,{rows:rows.length,cvu:empty(),moneyTransfer:empty()});}
+  for(const r of rows){
+    if(r.length!==header.length)fail('REPORTE_NO_VALIDO');
+    const get=k=>r[header.indexOf(k)],id=get('SOURCE_ID');
+    if(stats&&wanted.has(id)){const b=stats[types.get(id)];b.source++;b.account+=Number(get('USER_ID')===account.providerId);b.currency+=Number(get('TRANSACTION_CURRENCY')==='ARS');b.settlement+=Number(get('TRANSACTION_TYPE')==='SETTLEMENT');b.name+=Number(!!get('PAYER_NAME').trim());try{b.amount+=Number(cents(get('TRANSACTION_AMOUNT'))===wanted.get(id));}catch{}}
+    if(get('USER_ID')!==account.providerId||!wanted.has(id)||get('TRANSACTION_CURRENCY')!=='ARS'||get('TRANSACTION_TYPE')!=='SETTLEMENT')continue;
+    let amount;try{amount=cents(get('TRANSACTION_AMOUNT'));}catch{continue;}if(amount!==wanted.get(id))continue;
+    const name=get('PAYER_NAME').replace(/\s+/g,' ').trim();
+    if(!name||name.length>100||/[\u0000-\u001f\u007f<>]/.test(name)||!/[\p{L}]/u.test(name))continue;
+    if(names.has(id)&&names.get(id)!==name)blocked.add(id);else names.set(id,name);
+  }
+  for(const id of blocked)names.delete(id);return names;
 }
 function transferAttempt(a,sale){if(!a)fail('COBRO_NO_INICIADO');if(a.accountId!==sale.accountId||a.amountCents!==sale.amountCents||a.fingerprint!==sale.fingerprint)fail('TICKET_CAMBIO');if(['canceled','expired'].includes(a.status))fail('COBRO_CANCELADO');if(a.orderId||a.status==='creating')fail('QR_PENDIENTE');return a;}
 // Diagnóstico de cobertura de transferencias: solo conteos por categorías del proveedor.
@@ -142,7 +175,7 @@ export function accreditedOrderPayment(o,account,a) {
   return String(p.id);
 }
 export class Provider {
-  constructor(config,fetcher=fetch){this.config=config;this.fetcher=fetcher;}
+  constructor(config,fetcher=fetch){this.config=config;this.fetcher=fetcher;this.reportCache=new Map();}
   async request(path,c,options={}) {
     const {definitiveCreation,...fetchOptions}=options;
     let r;try {r=await this.fetcher('https://api.mercadopago.com'+path,{...fetchOptions,headers:{'content-type':'application/json',...(c?{authorization:'Bearer '+c.access_token}:{}),...options.headers},signal:AbortSignal.timeout(15000)});}catch {fail('MERCADO_PAGO_NO_DISPONIBLE',503);}
@@ -182,6 +215,22 @@ export class Provider {
   payment(c,id){if(!/^\d{1,30}$/.test(id))fail('INGRESO_NO_VALIDO');return this.request('/v1/payments/'+id,c);}
   reportConfig(c){return this.request('/v1/account/settlement_report/config',c);}
   reportList(c){return this.request('/v1/account/settlement_report/list',c);}
+  async reportFile(c,name){
+    if(!/^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,199}\.csv$/.test(name)||name.includes('..'))fail('REPORTE_NO_VALIDO');
+    let r;try{r=await this.fetcher('https://api.mercadopago.com/v1/account/settlement_report/'+name,{headers:{authorization:'Bearer '+c.access_token},redirect:'error',signal:AbortSignal.timeout(15000)});}catch{fail('MERCADO_PAGO_NO_DISPONIBLE',503);}
+    if([202,404].includes(r.status)){const e=new Error('MERCADO_PAGO_NO_DISPONIBLE');e.reportPending=true;e.status=503;throw e;}
+    if(r.status!==200)fail('MERCADO_PAGO_NO_DISPONIBLE',503);
+    const reader=r.body?.getReader();if(!reader)fail('REPORTE_NO_VALIDO');let size=0;const chunks=[];
+    try{for(;;){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>2097152){await reader.cancel();fail('REPORTE_NO_VALIDO');}chunks.push(value);}}catch(e){if(e.message==='REPORTE_NO_VALIDO')throw e;fail('MERCADO_PAGO_NO_DISPONIBLE',503);}
+    const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
+    try{return new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{fail('REPORTE_NO_VALIDO');}
+  }
+  async cachedReportFile(c,accountId,name){
+    const key=accountId+':'+name,now=Date.now(),cached=this.reportCache.get(key);if(cached&&cached.until>now)return cached.value;
+    const value=await this.reportFile(c,name);for(const [k,v] of this.reportCache)if(v.until<=now)this.reportCache.delete(k);
+    if(this.reportCache.size>=8)this.reportCache.delete(this.reportCache.keys().next().value);
+    this.reportCache.set(key,{until:now+180000,value});return value;
+  }
   createReportConfig(c,body){return this.request('/v1/account/settlement_report/config',c,{method:'POST',body:JSON.stringify(body)});}
   createReport(c,begin,end){return this.request('/v1/account/settlement_report',c,{method:'POST',body:JSON.stringify({begin_date:begin,end_date:end})});}
   create(c,body,key){return this.request('/v1/orders',c,{method:'POST',headers:{'X-Idempotency-Key':key},body:JSON.stringify(body),definitiveCreation:true});}
@@ -200,6 +249,13 @@ function credentialsPayload(c,providerId) {
 }
 export class Service {
   constructor({store,provider,config}){this.store=store;this.provider=provider;this.config=config;}
+  async reportNames(credentials,account,rows){
+    const list=await this.provider.reportList(credentials);if(!Array.isArray(list))fail('REPORTE_NO_VALIDO');
+    const reports=list.filter(r=>String(r?.user_id)===account.providerId&&typeof r.file_name==='string'&&r.file_name.startsWith('micomercio-remitentes-')&&Number.isFinite(Date.parse(r.date_created))&&Date.parse(r.date_created)>Date.now()-3*86400000).sort((a,b)=>Date.parse(b.date_created)-Date.parse(a.date_created));
+    if(!reports.length)return {state:'pending',names:new Map()};
+    const report=reports[0];let csv;try{csv=this.provider.cachedReportFile?await this.provider.cachedReportFile(credentials,account.id,report.file_name):await this.provider.reportFile(credentials,report.file_name);}catch(e){if(e.reportPending===true)return {state:'pending',names:new Map(),report};throw e;}
+    const diagnostic={},names=reportSenders(csv,account,rows,diagnostic);return {state:'ready',names,report,diagnostic};
+  }
   call(ctx,op,args={}){return this.store.call(op,{commerceId:ctx.commerceId,actor:ctx.userId,...args});}
   async account(ctx,id){if(!UUID.test(id||''))fail('CUENTA_NO_DISPONIBLE');const a=await this.call(ctx,'account',{accountId:id});if(!a?.active)fail('CUENTA_NO_DISPONIBLE');return a;}
   async credentials(ctx,account) {
@@ -279,6 +335,22 @@ export class Service {
       }
       await this.call(ctx,'position',{accountId:account.id,posId});return {ok:true};
     }
+    if(action==='income-senders'){
+      // Separate from listing/claim: reconciliation names never decide accreditation.
+      // Only an already prepared, app-owned config can generate a fresh private report.
+      const credentials=await this.credentials(ctx,account),{rows}=await this.provider.searchTransfers(credentials);
+      const valid=rows.filter(p=>{try{validatePayment(p,account);return true;}catch{return false;}}).slice(0,100);
+      if(!valid.length)return {senders:[],pending:false};
+      const data=await this.reportNames(credentials,account,valid),senders=[...data.names].map(([id,payer])=>({id,payer}));
+      if(data.state==='pending'&&data.report)return {senders,pending:true};
+      const needs=data.state==='pending'||valid.some(p=>!data.names.has(String(p.id))&&Date.parse(p.date_approved)>Date.parse(data.report?.end_date));
+      if(!needs)return {senders,pending:false};
+      if(data.report&&Date.parse(data.report.date_created)>Date.now()-600000)return {senders,pending:true};
+      const settings=await this.provider.reportConfig(credentials),required=['USER_ID','SOURCE_ID','PAYER_NAME','TRANSACTION_AMOUNT','TRANSACTION_CURRENCY','TRANSACTION_TYPE','SETTLEMENT_DATE'];
+      if(settings?.file_name_prefix!=='micomercio-remitentes'||settings.scheduled===true||Object.values(settings.sftp_info||{}).some(v=>v!==null&&v!==undefined&&v!=='')||settings.email_notification||settings.notification_email||!required.every(k=>settings.columns?.some?.(c=>c?.key===k)))return {senders,pending:false};
+      await this.provider.createReport(credentials,new Date(Date.now()-3*86400000).toISOString(),new Date().toISOString());
+      return {senders,pending:true};
+    }
     if(action==='transfer-coverage'){
       // Solo dueño. Consulta movimientos sin escrituras de negocio (ni ventas, ni recibos, ni
       // reclamos); si las credenciales vencieron, puede renovarlas como cualquier otra acción.
@@ -289,8 +361,10 @@ export class Service {
       if(input.includeSenderFields!==undefined&&typeof input.includeSenderFields!=='boolean')fail('DATOS_INVALIDOS',400);
       if(input.includeSenderDetails!==undefined&&typeof input.includeSenderDetails!=='boolean')fail('DATOS_INVALIDOS',400);
       if(input.includeSenderReports!==undefined&&typeof input.includeSenderReports!=='boolean')fail('DATOS_INVALIDOS',400);
+      if(input.includeSenderReportData!==undefined&&typeof input.includeSenderReportData!=='boolean')fail('DATOS_INVALIDOS',400);
       const credentials=await this.credentials(ctx,account),{rows,available}=await this.provider.searchAll(credentials,minutes);
       const coverage=transferCoverage(rows,account,{minutes,available});
+      if(input.includeSenderReportData===true){const data=await this.reportNames(credentials,account,rows);coverage.senderReportData={state:data.state,matched:data.names.size,matchedCvu:rows.filter(p=>data.names.has(String(p.id))&&p.operation_type==='account_fund').length,matchedMoneyTransfer:rows.filter(p=>data.names.has(String(p.id))&&p.operation_type==='money_transfer').length,...(data.diagnostic?{diagnostic:data.diagnostic}:{})};}
       if(input.includeSenderFields===true)coverage.senderFields=senderFieldPresence(rows);
       if(input.includeSenderReports===true){
         const [settings,list]=await Promise.allSettled([this.provider.reportConfig(credentials),this.provider.reportList(credentials)]),code=r=>r.status==='fulfilled'?200:Number.isInteger(r.reason?.providerStatus)&&r.reason.providerStatus>=400&&r.reason.providerStatus<=599?r.reason.providerStatus:0;
@@ -321,7 +395,7 @@ export class Service {
         let eligible=false;if(attempt)try{validateTransferWindow(p,attempt);eligible=true;}catch{}
         return {id:String(p.id),amountCents:cents(p.transaction_amount),matches:amount!==undefined&&cents(p.transaction_amount)===amount,eligible,date:p.date_approved||p.date_created,payer:[p.payer?.first_name,p.payer?.last_name].filter(Boolean).join(' ').slice(0,100),used:!!used};
       })));
-      return {receipts,truncated:available>rows.length||valid.length>visible.length,days:3,...(attempt?{ambiguous:receipts.filter(p=>p.matches&&p.eligible&&!p.used).length>1,window:{startedAt:attempt.createdAt,endsAt:new Date(Date.parse(attempt.createdAt)+1800000).toISOString()}}:{})};
+      return {receipts,...(typeof this.provider.reportList==='function'?{senderNames:true}:{}),truncated:available>rows.length||valid.length>visible.length,days:3,...(attempt?{ambiguous:receipts.filter(p=>p.matches&&p.eligible&&!p.used).length>1,window:{startedAt:attempt.createdAt,endsAt:new Date(Date.parse(attempt.createdAt)+1800000).toISOString()}}:{})};
     }
     const sale=saleInput(input),owner=crypto.randomUUID();
     const existing=await this.call(ctx,'attempt',{saleId:sale.saleId});
