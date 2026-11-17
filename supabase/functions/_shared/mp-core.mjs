@@ -91,11 +91,12 @@ export function senderFieldPresence(rows){
   const text=v=>typeof v==='string'&&v.trim().length>0;
   const identifier=v=>text(v)||typeof v==='number'&&Number.isFinite(v)&&v>0;
   const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
-  const empty=()=>({total:0,payerFirstName:0,payerLastName:0,payerIdentificationType:0,payerIdentificationNumber:0,bankPayerObject:0,bankPayerName:0,bankPayerLongName:0,bankPayerAccountId:0,bankPayerFirstName:0,bankPayerLastName:0,bankPayerId:0,bankPayerIdentificationType:0,bankPayerIdentificationNumber:0});
+  const empty=()=>({total:0,payerFirstName:0,payerLastName:0,payerIdentificationType:0,payerIdentificationNumber:0,bankPayerObject:0,bankPayerName:0,bankPayerLongName:0,bankPayerAccountId:0,bankPayerFirstName:0,bankPayerLastName:0,bankPayerId:0,bankPayerIdentificationType:0,bankPayerIdentificationNumber:0,additionalPayerFirstName:0,additionalPayerLastName:0,payerName:0,payerFullName:0,payerId:0,payerIsReceiver:0});
   const out={all:empty(),cvu:empty(),moneyTransfer:empty()};
   for(const p of (Array.isArray(rows)?rows:[]).slice(0,500)){
-    const payer=p?.payer,bank=p?.point_of_interaction?.transaction_data?.bank_info?.payer;
+    const payer=p?.payer,bank=p?.point_of_interaction?.transaction_data?.bank_info?.payer,additional=p?.additional_info?.payer;
     const flags={payerFirstName:text(payer?.first_name),payerLastName:text(payer?.last_name),payerIdentificationType:text(payer?.identification?.type),payerIdentificationNumber:identifier(payer?.identification?.number),bankPayerObject:object(bank),bankPayerName:text(bank?.name),bankPayerLongName:text(bank?.long_name),bankPayerAccountId:identifier(bank?.account_id),bankPayerFirstName:text(bank?.first_name),bankPayerLastName:text(bank?.last_name),bankPayerId:identifier(bank?.id),bankPayerIdentificationType:text(bank?.identification?.type),bankPayerIdentificationNumber:identifier(bank?.identification?.number)};
+    Object.assign(flags,{additionalPayerFirstName:text(additional?.first_name),additionalPayerLastName:text(additional?.last_name),payerName:text(payer?.name),payerFullName:text(payer?.full_name),payerId:identifier(payer?.id),payerIsReceiver:identifier(payer?.id)&&String(payer.id)===String(p?.collector_id)});
     const buckets=[out.all];if(p?.operation_type==='account_fund'&&p.payment_type_id==='bank_transfer'&&p.payment_method_id==='cvu')buckets.push(out.cvu);if(p?.operation_type==='money_transfer')buckets.push(out.moneyTransfer);
     for(const b of buckets){b.total++;for(const key of Object.keys(flags))b[key]+=Number(flags[key]);}
   }
@@ -263,9 +264,18 @@ export class Service {
       const minutes=input.minutes===undefined?COVERAGE_MAX_MINUTES:input.minutes;
       if(!Number.isSafeInteger(minutes)||minutes<1||minutes>COVERAGE_MAX_MINUTES)fail('DATOS_INVALIDOS',400);
       if(input.includeSenderFields!==undefined&&typeof input.includeSenderFields!=='boolean')fail('DATOS_INVALIDOS',400);
-      const {rows,available}=await this.provider.searchAll(await this.credentials(ctx,account),minutes);
+      if(input.includeSenderDetails!==undefined&&typeof input.includeSenderDetails!=='boolean')fail('DATOS_INVALIDOS',400);
+      const credentials=await this.credentials(ctx,account),{rows,available}=await this.provider.searchAll(credentials,minutes);
       const coverage=transferCoverage(rows,account,{minutes,available});
       if(input.includeSenderFields===true)coverage.senderFields=senderFieldPresence(rows);
+      if(input.includeSenderDetails===true){
+        const eligible=rows.filter(p=>{try{validatePayment(p,account);return true;}catch{return false;}}),sample=eligible.slice(0,3);let failed=0,mismatched=0;
+        const details=await Promise.all(sample.map(async row=>{
+          let detail;try{detail=await this.provider.payment(credentials,String(row.id));}catch{failed++;return null;}
+          try{validatePayment(detail,account,cents(row.transaction_amount));if(String(detail.id)!==String(row.id))throw new Error();return detail;}catch{mismatched++;return null;}
+        }));
+        coverage.senderDetails={checked:sample.length,failed,mismatched,incomplete:failed>0||mismatched>0,sampled:eligible.length>sample.length,fields:senderFieldPresence(details.filter(Boolean))};
+      }
       console.info(JSON.stringify({event:'MP_PUBLIC_COVERAGE',...coverage}));
       return {coverage};
     }
