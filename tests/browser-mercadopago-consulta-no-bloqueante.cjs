@@ -18,7 +18,7 @@ async function main(){
  });
  try{
   await abrirTurno(p);await p.evaluate(()=>{vista='vender';db.config.manejaTurnos=false;db.productos=[{id:'p',nombre:'Prueba',precio:300,costo:100,stock:10,stockBase:10,unidad:'unidad'}];ticket=[];seleccionarProducto(db.productos[0]);pago='transferencia';abrirModalPago();});
-  await p.waitForSelector('#mpCuenta option[value="a"]',{state:'attached'});await p.click('#mpGenerarQR');await p.waitForSelector('#mpQR svg');
+  await p.waitForSelector('#mpCuenta option[value="a"]',{state:'attached'});await p.click('#mpGenerarQR');await p.click('#mpContinuarCobro');await p.waitForSelector('#mpQR svg');
   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Automatic status query not received')),6000);queryStarted.then(()=>{clearTimeout(timer);resolve();},reject);});
   assert.equal(checks,1);assert.equal(await p.locator('#mpCobroManual').isDisabled(),false,'background query keeps cancellation available');
   if(await p.locator('#mpCobroManual').isVisible())await p.click('#mpCobroManual');await p.click('#mpManualConfirmar');assert.equal(cancels,0,'user action waits for outstanding status query');

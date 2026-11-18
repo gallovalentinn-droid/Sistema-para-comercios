@@ -18,7 +18,7 @@ async function main(){
  });
  try{
   await abrirTurno(p);await p.evaluate(()=>{vista='vender';db.config.manejaTurnos=false;db.productos=[{id:'p',nombre:'Prueba',precio:4500,costo:1000,stock:10,stockBase:10,unidad:'unidad'}];ticket=[];seleccionarProducto(db.productos[0]);pago='transferencia';abrirModalPago();});
-  await p.waitForSelector('#mpCuenta option[value="a"]',{state:'attached'});await p.click('#mpGenerarQR');
+  await p.waitForSelector('#mpCuenta option[value="a"]',{state:'attached'});await p.click('#mpGenerarQR');await p.click('#mpContinuarCobro');
   if(!process.env.POLL_ONLY){await p.waitForSelector('#mpQR[aria-busy="true"]',{timeout:2500});
   assert.match(await p.locator('#mpQR').innerText(),/Generando QR/);assert.equal(await p.locator('#mpGenerarQR').isDisabled(),true);}
   release();await p.waitForSelector('#mpQR svg');if(!process.env.POLL_ONLY)assert.equal(await p.locator('#mpQR').getAttribute('aria-busy'),'false');
