@@ -110,7 +110,7 @@ function load() {
     'f32BuscarLocalV4', 'f32BuscarLocalLegacy', 'f32LocalParaRemoto', 'f32ResolverIdLocal',
     'f32UpsertArray', 'f32AplicarVisible', 'f32bEstado', 'f32bCursorKey', 'f32bSetCursor',
     'f32bMapEgreso', 'f32bMapVenta', 'f32bMapCierre', 'f32bMapOperacion', 'f32bDeviceFila', 'f32bAplicarVisible',
-    'f32bAvanzarOmitida', 'f32bProcesarFila', 'normalizarBusqueda', 'rubrosVenta', 'htmlFiltroRubrosRev31', 'pintarVentasCajaActual', 'responsableCierre',
+    'fiadoCompensacionPropiaFaltante', 'f32bAvanzarOmitida', 'f32bProcesarFila', 'normalizarBusqueda', 'rubrosVenta', 'htmlFiltroRubrosRev31', 'pintarVentasCajaActual', 'responsableCierre',
     'montoDiferenciaCaja', 'motivoCierrePendiente', 'motivoDiferenciaCaja', 'estadoDiferenciaCaja', 'f69ResumenCierre', 'f52CalcularDestinoCierre',
     'f56ValidarApartadoCigarrillos', 'f57DesgloseRetiroCigarrillos', 'f56CajaSeparadaEnSesion', 'f57ModoCaja', 'f56EsperadoCajaUnica',
     'esEgresoOperativo', 'f59DesgloseCajaActual', 'f59MovimientosCajaActual', 'f59TiempoAbiertoCaja',

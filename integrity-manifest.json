@@ -1,14 +1,14 @@
 {
   "version": "6.0.0-f6-rc2",
-  "packageRevision": 107,
+  "packageRevision": 108,
   "algorithm": "sha256",
-  "generatedAt": "2026-11-17-mp-selector-r1",
+  "generatedAt": "2026-11-19-fiado-anular-r1",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "97ad6e5023cdcc1a09819202be7ed6db9ee8a61db97eef62fe3368d3cd1b8e3a",
+    "beta/index.html": "34a3a7c6ecf47d3081fdae79a6308600258d9ea2053158da2bac2fd80632e3ef",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "c992b4a00dd4e7b1e76b7a056029961b5452cff60124a351d3b4ff9d6ee5fb47",
+    "beta/sw.js": "c1fdcfe8ec344bd80e2b10f54ff15a70c94bee41deaece10483eb62034294ae9",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -49,7 +49,8 @@
     "supabase/functions/mercadopago/index.ts": "1baced7171592f51e0be4c6b1cd01a39c05d2300f041ddffcaf3a99f9bf20bc4",
     "supabase/functions/mercadopago-callback/index.ts": "e8febd79e2311dde9d28b37e95ce3005a6e0d5e16241611acad402d0c8e82f02",
     "supabase/migrations/20261115184112_mercadopago_publico.sql": "bfe8c1079db36445afb48b0d53316d5e84ce75313f7d699ba214016bb70c58eb",
-    "tools/mercadopago/copiar-clave-cifrado.ps1": "3fb8061d04406dfe20f2071abfea09123b53d5d1678445cd83df219923f7d1a6"
+    "tools/mercadopago/copiar-clave-cifrado.ps1": "3fb8061d04406dfe20f2071abfea09123b53d5d1678445cd83df219923f7d1a6",
+    "REV108-FIADO-ANULAR.sql": "75eb90665c445058a93c072b5823beb80f0ae52ccad036cddf88aa964f4c2ce4"
   },
-  "packageEdition": "2026-11-17-mp-selector-r1"
+  "packageEdition": "2026-11-19-fiado-anular-r1"
 }

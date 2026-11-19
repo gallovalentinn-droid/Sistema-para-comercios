@@ -151,6 +151,8 @@ async function main(){
     await page.click('#cf_confirmar');
     await page.waitForFunction(()=>!!document.querySelector('#cf_error')?.textContent&&!fiadoCorreccionActiva);
     assert.equal(await page.evaluate(()=>fiadoHayCorreccionPendiente()),true,'un resultado desconocido conserva su barrera');
+    await page.evaluate(()=>sessionStorage.clear());
+    assert.equal(await page.evaluate(()=>fiadoHayCorreccionPendiente()),true,'la referencia sobrevive al fin de la sesión de pestaña');
     assert.equal(await page.evaluate(()=>db.clientes[0].saldo),400,'no se afirma un saldo sin recibir la respuesta');
     await page.locator('#ov [data-cerrar]').last().click();
     await page.locator(`[data-fiado-cliente="${f.customerLocal}"] [data-pago]`).click();assert.equal(await page.locator('#okP').count(),0,'no se acepta otro cobro sobre un saldo viejo');

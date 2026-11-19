@@ -1020,8 +1020,8 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:107,
-  packageEdition:'2026-11-17-mp-selector-r1',
+  packageRevision:108,
+  packageEdition:'2026-11-19-fiado-anular-r1',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -8655,7 +8655,7 @@ document.addEventListener('pointerdown',e=>$$('#tabProd .products-row-more[open]
 window.addEventListener('resize',()=>$$('#tabProd .products-row-more[open]').forEach(menu=>menu.open=false));
 window.addEventListener('scroll',()=>$$('#tabProd .products-row-more[open]').forEach(menu=>{const a=menu._productAnchor,r=$('summary',menu).getBoundingClientRect();if(a&&(Math.abs(a.top-r.top)>1||Math.abs(a.left-r.left)>1))menu.open=false;}),{passive:true});
 function vFiado(m){
-  const pendienteCorreccion=fiadoHayCorreccionPendiente()?JSON.parse(sessionStorage.getItem(fiadoClaveCorreccion())):null;
+  const pendienteCorreccion=fiadoHayCorreccionPendiente()?JSON.parse(localStorage.getItem(fiadoClaveCorreccion())):null;
   const cs=[...db.clientes].sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0)||a.nombre.localeCompare(b.nombre));
   const deuda=cs.reduce((a,c)=>a+Number(c.saldo||0),0);
   const deben=cs.filter(c=>Number(c.saldo)>0.009);
@@ -8776,12 +8776,13 @@ function verCuenta(id){
     </div>
     ${movimientos.length?`<div class="table-scroll"><table class="mtable fiado-ledger"><thead><tr><th>Cuándo</th><th>Movimiento</th><th class="r">Importe</th><th class="r">Saldo después</th><th></th></tr></thead><tbody>${movimientos.map(m=>{
       const r=m.registro,correccion=r.metadata&&r.metadata.tipo==='correccion_pago_fiado',corregido=m.tipo==='pago'?fiadoCorreccionDePago(r):null;
-      return `<tr data-fiado-mov="${esc(m.id)}"><td data-label="Cuándo">${m.fecha?fFH(m.fecha):'Fecha no registrada'}</td><td data-label="Movimiento"><b>${m.tipo==='base'?'Deuda inicial':m.tipo==='fiado'?'Compra fiada':m.tipo==='pago'?'Pago · '+esc(FORMAS[r.forma]||'Efectivo'):correccion?'Corrección de cobro':m.tipo==='recargo'?'Recargo':'Ajuste de saldo'}</b><div class="hint">${esc(m.descripcion)}</div>${corregido?`<div class="hint"><b>${corregido.accion==='anular'?'Anulado':'Corregido'}</b> · ${esc(corregido.motivo||'')} · ${fFH(corregido.created_at)}</div>`:''}${m.tipo==='fiado'&&r.items?`<div class="hint">${esc(r.items.map(i=>i.nombre).join(' · '))}</div>`:''}</td><td data-label="Importe" class="r num ${m.monto<0?'fiado-green':''}">${m.monto<0?'− ':m.monto>0?'+ ':''}${$m(Math.abs(m.monto))}</td><td data-label="Saldo después" class="r num"><b>${m.saldo<0?'Crédito ':''}${$m(Math.abs(m.saldo))}</b></td><td>${m.tipo==='pago'&&!corregido?`<button type="button" class="btn text sm" data-corregir-pago="${esc(r.id)}">Corregir cobro</button>`:''}</td></tr>`;
+      return `<tr data-fiado-mov="${esc(m.id)}"><td data-label="Cuándo">${m.fecha?fFH(m.fecha):'Fecha no registrada'}</td><td data-label="Movimiento"><b>${m.tipo==='base'?'Deuda inicial':m.tipo==='fiado'?'Compra fiada':m.tipo==='pago'?'Pago · '+esc(FORMAS[r.forma]||'Efectivo'):correccion?'Corrección de cobro':m.tipo==='recargo'?'Recargo':'Ajuste de saldo'}</b><div class="hint">${esc(m.descripcion)}</div>${corregido?`<div class="hint"><b>${corregido.accion==='anular'?'Anulado':'Corregido'}</b> · ${esc(corregido.motivo||'')} · ${fFH(corregido.created_at)}</div>`:''}${m.tipo==='fiado'&&r.items?`<div class="hint">${esc(r.items.map(i=>i.nombre).join(' · '))}</div>`:''}</td><td data-label="Importe" class="r num ${m.monto<0?'fiado-green':''}">${m.monto<0?'− ':m.monto>0?'+ ':''}${$m(Math.abs(m.monto))}</td><td data-label="Saldo después" class="r num"><b>${m.saldo<0?'Crédito ':''}${$m(Math.abs(m.saldo))}</b></td><td>${m.tipo==='pago'&&!corregido?`${f5RolActual()==='duenio'?`<button type="button" class="btn text sm" data-corregir-pago="${esc(r.id)}">Corregir cobro</button>`:''}<button type="button" class="btn text sm" data-anular-pago="${esc(r.id)}" style="color:var(--rojo)">Anular cobro</button>`:''}</td></tr>`;
     }).join('')}</tbody></table></div>`:'<div class="empty"><b>Sin movimientos</b>Esta cuenta está al día.</div>'}`,
     pie:`<details class="fiado-account-tools"><summary>Gestión de la cuenta</summary><div class="row"><button class="btn ghost sm" id="edC">Editar datos</button><button class="btn ghost sm" id="ajC">Corregir saldo</button></div></details><button class="btn" data-cerrar>Cerrar</button>`,
     alAbrir:ov=>{
       $('#edC',ov).onclick=()=>{cerrarModal();formCliente(id);};
       $('#ajC',ov).onclick=()=>{cerrarModal();formAjusteSaldo(id);};
+      $$('[data-anular-pago]',ov).forEach(b=>b.onclick=()=>{cerrarModal();formCorregirPagoFiado(b.dataset.anularPago,'anular');});
       $$('[data-corregir-pago]',ov).forEach(b=>b.onclick=()=>{cerrarModal();formCorregirPagoFiado(b.dataset.corregirPago);});
     }});
 }
@@ -8868,15 +8869,19 @@ function formPago(id){
 
 function fiadoClaveCorreccion(){return 'fiado:correccion:'+String(sesion?.user?.id||'')+':'+String(f3Estado.comercioId||'');}
 function fiadoHayCorreccionPendiente(){
-  try{return !!(sesion&&f3Estado.comercioId&&JSON.parse(sessionStorage.getItem(fiadoClaveCorreccion())||'null'));}catch(_e){return false;}
+  try{return !!(sesion&&f3Estado.comercioId&&JSON.parse(localStorage.getItem(fiadoClaveCorreccion())||'null'));}catch(_e){return false;}
 }
 function fiadoCorreccionDePago(p){
   if(p.correccionPago)return p.correccionPago;
   return (db.ajustesFiado||[]).map(a=>a.metadata).find(m=>m&&m.tipo==='correccion_pago_fiado'&&String(m.pago_original_id)===String(p._v4id||''))||null;
 }
+function fiadoCompensacionPropiaFaltante(spec,row,base=db){
+  const compensacion=spec.kind==='ajuste_fiado'&&row.metadata?.tipo==='correccion_pago_fiado'||spec.kind==='egreso'&&String(row.nota||'').includes('[correccion:');
+  return !!(compensacion&&!f32LocalParaRemoto(spec.coleccion,row,base).actual);
+}
 function fiadoMensajeCorreccion(error){
   const mensaje=String(error&&error.message||error||'');
-  const causas={FIADO_CANONICAL_NOT_READY:'El pago todavía no tiene respaldo completo en el servidor. Completá la sincronización antes de corregirlo.',FIADO_APLICACIONES_INCOMPLETAS:'Este pago necesita completar su recuperación histórica antes de poder corregirlo.',FIADO_LEGACY_BALANCE_MISMATCH:'La cuenta todavía no coincide entre los registros del servidor. Sincronizá y revisala antes de corregir.',FIADO_LEGACY_CAS_CONFLICT:'La cuenta cambió en otro equipo. Sincronizá y volvé a revisar.',FIADO_PAGO_YA_CORREGIDO:'Este pago ya fue corregido. Revisá su reemplazo en la cuenta.',FIADO_LEGACY_PAGO_MISMATCH:'El pago seleccionado no coincide con el del servidor. Actualizá la cuenta.',FIADO_IDEMPOTENCY_CONFLICT:'Hay una corrección pendiente distinta. Conservá esta pantalla y revisá el resultado anterior.',FIADO_SUPERA_SALDO:'El importe corregido supera la deuda disponible.'};
+  const causas={FIADO_PERMISSION_REQUIRED:'Necesitás acceso a Fiado para anular cobros.',FIADO_ROLLBACK:'La anulación no está disponible durante la recuperación del comercio.',FIADO_CANONICAL_NOT_READY:'El pago todavía no tiene respaldo completo en el servidor. Completá la sincronización antes de corregirlo.',FIADO_APLICACIONES_INCOMPLETAS:'Este pago necesita completar su recuperación histórica antes de poder corregirlo.',FIADO_LEGACY_BALANCE_MISMATCH:'La cuenta todavía no coincide entre los registros del servidor. Sincronizá y revisala antes de corregir.',FIADO_LEGACY_CAS_CONFLICT:'La cuenta cambió en otro equipo. Sincronizá y volvé a revisar.',FIADO_PAGO_YA_CORREGIDO:'Este pago ya fue corregido. Revisá su reemplazo en la cuenta.',FIADO_LEGACY_PAGO_MISMATCH:'El pago seleccionado no coincide con el del servidor. Actualizá la cuenta.',FIADO_IDEMPOTENCY_CONFLICT:'Hay una corrección pendiente distinta. Conservá esta pantalla y revisá el resultado anterior.',FIADO_SUPERA_SALDO:'El importe corregido supera la deuda disponible.'};
   for(const [clave,texto] of Object.entries(causas))if(mensaje.includes(clave))return texto;
   return mensaje.includes('Failed to fetch')||mensaje.includes('Network')?'No se pudo confirmar la respuesta. Reintentá esta misma corrección; se conserva su referencia.':mensaje||'No se pudo confirmar la corrección. Reintentá con la misma referencia.';
 }
@@ -8891,6 +8896,10 @@ async function fiadoPrepararCorreccion(reanudar=false){
   if(pendienteSubir&&!(await subirALaNube()))throw new Error('No se pudo completar la sincronización previa. Reintentá cuando termine.');
   if(sincronizando||f3Procesando||f32Procesando||pendienteSubir)throw new Error('Todavía hay datos sincronizándose. Reintentá cuando termine.');
   if(!f3Estado.session||f3Estado.session.estado!=='abierta')throw new Error('Abrí un turno en Caja para registrar la compensación del cobro.');
+  const ids=f5SesionIds(f3Estado.session);
+  const sesionRemota=await sb.from('caja_sesiones').select('id').eq('comercio_id',f3Estado.comercioId).eq('id',ids.rootId).maybeSingle();
+  if(sesionRemota.error)throw sesionRemota.error;
+  if(!sesionRemota.data)await f3AsegurarSesionRemota(f3Estado.session);
 }
 async function fiadoAplicarCorreccionServidor(resultado,peticion,seq){
   if(cambioLocalSeq!==seq||pendienteSubir)throw new Error('Hay cambios locales nuevos. Sincronizá antes de recuperar el resultado de esta corrección.');
@@ -8909,6 +8918,9 @@ async function fiadoAplicarCorreccionServidor(resultado,peticion,seq){
     for(const row of resultado.rows?.pagos_fiado||[])agregar('pagos',f32bMapPago(row,base));
     const original=(base.pagos||[]).find(p=>p._v4id===peticion.payload.pago_id||p.id===peticion.payload.legacy_pago_id);if(original)agregar('pagos',{...original,correccionPago:resultado.correccion});
     for(const row of resultado.rows?.cierre_ajustes||[]){const cierre=(base.cierres||[]).find(c=>c._v4id===row.cierre_id);if(cierre)agregar('cierres',f32bAplicarAjusteCierrePuro(cierre,row));}
+    recalcularDerivados(base);
+    const clienteOriginal=original&&base.clientes.find(c=>c.id===original.clienteId);
+    if(clienteOriginal)agregar('clientes',clienteOriginal);
   }
   // Datos entrantes confirmados: no crear otra operación ni reenviar el efecto al servidor.
   await f32PersistirDatoEntrante({puts,deletes});f32AplicarVisible({puts,deletes});
@@ -8916,33 +8928,34 @@ async function fiadoAplicarCorreccionServidor(resultado,peticion,seq){
   if(revision!==null)revisionNube=revision;
   pendienteSubir=false;ultimaSync=new Date().toISOString();snapshotLocal=deepCopy(db);ultimaNubeDb=deepCopy(db);await f32PersistirFinalizacion();
 }
-function formCorregirPagoFiado(id){
+function formCorregirPagoFiado(id,accionInicial='corregir'){
   const pagoOriginal=db.pagos.find(p=>p.id===id),cliente=pagoOriginal&&cli(pagoOriginal.clienteId);if(!pagoOriginal||!cliente)return;
-  let pendiente=null;try{pendiente=JSON.parse(sessionStorage.getItem(fiadoClaveCorreccion())||'null');}catch(_e){}
+  let pendiente=null;try{pendiente=JSON.parse(localStorage.getItem(fiadoClaveCorreccion())||'null');}catch(_e){}
   if(pendiente&&pendiente.pagoLocalId!==id){aviso('Hay otra corrección pendiente de confirmar. Abrí el pago anterior para recuperar su resultado.','bad');return;}
   const previo=fiadoCorreccionDePago(pagoOriginal);if(previo&&!pendiente){aviso('Este pago ya fue '+(previo.accion==='anular'?'anulado':'corregido')+'. Revisá el movimiento que lo reemplaza.','bad');return;}
   let capacidad=null,ocupado=false;
-  modal({titulo:'Corregir cobro — '+cliente.nombre,cuerpo:`
+  modal({titulo:(accionInicial==='anular'?'Anular cobro — ':'Corregir cobro — ')+cliente.nombre,cuerpo:`
     <div class="fiado-operation-preview"><div>Pago original <b>${$m(pagoOriginal.monto)}</b></div><div>Medio <b>${esc(FORMAS[pagoOriginal.forma]||pagoOriginal.forma)}</b></div><div>Fecha <b>${fFH(pagoOriginal.fecha)}</b></div></div>
     <div class="hint">El original queda en el historial. La compensación se registra en el turno actual; si el pago pertenecía a un cierre anterior, ese cierre queda identificado para revisión sin reescribir su conteo.</div>
-    <label class="f" for="cf_accion" style="margin-top:16px">¿Qué necesitás hacer?</label><select class="inp" id="cf_accion"><option value="corregir">Corregir importe o medio</option><option value="anular">Anular el cobro completo</option></select>
+    <div id="cf_elegir_accion"><label class="f" for="cf_accion" style="margin-top:16px">¿Qué necesitás hacer?</label><select class="inp" id="cf_accion"><option value="corregir">Corregir importe o medio</option><option value="anular">Anular el cobro completo</option></select></div>
     <div id="cf_campos"><label class="f" for="cf_monto" style="margin-top:14px">Importe correcto</label><input class="inp num" id="cf_monto" inputmode="decimal" value="${nfM.format(pagoOriginal.monto)}"><label class="f" for="cf_forma" style="margin-top:14px">Medio correcto</label><select class="inp" id="cf_forma"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="qr">QR</option><option value="tarjeta">Tarjeta</option></select></div>
-    <label class="f" for="cf_motivo" style="margin-top:14px">Motivo de la corrección</label><input class="inp" id="cf_motivo" minlength="3" maxlength="500" placeholder="Por qué se corrige este cobro">
+    <label class="f" for="cf_motivo" style="margin-top:14px">Motivo</label><input class="inp" id="cf_motivo" minlength="3" maxlength="500" placeholder="Por qué se anula o corrige este cobro">
     <div id="cf_resumen" class="fiado-operation-preview" role="status"></div><div id="cf_estado" class="hint" role="status">Comprobando disponibilidad en el servidor…</div><div id="cf_error" class="fiado-red" role="alert"></div>`,pie:'<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn" id="cf_confirmar" disabled>Confirmar corrección</button>',alAbrir:async ov=>{
       const accion=$('#cf_accion',ov),monto=$('#cf_monto',ov),forma=$('#cf_forma',ov),motivo=$('#cf_motivo',ov),boton=$('#cf_confirmar',ov),estado=$('#cf_estado',ov),error=$('#cf_error',ov);
+      accion.value=accionInicial;$('#cf_elegir_accion',ov).hidden=accionInicial==='anular';
       forma.value=pagoOriginal.forma||'efectivo';
       if(pendiente){accion.value=pendiente.payload.accion;monto.value=nfM.format(pendiente.payload.monto);forma.value=pendiente.payload.forma;motivo.value=pendiente.payload.motivo;}
       const pintar=()=>{
         const dato=numImportacion(monto.value),anular=accion.value==='anular',valor=anular?0:dato.value,valido=anular||dato.ok&&!dato.blank&&valor>0&&Math.abs(Math.round(valor*100)-valor*100)<0.00001;
         $('#cf_campos',ov).hidden=anular;
         $('#cf_resumen',ov).innerHTML=valido?`<div>Saldo anterior <b>${$m(cliente.saldo||0)}</b></div><div>Saldo después <b>${$m(Number(cliente.saldo||0)+Number(pagoOriginal.monto)-valor)}</b></div><div>Compensación en efectivo del turno <b>${$m((!anular&&forma.value==='efectivo'?valor:0)-(pagoOriginal.forma==='efectivo'?Number(pagoOriginal.monto):0))}</b></div>`:'';
-        boton.disabled=ocupado||!capacidad?.corregir||!valido||motivo.value.trim().length<3||!anular&&!pendiente&&valor===Number(pagoOriginal.monto)&&forma.value===pagoOriginal.forma;
+        boton.disabled=ocupado||!(anular?capacidad?.anular:capacidad?.corregir)||!valido||motivo.value.trim().length<3||!anular&&!pendiente&&valor===Number(pagoOriginal.monto)&&forma.value===pagoOriginal.forma;
         boton.textContent=ocupado?'Guardando corrección…':pendiente?'Recuperar / reintentar corrección':anular?'Confirmar anulación':'Confirmar corrección';
         $$('input,select',ov).forEach(e=>e.disabled=ocupado||!!pendiente);
       };
       accion.onchange=pintar;monto.oninput=pintar;forma.onchange=pintar;motivo.oninput=pintar;
       ov.addEventListener('keydown',e=>{if(ocupado&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();}},true);ov.addEventListener('click',e=>{if(ocupado&&e.target===ov){e.preventDefault();e.stopImmediatePropagation();}},true);
-      try{if(!navigator.onLine)throw new Error('Necesitás conexión para corregir un cobro.');const r=await sb.rpc('fiado_capacidades_v1',{p_comercio_id:f3Estado.comercioId});if(r.error)throw r.error;capacidad=r.data;if(!capacidad?.corregir)throw new Error('Solo el dueño puede corregir cobros.');estado.textContent='Corrección disponible · requiere conexión y un turno abierto.';}catch(e){error.textContent=String(e.message||e).includes('fiado_capacidades')?'El servidor de este entorno todavía no habilita la corrección de cobros.':fiadoMensajeCorreccion(e);estado.textContent='No se modificó ningún cobro.';}
+      try{if(!navigator.onLine)throw new Error('Necesitás conexión para corregir un cobro.');const r=await sb.rpc('fiado_capacidades_v1',{p_comercio_id:f3Estado.comercioId});if(r.error)throw r.error;capacidad=r.data;if(!(accion.value==='anular'?capacidad?.anular:capacidad?.corregir))throw new Error('No tenés permiso para esta acción.');if(!capacidad.corregir)$('#cf_elegir_accion',ov).hidden=true;estado.textContent=(accion.value==='anular'?'Anulación':'Corrección')+' disponible · requiere conexión y un turno abierto.';}catch(e){error.textContent=String(e.message||e).includes('fiado_capacidades')?'El servidor de este entorno todavía no habilita la corrección de cobros.':fiadoMensajeCorreccion(e);estado.textContent='No se modificó ningún cobro.';}
       if(!ov.isConnected)return;pintar();
       boton.onclick=async()=>{
         if(ocupado||boton.disabled)return;ocupado=true;error.textContent='';pintar();$$('[data-cerrar]',ov).forEach(b=>b.disabled=true);
@@ -8951,13 +8964,13 @@ function formCorregirPagoFiado(id){
           const ids=f5SesionIds(f3Estado.session),seq=cambioLocalSeq;
           if(!pendiente){
             const dato=numImportacion(monto.value),payload={pago_id:pagoOriginal._v4id,legacy_pago_id:pagoOriginal.id,accion:accion.value,monto:accion.value==='anular'?0:Math.round(dato.value*100)/100,forma:forma.value,motivo:motivo.value.trim(),device_id:f3Estado.deviceUuid,caja_sesion_id:ids.rootId,session_segment_id:ids.segmentId,legacy_revision:revisionNube};
-            pendiente={operationId:'fiado-correccion-'+f3Uuid(),pagoLocalId:id,payload};sessionStorage.setItem(fiadoClaveCorreccion(),JSON.stringify(pendiente));
+            pendiente={operationId:'fiado-correccion-'+f3Uuid(),pagoLocalId:id,payload};localStorage.setItem(fiadoClaveCorreccion(),JSON.stringify(pendiente));
           }
-          sessionStorage.setItem(fiadoClaveCorreccion(),JSON.stringify(pendiente));fiadoCorreccionActiva=true;clearTimeout(tGuardar);tGuardar=null;
+          localStorage.setItem(fiadoClaveCorreccion(),JSON.stringify(pendiente));fiadoCorreccionActiva=true;clearTimeout(tGuardar);tGuardar=null;
           const r=await sb.rpc('corregir_pago_fiado_v1',{p_operation_id:pendiente.operationId,p_comercio_id:f3Estado.comercioId,p_payload:pendiente.payload});if(r.error)throw r.error;if(!r.data?.ok)throw new Error('No se pudo confirmar el resultado.');
           await fiadoAplicarCorreccionServidor(r.data,pendiente,seq);
-          sessionStorage.removeItem(fiadoClaveCorreccion());pendiente=null;fiadoCorreccionActiva=false;cerrarModal();render();verCuenta(cliente.id);aviso('Cobro corregido. La cuenta y Caja incluyen su compensación.','ok');
-        }catch(e){if(e&&e.code==='P0001'&&!String(e.message).includes('IDEMPOTENCY_CONFLICT')){sessionStorage.removeItem(fiadoClaveCorreccion());pendiente=null;}error.textContent=fiadoMensajeCorreccion(e);estado.textContent=pendiente?'Se conserva la referencia de esta corrección para reintentar sin duplicarla.':'No se modificó ningún cobro.';}
+          const anulado=pendiente.payload.accion==='anular';localStorage.removeItem(fiadoClaveCorreccion());pendiente=null;fiadoCorreccionActiva=false;cerrarModal();render();verCuenta(cliente.id);aviso(anulado?'Cobro anulado. Se restauró la deuda y se ajustó Caja.':'Cobro corregido. La cuenta y Caja incluyen su compensación.','ok');
+        }catch(e){if(e&&e.code==='P0001'&&!String(e.message).includes('IDEMPOTENCY_CONFLICT')){localStorage.removeItem(fiadoClaveCorreccion());pendiente=null;}error.textContent=fiadoMensajeCorreccion(e);estado.textContent=pendiente?'Se conserva la referencia de esta corrección para reintentar sin duplicarla.':'No se modificó ningún cobro.';}
         finally{fiadoCorreccionActiva=false;ocupado=false;if(ov.isConnected){$$('[data-cerrar]',ov).forEach(b=>b.disabled=false);pintar();render();}}
       };
     }});
@@ -12903,7 +12916,8 @@ async function f32bProcesarFila(spec,row,extra,{desdeDiferido=false}={}){
   // Un cierre del mismo dispositivo sólo es eco si ya existe para este usuario.
   // Los demás tipos conservan su deduplicación para no repetir efectos de stock/saldo.
   const cierreLocal=spec.kind==='cierre'?f32LocalParaRemoto('cierres',row,db).actual:null;
-  if(!f32RecuperacionReplay&&deviceIdFila&&String(deviceIdFila)===String(f3Estado.deviceUuid||'')&&(spec.kind!=='cierre'||cierreLocal)){
+  const compensacionPropiaFaltante=fiadoCompensacionPropiaFaltante(spec,row,db);
+  if(!f32RecuperacionReplay&&!compensacionPropiaFaltante&&deviceIdFila&&String(deviceIdFila)===String(f3Estado.deviceUuid||'')&&(spec.kind!=='cierre'||cierreLocal)){
     if(desdeDiferido)return {aplicados:0,borrados:0,diferidos:0,propiosOmitidos:1};
     return f32bAvanzarOmitida(spec,row,'propiosOmitidos');
   }
