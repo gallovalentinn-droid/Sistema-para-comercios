@@ -116,6 +116,7 @@ async function main(){
         _v4cajaSesionId:f.root,_v4sessionSegmentId:f.segment,_v4deviceId:f.device}];return b;
     },f);
     seed(f,session.user.id,initial);
+    if(process.env.PROVISIONAL==='true')sql(`update public.caja_sesiones set estado='requiere_conciliacion',provisional=true where id=${q(f.root)};`);
     await page.evaluate(async({f,session,initial})=>{
       // Real JWT installed into the real Supabase client; no RPC or persistence mocks.
       const auth=await sb.auth.setSession({access_token:session.access_token,refresh_token:session.refresh_token});

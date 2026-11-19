@@ -95,7 +95,20 @@ begin
     raise exception 'TEST_FAIL employee accepted';
   exception when others then if sqlerrm<>'F6_ONBOARDING_OWNER_REQUIRED' then raise; end if; end;
   perform set_config('request.jwt.claim.sub',owner_id::text,true);
+  -- A provisional root awaiting reconciliation is still operational while its segment is open.
+  update public.caja_sesiones set estado='requiere_conciliacion',provisional=true where id=root;
+  begin
+    update public.caja_sesiones set closed_at_device=now() where id=root;
+    perform public.corregir_pago_fiado_v1('fixture-provisional-closed',shop,req);
+    raise exception 'TEST_FAIL closed provisional accepted';
+  exception when others then if sqlerrm<>'FIADO_SESION_NO_ABIERTA' then raise; end if; end;
+  begin
+    update public.caja_sesiones set provisional=false where id=root;
+    perform public.corregir_pago_fiado_v1('fixture-not-provisional',shop,req);
+    raise exception 'TEST_FAIL arbitrary reconciliation root accepted';
+  exception when others then if sqlerrm<>'FIADO_SESION_NO_ABIERTA' then raise; end if; end;
   response:=public.corregir_pago_fiado_v1('fixture-correct-payment',shop,req);
+  if not exists(select 1 from public.caja_sesiones where id=root and estado='requiere_conciliacion' and provisional and closed_at_device is null) then raise exception 'TEST_FAIL reconciliation state overwritten'; end if;
   if response->'correccion'->'estado_cuenta'->>'version' is distinct from '1' then raise exception 'TEST_FAIL canonical aging snapshot missing'; end if;
   replacement:=(response->'correccion'->>'pago_reemplazo_id')::uuid;
   expense:=(response->'correccion'->>'egreso_id')::uuid;
@@ -216,6 +229,7 @@ begin
     raise exception 'TEST_FAIL employee without Fiado accepted';
   exception when others then if sqlerrm<>'FIADO_PERMISSION_REQUIRED' then raise; end if; end;
   update public.comercio_miembros set permisos='{"fiado_operar":true}' where comercio_id=shop and user_id=employee_id;
+  update public.caja_sesiones set estado='requiere_conciliacion',provisional=true where id=er;
   if public.fiado_capacidades_v1(shop)->>'anular'<>'true' or public.fiado_capacidades_v1(shop)->>'corregir'<>'false' then raise exception 'TEST_FAIL employee capability'; end if;
   execute 'set local role authenticated';
   response:=public.corregir_pago_fiado_v1('employee-annul',shop,req);

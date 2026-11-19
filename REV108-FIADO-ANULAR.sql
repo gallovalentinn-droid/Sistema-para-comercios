@@ -118,7 +118,7 @@ begin
   if not found then raise exception 'FIADO_CLIENTE_INVALIDO'; end if;
   if not exists(select 1 from public.comercio_dispositivos where id=v_device and comercio_id=p_comercio_id and user_id=v_uid and revoked_at is null) then raise exception 'FIADO_DEVICE_INVALIDO'; end if;
   select * into v_session from public.caja_sesiones where id=v_root and comercio_id=p_comercio_id for update;
-  if not found or v_session.estado<>'abierta' or v_session.closed_at_device is not null
+  if not found or not (v_session.estado='abierta' or (v_session.estado='requiere_conciliacion' and v_session.provisional)) or v_session.closed_at_device is not null
     or v_session.device_id<>v_device or v_session.abierta_por is distinct from v_uid then raise exception 'FIADO_SESION_NO_ABIERTA'; end if;
   select * into v_segment from public.caja_sesion_segmentos where segment_id=v_seg and comercio_id=p_comercio_id and root_session_id=v_root for update;
   if not found or v_segment.closed_at_device is not null or v_segment.interrumpido_at_device is not null

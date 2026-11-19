@@ -50,7 +50,7 @@
     "supabase/functions/mercadopago-callback/index.ts": "e8febd79e2311dde9d28b37e95ce3005a6e0d5e16241611acad402d0c8e82f02",
     "supabase/migrations/20261115184112_mercadopago_publico.sql": "bfe8c1079db36445afb48b0d53316d5e84ce75313f7d699ba214016bb70c58eb",
     "tools/mercadopago/copiar-clave-cifrado.ps1": "3fb8061d04406dfe20f2071abfea09123b53d5d1678445cd83df219923f7d1a6",
-    "REV108-FIADO-ANULAR.sql": "75eb90665c445058a93c072b5823beb80f0ae52ccad036cddf88aa964f4c2ce4"
+    "REV108-FIADO-ANULAR.sql": "c692c3467403a924769d4240bc7dd0fb7f3a1d079a004ee7e0996f5f947938a6"
   },
   "packageEdition": "2026-11-19-fiado-anular-r1"
 }
