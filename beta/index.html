@@ -1119,7 +1119,7 @@ const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
   packageRevision:109,
-  packageEdition:'2026-11-23-tamanos-peso-r1',
+  packageEdition:'2026-11-23-tamanos-peso-r2',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -11661,7 +11661,7 @@ function f5EmpleadosListaHtml(){
   return st.items.map(miembro=>{
     const rol=String(miembro.rol||'empleado'),empleado=rol==='empleado',activo=miembro.activo!==false;
     const permisos=f5PermisosMiembroCompletos(miembro);
-    return `<section data-f5-miembro="${esc(miembro.user_id)}" style="border:1px solid var(--line);border-radius:12px;padding:15px;margin-top:12px;background:${activo?'#fff':'#FAFAFB'}">
+    return `<section data-f5-miembro="${esc(miembro.user_id)}" style="border:1px solid var(--line);border-radius:12px;padding:15px;margin-top:12px;background:${activo?'var(--tema-superficie,#fff)':'var(--tema-papel,#FAFAFB)'}">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
         <div><b>${esc(miembro.nombre_mostrado||miembro.usuario||'Sin nombre')}</b>
           <div class="hint" style="margin-top:3px">${miembro.usuario?`Usuario: <span class="num">${esc(miembro.usuario)}</span> · `:''}${rol==='duenio'?'Dueño':rol==='admin'?'Administrador':'Empleado'}</div></div>

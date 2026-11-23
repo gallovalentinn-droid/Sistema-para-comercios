@@ -2,13 +2,13 @@
   "version": "6.0.0-f6-rc2",
   "packageRevision": 109,
   "algorithm": "sha256",
-  "generatedAt": "2026-11-23-tamanos-peso-r1",
+  "generatedAt": "2026-11-23-tamanos-peso-r2",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "1a16e6298e617df9813e85e7dbc4f9016267a905eea2f2e89c599b71a4fc4b2c",
+    "beta/index.html": "6c4c70e3fa3c3a2e8f577335885a20dd315b04729b4f535a195cc4f7a93b621f",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "dbc65fbe66f60a6ff27420ae8585012c6442235b5456b9d4324b72f017b4a329",
+    "beta/sw.js": "bf203e51f7a77ce43e9f289e66701fadaa72ff2f44aae764ad71adb036ca4dc3",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -53,5 +53,5 @@
     "REV108-FIADO-ANULAR.sql": "c692c3467403a924769d4240bc7dd0fb7f3a1d079a004ee7e0996f5f947938a6",
     "REV109-VENTA-POR-PESO.sql": "3cfcd1e8845ea951c5149689432fb110ed31a1f0fef12ae64df20773a441aab1"
   },
-  "packageEdition": "2026-11-23-tamanos-peso-r1"
+  "packageEdition": "2026-11-23-tamanos-peso-r2"
 }
