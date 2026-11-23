@@ -73,7 +73,7 @@ function mpCobroHTML(){return `<div id="mpPanel">
  <label class="f" for="mpCuenta">Recibir en</label><select class="inp" id="mpCuenta"><option value="">Consultando cuentas…</option></select>
  <div id="mpInicioCobro" class="mp-opciones">
   <div class="mp-metodos" role="group" aria-label="Elegir cómo cobrar">
-   <button class="mp-metodo" type="button" id="mpGenerarQR" data-mp-metodo="qr" aria-pressed="false"><span aria-hidden="true">${ic('qr-cobro')}</span><strong>QR</strong><small>Escanea el cliente</small></button>
+   <button class="mp-metodo" type="button" id="mpGenerarQR" data-mp-metodo="qr" aria-pressed="false" aria-describedby="mpEstado"><span aria-hidden="true">${ic('qr-cobro')}</span><strong>QR</strong><small>Escanea el cliente</small></button>
    <button class="mp-metodo" type="button" id="mpIniciarCobro" data-mp-metodo="transfer" aria-pressed="false"><span aria-hidden="true">${ic('reponer')}</span><strong>Transferencia</strong><small>Envía a tu cuenta</small></button>
   </div>
   <button class="btn big" type="button" id="mpContinuarCobro" disabled>Elegí una opción</button>
@@ -98,7 +98,8 @@ function mpMontarCobro(root){
  const pending=mpLeerPendiente();if(pago!=='transferencia')return;
  const panel=root.querySelector('#mpPanel');if(!panel)return;const scope=mpScope(),state=panel.querySelector('#mpEstado'),account=panel.querySelector('#mpCuenta');let poll=null,transferEnabled=!mpPublico(),newPaymentsEnabled=!mpPublico(),selectedIncome=null,latestCandidates=[],metodoElegido=null,cuentasListas=false;
  const actualizarEleccion=()=>{
-  if(metodoElegido==='qr'&&!newPaymentsEnabled)metodoElegido=null;
+  if(cuentasListas&&metodoElegido==='qr'&&!newPaymentsEnabled)metodoElegido=null;
+  panel.querySelector('#mpGenerarQR').disabled=cuentasListas&&!newPaymentsEnabled;
   panel.querySelectorAll('[data-mp-metodo]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mpMetodo===metodoElegido)));
   const button=panel.querySelector('#mpContinuarCobro');button.textContent=metodoElegido==='qr'?'Mostrar QR':metodoElegido==='transfer'?'Esperar transferencia':'Elegí una opción';button.disabled=!metodoElegido||!cuentasListas||mpOperacionOcupada;
  };
@@ -106,7 +107,8 @@ function mpMontarCobro(root){
  panel.querySelector('#mpContinuarCobro').onclick=()=>{if(!metodoElegido||!cuentasListas||mpOperacionOcupada||mpSolicitaCierre||!active())return;return metodoElegido==='qr'?generarQR():iniciarTransferencia();};
  const descartarIngreso=()=>{selectedIncome=null;panel.querySelector('#mpConfirmarIngreso').hidden=true;panel.querySelector('#mpIngresoSeleccionado').hidden=true;panel.querySelector('#mpIngresos').innerHTML='';panel.querySelector('#mpAmbiguedad').hidden=true;};
  account.onchange=()=>{descartarIngreso();setState('Cuenta cambiada. Consultá sus ingresos antes de elegir uno.');};
- panel.querySelector('#mpGenerarQR').hidden=!newPaymentsEnabled;
+ // La opción se muestra al entrar; crear el cobro sigue esperando cuenta y capacidades.
+ panel.querySelector('#mpGenerarQR').hidden=false;
  const active=()=>root.isConnected&&scope===mpScope()&&panel.isConnected;
  const setState=m=>{if(active())state.textContent=m;};
  const mostrarComprobacion=(qr=false)=>{
@@ -184,7 +186,7 @@ function mpMontarCobro(root){
   mpGuardarPendiente(p);await mpCompletar(null,p,true);
  });
  if(pending){mostrarComprobacion(['creating','qr','canceled','expired'].includes(pending.stage));setState('Comprobando el estado del cobro…');}
- mpRequest('accounts').then(r=>{if(!active())return;cuentasListas=true;newPaymentsEnabled=r.capabilities?.newPayments!==false;panel.querySelector('#mpGenerarQR').hidden=!newPaymentsEnabled;transferEnabled=r.capabilities?.transferVerification===true||(!mpPublico()&&r.capabilities?.transferVerification!==false);panel.querySelector('#mpBuscar').hidden=true;account.innerHTML=(r.accounts||[]).map(a=>`<option value="${esc(a.id)}">${esc(a.alias)}${a.primary?' · principal':''}</option>`).join('')||'<option value="">Sin cuenta conectada</option>';account.value=pending?.accountId||(r.accounts||[]).find(a=>a.primary)?.id||r.accounts?.[0]?.id||'';account.disabled=!!pending;panel.querySelector('#mpReintentarInicio').hidden=!transferEnabled||!newPaymentsEnabled||mpLeerPendiente()?.stage!=='prepared';if(pending&&['transfer','claiming'].includes(mpLeerPendiente()?.stage)&&transferEnabled&&newPaymentsEnabled)void updateTransfer(true);actualizarEleccion();if(!pending)setState(r.accounts?.length?'':'Podés cobrar manualmente. Para verificar ingresos o cobrar con QR, falta conectar Mercado Pago en Configuración.');}).catch(()=>{cuentasListas=true;if(active())actualizarEleccion();if(!pending)setState('Podés cobrar manualmente. No pudimos consultar las cuentas conectadas.');});
+ mpRequest('accounts').then(r=>{if(!active())return;cuentasListas=true;newPaymentsEnabled=r.capabilities?.newPayments!==false;panel.querySelector('#mpGenerarQR').hidden=!newPaymentsEnabled;transferEnabled=r.capabilities?.transferVerification===true||(!mpPublico()&&r.capabilities?.transferVerification!==false);panel.querySelector('#mpBuscar').hidden=true;account.innerHTML=(r.accounts||[]).map(a=>`<option value="${esc(a.id)}">${esc(a.alias)}${a.primary?' · principal':''}</option>`).join('')||'<option value="">Sin cuenta conectada</option>';account.value=pending?.accountId||(r.accounts||[]).find(a=>a.primary)?.id||r.accounts?.[0]?.id||'';account.disabled=!!pending;panel.querySelector('#mpReintentarInicio').hidden=!transferEnabled||!newPaymentsEnabled||mpLeerPendiente()?.stage!=='prepared';if(pending&&['transfer','claiming'].includes(mpLeerPendiente()?.stage)&&transferEnabled&&newPaymentsEnabled)void updateTransfer(true);actualizarEleccion();if(!pending)setState(r.accounts?.length?'':'Podés cobrar manualmente. Para verificar ingresos o cobrar con QR, falta conectar Mercado Pago en Configuración.');}).catch(()=>{cuentasListas=true;newPaymentsEnabled=false;if(active())actualizarEleccion();if(!pending)setState('Podés cobrar manualmente. No pudimos consultar las cuentas conectadas.');});
  if(pending?.startedAt)panel.querySelector('#mpVentana').textContent='Inicio de este cobro: '+mpFechaIngreso(pending.startedAt)+' · Plazo original: 30 min';
  if(pending){account.innerHTML=`<option value="${esc(pending.accountId||'')}">Cuenta del cobro pendiente</option>`;account.disabled=true;if(['creating','qr'].includes(pending.stage)){setState('Consultando el cobro pendiente con Mercado Pago…');update(true);}else if(pending.stage==='verified')setState('El pago está verificado. Cerrá el panel para terminar de registrar la venta.');}
 }

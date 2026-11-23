@@ -66,12 +66,11 @@ test('con la sesión cerrada no se envían ni operaciones V4 ni la copia anterio
   assert.equal(await context.subir(), false);
 });
 
-test('el turno oculta el esperado y reserva los totales de venta y ganancia al dueño', () => {
+test('el turno oculta el esperado y reserva el detalle de movimientos al dueño', () => {
   const caja = section('function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
   assert.doesNotMatch(caja, /class="cash-boxes|Debería haber/);
   assert.match(caja, /\$\{esDuenio\(\)\?`<details class="cash-detail"/);
   assert.doesNotMatch(caja, /cash-sales-card|cash-payment-list/);
-  assert.match(caja, /<div><span>Ganancia estimada/);
   assert.match(caja, /<\/div><\/details>`:''\}/);
 });
 

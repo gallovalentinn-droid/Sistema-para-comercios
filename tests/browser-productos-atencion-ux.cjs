@@ -74,7 +74,7 @@ async function main(){
   paso='detalles, vista detallada y estados';
   await abrirFiltros();
   await fila('cero').locator('[data-expand-producto]').click();
-  assert.match(await fila('cero').locator('.product-inline-details').innerText(),/Sin código[\s\S]*Sin costo/);
+  assert.match(await p.locator('#'+await fila('cero').locator('[data-expand-producto]').getAttribute('aria-controls')).innerText(),/Sin código[\s\S]*Sin costo/);
   await p.click('#productosColumnasToggle');assert.equal(await fila('cero').locator('[data-label="Costo"]').isVisible(),true);
   assert.equal(await p.locator('#productosColumnasToggle').innerText(),'Mostrar menos columnas');
   assert.equal(await fila('kg').locator('[role="meter"]').getAttribute('aria-valuenow'),'0.5');

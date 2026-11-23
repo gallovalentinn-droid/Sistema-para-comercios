@@ -55,15 +55,11 @@ test('el cierre exige conteos escritos sin revelar el resultado del arqueo', () 
   assert.doesNotMatch(cash, /dG<0\?'Falta':'Sobra'/);
 });
 
-test('Caja usa el mismo criterio de costos y egresos operativos que Resumen', () => {
+test('los totales de turno conservan los datos de costos usados por Resumen', () => {
   const text = source();
   const turn = block(text, 'function calcularTotalesTurno(', '\n/* ── anular una venta');
-  const cash = block(text, 'function vCaja(m){', '\n/* ═══════════════════════════════════════════════════════\n   MOVIMIENTOS EN CUENTAS');
   assert.match(turn, /costosIncompletos/);
   assert.match(text, /function esEgresoOperativo\(/);
-  assert.match(cash, /t\.costosIncompletos\?null/);
-  assert.match(cash, /egresosOperativos/);
-  assert.match(cash, /gananciaEstimada===null\?'—'/);
 });
 
 test('el efectivo de pagos divididos se imputa primero a cigarrillos y se redondea a centavos', () => {

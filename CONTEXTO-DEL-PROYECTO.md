@@ -4,6 +4,14 @@ Versión unificada Docker + Mercado Pago, conservando las correcciones públicas
 
 # MiComercio.ar — contexto de continuidad
 
+## Preparación local: presentaciones, catálogo, Caja y QR — 23/11/2026
+
+Usuario aprobó el diseño de cinco cambios de UX. Rama `codex/ux-presentaciones-cobro`, worktree administrado `C:/Users/valen/.codex/worktrees/ux-presentaciones-cobro/Sistema-para-comercios`, base `d4a4d84`. Presentaciones configuradas primero en Vender y directas al ticket; stock kg y envase conservados, peso libre accesible incluso al truncar. Columnas Producto/Stock/Código/Rubro/Costo/Venta/Margen; detalle en fila aparte con todos los tamaños. Sin Ganancia estimada en Caja (Resumen conserva su resultado). QR visible inmediatamente durante carga de cuentas, creación bloqueada hasta conocer cuenta/capacidad; error explícito con QR deshabilitado.
+
+Verificado localmente: 730/730 Node con MP_SQL_TEST=true y PESO_SQL_TEST=true sobre Docker local, cero omisiones; 20 recorridos de navegador a 1366/390, flujo nuevo claro/oscuro, proveedores simulados. Integridad48 y diff-check correctos. Revisión independiente encontró tres observaciones, corregidas RED/GREEN con suite completa verde; no segunda revisión. Edición local `2026-11-23-presentaciones-cobro-local-r3`, SWrev109-r3 y manifiesto alineados. Informe `entregables/INFORME-PRESENTACIONES-COBRO-2026-11-23.md`.
+
+SIN push, publicación, SQL público, secretos ni operaciones de negocio reales. No se ha probado este cambio en la beta pública. Conservar la rama/copia local; comparar main e identidad antes de publicar. Los controles de consumo y los diagnósticos del incidente están fuera del alcance de esta corrección.
+
 Actualizado: 2026-10-25 (America/Argentina/Buenos_Aires)
 
 ## Mercado Pago público — REV97, 15/11/2026

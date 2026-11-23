@@ -1008,6 +1008,8 @@ body.offline .app{padding-top:34px}
 #tabProd .product-name{font-size:15px;font-weight:700}#tabProd td.product-sale{font-size:15px;font-weight:700}
 #tabProd .product-missing{font-size:12px;font-weight:400;color:var(--muted)}
 #tabProd .product-inline-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 18px;margin:8px 0 4px;font-size:12px}#tabProd .product-inline-details[hidden]{display:none}#tabProd .product-inline-details dt{color:var(--muted)}#tabProd .product-inline-details dd{margin:2px 0 0;overflow-wrap:anywhere}
+#tabProd .product-expand[data-presentaciones]{display:inline-flex}#tabProd .product-presentaciones{grid-column:1/-1}#tabProd .product-presentaciones ul{list-style:none;padding:0;margin:4px 0}#tabProd .product-presentaciones li{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line)}#tabProd .product-presentaciones li>span{min-width:0;overflow-wrap:anywhere}#tabProd .product-presentaciones small{color:var(--muted)}#tabProd .product-presentaciones b{white-space:nowrap}
+#tabProd .product-detail-row[hidden]{display:none!important}#tabProd .product-detail-row>td{padding:14px 18px;background:var(--bg);text-align:left}#tabProd .product-detail-row .product-inline-details{grid-template-columns:repeat(3,minmax(0,1fr))}#tabProd .product-presentaciones ul{max-width:620px}@media(max-width:850px){#tabProd .product-detail-row .product-inline-details{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #tabProd .product-thumb{width:40px;height:40px;flex-basis:40px}
 #tabProd .product-photo-missing{width:40px;height:40px;flex-basis:40px;color:var(--tema-secundario,#8190A3)}#tabProd .product-photo-missing svg{width:20px;height:20px}
 #tabProd .product-stock-box{display:inline-flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:90px}
@@ -1119,7 +1121,7 @@ const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
   packageRevision:109,
-  packageEdition:'2026-11-23-tamanos-peso-r2',
+  packageEdition:'2026-11-23-presentaciones-cobro-local-r3',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -4430,14 +4432,21 @@ function buscarProductosVenta(q,lim=8){
     if(productoArchivadoRev31(producto)) continue;
     const presentaciones=producto.unidad==='kg'?(producto.preciosPorPeso||[]):[];
     const campos=[producto.nombre,producto.ean,producto.rubro];
-    if(campos.some(campo=>normalizar(campo).includes(consulta))){
-      resultados.push({producto});
-      if(resultados.length>=lim) return resultados;
-    }
+    const pesoLibre=normalizar([...campos,'peso libre'].join(' '));
+    const coincideBase=campos.some(campo=>normalizar(campo).includes(consulta))||
+      producto.unidad==='kg'&&palabras.every(palabra=>pesoLibre.includes(palabra));
     for(const presentacion of presentaciones){
       const texto=normalizar([...campos,nombrePresentacionPeso(producto,presentacion),
         presentacion.gramos+' g',alias[presentacion.gramos]].join(' '));
-      if(palabras.every(palabra=>texto.includes(palabra))) resultados.push({producto,presentacion});
+      if(palabras.every(palabra=>texto.includes(palabra))){
+        // Reservar una opción de peso libre sin cambiar el límite usado para detectar ambigüedad.
+        if(coincideBase&&lim>1&&resultados.length>=lim-1)break;
+        resultados.push({producto,presentacion});
+      }
+      if(resultados.length>=lim) return resultados;
+    }
+    if(coincideBase){
+      resultados.push({producto});
       if(resultados.length>=lim) return resultados;
     }
   }
@@ -5653,20 +5662,20 @@ function tablaProductos(){
   }
   if(!l.length){ const activos=[fProd.q&&`búsqueda “${esc(fProd.q)}”`,fProd.rubros.length&&`${fProd.rubros.length} rubros`,fProd.actividad&&$('#fActividad')?.selectedOptions[0]?.textContent,fProd.estado==='archivados'&&'archivados',...(fProd.alertas||[]).map(k=>({stock:'stock crítico',precio:'precio $0',codigo:'sin código',imagen:'sin imagen'}[k]))].filter(Boolean);c.innerHTML=`<div class="empty"><b>Sin resultados</b>${activos.length?`Filtros activos: ${activos.join(' · ')}.`:'No hay productos en esta vista.'} Usá “Limpiar filtros” para quitar los filtros.</div>`; return; }
   c.innerHTML=`<table class="mtable ${fProd.vista==='detallada'?'product-detailed':'product-compact'}"><thead><tr>
-    <th class="product-main">Producto</th><th class="product-number product-stock">Stock</th><th class="product-number product-sale">Venta</th><th class="product-code product-extra">Código</th><th class="product-category product-extra">Rubro</th><th class="product-number product-cost product-extra">Costo</th><th class="product-number product-margin product-extra">Margen</th><th><span class="sr-only">Acciones</span></th>
+    <th class="product-main">Producto</th><th class="product-number product-stock">Stock</th><th class="product-code product-extra">Código</th><th class="product-category product-extra">Rubro</th><th class="product-number product-cost product-extra">Costo</th><th class="product-number product-sale">Venta</th><th class="product-number product-margin product-extra">Margen</th><th><span class="sr-only">Acciones</span></th>
   </tr></thead><tbody>${l.map(p=>{
     const mg=Number(p.costo)>0?((p.precio-p.costo)/p.costo*100):null;
     const ficha=`<b>${esc(p.nombre)}</b>${p.unidad==='kg'?' <span class="pill info">kg</span>':''}${esSuelto(p)?` <span class="pill warn">suelto</span>`:''}${alertaVence(p)?` <span class="pill ${estaVencido(p)?'bad':'warn'}">${esc(textoVence(p))}</span>`:(p.vence?` <span class="pill mute">vence ${fFecha(p.vence+'T12:00:00')}</span>`:'')}${esSuelto(p)?`<br><span style="font-size:12px;color:var(--muted)">sale de ${esc((atadoDe(p)||{}).nombre||'(atado eliminado)')} · ${porAtado(p)} por atado</span>`:(p.proveedor?`<br><span class="mt" style="font-size:12px;color:var(--muted)">${esc(p.proveedor)}</span>`:'')}`;
     const stock=estadoStockProductoUX(p),sinPrecio=!(Number(p.precio)>0);
-    const presentaciones=p.unidad==='kg'?(p.preciosPorPeso||[]).filter(x=>x.nombre):[];
-    const detalle=`<dl class="product-inline-details" hidden><div><dt>Código</dt><dd>${esc(p.ean||'Sin código')}</dd></div><div><dt>Rubro</dt><dd>${esc(p.rubro||'Sin rubro')}</dd></div><div><dt>Costo</dt><dd>${Number(p.costo)>0?$m(p.costo):'Sin costo'}</dd></div><div><dt>Margen</dt><dd>${mg===null?'Sin costo para calcular':mg.toFixed(0)+'%'}</dd></div><div><dt>Stock mínimo</dt><dd>${fmtCant(p,stock.minimo)}</dd></div><div><dt>Stock ideal</dt><dd>${fmtCant(p,stock.objetivo)}</dd></div></dl>`;
+    const presentaciones=p.unidad==='kg'?(p.preciosPorPeso||[]):[];
+    const detalle=`<dl class="product-inline-details"><div><dt>Código</dt><dd>${esc(p.ean||'Sin código')}</dd></div><div><dt>Rubro</dt><dd>${esc(p.rubro||'Sin rubro')}</dd></div><div><dt>Costo</dt><dd>${Number(p.costo)>0?$m(p.costo):'Sin costo'}</dd></div><div><dt>Margen</dt><dd>${presentaciones.length?'Por presentación':mg===null?'Sin costo para calcular':mg.toFixed(0)+'%'}</dd></div><div><dt>Stock mínimo</dt><dd>${fmtCant(p,stock.minimo)}</dd></div><div><dt>Stock ideal</dt><dd>${fmtCant(p,stock.objetivo)}</dd></div>${presentaciones.length?`<div class="product-presentaciones"><dt>Presentaciones de venta</dt><dd><ul>${presentaciones.map(x=>`<li><span>${esc(nombrePresentacionPeso(p,x))}${x.nombre?` <small>· ${esc(etiquetaPresentacionPeso(x.gramos))}</small>`:''}</span><b class="num">${$m(x.precio)}</b></li>`).join('')}</ul></dd></div>`:''}</dl>`;
     return `<tr data-producto-fila="${esc(p.id)}" tabindex="${p===l[0]?'0':'-1'}" aria-keyshortcuts="E A Delete" class="${sinPrecio?'product-no-price':''}">
-      <td data-label="Producto" class="product-main">${celdaProductoConFoto(p,ficha,'catalogo')}<button type="button" class="product-expand" data-expand-producto aria-expanded="false">Ver detalles ↓</button>${detalle}</td>
+      <td data-label="Producto" class="product-main">${celdaProductoConFoto(p,ficha,'catalogo')}<button type="button" class="product-expand" data-expand-producto ${presentaciones.length?'data-presentaciones':''} aria-controls="producto-detalle-${esc(p.id)}" aria-expanded="false">Ver detalles ↓</button></td>
       <td data-label="Stock" class="r product-number product-stock"><div class="product-stock-box stock-${stock.estado}" title="Stock: ${fmtCant(p,p.stock)} | Mínimo: ${fmtCant(p,stock.minimo)} | Ideal: ${fmtCant(p,stock.objetivo)}"><span class="product-stock-value"><b class="num">${fmtCant(p,p.stock)}</b><small>${stock.texto}</small></span><span class="product-stock-track" role="meter" aria-label="Stock respecto del ideal" aria-valuemin="0" aria-valuemax="${stock.objetivo}" aria-valuenow="${Math.max(0,Math.min(stock.objetivo,Number(p.stock)||0))}" aria-valuetext="${fmtCant(p,p.stock)} de ${fmtCant(p,stock.objetivo)}"><span style="width:${stock.porcentaje}%"></span></span>${esSuelto(p)?`<small class="product-missing">${fmtCant(atadoDe(p)||p,(atadoDe(p)||{}).stock||0)} atados disponibles</small>`:''}</div></td>
-      <td data-label="Venta" class="r num product-number product-sale">${$m(p.precio)}${p.unidad==='kg'?'/kg':''}${presentaciones.length?`<br><small>${presentaciones.length} ${presentaciones.length===1?'presentación':'presentaciones'}</small>`:''}${sinPrecio?'<br><span class="pill warn">Precio $0</span>':''}</td>
       <td data-label="Código" class="num product-extra product-code" style="font-size:12.5px;color:var(--muted)"><span class="product-code-value" title="${esc(p.ean||'Sin código')}">${esc(p.ean||'Sin código')}</span></td>
       <td data-label="Rubro" class="product-extra product-category">${p.rubro?`<span class="pill mute" title="${esc(p.rubro)}">${esc(p.rubro)}</span>`:'Sin rubro'}</td>
       <td data-label="Costo" class="r num product-number product-cost product-extra">${Number(p.costo)>0?$m(p.costo):'Sin costo'}</td>
+      <td data-label="Venta" class="r num product-number product-sale">${$m(p.precio)}${p.unidad==='kg'?'/kg':''}${presentaciones.length?`<br><small>${presentaciones.length} ${presentaciones.length===1?'presentación':'presentaciones'}</small>`:''}${sinPrecio?'<br><span class="pill warn">Precio $0</span>':''}</td>
       <td data-label="Margen" class="r num product-number product-margin product-extra ${mg===null?'product-empty':'product-value'}">${presentaciones.length?'Por presentación':mg===null?'Sin costo para calcular':mg.toFixed(0)+'%'}</td>
       <td class="r product-actions-cell" data-label="Acciones"><div class="product-row-actions">
         <button class="btn ghost sm" data-ed="${p.id}" title="Editar ${esc(p.nombre)}" aria-label="Editar ${esc(p.nombre)}">${ic('editar')} Editar</button>
@@ -5676,9 +5685,9 @@ function tablaProductos(){
         <button type="button" class="product-menu-action" data-hi="${p.id}" title="Ver historial de ${esc(p.nombre)}" aria-label="Ver historial de ${esc(p.nombre)}">${ic('historial')} Ver historial</button>
         <button type="button" class="product-menu-action product-menu-archive" data-archivar="${p.id}" title="${productoArchivadoRev31(p)?'Desarchivar':'Archivar'} ${esc(p.nombre)}" aria-label="${productoArchivadoRev31(p)?'Desarchivar':'Archivar'} ${esc(p.nombre)}">${ic('archivo')} ${productoArchivadoRev31(p)?'Desarchivar':'Archivar'}</button>
         </div></details></div>
-      </td></tr>`;}).join('')}</tbody></table>`;
+      </td></tr><tr class="product-detail-row" id="producto-detalle-${esc(p.id)}" hidden><td colspan="8">${detalle}</td></tr>`;}).join('')}</tbody></table>`;
   $$('[data-abrir]').forEach(b=>b.onclick=()=>formAbrirAtado(b.dataset.abrir));
-  $$('[data-expand-producto]',c).forEach(b=>b.onclick=()=>{const row=b.closest('tr');const abierto=row.classList.toggle('product-expanded');$('.product-inline-details',row).hidden=!abierto;b.setAttribute('aria-expanded',String(abierto));b.textContent=abierto?'Ocultar detalles ↑':'Ver detalles ↓';});
+  $$('[data-expand-producto]',c).forEach(b=>b.onclick=()=>{const row=b.closest('tr');const abierto=row.classList.toggle('product-expanded');document.getElementById(b.getAttribute('aria-controls')).hidden=!abierto;b.setAttribute('aria-expanded',String(abierto));b.textContent=abierto?'Ocultar detalles ↑':'Ver detalles ↓';});
   $$('[data-ed]').forEach(b=>b.onclick=()=>formProducto(b.dataset.ed));
   $$('[data-aj]').forEach(b=>b.onclick=()=>formAjuste(b.dataset.aj));
   $$('[data-hi]').forEach(b=>b.onclick=()=>verHistorial(b.dataset.hi));
@@ -10280,8 +10289,6 @@ function vCaja(m){
       efectivoVentas:t.porForma.efectivo,cobrosFiado:t.cobEfectivo,
       egresosGeneral:t.egrGeneral,egresosCigarros:t.egrCigarros}).esperado;
   const espCigarros=moduloCigarros?fondoCigarrosTurno+t.cigEfectivo-t.egrCigarros:0;
-  const egresosOperativos=t.egresos.filter(esEgresoOperativo).reduce((a,e)=>a+(Number(e.monto)||0),0);
-  const gananciaEstimada=t.costosIncompletos?null:t.total-t.costo-egresosOperativos;
   const vistasCaja=esDuenio()?['turno','cierre','historial']:['turno','cierre'];
   const cajaVista=vistasCaja.includes(globalThis.__miCajaVista)?globalThis.__miCajaVista:'turno';
   const cajaCigarrosPlegada=db.config.cajaCigarrosPlegada===true;
@@ -10305,7 +10312,6 @@ function vCaja(m){
     <div class="cash-extra-metrics">
       <div><span>Vendido en cigarrillos</span><b>${$m(t.cigTotal)}</b></div>
       <div><span>Egresos del turno</span><b>${$m(t.egrGeneral+t.egrCigarros+t.egrOtros)}</b></div>
-      ${esDuenio()?`<div><span>Ganancia estimada</span><b>${gananciaEstimada===null?'—':$m(gananciaEstimada)}</b><small class="hint">${gananciaEstimada===null?`${t.costosIncompletos} líneas sin costo cargado`:''}</small></div>`:''}
     </div>
     <div class="card">
       <div class="card-h"><h2>Ventas del turno</h2></div>

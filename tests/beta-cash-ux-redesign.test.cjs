@@ -41,7 +41,7 @@ test('Caja separa turno, historial y el cierre en una ventana guiada', () => {
   assert.match(caja, /data-caja-panel="turno"/);
   assert.match(caja, /data-caja-panel="cierre"/);
   assert.match(caja, /data-caja-panel="historial"/);
-  for (const label of ['Vendido en cigarrillos', 'Egresos del turno', 'Ganancia estimada']) {
+  for (const label of ['Vendido en cigarrillos', 'Egresos del turno']) {
     assert.match(caja, new RegExp(label));
   }
   assert.doesNotMatch(caja, /cash-sales-card|Vendido en el turno|cash-payment-list/);

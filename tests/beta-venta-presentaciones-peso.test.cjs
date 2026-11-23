@@ -6,6 +6,37 @@ const vm=require('node:vm');
 const html=readFileSync(require('node:path').join(__dirname,'../beta/index.html'),'utf8');
 const block=(from,to)=>html.slice(html.indexOf(from),html.indexOf(to));
 
+test('buscar helado ofrece los tamaños directos antes de peso libre, incluso con un solo resultado',()=>{
+  const helado={id:'h',nombre:'Helado',unidad:'kg',precio:22000,stock:3,
+    preciosPorPeso:[{nombre:'Helado de cuarto',gramos:250,precio:8000},
+      {nombre:'Helado de kilo',gramos:1000,precio:22000}]};
+  const ctx=vm.createContext({db:{productos:[helado]},productoArchivadoRev31:()=>false});
+  vm.runInContext([
+    block('function normalizarBusqueda(', 'function productoCoincideFiltro('),
+    block('function nombrePresentacionPeso(', 'function agregarAlTicket('),
+    "this.resultados=buscarProductosVenta('helado');this.primero=buscarProductosVenta('helado',1);"
+  ].join('\n'),ctx);
+  assert.deepEqual(Array.from(ctx.resultados,r=>r.presentacion?.gramos||'libre'),[250,1000,'libre']);
+  assert.equal(ctx.primero[0].presentacion?.gramos,250);
+});
+
+test('ocho tamaños no ocultan peso libre y el tamaño omitido sigue encontrándose por nombre',()=>{
+  const helado={id:'h',nombre:'Helado',unidad:'kg',precio:22000,stock:10,
+    preciosPorPeso:[100,125,150,200,250,500,750,1000].map(gramos=>({nombre:'Helado tamaño '+gramos,gramos,precio:8000}))};
+  const ctx=vm.createContext({db:{productos:[helado]},productoArchivadoRev31:()=>false});
+  vm.runInContext([
+    block('function normalizarBusqueda(', 'function productoCoincideFiltro('),
+    block('function nombrePresentacionPeso(', 'function agregarAlTicket('),
+    "this.resultados=buscarProductosVenta('helado');this.libre=buscarProductosVenta('helado peso libre');this.ultimo=buscarProductosVenta('helado tamaño 1000');this.ambiguos=buscarProductosVenta('helado',2);"
+  ].join('\n'),ctx);
+  assert.equal(ctx.resultados.length,8);
+  assert.equal(ctx.resultados[7].presentacion,undefined);
+  assert.equal(ctx.libre.length,1);
+  assert.equal(ctx.libre[0].presentacion,undefined);
+  assert.equal(ctx.ultimo[0].presentacion.gramos,1000);
+  assert.equal(ctx.ambiguos.length,2);
+});
+
 test('un tamaño que dejó de estar disponible avisa y no cambia el ticket',()=>{
   const mensajes=[];
   const ctx=vm.createContext({
