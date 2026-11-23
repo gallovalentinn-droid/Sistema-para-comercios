@@ -25,7 +25,12 @@ test('los importes argentinos y las cantidades fraccionarias usan parsers distin
   const context = {};
   vm.runInNewContext(`${helpers};result={miles:num('14.000'),mixto:num('1.500,50'),decimal:num('1,5'),cantidadPunto:numCantidad('1.250'),cantidadComa:numCantidad('1,250')}`, context);
   assert.deepEqual(JSON.parse(JSON.stringify(context.result)), {miles:14000,mixto:1500.5,decimal:1.5,cantidadPunto:1.25,cantidadComa:1.25});
-  assert.match(text, /numCantidad\(\$\('#f_stk'/);
+  const editor=block(text, 'function numeroEditorProducto(', 'function formProducto(');
+  const importacion=block(text, 'function numImportacion(', 'function celdaTexto(');
+  vm.runInNewContext(`${importacion}\n${editor}
+    result=[numeroEditorProducto('1.250',3),numeroEditorProducto('1,250',3),
+      numeroEditorProducto('1.250',0),numeroEditorProducto('$1.500,50',2)];`,context);
+  assert.deepEqual(Array.from(context.result),[1.25,1.25,1250,1500.5]);
 });
 
 test('el cobro conserva el comprobante y bloquea un segundo cierre durante la animación', () => {
@@ -133,7 +138,7 @@ test('el paquete incluye verificación de integridad y la ruta anterior ya no ca
   assert.ok(fs.existsSync(path.resolve(__dirname, '../verificar.ps1')));
   assert.ok(fs.existsSync(path.resolve(__dirname, '../tools/verificar-integridad.cjs')));
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  assert.equal(manifest.packageRevision, 108);
+  assert.equal(manifest.packageRevision, 109);
   assert.equal(manifest.algorithm, 'sha256');
   assert.ok(manifest.files['beta/index.html']);
   assert.ok(manifest.files['beta/vendor/supabase-js-2.112.3.min.js']);
@@ -145,6 +150,6 @@ test('el paquete incluye verificación de integridad y la ruta anterior ya no ca
 test('la identidad de la corrección queda alineada en la revisión actual', () => {
   const text = source();
   const sw = fs.readFileSync(swPath, 'utf8');
-  assert.match(text, /packageRevision:108/);
-  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev108/);
+  assert.match(text, /packageRevision:109/);
+  assert.match(sw, /micomercio-beta-6\.0\.0-f6-rc2-rev109/);
 });
