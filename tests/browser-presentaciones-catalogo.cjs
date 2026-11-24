@@ -35,6 +35,34 @@ async function main(){
       window.dispatchEvent(new StorageEvent('storage',{key:'micomercio:tema',newValue:tema}));
     },theme);
     assert.equal(await p.locator('html').getAttribute('data-tema'),theme);
+    await p.evaluate(()=>{
+      db.productos.push({id:'nuevo',nombre:'Helado nuevo',ean:'987654',unidad:'kg',precio:9000,costo:3000,stock:5,
+        preciosPorPeso:[{nombre:'Helado nuevo medio',gramos:500,precio:7000,costoEnvase:100}]});
+      seleccionarProducto(prod('nuevo'));
+    });
+    assert.equal(await p.locator('#pesoG').count(),0,'Seleccionar la ficha con un solo tamaño no pide gramos');
+    assert.equal(await p.evaluate(()=>ticket[0].cant),0.5);
+    await p.fill('#scan','987654');await p.press('#scan','Enter');
+    assert.equal(await p.locator('#pesoG').count(),0,'El código también agrega la presentación directamente');
+    assert.equal(await p.evaluate(()=>ticket[0].cant),1);
+    await p.evaluate(()=>{ticket=[];pintarPOS();});
+    await p.fill('#scan','1234');await p.press('#scan','Enter');
+    assert.equal(await p.locator('#pesoG').count(),0,'Con varios tamaños no pregunta gramos');
+    assert.equal(await p.locator('#scan').evaluate(e=>e===document.activeElement),false,'El lector no sigue activo detrás del selector');
+    await p.keyboard.type('987654');await p.keyboard.press('Enter');
+    assert.equal(await p.evaluate(()=>ticket.length),0,'Un segundo código no agrega productos detrás del selector');
+    await p.locator('[data-vender-presentacion="1000"]').click();
+    assert.equal(await p.evaluate(()=>ticket[0].cant),1);
+    assert.equal(await p.locator('#scan').evaluate(e=>e===document.activeElement),true,'Al elegir tamaño vuelve el foco al lector');
+    await p.keyboard.type('987654');await p.keyboard.press('Enter');
+    assert.equal(await p.evaluate(()=>ticket.length),2,'El siguiente código entra sin volver a enfocar el lector');
+    await p.keyboard.type('1234');await p.keyboard.press('Enter');await p.keyboard.press('Escape');
+    assert.equal(await p.locator('#scan').evaluate(e=>e===document.activeElement),true,'Cancelar también devuelve el foco al lector');
+    await p.evaluate(()=>{ticket=[];pintarPOS();});
+    await p.fill('#scan','helado peso libre');
+    await p.locator('#res li[data-id="helado"]:not([data-gramos])').click();
+    assert.equal(await p.locator('#pesoG').count(),1,'Peso libre sigue disponible cuando se elige expresamente');
+    await p.locator('.ov [aria-label="Cerrar"]').click();
     await p.fill('#scan','helado');
     const matches=await p.locator('#res li').allTextContents();
     assert.match(matches[0],/Helado de cuarto/);
@@ -46,7 +74,7 @@ async function main(){
     assert.deepEqual(ticket.items.map(i=>[i.nombre,i.cant,i.precio*i.cant,i.costo*i.cant]),[['Helado de cuarto',0.25,8000,3450],['Helado 1 kg',1,22000,12150]]);
     await p.evaluate(()=>{vista='productos';fProd.vista='detallada';render();});
     const headers=await p.locator('#tabProd th').allTextContents();
-    assert.deepEqual(headers.map(x=>x.trim()),['Producto','Stock','Código','Rubro','Costo','Venta','Margen','Acciones']);
+    assert.deepEqual(headers.map(x=>x.trim()),['Producto','Rubro','Código','Stock','Costo','Venta','Margen','Acciones']);
     const row=p.locator('[data-producto-fila="helado"]');
     assert.equal(await p.locator('.product-detail-row:visible').count(),0,'El detalle cerrado no aparece tampoco en celular');
     const closedHeight=(await row.boundingBox()).height;
@@ -56,6 +84,9 @@ async function main(){
     const detail=await p.locator('#'+detailId).innerText();
     assert.match(detail,/Helado de cuarto/);assert.match(detail,/¼ kg/);assert.match(detail,/8\.000/);
     assert.match(detail,/Helado 1 kg/);assert.match(detail,/22\.000/);
+    const porcion=p.locator('#'+detailId+' [data-presentacion-gramos="250"]');
+    assert.deepEqual((await porcion.locator('[role="cell"]').allTextContents()).map(x=>x.trim()),
+      ['Helado de cuarto','¼ kg','$8.000,00','$700,00','56,9%']);
     await row.locator('[data-expand-producto]').click();
     assert.equal(await p.locator('#'+detailId).isVisible(),false);
     await row.locator('[data-expand-producto]').click();

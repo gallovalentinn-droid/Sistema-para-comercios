@@ -6,7 +6,35 @@ const vm=require('node:vm');
 const html=readFileSync(require('node:path').join(__dirname,'../beta/index.html'),'utf8');
 const block=(from,to)=>html.slice(html.indexOf(from),html.indexOf(to));
 
-test('buscar helado ofrece los tamaños directos antes de peso libre, incluso con un solo resultado',()=>{
+test('el detalle incluye el envase en el margen y no inventa margen para costo pendiente',()=>{
+  const ctx=vm.createContext({nfKg:new Intl.NumberFormat('es-AR'),esc:String,$m:n=>String(n)});
+  vm.runInContext(block('function nombrePresentacionPeso(', 'function buscarProductosVenta(')+
+    "this.conCosto=detallePresentacionesPeso({nombre:'Helado',costo:11000},[{gramos:250,precio:8000,costoEnvase:700}]);this.sinCosto=detallePresentacionesPeso({nombre:'Nuevo',costo:0},[{gramos:500,precio:7000,costoEnvase:100}]);",ctx);
+  assert.match(ctx.conCosto,/56,9%/);
+  assert.match(ctx.sinCosto,/Sin costo/);
+  assert.doesNotMatch(ctx.sinCosto,/%/);
+});
+
+test('seleccionar un producto con una sola presentación no pregunta gramos',()=>{
+  const p={id:'nuevo',unidad:'kg',preciosPorPeso:[{nombre:'Helado medio',gramos:500,precio:7000,costoEnvase:100}]};
+  const elegidas=[];
+  const ctx=vm.createContext({p,productoArchivadoRev31:()=>false,
+    pedirPeso:()=>assert.fail('Se abrió la pregunta de gramos'),
+    elegirResultado:(...args)=>elegidas.push(args)});
+  vm.runInContext(block('function seleccionarProducto(', 'function ofrecerAbrirAtado(')+'seleccionarProducto(p);',ctx);
+  assert.deepEqual(elegidas,[['producto','nuevo',500]]);
+});
+
+test('sin presentaciones conserva gramos; con varias pide un tamaño, no un peso',()=>{
+  const pesos=[],tamanos=[];
+  const ctx=vm.createContext({productoArchivadoRev31:()=>false,
+    pedirPeso:p=>pesos.push(p.id),seleccionarPresentacionPeso:p=>tamanos.push(p.id)});
+  vm.runInContext(block('function seleccionarProducto(', 'function ofrecerAbrirAtado(')+
+    "seleccionarProducto({id:'libre',unidad:'kg'});seleccionarProducto({id:'varios',unidad:'kg',preciosPorPeso:[{gramos:250},{gramos:500}]});",ctx);
+  assert.deepEqual(pesos,['libre']);assert.deepEqual(tamanos,['varios']);
+});
+
+test('buscar helado ofrece tamaños directos y peso libre solo cuando se pide expresamente',()=>{
   const helado={id:'h',nombre:'Helado',unidad:'kg',precio:22000,stock:3,
     preciosPorPeso:[{nombre:'Helado de cuarto',gramos:250,precio:8000},
       {nombre:'Helado de kilo',gramos:1000,precio:22000}]};
@@ -16,11 +44,11 @@ test('buscar helado ofrece los tamaños directos antes de peso libre, incluso co
     block('function nombrePresentacionPeso(', 'function agregarAlTicket('),
     "this.resultados=buscarProductosVenta('helado');this.primero=buscarProductosVenta('helado',1);"
   ].join('\n'),ctx);
-  assert.deepEqual(Array.from(ctx.resultados,r=>r.presentacion?.gramos||'libre'),[250,1000,'libre']);
+  assert.deepEqual(Array.from(ctx.resultados,r=>r.presentacion?.gramos||'libre'),[250,1000]);
   assert.equal(ctx.primero[0].presentacion?.gramos,250);
 });
 
-test('ocho tamaños no ocultan peso libre y el tamaño omitido sigue encontrándose por nombre',()=>{
+test('ocho tamaños se muestran sin confundirlos con peso libre, que sigue siendo buscable',()=>{
   const helado={id:'h',nombre:'Helado',unidad:'kg',precio:22000,stock:10,
     preciosPorPeso:[100,125,150,200,250,500,750,1000].map(gramos=>({nombre:'Helado tamaño '+gramos,gramos,precio:8000}))};
   const ctx=vm.createContext({db:{productos:[helado]},productoArchivadoRev31:()=>false});
@@ -30,7 +58,7 @@ test('ocho tamaños no ocultan peso libre y el tamaño omitido sigue encontránd
     "this.resultados=buscarProductosVenta('helado');this.libre=buscarProductosVenta('helado peso libre');this.ultimo=buscarProductosVenta('helado tamaño 1000');this.ambiguos=buscarProductosVenta('helado',2);"
   ].join('\n'),ctx);
   assert.equal(ctx.resultados.length,8);
-  assert.equal(ctx.resultados[7].presentacion,undefined);
+  assert.equal(ctx.resultados[7].presentacion.gramos,1000);
   assert.equal(ctx.libre.length,1);
   assert.equal(ctx.libre[0].presentacion,undefined);
   assert.equal(ctx.ultimo[0].presentacion.gramos,1000);
@@ -108,7 +136,7 @@ test('la búsqueda de caja agrega el cuarto como producto directo y contabiliza 
      this.lineas=ticket.map(buildVentaItem);
      this.coincidencias=buscarProductosVenta('helado').length;`
   ].join('\n'),ctx);
-  assert.equal(ctx.coincidencias,3);
+  assert.equal(ctx.coincidencias,2);
   assert.deepEqual(Array.from(ctx.lineas,i=>[i.nombre,i.prodId,i.cant,i.precio*i.cant,i.costo*i.cant]),[
     ['Helado de cuarto','helado',0.5,16000,6900],
     ['Helado de kilo','helado',1,22000,12150],
