@@ -36,6 +36,19 @@ async function main(){
     },theme);
     assert.equal(await p.locator('html').getAttribute('data-tema'),theme);
     await p.evaluate(()=>{
+      db.productos.push({id:'jamon',nombre:'Jamón',unidad:'kg',precio:3000,costo:1000,stock:10,
+        preciosPorPeso:[{nombre:'Jamón de cuarto',gramos:250,precio:2000,costoEnvase:50}]});
+    });
+    await p.fill('#scan','jamon');
+    assert.equal(await p.locator('#res li').count(),1,'Un producto con una presentación aparece una sola vez, sin otra opción de peso libre');
+    assert.equal(await p.locator('#res li .nm').innerText(),'Jamón','Con un solo tamaño se conserva el nombre del producto central');
+    assert.doesNotMatch(await p.locator('#res').innerText(),/Peso libre|\/kg/);
+    if(process.env.UX_OUTPUT_DIR){fs.mkdirSync(process.env.UX_OUTPUT_DIR,{recursive:true});await p.screenshot({path:path.join(process.env.UX_OUTPUT_DIR,`jamon-directo-${width}-${theme}.png`)});}
+    await p.locator('#res li').click();
+    assert.equal(await p.locator('#pesoG').count(),0,'Jamón entra directo sin preguntar gramos');
+    assert.deepEqual(await p.evaluate(()=>({kg:ticket[0].cant,total:ticket[0].precio*ticket[0].cant})),{kg:.25,total:2000});
+    await p.evaluate(()=>{ticket=[];pintarPOS();});
+    await p.evaluate(()=>{
       db.productos.push({id:'nuevo',nombre:'Helado nuevo',ean:'987654',unidad:'kg',precio:9000,costo:3000,stock:5,
         preciosPorPeso:[{nombre:'Helado nuevo medio',gramos:500,precio:7000,costoEnvase:100}]});
       seleccionarProducto(prod('nuevo'));
@@ -48,6 +61,7 @@ async function main(){
     await p.evaluate(()=>{ticket=[];pintarPOS();});
     await p.fill('#scan','1234');await p.press('#scan','Enter');
     assert.equal(await p.locator('#pesoG').count(),0,'Con varios tamaños no pregunta gramos');
+    assert.equal(await p.getByRole('button',{name:'Peso libre',exact:true}).count(),0,'Con presentaciones tampoco se ofrece peso libre desde la selección por código');
     assert.equal(await p.locator('#scan').evaluate(e=>e===document.activeElement),false,'El lector no sigue activo detrás del selector');
     await p.keyboard.type('987654');await p.keyboard.press('Enter');
     assert.equal(await p.evaluate(()=>ticket.length),0,'Un segundo código no agrega productos detrás del selector');
@@ -59,21 +73,16 @@ async function main(){
     await p.keyboard.type('1234');await p.keyboard.press('Enter');await p.keyboard.press('Escape');
     assert.equal(await p.locator('#scan').evaluate(e=>e===document.activeElement),true,'Cancelar también devuelve el foco al lector');
     await p.evaluate(()=>{ticket=[];pintarPOS();});
-    await p.fill('#scan','helado peso libre');
-    await p.locator('#res li[data-id="helado"]:not([data-gramos])').click();
-    assert.equal(await p.locator('#pesoG').count(),1,'Peso libre sigue disponible cuando se elige expresamente');
+    await p.evaluate(()=>{db.productos.push({id:'libre',nombre:'Pan sin tamaños',unidad:'kg',precio:3000,costo:1000,stock:5});});
+    await p.fill('#scan','pan sin tamaños');
+    await p.locator('#res li[data-id="libre"]').click();
+    assert.equal(await p.locator('#pesoG').count(),1,'Solo el producto sin presentaciones pregunta el peso');
+    assert.equal(await p.locator('#pesoG').evaluate(e=>e===document.activeElement),true);
     await p.locator('.ov [aria-label="Cerrar"]').click();
     await p.fill('#scan','helado');
     const matches=await p.locator('#res li').allTextContents();
     assert.match(matches[0],/Helado de cuarto/);
-    const central=p.locator('#res li[data-id="helado"]:not([data-gramos])');
-    assert.equal(await central.isVisible(),true,'Las presentaciones no ocultan el producto central');
-    assert.match(await central.innerText(),/Peso libre/);
-    await central.click();
-    assert.equal(await p.locator('#pesoG').count(),1,'La ficha central conserva la venta por gramos');
-    assert.equal(await p.locator('#pesoG').evaluate(e=>e===document.activeElement),true,'La ficha central deja escribir el peso sin devolver foco al buscador');
-    await p.locator('.ov [aria-label="Cerrar"]').click();
-    await p.fill('#scan','helado');
+    assert.equal(await p.locator('#res li[data-id="helado"]:not([data-gramos])').count(),0,'Con tamaños no aparece una entrada que pregunte gramos');
     await p.locator('#res li[data-gramos="250"]').click();
     assert.equal(await p.locator('#pesoG').count(),0);
     await p.fill('#scan','1 kg helado');await p.locator('#res li[data-gramos="1000"]').click();

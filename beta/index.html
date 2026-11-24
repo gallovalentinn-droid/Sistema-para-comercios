@@ -1123,7 +1123,7 @@ const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
   packageRevision:109,
-  packageEdition:'2026-11-23-presentaciones-cobro-local-r5',
+  packageEdition:'2026-11-23-presentaciones-cobro-local-r6',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -4444,13 +4444,12 @@ function buscarProductosVenta(q,lim=8){
     const presentaciones=producto.unidad==='kg'?(producto.preciosPorPeso||[]):[];
     const campos=[producto.nombre,producto.ean,producto.rubro];
     const pesoLibre=normalizar([...campos,'peso libre'].join(' '));
-    const coincideBase=campos.some(campo=>normalizar(campo).includes(consulta))||
-      producto.unidad==='kg'&&palabras.every(palabra=>pesoLibre.includes(palabra));
+    const coincideBase=!presentaciones.length&&(campos.some(campo=>normalizar(campo).includes(consulta))||
+      producto.unidad==='kg'&&palabras.every(palabra=>pesoLibre.includes(palabra)));
     for(const presentacion of presentaciones){
       const texto=normalizar([...campos,nombrePresentacionPeso(producto,presentacion),
         presentacion.gramos+' g',alias[presentacion.gramos]].join(' '));
       if(palabras.every(palabra=>texto.includes(palabra))){
-        if(coincideBase&&lim>1&&resultados.length>=lim-1)break;
         resultados.push({producto,presentacion});
       }
       if(resultados.length>=lim) return resultados;
@@ -4533,13 +4532,12 @@ function confirmarProductoSinStock(p,luego){
 function seleccionarPresentacionPeso(p){
   modal({titulo:'Presentaciones de '+p.nombre,
     cuerpo:`<div class="peso-opciones">${p.preciosPorPeso.map(x=>`<button type="button" class="btn ghost" data-vender-presentacion="${esc(x.gramos)}"><span>${esc(nombrePresentacionPeso(p,x))}</span><b>${$m(x.precio)}</b></button>`).join('')}</div>`,
-    pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn ghost" id="venderPesoLibre">Peso libre</button>`,
+    pie:`<button class="btn ghost" data-cerrar>Cancelar</button>`,
     alAbrir:ov=>{
       const salir=()=>{cerrarModal();$('#scan')?.focus();};
       ov.mpCerrar=salir;
       const panel=$('.mod',ov);panel.tabIndex=-1;panel.focus();
       $$('[data-vender-presentacion]',ov).forEach(b=>b.onclick=()=>{salir();elegirResultado('producto',p.id,b.dataset.venderPresentacion);});
-      $('#venderPesoLibre',ov).onclick=()=>{salir();pedirPeso(p);};
     }});
 }
 function seleccionarProducto(p){
@@ -4867,9 +4865,10 @@ function vVender(m){
         const s=Number(p.stock);
         const disponible=porcion?Math.floor(Math.round(s*1000)/porcion.gramos):s;
         const granel=p.unidad==='kg'&&!porcion;
+        const nombreResultado=porcion&&p.preciosPorPeso.length===1?p.nombre:porcion?nombrePresentacionPeso(p,porcion):p.nombre;
         const estado=disponible<=0?'bad':s<=Number(p.stockMin)?'warn':'ok';
         return `<li data-tipo="producto" data-id="${esc(p.id)}"${porcion?` data-gramos="${esc(porcion.gramos)}"`:''}>${miniFoto(p)}
-        <span style="flex:1;min-width:0"><span class="nm">${esc(porcion?nombrePresentacionPeso(p,porcion):p.nombre)}${granel?' · Peso libre':''}</span><br><span class="mt">${p.ean&&!porcion?esc(p.ean)+' · ':esc(p.rubro||'Sin código')+' · '}<span class="stock-state ${estado}">stock ${porcion?Math.max(0,disponible):fmtCant(p,p.stock)}</span></span></span>
+        <span style="flex:1;min-width:0"><span class="nm">${esc(nombreResultado)}${granel?' · Peso libre':''}</span><br><span class="mt">${porcion?esc(etiquetaPresentacionPeso(porcion.gramos))+' · ':''}${p.ean&&!porcion?esc(p.ean)+' · ':esc(p.rubro||'Sin código')+' · '}<span class="stock-state ${estado}">stock ${porcion?Math.max(0,disponible):fmtCant(p,p.stock)}</span></span></span>
         <span class="num" style="font-weight:600">${$m(porcion?porcion.precio:p.precio)}${granel?'/kg':''}</span></li>`;
       }).join('');
     $$('#res li').forEach(li=>li.onclick=()=>{ elegirResultado(li.dataset.tipo,li.dataset.id,li.dataset.gramos); inp.value=''; cerrarRes(); if(!$('#ov'))inp.focus(); });
@@ -4906,8 +4905,7 @@ function elegirResultado(tipo,id,gramos){
       else aviso('Este tamaño ya no está disponible.','bad');
       return;
     }
-    if(p?.unidad==='kg'&&!productoArchivadoRev31(p))pedirPeso(p);
-    else seleccionarProducto(p);
+    seleccionarProducto(p);
   }
 }
 
