@@ -1123,7 +1123,7 @@ const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
   packageRevision:109,
-  packageEdition:'2026-11-23-presentaciones-cobro-local-r4',
+  packageEdition:'2026-11-23-presentaciones-cobro-local-r5',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -4444,13 +4444,13 @@ function buscarProductosVenta(q,lim=8){
     const presentaciones=producto.unidad==='kg'?(producto.preciosPorPeso||[]):[];
     const campos=[producto.nombre,producto.ean,producto.rubro];
     const pesoLibre=normalizar([...campos,'peso libre'].join(' '));
-    const pidePesoLibre=palabras.includes('peso')&&palabras.includes('libre');
-    const coincideBase=(!presentaciones.length||pidePesoLibre)&&(campos.some(campo=>normalizar(campo).includes(consulta))||
-      producto.unidad==='kg'&&palabras.every(palabra=>pesoLibre.includes(palabra)));
+    const coincideBase=campos.some(campo=>normalizar(campo).includes(consulta))||
+      producto.unidad==='kg'&&palabras.every(palabra=>pesoLibre.includes(palabra));
     for(const presentacion of presentaciones){
       const texto=normalizar([...campos,nombrePresentacionPeso(producto,presentacion),
         presentacion.gramos+' g',alias[presentacion.gramos]].join(' '));
       if(palabras.every(palabra=>texto.includes(palabra))){
+        if(coincideBase&&lim>1&&resultados.length>=lim-1)break;
         resultados.push({producto,presentacion});
       }
       if(resultados.length>=lim) return resultados;
@@ -4872,7 +4872,7 @@ function vVender(m){
         <span style="flex:1;min-width:0"><span class="nm">${esc(porcion?nombrePresentacionPeso(p,porcion):p.nombre)}${granel?' · Peso libre':''}</span><br><span class="mt">${p.ean&&!porcion?esc(p.ean)+' · ':esc(p.rubro||'Sin código')+' · '}<span class="stock-state ${estado}">stock ${porcion?Math.max(0,disponible):fmtCant(p,p.stock)}</span></span></span>
         <span class="num" style="font-weight:600">${$m(porcion?porcion.precio:p.precio)}${granel?'/kg':''}</span></li>`;
       }).join('');
-    $$('#res li').forEach(li=>li.onclick=()=>{ elegirResultado(li.dataset.tipo,li.dataset.id,li.dataset.gramos); inp.value=''; cerrarRes(); inp.focus(); });
+    $$('#res li').forEach(li=>li.onclick=()=>{ elegirResultado(li.dataset.tipo,li.dataset.id,li.dataset.gramos); inp.value=''; cerrarRes(); if(!$('#ov'))inp.focus(); });
   });
   inp.addEventListener('keydown',e=>{
     const items=$$('#res li');

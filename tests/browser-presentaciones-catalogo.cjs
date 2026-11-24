@@ -66,6 +66,14 @@ async function main(){
     await p.fill('#scan','helado');
     const matches=await p.locator('#res li').allTextContents();
     assert.match(matches[0],/Helado de cuarto/);
+    const central=p.locator('#res li[data-id="helado"]:not([data-gramos])');
+    assert.equal(await central.isVisible(),true,'Las presentaciones no ocultan el producto central');
+    assert.match(await central.innerText(),/Peso libre/);
+    await central.click();
+    assert.equal(await p.locator('#pesoG').count(),1,'La ficha central conserva la venta por gramos');
+    assert.equal(await p.locator('#pesoG').evaluate(e=>e===document.activeElement),true,'La ficha central deja escribir el peso sin devolver foco al buscador');
+    await p.locator('.ov [aria-label="Cerrar"]').click();
+    await p.fill('#scan','helado');
     await p.locator('#res li[data-gramos="250"]').click();
     assert.equal(await p.locator('#pesoG').count(),0);
     await p.fill('#scan','1 kg helado');await p.locator('#res li[data-gramos="1000"]').click();

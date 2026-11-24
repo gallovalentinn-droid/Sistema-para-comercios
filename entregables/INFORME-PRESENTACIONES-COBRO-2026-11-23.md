@@ -52,3 +52,13 @@ La revisión única encontró costo vacío convertido en margen y foco del lecto
 Verificado: 757/757 pruebas del candidato Docker con SQL local y cero omitidas. Diez recorridos de navegador finales: cuatro del flujo nuevo (1366/390, claro/oscuro), catálogo y Caja en ambos anchos y lector autenticado en ambos anchos. Diez ejemplos de lector multiproducto simulados; contador conservado en 2/3. Capturas inspeccionadas. Integridad48 correcta en worktree y candidato. Caso exacto de Docker comprobado en una ventana efímera: helado medio, 0,5 kg, $7.000, sin pregunta de gramos ni venta guardada; no se modificó stock.
 
 Fuente local worktree: 2026-11-23-presentaciones-cobro-local-r4 (rev109-r4). Fuente servida en http://127.0.0.1:55383/beta/: 2026-11-23-peso-presentaciones-cobro-r15 (rev107-r15, base propia del laboratorio). La página abierta antes del cambio necesita recarga. Sin publicación, push, migraciones, secretos nuevos ni llamadas pagas.
+## Producto central recuperado — 23/11/2026, r16
+
+La restricción de r15 ocultaba la ficha central de los productos kg que tenían tamaños configurados. Se retira esa restricción: buscar jamon muestra tanto jamon ¼ kg ($2.000, carga directa de 250 g) como jamon · Peso libre ($3.000/kg, pregunta gramos). Se reserva una plaza para la ficha principal al alcanzar el límite de ocho resultados. Seleccionar una presentación sigue cargándola directamente; se conservan los arreglos por código, el orden y el detalle.
+
+Una regresión adicional detectó que el manejador del clic devolvía el foco a la búsqueda después de abrir el diálogo de gramos. Ahora solo lo devuelve si no quedó un diálogo abierto. Se observaron las regresiones fallando y luego pasando.
+
+Se leyó la configuración del jamón de Docker sin modificarla y se probó en una ventana aislada con stock ficticio: las dos entradas visibles, central con gramos y cuarto de kilo directo por $2.000, ninguna venta guardada. La primera comprobación autenticada no llegó al buscador y se reemplazó por el arnés aislado; una consulta inicial incluía un campo no expuesto y fue corregida usando la selección de campos ya comprobada. No se atribuyen esos problemas de la sonda a la búsqueda del producto.
+
+Edición de Docker 2026-11-23-peso-presentaciones-cobro-r16, caché rev107-r16; worktree 2026-11-23-presentaciones-cobro-local-r5, caché rev109-r5. Ambas integridades48 correctas. Cuatro recorridos finales del cambio pasan sobre la web Docker en 1366/390, claro/oscuro. Presupuesto sin cambios: 2/3 lecturas utilizadas. Sin publicar, hacer push, cambiar datos ni consumir IA.
+Verificación final r16: 757/757 pruebas locales del candidato combinado, con MP_SQL_TEST=true y PESO_SQL_TEST=true, cero fallas y cero omitidas. Cuatro recorridos de navegador finales aprobados.
