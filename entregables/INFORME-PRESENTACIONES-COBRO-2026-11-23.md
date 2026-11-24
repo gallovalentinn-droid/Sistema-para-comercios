@@ -31,3 +31,13 @@ Los primeros intentos de verificación detectaron expectativas viejas sobre gana
 No hubo push, despliegue, migraciones ni cambios de secretos. No se hicieron ventas, cierres o cobros reales ni llamadas pagas de IA. Se inició Docker Desktop para las pruebas locales conservando sus contenedores; las pruebas usan catálogos y proveedores de pago simulados.
 
 La aprobación y prueba corresponden a la preparación local. No se ha repetido este cambio en la beta pública porque todavía no se publica. Antes de publicar habrá que cotejar el main actual, integrar cambios posteriores si los hubiera, fijar la identidad definitiva y repetir los recorridos sobre los archivos públicos con pagos simulados.
+
+## Integración efectiva en Docker — 23/11/2026, r14
+
+Se detectó que la dirección 55383 seguía sirviendo candidato/ (r13), mientras que las cinco mejoras aprobadas estaban solo en el commit local da9b873 del worktree ux-presentaciones-cobro. Recuperar el servidor no había integrado ese commit.
+
+Se aplicó únicamente el parche de interfaz y sus regresiones a candidato/, sin sustituir los cambios anteriores del lector ni sus extractores. Incluye venta directa de presentaciones, columnas reordenadas, detalle separado con presentaciones, retiro de ganancia de Caja y opción QR inmediata. Edición local combinada: 2026-11-23-peso-presentaciones-cobro-r14; caché rev107-r14; integridad 48 archivos. Copia previa de archivos conservada en el directorio local de visualizaciones docker-antes-presentaciones-2026-11-23.
+
+Verificado contra http://127.0.0.1:55383/beta/: HTTP200, edición r14, backend público sustituido por el laboratorio, dos recorridos del cambio nuevo en 1366/390 con pagos simulados. Tres pruebas HTTP del servidor aprobadas. Diez ejemplos multiproducto del lector y recorridos autenticados Docker en ambos anchos aprobados, incluida foto interceptada sin enviarla a IA. Batería del candidato combinado: 754/754 con MP_SQL_TEST=true y PESO_SQL_TEST=true, cero omitidas. La pestaña del usuario se recargó y mostró Producto, Stock, Código, Rubro, Costo, Venta y Margen al desplegar todas las columnas.
+
+Sin publicación, push, migración, cambios de secretos ni operaciones de negocio reales. Contador conservado: 2 de 3 lecturas usadas, una restante. El servidor lee candidato/ en cada pedido; no necesita un reinicio para estos cambios.
