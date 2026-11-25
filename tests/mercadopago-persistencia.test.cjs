@@ -3,7 +3,8 @@ const test=require('node:test'),assert=require('node:assert/strict'),vm=require(
 function setup({syncFailure=false}={}){
  const memory=new Map(),html=fs.readFileSync(require('node:path').join(__dirname,'../beta/index.html'),'utf8').replaceAll('\r\n','\n');
  const close=html.slice(html.indexOf('function cerrarVenta('),html.indexOf('\nfunction ticketImpreso('));let saves=0;
- const c=vm.createContext({structuredClone,TextEncoder,crypto:crypto.webcrypto,Date,Promise,Set,console,setTimeout:()=>0,
+ const locks=new Map();const lockManager={request:async(name,options,callback)=>{if(locks.has(name))return callback(null);locks.set(name,true);try{return await callback({name});}finally{locks.delete(name);}}};
+ const c=vm.createContext({navigator:{locks:lockManager},structuredClone,TextEncoder,crypto:crypto.webcrypto,Date,Promise,Set,console,setTimeout:()=>0,
  localStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)},
  sesion:{user:{id:'u'}},f3Estado:{comercioId:'c',deviceUuid:'d',cajaCodigo:'caja'},ticket:[{id:'line',tipo:'producto',prodId:'p',nombre:'Producto',cant:1,precio:100}],pago:'transferencia',pagoMixto:[],dto:{},recibido:'',clienteFiado:'',uid:()=> 'sale',
  db:{ventas:[],productos:[{id:'p',stock:10}],config:{nroVenta:1}},ventaEnProceso:false,amount:100,estadoTurnoRev31:()=>({requiereApertura:false}),productoArchivadoRev31:()=>false,
@@ -23,6 +24,43 @@ test('una promoción cambiada mientras espera QR no altera el total cobrado ni s
  assert.equal(c.db.ventas[0].total,100);assert.equal(c.db.ventas[0].promoAuto,0);assert.equal(c.db.ventas[0].items[0].precio,100);
 });
 test('un guardado manual pendiente no se puede convertir en un cobro QR',async()=>{const {c}=setup();await vm.runInContext(`(async()=>{const p=await mpPreparar('a');p.stage='manual';mpGuardarPendiente(p);})()`,c);await assert.rejects(vm.runInContext("mpPreparar('a')",c),/MANUAL_PENDIENTE/);});
+
+test('otra pestaña no cancela ni registra una transferencia cuyo guardado se reintenta en la primera',async()=>{
+ const a=setup({syncFailure:true}),b=setup();let n=0;a.c.uid=()=>`sale${++n}`;
+ a.c.document=b.c.document={querySelector:()=>null};b.c.localStorage=a.c.localStorage;b.c.navigator=a.c.navigator;
+ assert.equal(await vm.runInContext('mpConfirmarCobroManual()',a.c),false);
+ const id=a.c.db.ventas[0].id;
+ assert.equal(await vm.runInContext('mpTerminarCobro()',b.c),null);
+ assert.equal(await vm.runInContext('mpConfirmarCobroManual()',b.c),false);
+ assert.equal(b.c.db.ventas.length,0);assert.equal(b.c.db.productos[0].stock,10);
+ assert.equal(vm.runInContext('mpLeerPendiente().saleId',a.c),id);
+ assert.equal(await vm.runInContext('mpConfirmarCobroManual()',a.c),true);
+ assert.equal(a.c.db.ventas.length,1);assert.equal(a.c.db.productos[0].stock,9);assert.equal(n,1);
+});
+
+test('recargar tras fallo de disco permite retomar la misma venta o cancelar sin inventar una venta',async()=>{
+ for(const cancelar of [false,true]){
+  const a=setup({syncFailure:true}),recargada=setup();a.c.document=recargada.c.document={querySelector:()=>null};
+  assert.equal(await a.c.mpConfirmarCobroManual(),false);
+  recargada.c.localStorage=a.c.localStorage;
+  // Una página recargada tiene nueva memoria y el navegador libera sus Web Locks.
+  if(cancelar){assert.equal(await recargada.c.mpTerminarCobro(),'canceled');assert.equal(recargada.c.db.ventas.length,0);assert.equal(recargada.c.db.productos[0].stock,10);}
+  else{assert.equal(await recargada.c.mpConfirmarCobroManual(),true);assert.equal(recargada.c.db.ventas.length,1);assert.equal(recargada.c.db.ventas[0].id,'sale');assert.equal(recargada.c.db.productos[0].stock,9);}
+  assert.equal(recargada.c.mpLeerPendiente(),null);
+ }
+});
+
+test('si otro intento reemplaza la clave antes de registrar, no cambia ventas ni stock',async()=>{
+ const {c}=setup();c.f3OperacionVenta=venta=>{const p=c.mpLeerPendiente();c.mpGuardarPendiente({...p,saleId:'otra-venta'});return venta;};
+ assert.equal(await c.mpConfirmarCobroManual(),false);
+ assert.equal(c.db.ventas.length,0);assert.equal(c.db.productos[0].stock,10);assert.equal(c.mpLeerPendiente().saleId,'otra-venta');
+});
+
+test('un error de un intento no borra otro intento que apareció mientras esperaba',async()=>{
+ const {c}=setup();c.mpCompletar=async()=>{const p=c.mpLeerPendiente();c.mpGuardarPendiente({...p,saleId:'otra-venta'});throw Error('CAMBIO_PESTANA');};
+ assert.equal(await c.mpConfirmarCobroManual(),false);
+ assert.equal(c.mpLeerPendiente().saleId,'otra-venta');
+});
 test('cambiar de usuario durante la confirmación no lleva la venta al usuario nuevo',async()=>{const {c}=setup();await assert.rejects(vm.runInContext(`(async()=>{const p=await mpPreparar('a');const closing=mpCompletar({paymentId:'1',amountCents:10000},p);sesion.user.id='otra';await closing;})()`,c),/SESION_INVALIDA/);assert.equal(c.db.ventas.length,0);});
 test('cerrar pago anterior conserva el borrador nuevo aunque falle el guardado y al reintentar no duplica stock',async()=>{
  const {c,saves}=setup({syncFailure:true});c.document={querySelector:()=>null};

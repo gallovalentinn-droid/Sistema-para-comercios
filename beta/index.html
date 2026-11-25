@@ -1122,8 +1122,8 @@ body.offline .app{padding-top:34px}
 const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
-  packageRevision:109,
-  packageEdition:'2026-11-25-venta-importe-cobro-manual-local-r12',
+  packageRevision:110,
+  packageEdition:'2026-11-25-presentaciones-cobro-rev110',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -5341,7 +5341,7 @@ function cerrarVenta(forma,mpCobro=null){
   asignarNetosVenta(venta);
   if(mpCobro)venta.mpCobro={estado:mpCobro.estado,receipt:mpCobro.receipt};
   let operacionMP=null;
-  if(mpCobro){try{f5ExigirEscritura('registrar_venta_v4');f5EstamparSesionLocal(venta,sesionLocal);operacionMP=f3OperacionVenta(venta);}catch(error){ventaEnProceso=false;throw error;}}
+  if(mpCobro){try{f5ExigirEscritura('registrar_venta_v4');f5EstamparSesionLocal(venta,sesionLocal);operacionMP=f3OperacionVenta(venta);if(typeof mpMarcarRegistroLocal==='function')mpMarcarRegistroLocal(ventaId,mpCobro.manualDirecto===true);}catch(error){ventaEnProceso=false;throw error;}}
 
   // descuento de stock + movimiento por cada ítem (expandiendo combos en sus componentes)
   const tocados=new Set();

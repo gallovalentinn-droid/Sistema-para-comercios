@@ -1,23 +1,49 @@
 'use strict';
 let mpOperacionOcupada=false,mpCierreAutorizado=false,mpPersistenciaPendiente=null,mpOperacionActual=null,mpCierreEnCurso=null,mpSolicitaCierre=false;
+let mpReservaManual=null;
+function mpTieneReservaManual(scope=mpScope()){return mpReservaManual?.scope===scope;}
+function mpLiberarReservaManual(scope=mpScope()){if(mpReservaManual?.scope===scope){const r=mpReservaManual;mpReservaManual=null;r.liberar();}}
+async function mpAsegurarReservaManual(scope=mpScope()){
+ if(scope!==mpScope())return false;if(mpTieneReservaManual(scope))return true;
+ if(!globalThis.navigator?.locks?.request)return false;
+ const name='micomercio:manual:'+scope;
+ for(let intento=0;intento<2;intento++){
+  const ok=await new Promise(resolve=>{
+   navigator.locks.request(name,{mode:'exclusive',ifAvailable:true},lock=>{
+    if(!lock||scope!==mpScope()){resolve(false);return;}
+    return new Promise(liberar=>{mpReservaManual={scope,liberar,token:Date.now()+':'+Math.random()};resolve(true);});
+   }).catch(()=>resolve(false));
+  });
+  if(ok)return true;
+  if(intento||scope!==mpScope()||!navigator.locks.query)return false;
+  try{const state=await navigator.locks.query();if([...state.held,...state.pending].some(l=>l.name===name))return false;}catch{return false;}
+ }
+ return false;
+}
 function mpScope(){return JSON.stringify([sesion?.user?.id||'',f3Estado?.comercioId||'']);}
 function mpPendingKey(){return 'micomercio:mp-cobro-v1:'+mpScope();}
 function mpLeerPendiente(){try{return JSON.parse(localStorage.getItem(mpPendingKey())||'null');}catch{return null;}}
 function mpGuardarPendiente(p){localStorage.setItem(mpPendingKey(),JSON.stringify(p));}
-function mpBorrarPendiente(scope=mpScope()){localStorage.removeItem('micomercio:mp-cobro-v1:'+scope);}
+function mpBorrarPendiente(scope=mpScope()){localStorage.removeItem('micomercio:mp-cobro-v1:'+scope);mpLiberarReservaManual(scope);}
 function mpBloqueaCobro(){return !mpCierreAutorizado&&!!mpLeerPendiente();}
 // Transferencia confirmada a mano que nunca llegó a registrarse: no existe en el servidor ni en ventas locales.
-function mpManualSinRegistrar(p){return !!p?.manualDirecto&&p.stage==='manual'&&!p.receipt&&!db.ventas.some(v=>v.id===p.saleId)&&mpPersistenciaPendiente?.saleId!==p.saleId;}
+function mpManualSinRegistrar(p){return !!p?.manualDirecto&&p.stage==='manual'&&(!p.registroLocalIniciado||mpTieneReservaManual()&&p.registroLocalOwner!==mpReservaManual.token)&&!p.receipt&&!db.ventas.some(v=>v.id===p.saleId)&&mpPersistenciaPendiente?.saleId!==p.saleId;}
+function mpRegistroManualAjeno(p){return !!p?.manualDirecto&&!mpTieneReservaManual(p.scope);}
+function mpMarcarRegistroLocal(saleId,manualDirecto=false){if(!manualDirecto)return;const p=mpLeerPendiente();if(!p?.manualDirecto||p.saleId!==saleId||!mpTieneReservaManual(p.scope))throw new Error('COBRO_CAMBIO_PESTANA');p.registroLocalIniciado=true;p.registroLocalOwner=mpReservaManual.token;mpGuardarPendiente(p);}
 function mpCobroConectado(){const p=mpLeerPendiente();return p?.manualDirecto&&p.stage==='manual'?false:!!p||db.config.verificarCobrosMP===true;}
 async function mpConfirmarCobroManual(){
  if(mpOperacionOcupada||mpSolicitaCierre||!ticket.length)return false;
- const scope=mpScope();let liberar;mpOperacionOcupada=true;mpOperacionActual=new Promise(r=>liberar=r);
+ const scope=mpScope();let liberar,p;mpOperacionOcupada=true;mpOperacionActual=new Promise(r=>liberar=r);
  try{
-  let p=mpLeerPendiente();
+  p=mpLeerPendiente();
+  if(!await mpAsegurarReservaManual(scope)){aviso('Terminá de guardar esta venta en la pestaña donde la confirmaste.','bad');return false;}
+  if(scope!==mpScope())return false;p=mpLeerPendiente();
+  if(mpRegistroManualAjeno(p)){aviso('Terminá de guardar esta venta en la pestaña donde la confirmaste.','bad');return false;}
   if(p&&(!p.manualDirecto||p.stage!=='manual')){aviso('Terminá el cobro pendiente antes de confirmar manualmente.','bad');return false;}
   if(!p){
    const snapshot=mpSnapshot(),fingerprint=await mpFingerprint(snapshot);
    if(scope!==mpScope())return false;
+   if(mpLeerPendiente())throw new Error('COBRO_CAMBIO_PESTANA');
    p={saleId:uid(),snapshot,fingerprint,amount:snapshot.calculo.total.toFixed(2),stage:'manual',manualDirecto:true,scope};
    mpGuardarPendiente(p);
   }
@@ -26,7 +52,9 @@ async function mpConfirmarCobroManual(){
   if(scope!==mpScope())return false;
   // Si la venta no se guardó (turno cerrado, producto archivado, ticket cambiado), el aviso ya
   // explicó el motivo; se descarta el intento para no bloquear otros medios ni registrarlo al cancelar.
-  if(mpManualSinRegistrar(mpLeerPendiente())){mpBorrarPendiente(scope);return false;}
+  const actual=mpLeerPendiente();
+  if(actual?.saleId===p?.saleId&&mpManualSinRegistrar(actual)){mpBorrarPendiente(scope);return false;}
+  if(!actual||actual.saleId!==p?.saleId)mpLiberarReservaManual(scope);
   aviso('No pudimos guardar la venta. Volvé a confirmar el cobro: se conserva la misma venta.','bad');return false;
  }
  finally{mpOperacionOcupada=false;mpOperacionActual=null;liberar();}
@@ -70,6 +98,9 @@ async function mpTerminarCobro(){
   if(mpOperacionActual)await mpOperacionActual;
   if(scope!==mpScope())return null;
   const p=mpLeerPendiente();if(!p)return 'canceled';if(saleId&&p.saleId!==saleId)return null;
+  if(p.manualDirecto&&!await mpAsegurarReservaManual(scope)){aviso('Terminá de guardar esta venta en la pestaña donde la confirmaste.','bad');return null;}
+  if(scope!==mpScope()||mpLeerPendiente()?.saleId!==p.saleId)return null;
+  if(mpRegistroManualAjeno(p)){aviso('Terminá de guardar esta venta en la pestaña donde la confirmaste.','bad');return null;}
   const panel=document.querySelector('#mpPanel'),state=panel?.querySelector('#mpEstado');mpOperacionOcupada=true;
   panel?.querySelectorAll('button,select').forEach(b=>b.disabled=true);if(state)state.textContent='Cancelando el cobro…';
   try{
@@ -94,11 +125,13 @@ async function mpTerminarCobro(){
  try{return await mpCierreEnCurso;}finally{mpCierreEnCurso=null;mpSolicitaCierre=false;}
 }
 async function mpCompletar(receipt,p,manual=false,onVerified=null){
+ if(p.manualDirecto&&!await mpAsegurarReservaManual(p.scope))throw new Error('VENTA_PENDIENTE_OTRA_PESTANA');
+ if(mpRegistroManualAjeno(p))throw new Error('VENTA_PENDIENTE_OTRA_PESTANA');
  if(p.scope!==mpScope())throw new Error('SESION_INVALIDA');const fingerprint=await mpFingerprint();if(p.scope!==mpScope())throw new Error('SESION_INVALIDA');if(p.fingerprint!==fingerprint)throw new Error('TICKET_CAMBIO');
  if(!manual){if(receipt?.amountCents!==Math.round(p.snapshot.calculo.total*100))throw new Error('INGRESO_MONTO_DISTINTO');p.receipt=receipt;p.stage='verified';mpGuardarPendiente(p);onVerified?.();}
  const existing=db.ventas.find(v=>v.id===p.saleId);
  if(existing){if(mpPersistenciaPendiente?.saleId===p.saleId){await mpPersistenciaPendiente.persistencia.reintentar();if(p.scope===mpScope())mpPersistenciaPendiente.finalizar();mpPersistenciaPendiente=null;}else{ticket=[];recibido='';pago='efectivo';pagoMixto=[];clienteFiado='';limpiarDescuento();pintarPOS();ticketImpreso(existing);}mpBorrarPendiente(p.scope);return;}
- mpCierreAutorizado=true;try{const result=await cerrarVenta('transferencia',{saleId:p.saleId,estado:manual?'manual':'verified',receipt:manual?null:receipt,calculo:p.snapshot.calculo,scope:p.scope});if(!result)throw new Error('VENTA_NO_GUARDADA');mpBorrarPendiente(p.scope);}finally{mpCierreAutorizado=false;}
+ mpCierreAutorizado=true;try{const result=await cerrarVenta('transferencia',{saleId:p.saleId,estado:manual?'manual':'verified',receipt:manual?null:receipt,calculo:p.snapshot.calculo,scope:p.scope,manualDirecto:p.manualDirecto===true});if(!result)throw new Error('VENTA_NO_GUARDADA');mpBorrarPendiente(p.scope);}finally{mpCierreAutorizado=false;}
 }
 function mpEstadoHTML(v){const t=formaKey(v.forma)==='transferencia'||(v.pagos||[]).some(p=>formaKey(p.forma)==='transferencia');return t?`<div class="hint" data-mp-venta="${esc(v.id)}" style="margin-top:12px"><b>${v.mpCobro?.estado==='manual'?'Confirmada manualmente · sin verificación de Mercado Pago':'Consultando verificación de Mercado Pago…'}</b></div>`:'';}
 async function mpConsultarVenta(root,v){const el=root.querySelector('[data-mp-venta]');if(!el||v.mpCobro?.estado==='manual')return;try{const r=await mpRequest('sale-receipts',{saleIds:[v.id]});if(!el.isConnected)return;const receipt=r.receipts?.[0];el.textContent=receipt?(receipt.kind==='qr'?'QR verificado con Mercado Pago':'Transferencia verificada con Mercado Pago'):'Sin verificación de Mercado Pago registrada';}catch{if(el.isConnected)el.textContent='No se pudo consultar la verificación de Mercado Pago';}}
