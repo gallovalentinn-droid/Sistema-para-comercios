@@ -4,7 +4,7 @@ process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
 const assert=require('node:assert/strict');
 const {openShadow}=require('./browser-fixture/shadow.cjs');
 async function main(){
- const h=await openShadow({width:Number(process.env.WIDTH)||1366,height:900}),p=h.page;
+ const h=await openShadow({cobroConectado:true,width:Number(process.env.WIDTH)||1366,height:900}),p=h.page;
  const isPublic=await p.evaluate(()=>mpPublico());let configured=false,expired=false,starts=0,alias;
  await p.route(/\/(?:api|functions\/v1)\/mercadopago(?:\?.*)?$/,async route=>{
   const b=route.request().postDataJSON();

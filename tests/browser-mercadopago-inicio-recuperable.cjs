@@ -2,7 +2,7 @@
 process.env.PW||='C:/Users/valen/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright';
 process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
 const assert=require('node:assert/strict');const {openShadow,abrirTurno}=require('./browser-fixture/shadow.cjs');
-async function main(){const width=Number(process.env.WIDTH)||1366,h=await openShadow({width,height:900}),p=h.page,startedAt=new Date().toISOString(),ids=[];let release,observed,requests=0,claims=0;
+async function main(){const width=Number(process.env.WIDTH)||1366,h=await openShadow({cobroConectado:true,width,height:900}),p=h.page,startedAt=new Date().toISOString(),ids=[];let release,observed,requests=0,claims=0;
  const held=new Promise(r=>release=r),started=new Promise(r=>observed=r);
  await p.route(/\/(?:api|functions\/v1)\/mercadopago$/,async route=>{const b=route.request().postDataJSON();if(b.action==='accounts')return route.fulfill({json:{configured:true,capabilities:{transferVerification:true,newPayments:true},accounts:[{id:'a',alias:'Principal',primary:true}]}});
  if(b.action==='transfer-start'){requests++;ids.push(b.saleId);if(requests===1){observed();await held;}return route.fulfill({json:{attempt:{createdAt:startedAt}}});}

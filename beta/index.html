@@ -1123,7 +1123,7 @@ const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
   packageRevision:109,
-  packageEdition:'2026-11-24-presentaciones-mismo-peso-local-r7',
+  packageEdition:'2026-11-25-venta-importe-cobro-manual-local-r10',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -2292,6 +2292,7 @@ const F5_CONFIG_MAPA=Object.freeze({
   moduloCigarros:{col:'modulo_cigarros',desdeV4:v=>v!==false,haciaV4:v=>v!==false},
   separaCigarrillosAlCierre:{col:'separa_cigarrillos_al_cierre',desdeV4:v=>v===true,haciaV4:v=>v===true},
   manejaTurnos:{col:'maneja_turnos',desdeV4:v=>v===true,haciaV4:v=>v===true},
+  verificarCobrosMP:{col:'verificar_cobros_mp',desdeV4:v=>v===true,haciaV4:v=>v===true},
   avisoTurnoHoras:{col:'aviso_turno_horas',desdeV4:v=>Number(v)||8,haciaV4:v=>Number(v)||8},
   motivosEgresoExtra:{col:'motivos_egreso_extra',desdeV4:v=>Array.isArray(v)?v:[],haciaV4:v=>v||[]}
 });
@@ -2313,11 +2314,14 @@ const F5_CONFIG_OPERATIVA_KEYS=Object.freeze([
   'recargo_fiado_pct','motivos_egreso_extra'
 ]);
 const F5_CONFIG_PRIVILEGIADA_KEYS=Object.freeze([
-  'whatsapp_dueno','modulo_fiado','modulo_vencimientos','modulo_cigarros','separa_cigarrillos_al_cierre'
+  'whatsapp_dueno','modulo_fiado','modulo_vencimientos','modulo_cigarros','separa_cigarrillos_al_cierre','verificar_cobros_mp'
 ]);
-function f3PayloadConfig(cfg){
+function f3PayloadConfig(cfg,claves=null){
   const out={};
-  for(const [k,m] of Object.entries(F5_CONFIG_MAPA)) out[m.col]=m.haciaV4((cfg||{})[k]);
+  for(const [k,m] of Object.entries(F5_CONFIG_MAPA)){
+    if(k==='verificarCobrosMP'&&(!Object.prototype.hasOwnProperty.call(cfg||{},k)||Array.isArray(claves)&&!claves.includes(k)))continue;
+    out[m.col]=m.haciaV4((cfg||{})[k]);
+  }
   return out;
 }
 function f5SepararConfigPayload(payload){
@@ -2363,7 +2367,7 @@ function f3MaestroOpsDesdeCambios(cambios){
     if(!['productos','clientes','combos','promociones'].includes(x.coleccion)||!f3EsUuid(x.v4id)) continue;
     out.push(f3OperacionMaestro(`maestro_${x.coleccion.replace(/s$/,'')}_delete_v4`,x.v4id,{id:x.v4id,comercio_id:f3Estado.comercioId,deleted_at:cambios.fecha}));
   }
-  if(cambios.configChanged) out.push(f3OperacionMaestro('maestro_config_upsert_v4',f3Estado.comercioId,f3PayloadConfig(cambios.config||db.config)));
+  if(cambios.configChanged) out.push(f3OperacionMaestro('maestro_config_upsert_v4',f3Estado.comercioId,f3PayloadConfig(cambios.config||db.config,cambios.configKeys||[])));
   return out.filter(Boolean);
 }
 function f3OperacionAnulacionVenta(venta,motivo){
@@ -2942,7 +2946,7 @@ async function persistirCambiosIdb(cambios){
     localSeq:cambios.localSeq,
     createdAt:cambios.fecha,
     estado:'pendiente_v3', intentos:0, ultimoError:null,
-    payload:{puts:clonarLocal(cambios.puts),deletes:clonarLocal(cambios.deletes),configChanged:!!cambios.configChanged,config:cambios.configChanged?clonarLocal(cambios.config):null}
+    payload:{puts:clonarLocal(cambios.puts),deletes:clonarLocal(cambios.deletes),configChanged:!!cambios.configChanged,configKeys:[...(cambios.configKeys||[])],config:cambios.configChanged?clonarLocal(cambios.config):null}
   });
   // F3 shadow: operación v4 tipada + cambio local quedan atómicos en IndexedDB.
   if(conBackend&&(cambios.v4Operations||[]).length){
@@ -3113,7 +3117,7 @@ function marcarCambiosSync(){
   db=migrarFormaDb(db);
   const prev=snapshotLocal?migrarFormaDb(snapshotLocal):VACIA();
   const ahora=new Date().toISOString();
-  const cambios={fecha:ahora,puts:[],deletes:[],configChanged:false,hayCambios:false,operationId:null,localSeq:0};
+  const cambios={fecha:ahora,puts:[],deletes:[],configChanged:false,configKeys:[],hayCambios:false,operationId:null,localSeq:0};
   SYNC_COLECCIONES.forEach(k=>{
     const ant=new Map((prev[k]||[]).map(x=>[x.id,x]));
     const act=new Map((db[k]||[]).map(x=>[x.id,x]));
@@ -3135,7 +3139,7 @@ function marcarCambiosSync(){
   const clavesConfig=new Set([...Object.keys(pc),...Object.keys(dc)]);
   clavesConfig.forEach(k=>{
     if(k==='nroVenta'||k==='ultBackup') return;
-    if(JSON.stringify(pc[k])!==JSON.stringify(dc[k])){ db._configSync[k]=ahora; cambios.configChanged=true; cambios.hayCambios=true; }
+    if(JSON.stringify(pc[k])!==JSON.stringify(dc[k])){ db._configSync[k]=ahora; cambios.configKeys.push(k);cambios.configChanged=true; cambios.hayCambios=true; }
     else if(!db._configSync[k]&&prev._configSync&&prev._configSync[k]) db._configSync[k]=prev._configSync[k];
   });
   if(cambios.configChanged) db._configSyncAt=ahora;
@@ -4471,6 +4475,7 @@ function agregarAlTicket(p,cant=1,presentacion=null){
   const costoEnvase=Number(presentacion?.costoEnvase)||0;
   const nombre=presentacion?nombrePresentacionPeso(p,presentacion):p.nombre;
   let l=ticket.find(i=>i.tipo==='producto'&&i.prodId===p.id&&
+    !!i.ventaPorMonto===!!presentacion?.ventaPorMonto&&
     (presentacion?i.gramosPresentacion===gramos&&i.precioPresentacion===presentacion.precio&&
       (i.costoEnvase||0)===costoEnvase&&i.nombre===nombre:!i.gramosPresentacion));
   if(l){
@@ -4479,6 +4484,7 @@ function agregarAlTicket(p,cant=1,presentacion=null){
   }else{
     l={id:presentacion?uid():p.id,tipo:'producto',prodId:p.id,nombre,precio,cant};
     if(presentacion) Object.assign(l,{gramosPresentacion:gramos,precioPresentacion:presentacion.precio,costoEnvase});
+    if(presentacion?.ventaPorMonto)l.ventaPorMonto=true;
     ticket.push(l);
   }
   const acumulado=ticket.filter(i=>i.prodId===p.id).reduce((s,i)=>s+i.cant,0);
@@ -4577,37 +4583,56 @@ function ofrecerAbrirAtado(s,a){
       };
     }});
 }
+function calcularVentaGranel(p,modo,raw){
+  if(!['gramos','importe'].includes(modo))return null;
+  const valor=numeroEditorProducto(raw,modo==='importe'?2:3),precio=Number(p.precio);
+  if(!Number.isFinite(valor)||valor<=0||!Number.isFinite(precio)||precio<0||precio>=1e12)return null;
+  if(modo==='importe'&&(precio<=0||valor>=1e12))return null;
+  const gramos=Math.round(modo==='importe'?valor*1000/precio:valor);
+  if(!Number.isSafeInteger(gramos)||gramos<1||gramos>999999)return null;
+  const kg=gramos/1000,importe=modo==='importe'?valor:Math.round(kg*precio*100)/100;
+  if(importe>=1e12||importe/kg>=1e12)return null;
+  return {gramos,kg,importe,aproximado:modo==='importe'&&Math.abs(gramos-valor*1000/precio)>1e-7,
+    presentacion:modo==='importe'?{nombre:p.nombre,gramos,precio:importe,costoEnvase:0,ventaPorMonto:true}:null};
+}
 function pedirPeso(p){
-  modal({titulo:'¿Cuánto pesa? — '+p.nombre,
+  modal({titulo:'Venta a granel — '+p.nombre,
     cuerpo:`
       <div class="kpi" style="margin-bottom:16px"><span>Precio por kilo</span><b>${$m(p.precio)}</b></div>
-      <label class="f" for="pesoG">Gramos</label>
-      <input id="pesoG" class="inp num" inputmode="decimal" placeholder="Ej: 250">
+      <div class="seg" role="group" aria-label="Ingresar por peso o por importe" style="margin-bottom:16px"><button type="button" data-granel-modo="gramos" class="on" aria-pressed="true">Por peso</button><button type="button" data-granel-modo="importe" aria-pressed="false">Por monto</button></div>
+      <div id="granelPeso"><label class="f" for="pesoG">Gramos</label>
+      <input id="pesoG" class="inp num" inputmode="decimal" placeholder="Ej: 250" aria-describedby="pesoSub">
       <div class="row" style="margin-top:10px">
         ${[100,150,200,250,500,1000].map(g=>`<button type="button" class="btn ghost sm" data-g="${g}">${g<1000?g+' g':'1 kg'}</button>`).join('')}
-      </div>
+      </div></div>
+      <div id="granelImporte" hidden><label class="f" for="pesoMonto">Monto ($)</label><input id="pesoMonto" class="inp num" inputmode="decimal" placeholder="Ej: 2.000" aria-describedby="pesoSub"><p class="hint">El peso se calcula al gramo más cercano. Las promociones y descuentos se aplican al cobrar.</p></div>
       <div id="pesoSub" aria-live="polite" style="margin-top:16px;color:var(--muted)"></div>`,
     pie:`<button class="btn ghost" data-cerrar>Cancelar</button><button class="btn verde" id="okPeso">Agregar al ticket</button>`,
     alAbrir:ov=>{
-      const inp=$('#pesoG',ov);
+      const inp=$('#pesoG',ov),monto=$('#pesoMonto',ov);let modo='gramos';
       inp.focus();
       const actualizar=()=>{
-        const gramos=Math.round(numCantidad(inp.value));
-        const kg=gramos/1000;
-        const total=kg*p.precio;
-        $('#pesoSub',ov).innerHTML = kg>0 ? `Se agregan <b class="num">${nfKg.format(kg)} kg</b> · subtotal <b class="num">${$m(total)}</b>` : '';
+        const campo=modo==='importe'?monto:inp,codigo=/^0\d{7,13}$/.test(campo.value.trim())||f64IntentoCobroEfectivo(campo.value,p.precio,db.productos).codigo;
+        const r=codigo?null:calcularVentaGranel(p,modo,campo.value);
+        $('#okPeso',ov).disabled=!r;
+        if(codigo){$('#pesoSub',ov).textContent='Parece un código de barras. Volvé al buscador para agregar ese producto.';return;}
+        $('#pesoSub',ov).innerHTML=r?`${modo==='importe'?'Peso aproximado':'Se agregan'} <b class="num">${r.gramos} g</b> · subtotal <b class="num">${$m(r.importe)}</b>`:campo.value.trim()?(modo==='importe'&&!(Number(p.precio)>0)?'Cargá un precio por kilo mayor a cero para vender por monto.':'Ingresá un valor válido mayor a cero.'):'';
       };
-      inp.oninput=actualizar;
+      inp.oninput=monto.oninput=actualizar;
+      $$('[data-granel-modo]',ov).forEach(b=>b.onclick=()=>{modo=b.dataset.granelModo;$('#granelPeso',ov).hidden=modo!=='gramos';$('#granelImporte',ov).hidden=modo!=='importe';$$('[data-granel-modo]',ov).forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-pressed',String(x===b));});actualizar();(modo==='importe'?monto:inp).focus();});
       $$('[data-g]',ov).forEach(b=>b.onclick=()=>{inp.value=b.dataset.g;actualizar();inp.focus();});
       const confirmarPeso=()=>{
-        const kg=Math.round((numCantidad(inp.value)/1000)*1000)/1000;
-        if(kg<=0){aviso('Ingresá un peso mayor a cero','bad');return;}
-        agregarAlTicket(p,kg);
+        const texto=(modo==='importe'?monto:inp).value.trim();
+        if(/^0\d{7,13}$/.test(texto)||f64IntentoCobroEfectivo(texto,p.precio,db.productos).codigo){actualizar();return;}
+        const r=calcularVentaGranel(p,modo,(modo==='importe'?monto:inp).value);
+        if(!r){actualizar();aviso('Revisá el peso o el monto ingresado.','bad');return;}
+        agregarAlTicket(p,r.kg,r.presentacion);
         cerrarModal();
         $('#scan')&&$('#scan').focus();
       };
-      inp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); confirmarPeso(); } };
+      inp.onkeydown=monto.onkeydown=e=>{ if(e.key==='Enter'&&!e.isComposing){ e.preventDefault(); confirmarPeso(); } };
       $('#okPeso',ov).onclick=confirmarPeso;
+      actualizar();
     }});
 }
 const subtotalTicket=()=>ticket.reduce((a,i)=>a+i.precio*i.cant,0);
@@ -4947,7 +4972,7 @@ function pintarPOS(){
         const totalProm=Math.max(0,i.precio*i.cant-(promo?promo.monto:0));
         const stockEnTicket=p?.unidad==='kg'?Math.round(ticket.filter(l=>l.prodId===p.id).reduce((a,l)=>a+l.cant,0)*1000)/1000:i.cant;
         return `<tr>
-        <td data-label="Producto"><b>${esc(i.nombre)}</b>${promo?` <span class="pill ok">${promo.modalidad||`Promo −${pct}%`}</span>`:''}${p&&stockEnTicket>p.stock?`<br><span class="pill bad">stock ${porcion?Math.max(0,Math.floor(Math.round(p.stock*1000)/porcion)):fmtCant(p,p.stock)}</span>`:''}</td>
+        <td data-label="Producto"><b>${esc(i.nombre)}</b>${i.ventaPorMonto?`<div class="hint">Aprox. ${porcion} g por ${$m(i.precioPresentacion)}</div>`:''}${promo?` <span class="pill ok">${promo.modalidad||`Promo −${pct}%`}</span>`:''}${p&&stockEnTicket>p.stock?`<br><span class="pill bad">stock ${porcion?Math.max(0,Math.floor(Math.round(p.stock*1000)/porcion)):fmtCant(p,p.stock)}</span>`:''}</td>
         <td data-label="Cantidad" class="r"><div class="qty"><button data-menos="${i.id}" aria-label="Restar">–</button><input class="num" data-cant="${i.id}" value="${porcion?Math.round(i.cant*1000/porcion):i.cant}"><button data-mas="${i.id}" aria-label="Sumar">+</button></div>${!porcion&&p&&p.unidad==='kg'?'<div style="font-size:11px;color:var(--muted);margin-top:3px">kg</div>':''}</td>
         <td data-label="Precio" class="r num">${pct>0?`<span style="text-decoration:line-through;color:var(--muted);font-size:12px;display:block">${$m(precioMostrado)}</span>${$m(precioProm)}`:$m(precioMostrado)}${!porcion&&p&&p.unidad==='kg'?'/kg':''}</td>
         <td data-label="Subtotal" class="r num" style="font-weight:600">${$m(totalProm)}</td>
@@ -5073,12 +5098,15 @@ function pintarPagoModal(ov){
       <div id="mixtoCliWrap"></div>
       <div id="mixtoResumen" style="margin-bottom:14px"></div>
       <button class="btn verde big" id="cobrarMixto">Confirmar cobro</button>`
-    : pago==='transferencia'&&typeof mpCobroHTML==='function'?mpCobroHTML():`
+    : pago==='transferencia'&&typeof mpCobroHTML==='function'&&mpCobroConectado()?mpCobroHTML():`
       <div class="hint" style="margin:16px 0">Se va a registrar como cobro por <b>${FORMAS[pago]}</b>, por el total exacto — no maneja vuelto.</div>
       <button class="btn verde big" id="cobrarElec">Cobrar ${$m(t)} por ${FORMAS[pago]}</button>`}`;
 
   $$('.seg button',ov).forEach(b=>b.onclick=()=>{
     pago=b.dataset.p;
+    if(pago==='transferencia'&&typeof mpCobroConectado==='function'&&!mpCobroConectado()){
+      void mpConfirmarCobroManual();return;
+    }
     if(pago==='mixto'&&!pagoMixto.length) pagoMixto=[{forma:'efectivo',monto:''},{forma:'tarjeta',monto:''}];
     pintarPagoModal(ov);
   });
@@ -5106,7 +5134,7 @@ function pintarPagoModal(ov){
   const nc=$('#nuevoCliRapido',ov); if(nc) nc.onclick=()=>formCliente(null,c=>{clienteFiado=c.id;abrirModalPago();});
   const bc=$('#cobrar',ov); if(bc) bc.onclick=()=>cerrarVenta('efectivo');
   const ba=$('#anotar',ov); if(ba) ba.onclick=()=>cerrarVenta('fiado');
-  const be=$('#cobrarElec',ov); if(be) be.onclick=()=>cerrarVenta(pago);
+  const be=$('#cobrarElec',ov); if(be) be.onclick=()=>pago==='transferencia'?mpConfirmarCobroManual():cerrarVenta(pago);
   if(pago==='mixto') pintarMixtoFilas(t,ov);
   const bm=$('#cobrarMixto',ov); if(bm) bm.onclick=()=>cerrarVenta('mixto');
   const ma=$('#mixtoAgregar',ov); if(ma) ma.onclick=()=>{ pagoMixto.push({forma:'transferencia',monto:''}); pintarPagoModal(ov); };
@@ -5861,7 +5889,7 @@ function formProducto(id,pre={},luego){
         <h4 id="tituloTamanos">Tamaños fijos <small>(opcional)</small></h4>
         <div class="peso-resumen" id="resumenTamanos" hidden>
           <span id="textoTamanos"></span>
-          <button type="button" class="btn ghost sm" id="editarTamanos" aria-controls="editarTamanosPanel">Editar</button>
+          <div class="row" style="gap:8px;flex-shrink:0"><button type="button" class="btn ghost sm" id="sumarTamanos" aria-label="Agregar presentación" title="Agregar presentación" aria-controls="editarTamanosPanel">${ic('mas')}</button><button type="button" class="btn ghost sm" id="editarTamanos" aria-controls="editarTamanosPanel">Editar</button></div>
         </div>
         <div id="editarTamanosPanel">
           <p class="hint">Vendé porciones con precio propio. Descuentan del mismo stock en kg.</p>
@@ -5947,6 +5975,7 @@ function formProducto(id,pre={},luego){
       const guardadas=v.preciosPorPeso||[];
       guardadas.forEach(x=>agregarFilaPeso({...x,nombre:nombrePresentacionPeso(v,x)}));
       agregarPeso.onclick=()=>agregarFilaPeso({},'nombre');
+      $('#sumarTamanos',ov).onclick=()=>agregarFilaPeso({},'nombre');
       $$('[data-tamano-gramos]',editorPeso).forEach(boton=>boton.onclick=()=>{
         const gramos=Number(boton.dataset.tamanoGramos);
         const nombre=$('#f_nom',ov).value.trim();
@@ -11869,6 +11898,7 @@ function vConfig(m){
   <div class="card config-card" id="cf-caja" style="margin-bottom:16px">
     <div class="card-h"><h2>Caja</h2></div>
     <div class="card-b">
+      <div class="fila-config"><label for="cfgVerificarCobrosMP"><b>Verificar cobros con Mercado Pago</b><span class="sub-config">Apagado: tocar Transferencia/QR confirma la venta. Encendido: verificás el pago o generás un QR.</span></label><input type="checkbox" role="switch" id="cfgVerificarCobrosMP" ${db.config.verificarCobrosMP===true?'checked':''}></div>
       <fieldset class="cash-mode-options"><legend>¿Cómo manejás el efectivo?</legend>${f57OpcionesModoCajaHTML(db.config)}</fieldset>
       <div class="fila-config config-caja-turnos">
         <div><b>¿Manejás la caja por turnos?</b><span class="sub-config">Si está activado, hay que abrir un turno antes de vender.</span></div>
@@ -11987,6 +12017,7 @@ function vConfig(m){
     if(contexto!==contextoConfiguracionUX()||vista!=='config'||!$('#cf-datos',m))return;
     const bloqueado=estadoAjuste.guardando||!!estadoAjuste.pendiente||estadoAjuste.datosGuardando;
     $$('#cf-datos input,#cf-datos button,#cf-caja input,#cf-caja button,#cf-funciones button',m).forEach(e=>e.disabled=bloqueado);const actual=$('#okCfg',m);actual.disabled=bloqueado;actual.textContent=estadoAjuste.datosGuardando?'Guardando...':'Guardar datos del comercio';
+    $('#cfgVerificarCobrosMP',m).checked=estadoAjuste.pendiente?.cambios?.verificarCobrosMP??(db.config.verificarCobrosMP===true);
     $('#cfgGuardadoPendiente',m).hidden=!estadoAjuste.pendiente||estadoAjuste.guardando;$('#cfgReintentarGuardado',m).disabled=estadoAjuste.guardando;
     $$('[data-mod]',m).forEach(b=>b.setAttribute('aria-checked',String(b.dataset.mod==='manejaTurnos'?db.config[b.dataset.mod]===true:db.config[b.dataset.mod]!==false)));
     $$('input[name="modoCaja"]',m).forEach(r=>{r.checked=r.value===f57ModoCaja(db.config);r.closest('.cash-mode-option').classList.toggle('selected',r.checked);});
@@ -12003,6 +12034,7 @@ function vConfig(m){
     finally{estadoAjuste.guardando=false;if(vista==='config')actualizarAjustes();}
   };
   $('#cfgReintentarGuardado',m).onclick=()=>guardarAjuste(null);actualizarAjustes();
+  $('#cfgVerificarCobrosMP',m).onchange=e=>{if(esDuenio())void guardarAjuste({verificarCobrosMP:e.target.checked},'cfgCajaEstado','Preferencia de cobro guardada.');};
   const abrirCrearEmpleado=$('#f5AbrirCrearEmpleado'),panelCrearEmpleado=$('#f5CrearEmpleadoPanel');
   const mostrarCrearEmpleado=mostrar=>{
     panelCrearEmpleado.hidden=!mostrar;abrirCrearEmpleado.hidden=mostrar;
@@ -14434,7 +14466,7 @@ function f34ProductLocal(p){return {legacy_id:f34Str(p.id),ean:f34Str(p.ean),nom
 function f34ClientLocal(c){return {legacy_id:f34Str(c.id),nombre:f34Str(c.nombre),telefono:f34Str(c.tel||c.telefono),alta_at:f34Date(c.alta)};}
 function f34ComboLocal(c){return {legacy_id:f34Str(c.id),nombre:f34Str(c.nombre),precio:f34Round(c.precio,2),activo:c.activo!==false,items:f34Sort((c.items||[]).map(i=>({producto_legacy_id:f34Str(i.prodId),cantidad:f34Round(i.cant||1,3)})),x=>`${x.producto_legacy_id}:${x.cantidad}`)};}
 function f34PromoLocal(p){const regla=p.tipo==='producto'?reglaPromoCantidad(p.modalidad):null;return {legacy_id:f34Str(p.id),tipo:f34Str(p.tipo),producto_legacy_id:p.tipo==='producto'?f34Null(p.objetivoId):null,objetivo_texto:p.tipo==='producto'?(regla?regla.texto:''):f34Str(p.objetivoId),porcentaje:regla?0:f34Round(p.porcentaje,3),desde:f34Day(p.desde),hasta:f34Day(p.hasta),activa:p.activa!==false};}
-function f34ConfigLocal(c){return {fondo_caja:f34Round(c.fondoCaja,2),fondo_caja_cigarros:f34Round(c.fondoCajaCigarros,2),whatsapp_dueno:f34Str(c.whatsappDueno),dias_aviso_vence:Math.trunc(f34Num(c.diasAvisoVence,7)),dias_plazo_fiado:Math.trunc(f34Num(c.diasPlazoFiado,30)),recargo_fiado_pct:f34Round(c.recargoFiadoPct??10,3),modulo_fiado:c.moduloFiado!==false,modulo_vencimientos:c.moduloVencimientos!==false,modulo_cigarros:c.moduloCigarros!==false,separa_cigarrillos_al_cierre:c.separaCigarrillosAlCierre===true,maneja_turnos:c.manejaTurnos===true,aviso_turno_horas:Math.trunc(f34Num(c.avisoTurnoHoras,8)),motivos_egreso_extra:[...(c.motivosEgresoExtra||[])]};}
+function f34ConfigLocal(c){return {fondo_caja:f34Round(c.fondoCaja,2),fondo_caja_cigarros:f34Round(c.fondoCajaCigarros,2),whatsapp_dueno:f34Str(c.whatsappDueno),dias_aviso_vence:Math.trunc(f34Num(c.diasAvisoVence,7)),dias_plazo_fiado:Math.trunc(f34Num(c.diasPlazoFiado,30)),recargo_fiado_pct:f34Round(c.recargoFiadoPct??10,3),modulo_fiado:c.moduloFiado!==false,modulo_vencimientos:c.moduloVencimientos!==false,modulo_cigarros:c.moduloCigarros!==false,separa_cigarrillos_al_cierre:c.separaCigarrillosAlCierre===true,maneja_turnos:c.manejaTurnos===true,verificar_cobros_mp:c.verificarCobrosMP===true,aviso_turno_horas:Math.trunc(f34Num(c.avisoTurnoHoras,8)),motivos_egreso_extra:[...(c.motivosEgresoExtra||[])]};}
 function f34SaleItemLocal(i){const base={legacy_line_id:f34Str(i.lineId||''),tipo:i.tipo==='combo'?'combo':'producto',nombre:f34Str(i.nombre),cantidad:f34Round(i.cant,3),precio_unitario:f34Round(i.precio,2),costo_unitario:f34Round(i.costo,4),bruto:f34Round(i.bruto,2),neto:f34Round(i.neto,2)};if(base.tipo==='producto')return {...base,producto_legacy_id:f34Str(i.prodId),combo_legacy_id:null,rubro:f34Str(i.rubro),promo_pct:i.promoPct==null?null:f34Round(i.promoPct,3),componentes:[]};return {...base,producto_legacy_id:null,combo_legacy_id:f34Str(i.comboId),rubro:'',promo_pct:i.promoPct==null?null:f34Round(i.promoPct,3),componentes:f34Sort((i.componentes||[]).map(c=>({producto_legacy_id:f34Str(c.prodId),nombre:f34Str(c.nombre),cantidad_por_combo:f34Round(c.cant,3),costo_unitario_snapshot:f34Round(c.costo,4)})),x=>`${x.producto_legacy_id}:${x.cantidad_por_combo}`)};}
 function f34SaleLocal(v){let pagos=v.pagos;if(!Array.isArray(pagos)||!pagos.length)pagos=[{forma:v.forma,monto:v.total}];return {legacy_id:f34Str(v.id),ticket_seq:Math.trunc(f34Num(v.nro)),cliente_legacy_id:f34Null(v.clienteId),occurred_at:f34Date(v.fecha),subtotal:f34Round(v.subtotal,2),descuento_manual:f34Round(v.descuento,2),descuento_detalle:f34Stable(v.descuentoDetalle||null),promo_auto:f34Round(v.promoAuto,2),promo_auto_detalle:f34Stable(v.promoAutoDetalle||[]),promo_pago:f34Round(v.promoPago,2),promo_pago_detalle:f34Stable(v.promoPagoDetalle||null),total:f34Round(v.total,2),forma:f34Forma(v.forma),recibido:f34Round(v.recibido,2),vuelto:f34Round(v.vuelto,2),monto_fiado:f34Round(v.montoFiado,2),plazo_fiado_dias:v.plazoFiadoDias==null?null:Math.trunc(f34Num(v.plazoFiadoDias)),vence_fiado:f34Day(v.venceFiado),items:f34Sort((v.items||[]).map(f34SaleItemLocal),x=>x.legacy_line_id||`${x.tipo}:${x.producto_legacy_id||x.combo_legacy_id}`),pagos:f34Sort(pagos.map(p=>({forma:f34Forma(p.forma),monto:f34Round(p.monto,2)})),x=>`${x.forma}:${x.monto}`)};}
 function f34PagoLocal(p){return {legacy_id:f34Str(p.id),cliente_legacy_id:f34Str(p.clienteId),monto:f34Round(p.monto,2),forma:f34Forma(p.forma),nota:f34Str(p.nota),occurred_at:f34Date(p.fecha)};}
@@ -14546,7 +14578,7 @@ async function f34ActualMaster(spec){const row=await f34One(spec.table,spec.id);
   if(spec.table==='promociones')return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),tipo:f34Str(row.tipo),producto_legacy_id:row.tipo==='producto'?await f34LegacyOne('productos',row.producto_id):null,objetivo_texto:row.tipo==='producto'?(reglaPromoCantidad(row.objetivo_texto)?.texto||''):f34Str(row.objetivo_texto),porcentaje:f34Round(row.porcentaje,3),desde:f34Day(row.desde),hasta:f34Day(row.hasta),activa:row.activa!==false};
   return null;
 }
-async function f34ActualConfig(){const r=await sb.from('comercio_configuracion').select('*').eq('comercio_id',f3Estado.comercioId).limit(1);f34QueryError(r,'F34_FETCH_CONFIG');const row=(r.data||[])[0];if(!row)return null;return {fondo_caja:f34Round(row.fondo_caja,2),fondo_caja_cigarros:f34Round(row.fondo_caja_cigarros,2),whatsapp_dueno:f34Str(row.whatsapp_dueno),dias_aviso_vence:Math.trunc(f34Num(row.dias_aviso_vence,7)),dias_plazo_fiado:Math.trunc(f34Num(row.dias_plazo_fiado,30)),recargo_fiado_pct:f34Round(row.recargo_fiado_pct??10,3),modulo_fiado:row.modulo_fiado!==false,modulo_vencimientos:row.modulo_vencimientos!==false,modulo_cigarros:row.modulo_cigarros!==false,separa_cigarrillos_al_cierre:row.separa_cigarrillos_al_cierre===true,maneja_turnos:row.maneja_turnos===true,aviso_turno_horas:Math.trunc(f34Num(row.aviso_turno_horas,8)),motivos_egreso_extra:[...(row.motivos_egreso_extra||[])]};}
+async function f34ActualConfig(){const r=await sb.from('comercio_configuracion').select('*').eq('comercio_id',f3Estado.comercioId).limit(1);f34QueryError(r,'F34_FETCH_CONFIG');const row=(r.data||[])[0];if(!row)return null;return {fondo_caja:f34Round(row.fondo_caja,2),fondo_caja_cigarros:f34Round(row.fondo_caja_cigarros,2),whatsapp_dueno:f34Str(row.whatsapp_dueno),dias_aviso_vence:Math.trunc(f34Num(row.dias_aviso_vence,7)),dias_plazo_fiado:Math.trunc(f34Num(row.dias_plazo_fiado,30)),recargo_fiado_pct:f34Round(row.recargo_fiado_pct??10,3),modulo_fiado:row.modulo_fiado!==false,modulo_vencimientos:row.modulo_vencimientos!==false,modulo_cigarros:row.modulo_cigarros!==false,separa_cigarrillos_al_cierre:row.separa_cigarrillos_al_cierre===true,maneja_turnos:row.maneja_turnos===true,verificar_cobros_mp:row.verificar_cobros_mp===true,aviso_turno_horas:Math.trunc(f34Num(row.aviso_turno_horas,8)),motivos_egreso_extra:[...(row.motivos_egreso_extra||[])]};}
 async function f34ActualVenta(spec){const row=await f34One('ventas',spec.id);if(!row)return null;const items=await f34Many('venta_items','venta_id',[row.id]);const itemIds=items.map(x=>x.id);const comps=await f34Many('venta_item_componentes','venta_item_id',itemIds);const pagos=await f34Many('venta_pagos','venta_id',[row.id]);const pm=await f34LegacyMap('productos',[...items.map(x=>x.producto_id),...comps.map(x=>x.producto_id)]);const cm=await f34LegacyMap('combos',items.map(x=>x.combo_id));const cliente=await f34LegacyOne('clientes',row.cliente_id);
   const normItems=items.map(i=>{const base={legacy_line_id:f34Str(i.legacy_line_id||''),tipo:i.tipo==='combo'?'combo':'producto',nombre:f34Str(i.nombre_snapshot),cantidad:f34Round(i.cantidad,3),precio_unitario:f34Round(i.precio_unitario,2),costo_unitario:f34Round(i.costo_unitario,4),bruto:f34Round(i.bruto,2),neto:f34Round(i.neto,2)};if(base.tipo==='producto')return {...base,producto_legacy_id:pm.get(String(i.producto_id))||`v4:${i.producto_id}`,combo_legacy_id:null,rubro:f34Str(i.rubro_snapshot),promo_pct:i.promo_pct==null?null:f34Round(i.promo_pct,3),componentes:[]};const cs=comps.filter(c=>String(c.venta_item_id)===String(i.id));return {...base,producto_legacy_id:null,combo_legacy_id:cm.get(String(i.combo_id))||`v4:${i.combo_id}`,rubro:'',promo_pct:i.promo_pct==null?null:f34Round(i.promo_pct,3),componentes:f34Sort(cs.map(c=>({producto_legacy_id:pm.get(String(c.producto_id))||`v4:${c.producto_id}`,nombre:f34Str(c.nombre_snapshot),cantidad_por_combo:f34Round(c.cantidad_por_combo,3),costo_unitario_snapshot:f34Round(c.costo_unitario_snapshot,4)})),x=>`${x.producto_legacy_id}:${x.cantidad_por_combo}`)};});
   return {legacy_id:f34Str(row.legacy_id==null?`v4:${row.id}`:row.legacy_id),ticket_seq:Math.trunc(f34Num(row.ticket_seq)),cliente_legacy_id:cliente,occurred_at:f34Date(row.occurred_at_device),subtotal:f34Round(row.subtotal,2),descuento_manual:f34Round(row.descuento_manual,2),descuento_detalle:f34Stable(row.descuento_detalle||null),promo_auto:f34Round(row.promo_auto,2),promo_auto_detalle:f34Stable(row.promo_auto_detalle||[]),promo_pago:f34Round(row.promo_pago,2),promo_pago_detalle:f34Stable(row.promo_pago_detalle||null),total:f34Round(row.total,2),forma:f34Str(row.forma),recibido:f34Round(row.recibido,2),vuelto:f34Round(row.vuelto,2),monto_fiado:f34Round(row.monto_fiado,2),plazo_fiado_dias:row.plazo_fiado_dias==null?null:Math.trunc(f34Num(row.plazo_fiado_dias)),vence_fiado:f34Day(row.vence_fiado),items:f34Sort(normItems,x=>x.legacy_line_id||`${x.tipo}:${x.producto_legacy_id||x.combo_legacy_id}`),pagos:f34Sort(pagos.map(p=>({forma:f34Str(p.forma),monto:f34Round(p.monto,2)})),x=>`${x.forma}:${x.monto}`)};

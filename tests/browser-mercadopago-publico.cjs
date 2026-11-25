@@ -1,7 +1,7 @@
 'use strict';
 process.env.PW||='C:/Users/valen/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright';process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');const {openShadow}=require('./browser-fixture/shadow.cjs');
-async function main(){const width=Number(process.env.WIDTH)||1366,h=await openShadow({width,height:900}),p=h.page;let configured=false,accounts=[],starts=0;const requests=[];
+async function main(){const width=Number(process.env.WIDTH)||1366,h=await openShadow({cobroConectado:true,width,height:900}),p=h.page;let configured=false,accounts=[],starts=0;const requests=[];
  await p.route('**/functions/v1/mercadopago',async r=>{const b=r.request().postDataJSON();requests.push(b);if(b.action==='accounts')return r.fulfill({json:{configured,accounts,capabilities:{transferVerification:false}}});if(b.action==='oauth-start'){starts++;return r.fulfill({json:{url:'https://auth.mercadopago.com/authorization?client_id=synthetic&state=synthetic'}});}throw Error('Unexpected MP action');});
  try{await p.evaluate(()=>{mpPublico=()=>true;});const config=async result=>{await p.evaluate(result=>{document.querySelectorAll('.ov').forEach(e=>e.remove());history.replaceState(null,'','/beta/'+(result?'?mercadopago='+result:''));vista='config';render();},result);await p.waitForSelector('#mpCuentasEstado:not(:has-text("Consultando"))');};
  await config();assert.equal(await p.locator('#mpPrepararConexion').isVisible(),false,'el usuario no recibe instrucciones para crear una aplicación');assert.match(await p.locator('#mpCuentasEstado').innerText(),/pendiente de activación/);assert.equal(starts,0);

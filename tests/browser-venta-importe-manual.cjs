@@ -1,0 +1,73 @@
+'use strict';
+process.env.PW||='C:/Users/valen/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright';
+process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {openShadow,abrirTurno}=require('./browser-fixture/shadow.cjs');
+(async()=>{
+  const width=Number(process.env.WIDTH)||1366,h=await openShadow({width,height:950}),p=h.page;let cuentas=0,hayCuenta=true;
+  await p.route(/\/(?:api|functions\/v1)\/mercadopago$/,async route=>{
+    const b=route.request().postDataJSON();
+    if(b.action==='accounts'){cuentas++;return route.fulfill({json:{configured:true,capabilities:{transferVerification:true,newPayments:true},accounts:hayCuenta?[{id:'a',alias:'Principal',primary:true,posId:'POS'}]:[]}});}
+    if(b.action==='sale-receipts')return route.fulfill({json:{receipts:[]}});
+    if(b.action==='qr-cancel')return route.fulfill({json:{attempt:{status:'canceled'}}});
+    throw Error('No debe iniciar cobros: '+b.action);
+  });
+  try{
+    await abrirTurno(p);
+    await p.evaluate(()=>{db.config.verificarCobrosMP=false;db.productos=[{id:'pan',nombre:'Pan',unidad:'kg',precio:3000,costo:1800,stock:5,stockMin:1},{id:'otro',nombre:'Otro producto',ean:'00002004',unidad:'unidad',precio:500,costo:100,stock:10}];vista='vender';ticket=[];render();});
+    await p.fill('#scan','pan');await p.press('#scan','Enter');
+    await p.getByRole('button',{name:'Por monto',exact:true}).click();
+    await p.fill('#pesoMonto','00002004');await p.press('#pesoMonto','Enter');
+    assert.equal(await p.evaluate(()=>ticket.length),0,'El escaneo no se convierte en dinero');
+    assert.match(await p.locator('#pesoSub').innerText(),/código/i);
+    await p.fill('#pesoMonto','abc');assert.equal(await p.locator('#okPeso').isDisabled(),true);
+    await p.press('#pesoMonto','Enter');assert.equal(await p.evaluate(()=>ticket.length),0);
+    await p.fill('#pesoMonto','2.000');assert.match(await p.locator('#pesoSub').innerText(),/667 g/);
+    if(process.env.UX_OUTPUT_DIR){fs.mkdirSync(process.env.UX_OUTPUT_DIR,{recursive:true});await p.screenshot({path:path.join(process.env.UX_OUTPUT_DIR,`importe-${width}.png`)});}
+    await p.press('#pesoMonto','Enter');
+    assert.deepEqual(await p.evaluate(()=>({kg:ticket[0].cant,total:totalTicket(),stock:db.productos[0].stock,costo:buildVentaItem(ticket[0]).costo})),{kg:.667,total:2000,stock:5,costo:1800});
+    await p.evaluate(()=>{pago='transferencia';abrirModalPago();});
+    assert.equal(await p.locator('#cobrarElec').isVisible(),true,'El cobro manual es directo');
+    assert.equal(await p.locator('#mpCuenta').count(),0);assert.equal(cuentas,0,'No consulta cuentas para cobrar manualmente');
+    await p.evaluate(()=>{pago='efectivo';pintarPagoModal(document.querySelector('#ov'));});
+    await p.locator('[data-p="transferencia"]').click();
+    await p.waitForFunction(()=>db.ventas.length===1);
+    assert.deepEqual(await p.evaluate(()=>({forma:db.ventas[0].forma,total:db.ventas[0].total,kg:db.ventas[0].items[0].cant,stock:db.productos[0].stock,estado:db.ventas[0].mpCobro?.estado})),{forma:'transferencia',total:2000,kg:.667,stock:4.333,estado:'manual'});
+    await p.waitForSelector('#impr');
+    await p.getByRole('button',{name:'Listo',exact:true}).click();
+    await p.evaluate(()=>{seleccionarProducto(db.productos[1]);pago='efectivo';abrirModalPago();window.__guardarImporte=guardar;guardar=(...args)=>{if(!window.__falloImporte)return window.__guardarImporte(...args);const p=Promise.reject(Error('FALLO_LOCAL_PRUEBA'));p.reintentar=()=>window.__guardarImporte(...args);return p;};window.__falloImporte=true;});
+    await p.locator('[data-p="transferencia"]').click();
+    await p.waitForFunction(()=>db.ventas.length===2&&!ventaEnProceso);
+    await p.evaluate(()=>{window.__falloImporte=false;});
+    await p.locator('[data-p="transferencia"]').click();
+    await p.waitForSelector('#impr');
+    assert.equal(await p.evaluate(()=>db.ventas.length),2,'Reintentar el guardado no duplica la venta');
+    assert.equal(await p.evaluate(()=>db.productos[1].stock),9,'El stock se descuenta una sola vez');
+    await p.evaluate(()=>{guardar=window.__guardarImporte;});
+    await p.getByRole('button',{name:'Listo',exact:true}).click();
+    await p.evaluate(()=>{cerrarModal();vista='config';render();});
+    await p.waitForSelector('#cfgVerificarCobrosMP');
+    assert.equal(await p.locator('#cfgVerificarCobrosMP').isChecked(),false);
+    await p.locator('#cfgVerificarCobrosMP').check();
+    await p.waitForFunction(()=>db.config.verificarCobrosMP===true);
+    await p.waitForFunction(async()=>(await leerLocalIdb()).db.config.verificarCobrosMP===true);
+    await p.evaluate(()=>{vista='vender';render();seleccionarProducto(db.productos[0]);});
+    await p.fill('#pesoG','250');await p.click('#okPeso');
+    await p.evaluate(()=>{pago='transferencia';abrirModalPago();});
+    await p.waitForSelector('#mpCuenta option[value="a"]',{state:'attached'});
+    assert.equal(await p.locator('#mpGenerarQR').isVisible(),true);
+    await p.evaluate(()=>{cerrarModal();db.config.verificarCobrosMP=false;mpGuardarPendiente({saleId:'p',stage:'prepared',scope:mpScope(),snapshot:mpSnapshot(),accountId:'a'});});
+    assert.equal(await p.evaluate(()=>mpCobroConectado()),true,'El cambio a manual no oculta un pendiente');
+    await p.evaluate(()=>{mpBorrarPendiente();ticket=[];vista='config';render();});
+    await p.locator('#cfgVerificarCobrosMP').uncheck();
+    hayCuenta=false;
+    await p.evaluate(()=>{vista='config';render();});
+    await p.waitForFunction(()=>document.querySelector('#mpCuentasEstado')?.textContent.includes('cuenta')||document.querySelector('#mpCuentasLista')?.children.length===0);
+    await p.evaluate(()=>{db.config.verificarCobrosMP=true;vista='vender';render();seleccionarProducto(db.productos[0]);});
+    await p.fill('#pesoG','100');await p.click('#okPeso');await p.evaluate(()=>{pago='transferencia';abrirModalPago();});
+    await p.waitForSelector('#cobrarElec');assert.equal(await p.locator('#mpCuenta').count(),0,'Sin cuenta vuelve al cobro manual');
+    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+    assert.deepEqual(h.errors.filter(x=>x.startsWith('pageerror')),[]);
+    console.log(JSON.stringify({width,pass:true,importeExacto:true,transferenciaManual:true,preferencia:true,ventasReales:0}));
+  }finally{await h.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

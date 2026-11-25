@@ -3,7 +3,7 @@ process.env.PW||='C:/Users/valen/.cache/codex-runtimes/codex-primary-runtime/dep
 process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
 const assert=require('node:assert/strict');const {openShadow,abrirTurno}=require('./browser-fixture/shadow.cjs');
 async function main(){
- const width=Number(process.env.WIDTH)||1366,h=await openShadow({width,height:900}),p=h.page;let checks=0,creates=0;
+ const width=Number(process.env.WIDTH)||1366,h=await openShadow({cobroConectado:true,width,height:900}),p=h.page;let checks=0,creates=0;
  await p.route(/\/(?:api|functions\/v1)\/mercadopago(?:\?.*)?$/,async route=>{
   const b=route.request().postDataJSON();
   if(b.action==='accounts')return route.fulfill({status:503,json:{code:'CONEXION_NO_DISPONIBLE'}});

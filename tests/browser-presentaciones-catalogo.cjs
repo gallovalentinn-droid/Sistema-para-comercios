@@ -5,7 +5,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {openShadow,abrirTurno}=require('./browser-fixture/shadow.cjs');
 
 async function main(){
-  const width=Number(process.env.WIDTH)||1366,theme=process.env.THEME||'oscuro',h=await openShadow({width,height:900}),p=h.page;
+  const width=Number(process.env.WIDTH)||1366,theme=process.env.THEME||'oscuro',h=await openShadow({cobroConectado:true,width,height:900}),p=h.page;
   let releaseAccounts,accountCalls=0,creates=0,accountMode='enabled';
   const gate=new Promise(r=>releaseAccounts=r);
   await p.route(/\/(?:api|functions\/v1)\/mercadopago$/,async route=>{

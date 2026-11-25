@@ -17,6 +17,7 @@ async function openShadow(opts={}){
   f5ReemplazarEstado(st);window.__ops=ops;
   assertWritable=()=>({ok:true,causas:[]});
   enLinea=false;
+  if(o.cobroConectado===true)db.config.verificarCobrosMP=true;
   if(!o.conPin) f6AsegurarProteccionDispositivo=async()=>{interfazProtegida=false;};
   await mostrarApp();
  },opts);

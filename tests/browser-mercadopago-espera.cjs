@@ -3,7 +3,7 @@ process.env.PW||='C:/Users/valen/.cache/codex-runtimes/codex-primary-runtime/dep
 process.env.CHROME||='C:/Program Files/Google/Chrome/Application/chrome.exe';
 const assert=require('node:assert/strict');const {openShadow,abrirTurno}=require('./browser-fixture/shadow.cjs');
 async function main(){
- const width=Number(process.env.WIDTH)||1366,h=await openShadow({width,height:900}),p=h.page;let checks=0,release,receipt=null;
+ const width=Number(process.env.WIDTH)||1366,h=await openShadow({cobroConectado:true,width,height:900}),p=h.page;let checks=0,release,receipt=null;
  const hold=new Promise(r=>release=r);
  await p.route(/\/(?:api|functions\/v1)\/mercadopago(?:\?.*)?$/,async route=>{
   const b=route.request().postDataJSON();

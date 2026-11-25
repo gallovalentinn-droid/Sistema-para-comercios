@@ -10,5 +10,6 @@ if(fs.existsSync(path.join(root,'LEEME-REV84.md')))m.files['LEEME-REV84.md']='';
 m.files['REV109-VENTA-POR-PESO.sql']='';
 m.files['supabase/migrations/20261124134951_presentaciones_mismo_peso.sql']='';
 for(const file of ['supabase/functions/_shared/mp-core.mjs','supabase/functions/_shared/mp-store.mjs','supabase/functions/mercadopago/index.ts','supabase/functions/mercadopago-callback/index.ts','supabase/migrations/20261115184112_mercadopago_publico.sql','tools/mercadopago/copiar-clave-cifrado.ps1'])m.files[file]='';
+m.files['supabase/migrations/20261125032029_cobro_transferencia_configurable.sql']='';
 for(const file of Object.keys(m.files))m.files[file]=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex');
 fs.writeFileSync(p,JSON.stringify(m,null,2)+'\n');

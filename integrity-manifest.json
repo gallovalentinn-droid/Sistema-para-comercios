@@ -2,13 +2,13 @@
   "version": "6.0.0-f6-rc2",
   "packageRevision": 109,
   "algorithm": "sha256",
-  "generatedAt": "2026-11-24-presentaciones-mismo-peso-local-r7",
+  "generatedAt": "2026-11-25-venta-importe-cobro-manual-local-r10",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "fdc753d4ee658efd9d632d7983b1ef75c607eec45201afbf2bfe1b776c747776",
+    "beta/index.html": "c7b17fb1dca5d80052a449d90fd03f54bbc294b25f3f493fc1212517d121503a",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "026d08868d4a54d36d9728e87386fecf08d6810bca0902c9bc8603241d457cfd",
+    "beta/sw.js": "87b5e2ef6a7516d964da1a4eed737b558e5e70ad715c72112c8ed3edc10eeb36",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -35,11 +35,11 @@
     "REV84-LECTOR-MEMORIA.sql": "44ca468e4ce851d0ba1559641d0d7da63d3ac19d1ba6b0d47caf8386f4804c4d",
     "REV84-LECTOR-CUPO.sql": "eb0f6bc52a5b3988ccd78c65b0b547efc9207c3ddec16e61bae76f1ec5bb7e2a",
     "supabase/functions/_shared/f6-invoice-review.mjs": "c6bb73ff5600cce6c76290726d6fb787eb8bd208983e591d16600cd67887252e",
-    "tools/actualizar-integridad.cjs": "e11790c9749936b8a200049904b3392e0efae39907d861907dd1fc59511f7b55",
+    "tools/actualizar-integridad.cjs": "a8bb5b731adda5cca9021b5b2453163173d2fd553419a6f3027e1b3eb30b314c",
     "LEEME-REV84.md": "864e83b352e09d28e2dafea11b502b8e7ce976837e410f8436fe4a7993c310ca",
     "REV95-LECTOR-RESPALDO.sql": "5330d92fac2be4707d4492077f1987d88c3f83565fb6a228f7645543d1e93a70",
     "REV95-LECTOR-REINTENTO.sql": "09645d4faeb2a09db1ee9eed8e3f70e0bb81f9f568395988625d410aaed5096a",
-    "beta/mercadopago.js": "88f0e77bbf9de08a32ec424fbb9fc195c4e8daca178a7fa880cd71c8990a2b83",
+    "beta/mercadopago.js": "c9e46c6404e0a6353c5f020e3118225b425574c7d7cec9f8128f46c43582071f",
     "beta/vendor/qrcode-generator-2.0.4.js": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c",
     "beta/vendor/LICENSE-qrcode-generator-2.0.4.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
     "tools/mercadopago/core.cjs": "b42b889790c2d32dd635bc54bf008c38f6240158a6e3fc3096c9fdc7e5b0b8ea",
@@ -52,7 +52,8 @@
     "tools/mercadopago/copiar-clave-cifrado.ps1": "3fb8061d04406dfe20f2071abfea09123b53d5d1678445cd83df219923f7d1a6",
     "REV108-FIADO-ANULAR.sql": "c692c3467403a924769d4240bc7dd0fb7f3a1d079a004ee7e0996f5f947938a6",
     "REV109-VENTA-POR-PESO.sql": "3cfcd1e8845ea951c5149689432fb110ed31a1f0fef12ae64df20773a441aab1",
-    "supabase/migrations/20261124134951_presentaciones_mismo_peso.sql": "631b55bd72d40fea5eeeb603730dfdcd5aa5a40087af7d7c3e352277735d1661"
+    "supabase/migrations/20261124134951_presentaciones_mismo_peso.sql": "631b55bd72d40fea5eeeb603730dfdcd5aa5a40087af7d7c3e352277735d1661",
+    "supabase/migrations/20261125032029_cobro_transferencia_configurable.sql": "31cd874fa33e95a61a6363863722fd52886bf9bb7c78d89b2e95caaaa89eb849"
   },
-  "packageEdition": "2026-11-24-presentaciones-mismo-peso-local-r7"
+  "packageEdition": "2026-11-25-venta-importe-cobro-manual-local-r10"
 }
