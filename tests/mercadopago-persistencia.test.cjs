@@ -30,5 +30,26 @@ test('cerrar pago anterior conserva el borrador nuevo aunque falle el guardado y
  assert.equal(c.ticket[0].id,'new');assert.equal(c.ticket[0].cant,2);assert.equal(c.db.ventas.length,1);assert.equal(c.db.productos[0].stock,9);
  await vm.runInContext('mpTerminarCobro()',c);assert.equal(c.ticket[0].id,'new');assert.equal(c.ticket[0].cant,2);assert.equal(c.db.ventas.length,1);assert.equal(c.db.productos[0].stock,9);assert.equal(saves(),2);assert.equal(vm.runInContext('mpLeerPendiente()',c),null);
 });
+test('transferencia manual que no se guardó no deja pendiente ni bloquea otro medio',async()=>{
+ const {c}=setup();c.document={querySelector:()=>null};c.estadoTurnoRev31=()=>({requiereApertura:true});
+ assert.equal(await vm.runInContext('mpConfirmarCobroManual()',c),false);
+ assert.equal(vm.runInContext('mpLeerPendiente()',c),null);assert.equal(vm.runInContext('mpBloqueaCobro()',c),false);
+ assert.equal(c.db.ventas.length,0);assert.equal(c.db.productos[0].stock,10);
+ c.estadoTurnoRev31=()=>({requiereApertura:false});
+ assert.equal(await vm.runInContext('mpConfirmarCobroManual()',c),true);assert.equal(c.db.ventas.length,1);assert.equal(c.db.productos[0].stock,9);
+});
+test('cancelar descarta una transferencia manual local que nunca se registró',async()=>{
+ const {c}=setup();c.document={querySelector:()=>null};
+ await vm.runInContext(`(async()=>{const snapshot=mpSnapshot();mpGuardarPendiente({saleId:'sale',snapshot,fingerprint:await mpFingerprint(snapshot),amount:'100.00',stage:'manual',manualDirecto:true,scope:mpScope()});})()`,c);
+ assert.equal(await vm.runInContext('mpTerminarCobro()',c),'canceled');
+ assert.equal(c.db.ventas.length,0);assert.equal(c.db.productos[0].stock,10);assert.equal(vm.runInContext('mpLeerPendiente()',c),null);
+});
+test('transferencia manual guardada localmente pero sin sincronizar conserva el pendiente y no duplica',async()=>{
+ const {c,saves}=setup({syncFailure:true});c.document={querySelector:()=>null};
+ assert.equal(await vm.runInContext('mpConfirmarCobroManual()',c),false);
+ assert.ok(vm.runInContext('mpLeerPendiente()',c));assert.equal(c.db.ventas.length,1);
+ assert.equal(await vm.runInContext('mpConfirmarCobroManual()',c),true);
+ assert.equal(c.db.ventas.length,1);assert.equal(c.db.productos[0].stock,9);assert.equal(saves(),2);assert.equal(vm.runInContext('mpLeerPendiente()',c),null);
+});
 test('cerrar completa manual remoto cuya respuesta se perdio, sin descartar la venta',async()=>{const {c}=setup();c.document={querySelector:()=>null};await vm.runInContext(`(async()=>{mpRequest=async()=>({attempt:{status:'manual'}});const p=await mpPreparar('a');p.stage='transfer';mpGuardarPendiente(p);await mpTerminarCobro();})()`,c);assert.equal(c.db.ventas.length,1);assert.equal(c.db.ventas[0].mpCobro.estado,'manual');assert.equal(c.db.productos[0].stock,9);assert.equal(vm.runInContext('mpLeerPendiente()',c),null);});
 test('fallo al guardar recibo conserva borrador nuevo y evidencia del cobro anterior',async()=>{const {c}=setup();c.document={querySelector:()=>null};await vm.runInContext(`(async()=>{mpRequest=async()=>({receipt:{paymentId:'1',amountCents:10000}});await mpPreparar('a');ticket=[{id:'new',tipo:'producto',prodId:'p',nombre:'Borrador nuevo',cant:2,precio:100}];localStorage.setItem=()=>{throw Error('DISCO_LLENO');};await mpTerminarCobro();})()`,c);assert.equal(c.ticket[0].id,'new');assert.equal(c.db.ventas.length,0);assert.ok(vm.runInContext('mpLeerPendiente()',c));});

@@ -6,6 +6,8 @@ function mpLeerPendiente(){try{return JSON.parse(localStorage.getItem(mpPendingK
 function mpGuardarPendiente(p){localStorage.setItem(mpPendingKey(),JSON.stringify(p));}
 function mpBorrarPendiente(scope=mpScope()){localStorage.removeItem('micomercio:mp-cobro-v1:'+scope);}
 function mpBloqueaCobro(){return !mpCierreAutorizado&&!!mpLeerPendiente();}
+// Transferencia confirmada a mano que nunca llegó a registrarse: no existe en el servidor ni en ventas locales.
+function mpManualSinRegistrar(p){return !!p?.manualDirecto&&p.stage==='manual'&&!p.receipt&&!db.ventas.some(v=>v.id===p.saleId)&&mpPersistenciaPendiente?.saleId!==p.saleId;}
 function mpCobroConectado(){const p=mpLeerPendiente();return p?.manualDirecto&&p.stage==='manual'?false:!!p||db.config.verificarCobrosMP===true;}
 async function mpConfirmarCobroManual(){
  if(mpOperacionOcupada||mpSolicitaCierre||!ticket.length)return false;
@@ -20,7 +22,13 @@ async function mpConfirmarCobroManual(){
    mpGuardarPendiente(p);
   }
   await mpCompletar(null,p,true);return true;
- }catch{if(scope===mpScope())aviso('No pudimos guardar la venta. Volvé a confirmar el cobro: se conserva la misma venta.','bad');return false;}
+ }catch{
+  if(scope!==mpScope())return false;
+  // Si la venta no se guardó (turno cerrado, producto archivado, ticket cambiado), el aviso ya
+  // explicó el motivo; se descarta el intento para no bloquear otros medios ni registrarlo al cancelar.
+  if(mpManualSinRegistrar(mpLeerPendiente())){mpBorrarPendiente(scope);return false;}
+  aviso('No pudimos guardar la venta. Volvé a confirmar el cobro: se conserva la misma venta.','bad');return false;
+ }
  finally{mpOperacionOcupada=false;mpOperacionActual=null;liberar();}
 }
 function mpPintarCobroManual(root,mensaje=''){
@@ -65,6 +73,7 @@ async function mpTerminarCobro(){
   const panel=document.querySelector('#mpPanel'),state=panel?.querySelector('#mpEstado');mpOperacionOcupada=true;
   panel?.querySelectorAll('button,select').forEach(b=>b.disabled=true);if(state)state.textContent='Cancelando el cobro…';
   try{
+   if(mpManualSinRegistrar(p)){mpBorrarPendiente(scope);pintarPOS();return 'canceled';}
    let receipt=p.receipt;
    if(p.stage!=='manual'&&!receipt&&!db.ventas.some(v=>v.id===p.saleId)){
     const r=await mpRequest('qr-cancel',mpPayload(p));if(scope!==mpScope())return null;receipt=r.receipt;

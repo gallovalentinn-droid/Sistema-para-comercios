@@ -2,13 +2,13 @@
   "version": "6.0.0-f6-rc2",
   "packageRevision": 109,
   "algorithm": "sha256",
-  "generatedAt": "2026-11-25-venta-importe-cobro-manual-local-r11",
+  "generatedAt": "2026-11-25-venta-importe-cobro-manual-local-r12",
   "files": {
     "index.html": "c4bb7779a0f21e2e440ace0d437dd43e2a740c88fa7d57928bad07cbbc41b05a",
     "REV31-MIGRACION.sql": "1669ff5bace77535c9b3f0e1e902a5d5138ce9f8ccd03f87414e257c270af8b5",
-    "beta/index.html": "feee08f4651e4393e018a77f1631ccfb0351e0393e6d81211bcd6e904fba4162",
+    "beta/index.html": "2faf76ada9c338154f0b643d17cdf7cb87586407bd321be101d3533369bc6e7a",
     "REV52-CAJA-TRASPASO.sql": "5d5e1edb0817c51b75c4c5759cf11fb039fbfe2caeaf12bc3b1898442470f9c1",
-    "beta/sw.js": "bcc8dcbb6087a0b7a3c3b8aae1268a3b720a182e82d93579217fc083d6885c70",
+    "beta/sw.js": "9fc31b7ebe7d4e6a16c7469b94c5835898439b36f6848c81046ebcdf84155311",
     "beta/vendor/supabase-js-2.112.3.min.js": "cf529fe8980cbe6f2dd3e3930ecf96352ed3d3d71233b6760e4f927f89b94b9f",
     "beta/vendor/xlsx-0.18.5.full.min.js": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99",
     "beta/vendor/LICENSE-xlsx-0.18.5.txt": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64",
@@ -39,7 +39,7 @@
     "LEEME-REV84.md": "864e83b352e09d28e2dafea11b502b8e7ce976837e410f8436fe4a7993c310ca",
     "REV95-LECTOR-RESPALDO.sql": "5330d92fac2be4707d4492077f1987d88c3f83565fb6a228f7645543d1e93a70",
     "REV95-LECTOR-REINTENTO.sql": "09645d4faeb2a09db1ee9eed8e3f70e0bb81f9f568395988625d410aaed5096a",
-    "beta/mercadopago.js": "78d003bac84f6a38899e48cbb1a3c1c27b530ef220fb7db0c19e072af7a5115d",
+    "beta/mercadopago.js": "943aeafa31808ede144b06793ee0f5770ce6da9fc715ed0f881f4d6a0227b666",
     "beta/vendor/qrcode-generator-2.0.4.js": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c",
     "beta/vendor/LICENSE-qrcode-generator-2.0.4.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
     "tools/mercadopago/core.cjs": "b42b889790c2d32dd635bc54bf008c38f6240158a6e3fc3096c9fdc7e5b0b8ea",
@@ -55,5 +55,5 @@
     "supabase/migrations/20261124134951_presentaciones_mismo_peso.sql": "631b55bd72d40fea5eeeb603730dfdcd5aa5a40087af7d7c3e352277735d1661",
     "supabase/migrations/20261125032029_cobro_transferencia_configurable.sql": "31cd874fa33e95a61a6363863722fd52886bf9bb7c78d89b2e95caaaa89eb849"
   },
-  "packageEdition": "2026-11-25-venta-importe-cobro-manual-local-r11"
+  "packageEdition": "2026-11-25-venta-importe-cobro-manual-local-r12"
 }
