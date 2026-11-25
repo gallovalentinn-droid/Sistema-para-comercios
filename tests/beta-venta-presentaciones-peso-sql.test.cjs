@@ -44,6 +44,43 @@ END
 $test$;
 `;
 
+test('Docker admite Cuarto y Milkshake de 250 g con nombres distintos, sin relajar importes ni permisos',
+  {skip:process.env.PESO_SQL_TEST!=='true'},async()=>{
+    const result=await dockerSql(`
+BEGIN;
+CREATE TEMP TABLE permiso_validador AS SELECT proowner,proacl FROM pg_proc
+  WHERE oid='private.precios_por_peso_validos(jsonb)'::regprocedure;
+${migration('supabase/migrations/20261124134951_presentaciones_mismo_peso.sql')}
+${migration('supabase/migrations/20261124134951_presentaciones_mismo_peso.sql')}
+DO $test$
+DECLARE
+  tamanos jsonb := '[{"nombre":"Cuarto","gramos":250,"precio":8000,"costoEnvase":300},{"nombre":"Milkshake","gramos":250,"precio":6000,"costoEnvase":500}]';
+  comercio uuid := gen_random_uuid(); producto uuid := gen_random_uuid();
+BEGIN
+  IF NOT private.precios_por_peso_validos(tamanos) THEN RAISE EXCEPTION 'Se rechazó el mismo peso con nombres distintos'; END IF;
+  IF private.precios_por_peso_validos(jsonb_set(tamanos,'{1,nombre}','" cuarto "'))
+    OR private.precios_por_peso_validos(jsonb_set(tamanos,'{1,precio}','0'))
+    OR private.precios_por_peso_validos(jsonb_set(tamanos,'{1,costoEnvase}','-1'))
+    OR private.precios_por_peso_validos(jsonb_set(tamanos,'{1,gramos}','0')) THEN
+    RAISE EXCEPTION 'Se relajaron otras restricciones';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_proc p,permiso_validador a WHERE p.oid='private.precios_por_peso_validos(jsonb)'::regprocedure
+      AND (p.proowner IS DISTINCT FROM a.proowner OR p.proacl IS DISTINCT FROM a.proacl)) THEN
+    RAISE EXCEPTION 'La migración cambió dueño o permisos';
+  END IF;
+  INSERT INTO public.comercios(id,nombre) VALUES(comercio,'Prueba mismo peso');
+  INSERT INTO public.productos(id,comercio_id,nombre,unidad,costo,precio,precios_por_peso)
+    VALUES(producto,comercio,'Helado','kg',10000,22000,tamanos);
+  IF (SELECT precios_por_peso FROM public.productos WHERE id=producto) IS DISTINCT FROM tamanos THEN
+    RAISE EXCEPTION 'No se guardaron ambas presentaciones';
+  END IF;
+END $test$;
+ROLLBACK;
+SELECT 'ok';
+`);
+    assert.equal(result,'ok');
+  });
+
 test('Docker instala REV109 por primera vez desde un esquema sin la función ni la columna de tamaños',
   {skip:process.env.PESO_SQL_TEST!=='true'},async()=>{
     const result=await dockerSql(`
@@ -103,6 +140,16 @@ INSERT INTO fixture_peso VALUES (gen_random_uuid(),gen_random_uuid(),gen_random_
 INSERT INTO public.comercios (id,nombre) SELECT comercio_id,'Prueba SQL tamaños' FROM fixture_peso;
 INSERT INTO public.productos (id,comercio_id,nombre,unidad,costo,precio)
   SELECT id,comercio_id,'Helado de prueba','kg',11000,24000 FROM fixture_peso;
+-- Recrear un catálogo que ya usa la ampliación actual. El contrato histórico
+-- se prueba con fixtures compatibles dentro de la transacción; ROLLBACK
+-- conserva exactamente las presentaciones guardadas por el usuario.
+${migration('supabase/migrations/20261124134951_presentaciones_mismo_peso.sql')}
+UPDATE public.productos SET precios_por_peso='[{"nombre":"Cuarto","gramos":250,"precio":8000},{"nombre":"Milkshake","gramos":250,"precio":6000}]'
+  WHERE id=(SELECT id FROM fixture_peso);
+UPDATE public.productos p SET precios_por_peso='[]'::jsonb WHERE EXISTS (
+  SELECT 1 FROM jsonb_array_elements(p.precios_por_peso) item
+  GROUP BY item->'gramos' HAVING count(*)>1
+);
 ${pesos}
 ALTER TABLE public.productos DROP CONSTRAINT productos_precios_por_peso_check;
 INSERT INTO public.productos (id,comercio_id,nombre,unidad,costo,precio,precios_por_peso)

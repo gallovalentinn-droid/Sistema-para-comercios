@@ -1123,7 +1123,7 @@ const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
   packageRevision:109,
-  packageEdition:'2026-11-23-presentaciones-cobro-local-r6',
+  packageEdition:'2026-11-24-presentaciones-mismo-peso-local-r7',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -4452,14 +4452,13 @@ function buscarProductosVenta(q,lim=8){
       if(palabras.every(palabra=>texto.includes(palabra))){
         resultados.push({producto,presentacion});
       }
-      if(resultados.length>=lim) return resultados;
     }
     if(coincideBase){
       resultados.push({producto});
-      if(resultados.length>=lim) return resultados;
     }
   }
-  return resultados;
+  const exactos=resultados.filter(({producto,presentacion})=>presentacion&&normalizar(nombrePresentacionPeso(producto,presentacion))===consulta);
+  return (exactos.length?exactos:resultados).slice(0,lim);
 }
 function buscarCombos(q,lim=5){
   q=q.trim().toLowerCase(); if(!q) return [];
@@ -4531,13 +4530,13 @@ function confirmarProductoSinStock(p,luego){
 }
 function seleccionarPresentacionPeso(p){
   modal({titulo:'Presentaciones de '+p.nombre,
-    cuerpo:`<div class="peso-opciones">${p.preciosPorPeso.map(x=>`<button type="button" class="btn ghost" data-vender-presentacion="${esc(x.gramos)}"><span>${esc(nombrePresentacionPeso(p,x))}</span><b>${$m(x.precio)}</b></button>`).join('')}</div>`,
+    cuerpo:`<div class="peso-opciones">${p.preciosPorPeso.map(x=>`<button type="button" class="btn ghost" data-vender-presentacion="${esc(x.gramos)}" data-presentacion="${esc(nombrePresentacionPeso(p,x))}"><span>${esc(nombrePresentacionPeso(p,x))}</span><b>${$m(x.precio)}</b></button>`).join('')}</div>`,
     pie:`<button class="btn ghost" data-cerrar>Cancelar</button>`,
     alAbrir:ov=>{
       const salir=()=>{cerrarModal();$('#scan')?.focus();};
       ov.mpCerrar=salir;
       const panel=$('.mod',ov);panel.tabIndex=-1;panel.focus();
-      $$('[data-vender-presentacion]',ov).forEach(b=>b.onclick=()=>{salir();elegirResultado('producto',p.id,b.dataset.venderPresentacion);});
+      $$('[data-vender-presentacion]',ov).forEach(b=>b.onclick=()=>{salir();elegirResultado('producto',p.id,b.dataset.venderPresentacion,b.dataset.presentacion);});
     }});
 }
 function seleccionarProducto(p){
@@ -4545,7 +4544,7 @@ function seleccionarProducto(p){
   if(productoArchivadoRev31(p)){ofrecerDesarchivarRev31(p);return;}
   if(p.unidad==='kg'){
     const opciones=p.preciosPorPeso||[];
-    if(opciones.length===1)elegirResultado('producto',p.id,opciones[0].gramos);
+    if(opciones.length===1)elegirResultado('producto',p.id,opciones[0].gramos,opciones[0].nombre);
     else if(opciones.length>1)seleccionarPresentacionPeso(p);
     else pedirPeso(p);
     return;
@@ -4867,11 +4866,11 @@ function vVender(m){
         const granel=p.unidad==='kg'&&!porcion;
         const nombreResultado=porcion&&p.preciosPorPeso.length===1?p.nombre:porcion?nombrePresentacionPeso(p,porcion):p.nombre;
         const estado=disponible<=0?'bad':s<=Number(p.stockMin)?'warn':'ok';
-        return `<li data-tipo="producto" data-id="${esc(p.id)}"${porcion?` data-gramos="${esc(porcion.gramos)}"`:''}>${miniFoto(p)}
+        return `<li data-tipo="producto" data-id="${esc(p.id)}"${porcion?` data-gramos="${esc(porcion.gramos)}" data-presentacion="${esc(nombrePresentacionPeso(p,porcion))}"`:''}>${miniFoto(p)}
         <span style="flex:1;min-width:0"><span class="nm">${esc(nombreResultado)}${granel?' · Peso libre':''}</span><br><span class="mt">${porcion?esc(etiquetaPresentacionPeso(porcion.gramos))+' · ':''}${p.ean&&!porcion?esc(p.ean)+' · ':esc(p.rubro||'Sin código')+' · '}<span class="stock-state ${estado}">stock ${porcion?Math.max(0,disponible):fmtCant(p,p.stock)}</span></span></span>
         <span class="num" style="font-weight:600">${$m(porcion?porcion.precio:p.precio)}${granel?'/kg':''}</span></li>`;
       }).join('');
-    $$('#res li').forEach(li=>li.onclick=()=>{ elegirResultado(li.dataset.tipo,li.dataset.id,li.dataset.gramos); inp.value=''; cerrarRes(); if(!$('#ov'))inp.focus(); });
+    $$('#res li').forEach(li=>li.onclick=()=>{ elegirResultado(li.dataset.tipo,li.dataset.id,li.dataset.gramos,li.dataset.presentacion); inp.value=''; cerrarRes(); if(!$('#ov'))inp.focus(); });
   });
   inp.addEventListener('keydown',e=>{
     const items=$$('#res li');
@@ -4880,14 +4879,14 @@ function vVender(m){
     else if(e.key==='Enter'){
       e.preventDefault();
       const v=inp.value.trim(); if(!v) return;
-      if(sel>=0&&items[sel]){ const {tipo,id,gramos}=items[sel].dataset;elegirResultado(tipo,id,gramos); inp.value=''; cerrarRes(); return; }
+      if(sel>=0&&items[sel]){ const {tipo,id,gramos,presentacion}=items[sel].dataset;elegirResultado(tipo,id,gramos,presentacion); inp.value=''; cerrarRes(); return; }
       // el lector de códigos escribe y manda Enter: buscamos EAN exacto
       const p=db.productos.find(x=>(x.ean||'')===v&&!productoArchivadoRev31(x))||db.productos.find(x=>(x.ean||'')===v);
       if(p){seleccionarProducto(p);inp.value='';cerrarRes();return;}
       const r=buscarProductosVenta(v,2), rc=buscarCombos(v,2);
       if(r.length+rc.length===1){
         if(rc.length) agregarComboAlTicket(rc[0]);
-        else elegirResultado('producto',r[0].producto.id,r[0].presentacion?.gramos);
+        else elegirResultado('producto',r[0].producto.id,r[0].presentacion?.gramos,r[0].presentacion?nombrePresentacionPeso(r[0].producto,r[0].presentacion):undefined);
         inp.value=''; cerrarRes(); return;
       }
       if(!r.length&&!rc.length) codigoDesconocido(v);
@@ -4895,12 +4894,13 @@ function vVender(m){
   });
   document.addEventListener('click',e=>{ if(!e.target.closest('.results')&&!e.target.closest('.scan')) cerrarRes(); });
 }
-function elegirResultado(tipo,id,gramos){
+function elegirResultado(tipo,id,gramos,nombrePresentacion){
   if(tipo==='combo'){ const c=(db.combos||[]).find(x=>x.id===id); if(c) agregarComboAlTicket(c); }
   else{
     const p=prod(id);
     if(gramos){
-      const presentacion=p?.unidad==='kg'&&!productoArchivadoRev31(p)&&p.preciosPorPeso?.find(x=>x.gramos===Number(gramos));
+      const candidatas=p?.unidad==='kg'&&!productoArchivadoRev31(p)?(p.preciosPorPeso||[]).filter(x=>x.gramos===Number(gramos)):[];
+      const presentacion=nombrePresentacion!==undefined?candidatas.find(x=>nombrePresentacionPeso(p,x)===nombrePresentacion):candidatas.length===1?candidatas[0]:null;
       if(presentacion)agregarAlTicket(p,presentacion.gramos/1000,presentacion);
       else aviso('Este tamaño ya no está disponible.','bad');
       return;
@@ -5949,10 +5949,10 @@ function formProducto(id,pre={},luego){
       agregarPeso.onclick=()=>agregarFilaPeso({},'nombre');
       $$('[data-tamano-gramos]',editorPeso).forEach(boton=>boton.onclick=()=>{
         const gramos=Number(boton.dataset.tamanoGramos);
-        const existente=[...filasPeso.children].find(fila=>numeroEditorProducto(leerFila(fila).gramos,0)===gramos);
-        if(existente){enfocarCampo($('[data-peso-precio]',existente));return;}
         const nombre=$('#f_nom',ov).value.trim();
-        agregarFilaPeso({gramos,nombre:nombre?nombrePresentacionPeso({nombre},{gramos}).slice(0,120):''},nombre?'precio':'nombre');
+        const sugerido=nombre?nombrePresentacionPeso({nombre},{gramos}).slice(0,120):'';
+        const repetido=[...filasPeso.children].some(fila=>normalizarBusqueda(leerFila(fila).nombre)===normalizarBusqueda(sugerido));
+        agregarFilaPeso({gramos,nombre:repetido?'':sugerido},sugerido&&!repetido?'precio':'nombre');
       });
       const selRubro=$('#f_rub',ov), bloqueRubroNuevo=$('#bloqueRubroNuevo',ov), inpRubroNuevo=$('#f_rub_nuevo',ov);
       const mostrarRubroNuevo=(enfocar=false)=>{
@@ -6160,8 +6160,8 @@ function formProducto(id,pre={},luego){
               enfocarCampo(campoNombre);return;
             }
             const gramos=numeroEditorProducto(valorGramos,0);
-            if(!Number.isInteger(gramos)||gramos<=0||gramos>999999||preciosPorPeso.some(x=>x.gramos===gramos)){
-              aviso('Ingresá un peso válido en gramos que no esté repetido.','bad');
+            if(!Number.isInteger(gramos)||gramos<=0||gramos>999999){
+              aviso('Ingresá un peso válido en gramos.','bad');
               enfocarCampo(campoGramos);return;
             }
             const fijo=numeroEditorProducto(valorPrecio,2);

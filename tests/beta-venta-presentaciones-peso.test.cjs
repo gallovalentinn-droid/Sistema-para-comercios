@@ -6,6 +6,45 @@ const vm=require('node:vm');
 const html=readFileSync(require('node:path').join(__dirname,'../beta/index.html'),'utf8');
 const block=(from,to)=>html.slice(html.indexOf(from),html.indexOf(to));
 
+test('Cuarto exacto tiene prioridad sobre el alias de 250 g, sin ocultar coincidencias exactas de otro producto',()=>{
+  for(const invertir of [false,true]){
+    const tamanos=[{nombre:'Cuarto',gramos:250,precio:8000},{nombre:'Milkshake',gramos:250,precio:6000}];
+    const ctx=vm.createContext({db:{productos:[{id:'h',nombre:'Helado',unidad:'kg',preciosPorPeso:invertir?tamanos.reverse():tamanos}]},productoArchivadoRev31:()=>false});
+    vm.runInContext([
+      block('function normalizarBusqueda(', 'function productoCoincideFiltro('),
+      block('function nombrePresentacionPeso(', 'function agregarAlTicket('),
+      "this.exacto=buscarProductosVenta('cuarto');this.peso=buscarProductosVenta('250 g');this.unico=buscarProductosVenta('cuarto',1);",
+      "db.productos.push({id:'otro',nombre:'Otro helado',unidad:'kg',preciosPorPeso:[{nombre:'Cuarto',gramos:250,precio:9000}]});this.ambiguos=buscarProductosVenta('cuarto');"
+    ].join('\n'),ctx);
+    assert.deepEqual(Array.from(ctx.exacto,r=>r.presentacion.nombre),['Cuarto']);
+    assert.equal(ctx.unico[0].presentacion.nombre,'Cuarto');
+    assert.equal(ctx.peso.length,2);
+    assert.deepEqual(Array.from(ctx.ambiguos,r=>r.producto.id),['h','otro']);
+  }
+});
+
+test('cuarto y milkshake del mismo peso conservan precio, envase y línea propios',()=>{
+  const helado={id:'h',nombre:'Helado',unidad:'kg',precio:20000,costo:10000,stock:3,
+    preciosPorPeso:[{nombre:'Cuarto',gramos:250,precio:8000,costoEnvase:300},{nombre:'Milkshake',gramos:250,precio:6000,costoEnvase:500}]};
+  let siguiente=0;
+  const mensajes=[];
+  const ctx=vm.createContext({db:{productos:[helado]},ticket:[],uid:()=>String(++siguiente),
+    prod:id=>id==='h'?helado:null,productoArchivadoRev31:()=>false,
+    pintarPOS(){},mostrarFeedbackProducto(){},aviso:m=>mensajes.push(m)});
+  vm.runInContext([
+    block('function nombrePresentacionPeso(', 'function buscarProductosVenta('),
+    block('function agregarAlTicket(', 'function comboStockDisponible('),
+    block('function elegirResultado(', 'function codigoDesconocido('),
+    "elegirResultado('producto','h',250,'Cuarto');elegirResultado('producto','h',250,'Milkshake');elegirResultado('producto','h',250,'Milkshake');"
+  ].join('\n'),ctx);
+  assert.deepEqual(Array.from(ctx.ticket,i=>[i.nombre,i.cant,i.precio*i.cant,i.costoEnvase]),
+    [['Cuarto',.25,8000,300],['Milkshake',.5,12000,500]]);
+  const antes=JSON.stringify(ctx.ticket);
+  vm.runInContext("elegirResultado('producto','h',250);elegirResultado('producto','h',250,'Borrada');",ctx);
+  assert.equal(JSON.stringify(ctx.ticket),antes,'Una referencia ambigua o borrada no elige el primer tamaño');
+  assert.equal(mensajes.length,2);
+});
+
 test('el detalle incluye el envase en el margen y no inventa margen para costo pendiente',()=>{
   const ctx=vm.createContext({nfKg:new Intl.NumberFormat('es-AR'),esc:String,$m:n=>String(n)});
   vm.runInContext(block('function nombrePresentacionPeso(', 'function buscarProductosVenta(')+
@@ -22,7 +61,7 @@ test('seleccionar un producto con una sola presentación no pregunta gramos',()=
     pedirPeso:()=>assert.fail('Se abrió la pregunta de gramos'),
     elegirResultado:(...args)=>elegidas.push(args)});
   vm.runInContext(block('function seleccionarProducto(', 'function ofrecerAbrirAtado(')+'seleccionarProducto(p);',ctx);
-  assert.deepEqual(elegidas,[['producto','nuevo',500]]);
+  assert.deepEqual(elegidas,[['producto','nuevo',500,'Helado medio']]);
 });
 
 test('sin presentaciones conserva gramos; con varias pide un tamaño, no un peso',()=>{
