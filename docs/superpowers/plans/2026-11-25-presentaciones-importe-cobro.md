@@ -10,7 +10,7 @@ Base: 4e9fd34. HTML/JavaScript y PostgreSQL de Docker existentes. Sin publicar, 
 
 - El + del resumen de Tamaños fijos abre una fila vacía enfocada en Nombre. Editar sigue sirviendo para modificar las existentes. Se conservan tamaños, precios y envases ya cargados.
 - Venta por peso conserva Gramos y suma Importe. Solo se usa en productos sin presentaciones. El usuario confirmó cobrar el importe exacto y mostrar el peso aproximado, con las promociones y descuentos vigentes al cobrar.
-- El usuario confirmó: verificación apagada implica un toque en Transferencia/QR para confirmar la venta; encendida conserva el cobro conectado. El modo manual no debe esperar ni consultar cuentas para vender. Un cobro conectado pendiente conserva siempre su recuperación segura.
+- El usuario confirmó: verificación apagada implica elegir Transferencia/QR y confirmar con Cobrar, igual que con tarjeta; encendida conserva el cobro conectado. El modo manual no debe esperar ni consultar cuentas para vender. Un cobro conectado pendiente conserva siempre su recuperación segura.
 - La preferencia de cobro es del comercio, no solo del navegador; si requiere esquema nuevo, se prepara migración incremental y se aplica únicamente en Docker.
 
 ## Pasos
@@ -27,3 +27,5 @@ Importes que no equivalen a gramos enteros; precio por kilo cero; entradas invá
 
 
 Cierre: cinco hallazgos de revisión independiente reproducidos y corregidos (idempotencia manual, escaneo, proyección histórica, envío selectivo y F34). Sin segunda revisión. Migración solo en Docker. Candidato r21: 768/768 Node con SQL, 42 recorridos, diez ejemplos simulados, integridad50. La copia inicial del parche alteró selectores; corregida y cotejada literalmente antes de las verificaciones finales. Dos expectativas históricas sin cuenta se actualizaron al nuevo flujo manual. Informe en entregables/INFORME-UX-VENTA-IMPORTE-Y-COBRO-2026-11-25.md. Sin push ni publicación.
+
+Ajuste posterior r22: retirada la confirmación automática al elegir Transferencia/QR, por indicación del usuario. Regresión observada fallando y luego pasando; siete unitarias y cuatro recorridos finales aprobados en 1366/390. Conserva recuperación idempotente. Primer recorrido integrado: botón de peso deshabilitado en un paso posterior; no reproducido al instrumentar y repetir. Sin cambios de SQL ni de producción.

@@ -20,7 +20,7 @@ async function mpConfirmarCobroManual(){
    mpGuardarPendiente(p);
   }
   await mpCompletar(null,p,true);return true;
- }catch{if(scope===mpScope())aviso('No pudimos guardar la venta. Reintentá Transferencia/QR: se conserva la misma venta.','bad');return false;}
+ }catch{if(scope===mpScope())aviso('No pudimos guardar la venta. Volvé a confirmar el cobro: se conserva la misma venta.','bad');return false;}
  finally{mpOperacionOcupada=false;mpOperacionActual=null;liberar();}
 }
 function mpPintarCobroManual(root,mensaje=''){

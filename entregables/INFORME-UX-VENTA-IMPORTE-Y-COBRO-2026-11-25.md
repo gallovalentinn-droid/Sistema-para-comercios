@@ -12,7 +12,7 @@ Se mantiene lo anterior: varias presentaciones pueden usar los mismos gramos, ca
 
 Configuración → Caja incorpora Verificar cobros con Mercado Pago. El usuario confirmó el comportamiento:
 
-- Apagado, que es el valor inicial: tocar Transferencia/QR confirma directamente la venta. No consulta cuentas ni inicia un cobro en Mercado Pago. La venta queda marcada como manual.
+- Apagado, que es el valor inicial: elegir Transferencia/QR selecciona el medio; el botón Cobrar confirma la venta, igual que con tarjeta. No consulta cuentas ni inicia un cobro en Mercado Pago. La venta queda marcada como manual.
 - Encendido: conserva el selector de cuenta, QR y verificación de transferencias existentes. Si la cuenta ya no está disponible, se ofrece el cobro manual.
 - Un cobro conectado pendiente debe resolverse aunque se apague la opción. Cambiar la preferencia no permite omitir la cancelación ni registrar dos veces un pago.
 
@@ -49,10 +49,10 @@ No hubo una segunda revisión independiente después de las correcciones.
 
 Las pruebas de integración también detectaron que una copia del parche había alterado selectores de la página del candidato. Se corrigió y se cotejaron literalmente los 17 bloques de interfaz afectados y el archivo de Mercado Pago con el worktree. Dos recorridos históricos se adaptaron al nuevo estado manual cuando no hay cuentas conectadas.
 
-## Verificación final
+## Verificación
 
-- Candidato Docker combinado: 768 pruebas Node aprobadas, cero fallas y cero omitidas, con MP_SQL_TEST y PESO_SQL_TEST habilitados.
-- 42 recorridos de navegador aprobados: 19 escenarios en 1366 y 390, dos adicionales en tema claro y dos del lector autenticado en Docker.
+- Preparación r21 del candidato Docker combinado: 768 pruebas Node aprobadas, cero fallas y cero omitidas, con MP_SQL_TEST y PESO_SQL_TEST habilitados.
+- Preparación r21: 42 recorridos de navegador aprobados: 19 escenarios en 1366 y 390, dos adicionales en tema claro y dos del lector autenticado en Docker.
 - Diez ejemplos multiproducto del lector aprobados con proveedores simulados. Fotos interceptadas, sin enviarlas a IA.
 - SQL real local: reaplicación, proyección histórica, persistencia true/false, rechazo de texto, rechazo de empleado y sesión ausente, dueño y permisos conservados. Los datos de prueba se revierten con ROLLBACK.
 - Integridad de 50 archivos correcta en ambas copias. Diff sin errores de espacios.
@@ -60,9 +60,16 @@ Las pruebas de integración también detectaron que una copia del parche había 
 
 El recorrido de la venta manual usa el guardado real de IndexedDB en un navegador aislado. Provoca un fallo de persistencia y reintenta: queda una sola venta, una sola baja de stock y el mismo importe. Los recorridos conectados usan respuestas de Mercado Pago simuladas.
 
+
+### Confirmación explícita de la transferencia
+
+El ajuste r22 responde a la última indicación del usuario: seleccionar Transferencia/QR no guarda la venta, no inicia un intento y no descuenta stock. Después se confirma con el botón Cobrar. Conserva el reintento de la misma venta cuando falla el guardado. Se actualizó también la explicación en Configuración y el aviso de error para indicar que hay que volver a confirmar.
+
+Verificación de este ajuste: siete pruebas unitarias y cuatro recorridos de navegador aprobados, dos del cobro manual y dos del selector conectado, en 1366 y 390. Integridad50 correcta. La prueba del cierre directo falló primero como correspondía y pasó tras quitarlo. Un primer recorrido integrado se detuvo por el botón de peso deshabilitado en su escenario final sin cuentas; se agregó diagnóstico a la aserción y no se reprodujo en las dos ejecuciones finales. No se modificó el conversor por ese resultado. La batería completa de 768 y los 42 recorridos anteriores corresponden a r21.
+
 ## Archivos y publicación futura
 
-Docker sirve la edición `2026-11-25-venta-importe-cobro-manual-r21`, caché rev107-r21. El worktree usa `2026-11-25-venta-importe-cobro-manual-local-r10`, caché rev109-r10. Sus bases son diferentes; estos identificadores son locales.
+Docker sirve la edición `2026-11-25-venta-importe-cobro-manual-r22`, caché rev107-r22. El worktree usa `2026-11-25-venta-importe-cobro-manual-local-r11`, caché rev109-r11. Sus bases son diferentes; estos identificadores son locales.
 
 Se conservaron los extractores y el diseño previo del lector. No hubo push, despliegues, SQL remoto, cambios de secretos, ventas o cobros reales ni llamadas pagas.
 

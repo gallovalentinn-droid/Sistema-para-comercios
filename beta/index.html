@@ -1123,7 +1123,7 @@ const MICOMERCIO_BUILD=Object.freeze({
   version:'6.0.0-f6-rc2',
   phase:'F6',
   packageRevision:109,
-  packageEdition:'2026-11-25-venta-importe-cobro-manual-local-r10',
+  packageEdition:'2026-11-25-venta-importe-cobro-manual-local-r11',
   baseBuild:'5.0.0-f5-rc2',
   projectionContract:'f5-projection-v1',
   configContract:'11-canonical+6-legacy-only',
@@ -5104,9 +5104,6 @@ function pintarPagoModal(ov){
 
   $$('.seg button',ov).forEach(b=>b.onclick=()=>{
     pago=b.dataset.p;
-    if(pago==='transferencia'&&typeof mpCobroConectado==='function'&&!mpCobroConectado()){
-      void mpConfirmarCobroManual();return;
-    }
     if(pago==='mixto'&&!pagoMixto.length) pagoMixto=[{forma:'efectivo',monto:''},{forma:'tarjeta',monto:''}];
     pintarPagoModal(ov);
   });
@@ -11898,7 +11895,7 @@ function vConfig(m){
   <div class="card config-card" id="cf-caja" style="margin-bottom:16px">
     <div class="card-h"><h2>Caja</h2></div>
     <div class="card-b">
-      <div class="fila-config"><label for="cfgVerificarCobrosMP"><b>Verificar cobros con Mercado Pago</b><span class="sub-config">Apagado: tocar Transferencia/QR confirma la venta. Encendido: verificás el pago o generás un QR.</span></label><input type="checkbox" role="switch" id="cfgVerificarCobrosMP" ${db.config.verificarCobrosMP===true?'checked':''}></div>
+      <div class="fila-config"><label for="cfgVerificarCobrosMP"><b>Verificar cobros con Mercado Pago</b><span class="sub-config">Apagado: elegís Transferencia/QR y confirmás el cobro. Encendido: verificás el pago o generás un QR.</span></label><input type="checkbox" role="switch" id="cfgVerificarCobrosMP" ${db.config.verificarCobrosMP===true?'checked':''}></div>
       <fieldset class="cash-mode-options"><legend>¿Cómo manejás el efectivo?</legend>${f57OpcionesModoCajaHTML(db.config)}</fieldset>
       <div class="fila-config config-caja-turnos">
         <div><b>¿Manejás la caja por turnos?</b><span class="sub-config">Si está activado, hay que abrir un turno antes de vender.</span></div>
